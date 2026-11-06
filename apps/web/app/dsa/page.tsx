@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
 import { RESOLVE_XP, solveXp } from "@habit/shared";
 import { getDsaView, type PatternView, type ProblemView } from "@/lib/dsa";
-import { markSolvedAction, undoSolveAction } from "../actions";
+import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
+import {
+  connectLeetCodeAction,
+  disconnectLeetCodeAction,
+  markSolvedAction,
+  syncLeetCodeAction,
+  undoSolveAction,
+} from "../actions";
 import { SubmitButton } from "../submit-button";
 import { PageMain, ProgressBar, Stat } from "../ui";
 
@@ -26,16 +34,19 @@ const fmt = (d: string) => {
 
 async function Dsa() {
   await connection();
-  const { groups, due, totals } = await getDsaView();
+  after(syncLeetCodeIfStale);
+  const [{ groups, due, extras, totals }, leetcode] = await Promise.all([getDsaView(), getLeetCodeStatus()]);
 
   return (
     <div className="space-y-8">
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Patterns" value={`${totals.patternsCovered} / ${totals.patterns}`} hint="covered (4+ solved)" />
-        <Stat label="Solved" value={`${totals.solved} / ${totals.problems}`} hint={`${totals.resolved} re-solved`} />
-        <Stat label="Re-solves due" value={String(due.length)} hint="14 days after solving" />
-        <Stat label="DSA XP" value={`${totals.xp}`} hint="Easy 5 · Med 15 · Hard 30" />
+        <Stat label="Roadmap solved" value={`${totals.solved} / ${totals.problems}`} hint={`${totals.resolved} re-solved`} />
+        <Stat label="All solved" value={String(totals.allSolved)} hint="goal: 150+" />
+        <Stat label="Re-solves due" value={String(due.length)} hint={`${totals.xp} DSA XP`} />
       </section>
+
+      <LeetCodeCard {...leetcode} />
 
       {due.length > 0 && (
         <section>
@@ -73,7 +84,122 @@ async function Dsa() {
           </details>
         ))}
       </section>
+
+      {extras.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-lg font-semibold">Other LeetCode solves</h2>
+          <p className="mb-3 text-sm text-muted">Synced problems outside the roadmap list. They count toward XP, streak and the 150+ goal.</p>
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {extras.map((e) => (
+              <li key={e.problemId} className="flex items-center gap-3 px-3 py-2">
+                <span className="w-6 text-center" aria-label="Synced from LeetCode">⚡</span>
+                <div className="min-w-0 flex-1">
+                  <ProblemTitle id={e.problemId} label={`${e.number ? `${e.number}. ` : ""}${e.title}`} url={e.url} noted={e.noted} />
+                  <p className="text-xs text-muted">
+                    <span className={`font-medium capitalize ${DIFFICULTY_STYLE[e.difficulty]}`}>{e.difficulty}</span> · Solved {fmt(e.solvedOn)}
+                  </p>
+                </div>
+                <span className="text-sm text-muted">+{e.xp} XP</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
+  );
+}
+
+/** Title links to the problem page (notes + code); ↗ opens the problem itself. */
+function ProblemTitle(props: { id: string; label: string; url?: string; noted?: boolean; auto?: boolean; premium?: boolean }) {
+  return (
+    <span>
+      <Link href={`/dsa/${encodeURIComponent(props.id)}`} prefetch={false} className="hover:underline">
+        {props.label}
+      </Link>
+      {props.url && (
+        <a
+          href={props.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open ${props.label} on ${props.url.includes("leetcode.com") ? "LeetCode" : "the web"}`}
+          className="ml-1.5 text-xs text-muted hover:text-foreground"
+        >
+          ↗
+        </a>
+      )}
+      {props.noted && (
+        <span className="ml-1.5 text-xs" title="Has notes or saved code">
+          📝
+        </span>
+      )}
+      {props.auto && (
+        <span className="ml-1.5 text-xs" title="Synced from LeetCode">
+          ⚡
+        </span>
+      )}
+      {props.premium && (
+        <span className="ml-1.5 text-xs text-muted" title="LeetCode Premium">
+          🔒
+        </span>
+      )}
+    </span>
+  );
+}
+
+function ago(iso: string) {
+  const mins = Math.round((Date.now() - Date.parse(iso)) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  return hours < 24 ? `${hours} h ago` : `${Math.round(hours / 24)} d ago`;
+}
+
+function LeetCodeCard({ username, last }: Awaited<ReturnType<typeof getLeetCodeStatus>>) {
+  const input = "min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2";
+  return (
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <h2 className="font-semibold">⚡ LeetCode auto-sync</h2>
+      {!username ? (
+        <>
+          <p className="mt-1 mb-3 text-sm text-muted">
+            Enter your LeetCode username and accepted submissions are ticked here automatically (problems outside the list count too).
+            Only your public profile is read; no login needed.
+          </p>
+          <form action={connectLeetCodeAction} className="flex flex-col gap-2 sm:flex-row">
+            <input name="username" required maxLength={40} placeholder="LeetCode username" aria-label="LeetCode username" className={input} />
+            <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Connect</SubmitButton>
+          </form>
+        </>
+      ) : (
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm">
+            Syncing{" "}
+            <a href={`https://leetcode.com/u/${username}/`} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+              @{username}
+            </a>
+            <span className="text-muted"> · checks every 15 min while the app is open</span>
+          </p>
+          <div className="flex gap-2">
+            <form action={syncLeetCodeAction}>
+              <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Sync now</SubmitButton>
+            </form>
+            <form action={disconnectLeetCodeAction}>
+              <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm">Disconnect</SubmitButton>
+            </form>
+          </div>
+        </div>
+      )}
+      {last && (
+        <p role="status" className={`mt-2 text-sm ${last.ok ? "text-muted" : "text-cat-mock"}`}>
+          {last.ok
+            ? `Last sync ${ago(last.at)}: ${last.added} new solve${last.added === 1 ? "" : "s"}${last.resolved ? `, ${last.resolved} re-solve${last.resolved === 1 ? "" : "s"}` : ""}.`
+            : `Sync failed ${ago(last.at)}: ${last.error}`}
+        </p>
+      )}
+      <p className="mt-2 text-xs text-muted">
+        LeetCode only shares your 20 most recent accepted submissions, so open the app at least once on busy days.
+      </p>
+    </section>
   );
 }
 
@@ -130,18 +256,7 @@ function ProblemRow({ p }: { p: ProblemView }) {
       )}
 
       <div className="min-w-0 flex-1">
-        {p.url ? (
-          <a href={p.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-            {label}
-          </a>
-        ) : (
-          <span>{label}</span>
-        )}
-        {p.premium && (
-          <span className="ml-1.5 text-xs text-muted" title="LeetCode Premium">
-            🔒
-          </span>
-        )}
+        <ProblemTitle id={p.id} label={label} url={p.url} noted={p.noted} auto={p.auto} premium={p.premium} />
         <p className="text-xs text-muted">
           {p.difficulty && <span className={`font-medium capitalize ${DIFFICULTY_STYLE[p.difficulty]}`}>{p.difficulty}</span>}
           {s.state === "solved" && (

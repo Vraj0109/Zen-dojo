@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
+import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { CATEGORIES, TOTAL_WEEKS, formatLong, type Category } from "@habit/shared";
 import Link from "next/link";
 import { getResolveDueCount } from "@/lib/dsa";
@@ -23,6 +24,7 @@ export default function Page() {
 async function Today() {
   // Today's date and the database are per-request; render at request time.
   await connection();
+  after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
   const [v, resolveDue] = await Promise.all([getTodayView(), getResolveDueCount()]);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;

@@ -1,7 +1,7 @@
 import "server-only";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
@@ -23,8 +23,13 @@ function databaseUrl(): string {
   return "file:" + path.join(dataDir, "habit.db").replaceAll("\\", "/");
 }
 
-// Bare-bones migration: create tables if missing. Replace with drizzle-kit migrations later.
-const INIT_SQL = `
+/**
+ * Schema migrations, applied in order. The database's `PRAGMA user_version` records how many
+ * have run, so each runs once. Never edit a shipped migration; append a new one instead.
+ * Migration 1 uses IF NOT EXISTS because databases created before versioning already have it.
+ */
+export const MIGRATIONS: string[] = [
+  `
 CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TEXT NOT NULL,
@@ -52,14 +57,50 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-`;
+`,
+  // 2: LeetCode sync
+  `
+ALTER TABLE problem_solves ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
+CREATE TABLE leetcode_submissions (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL,
+  solved_on TEXT NOT NULL,
+  synced_at TEXT NOT NULL
+);
+CREATE TABLE leetcode_problems (
+  slug TEXT PRIMARY KEY,
+  number INTEGER,
+  title TEXT NOT NULL,
+  difficulty TEXT NOT NULL
+);
+`,
+  // 3: per-problem notes and saved solution code
+  `
+CREATE TABLE problem_notes (
+  problem_id TEXT PRIMARY KEY,
+  notes TEXT NOT NULL DEFAULT '',
+  code TEXT NOT NULL DEFAULT '',
+  language TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+`,
+];
+
+async function migrate(client: Client) {
+  const { rows } = await client.execute("PRAGMA user_version");
+  const current = Number(rows[0]?.[0] ?? 0);
+  for (let v = current; v < MIGRATIONS.length; v++) {
+    // Run each migration and its version bump atomically.
+    await client.executeMultiple(`BEGIN;\n${MIGRATIONS[v]}\nPRAGMA user_version = ${v + 1};\nCOMMIT;`);
+  }
+}
 
 const globalForDb = globalThis as unknown as { habitDb?: ReturnType<typeof create> };
 
 function create() {
   const client = createClient({ url: databaseUrl() });
   const db = drizzle(client, { schema });
-  const ready = client.executeMultiple(INIT_SQL).then(() => db);
+  const ready = migrate(client).then(() => db);
   return { db, ready };
 }
 

@@ -400,7 +400,7 @@ export const SOLVE_XP: Record<Difficulty | "other", number> = { easy: 5, medium:
 export const RESOLVE_XP = 10;
 export const RESOLVE_AFTER_DAYS = 14;
 
-export function solveXp(problem: Problem): number {
+export function solveXp(problem: Pick<Problem, "difficulty">): number {
   return SOLVE_XP[problem.difficulty ?? "other"];
 }
 

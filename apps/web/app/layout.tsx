@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Nav } from "./nav";
+import { Suspense } from "react";
+import { Nav, NavLinks } from "./nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <p className="text-sm font-medium text-muted">SDE2 / SWE3 prep</p>
             <p className="text-3xl font-semibold tracking-tight">HabitManager</p>
           </div>
-          <Nav />
+          <Suspense fallback={<NavLinks pathname={null} />}>
+            <Nav />
+          </Suspense>
         </header>
         {children}
       </body>

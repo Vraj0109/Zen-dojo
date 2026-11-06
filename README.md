@@ -7,7 +7,24 @@ Data is stored locally in `data/habit.db` (SQLite).
 |---|---|
 | **Today** (`/`) | Daily + weekly tasks from the roadmap, tick/untick, custom tasks, XP, level, streak, re-solve reminder |
 | **Roadmap** (`/roadmap`) | All 16 weeks with focus areas; goals, tasks, problems and XP per week |
-| **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later |
+| **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later; LeetCode auto-sync |
+| **Problem** (`/dsa/<id>`) | Patterns it belongs to, solve status, your notes and saved solution code (📝 on the DSA list) |
+
+### LeetCode auto-sync
+
+On the DSA page, connect your LeetCode username. The app reads your **public** recent accepted
+submissions from LeetCode's GraphQL API (no login, no password) and:
+
+- ticks roadmap problems you solve (marked ⚡) and records a re-solve if you solve one again 14+ days later;
+- records problems outside the roadmap under "Other LeetCode solves" (XP by difficulty);
+- ticks today's DSA warm-up task when you solve something today.
+
+It syncs when you open Today or DSA (at most every 15 minutes) or when you press **Sync now**.
+LeetCode only exposes your 20 most recent accepted submissions, so open the app on busy days.
+Each submission is imported once, so undoing an imported solve sticks.
+
+The database schema is versioned (`PRAGMA user_version`, see `MIGRATIONS` in `apps/web/lib/db.ts`);
+existing databases upgrade automatically on start.
 
 ## Quick start
 

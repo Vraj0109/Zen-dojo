@@ -2,7 +2,9 @@
 
 import { refresh } from "next/cache";
 import { CATEGORIES, type Category } from "@habit/shared";
-import { markSolved, undoSolve } from "@/lib/dsa";
+import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
+import { saveNote } from "@/lib/notes";
+import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
 import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
@@ -41,6 +43,33 @@ export async function markSolvedAction(formData: FormData) {
 
 export async function undoSolveAction(formData: FormData) {
   await undoSolve(String(formData.get("problemId") ?? ""));
+  refresh();
+}
+
+export async function saveNoteAction(formData: FormData) {
+  const problemId = String(formData.get("problemId") ?? "");
+  if (!(await getProblemDetail(problemId))) return; // only known problems
+  await saveNote(problemId, {
+    notes: String(formData.get("notes") ?? ""),
+    code: String(formData.get("code") ?? ""),
+    language: String(formData.get("language") ?? ""),
+  });
+  refresh();
+}
+
+// Results of these are stored in settings and shown by the LeetCode card on the DSA page.
+export async function connectLeetCodeAction(formData: FormData) {
+  await connectLeetCode(String(formData.get("username") ?? "").trim());
+  refresh();
+}
+
+export async function syncLeetCodeAction() {
+  await syncLeetCode();
+  refresh();
+}
+
+export async function disconnectLeetCodeAction() {
+  await disconnectLeetCode();
   refresh();
 }
 

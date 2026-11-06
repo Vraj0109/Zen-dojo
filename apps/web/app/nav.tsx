@@ -9,12 +9,17 @@ const LINKS = [
   { href: "/dsa", label: "DSA" },
 ] as const;
 
+/** Nav with the current page highlighted. Render inside <Suspense fallback={<NavLinks pathname={null} />}>:
+ * on routes with request-time params (e.g. /dsa/[id]) the pathname isn't known while prerendering. */
 export function Nav() {
-  const pathname = usePathname();
+  return <NavLinks pathname={usePathname()} />;
+}
+
+export function NavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="Main" className="flex gap-1 text-sm">
       {LINKS.map(({ href, label }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        const active = pathname !== null && (href === "/" ? pathname === "/" : pathname.startsWith(href));
         return (
           <Link
             key={href}

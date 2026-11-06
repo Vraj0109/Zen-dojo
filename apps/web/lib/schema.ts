@@ -28,6 +28,33 @@ export const problemSolves = sqliteTable("problem_solves", {
   /** Local date (YYYY-MM-DD); drives the streak and re-solve schedule. */
   solvedOn: text("solved_on").notNull(),
   xp: integer("xp").notNull(),
+  source: text("source", { enum: ["manual", "leetcode"] }).notNull().default("manual"),
+});
+
+/** LeetCode accepted submissions already processed, so each is imported once (and undo sticks). */
+export const leetcodeSubmissions = sqliteTable("leetcode_submissions", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
+  solvedOn: text("solved_on").notNull(),
+  syncedAt: text("synced_at").notNull(),
+});
+
+/** Your notes and saved solution for a problem (roadmap "lc-…"/"c-…" or other LeetCode "lcx-…"). */
+export const problemNotes = sqliteTable("problem_notes", {
+  problemId: text("problem_id").primaryKey(),
+  notes: text("notes").notNull().default(""),
+  code: text("code").notNull().default(""),
+  language: text("language").notNull().default(""),
+  /** ISO timestamp */
+  updatedAt: text("updated_at").notNull(),
+});
+
+/** Details of LeetCode problems solved outside the roadmap list. */
+export const leetcodeProblems = sqliteTable("leetcode_problems", {
+  slug: text("slug").primaryKey(),
+  number: integer("number"),
+  title: text("title").notNull(),
+  difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).notNull(),
 });
 
 export const settings = sqliteTable("settings", {

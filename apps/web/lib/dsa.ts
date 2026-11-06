@@ -1,6 +1,7 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, like, sql } from "drizzle-orm";
 import {
+  ALL_PATTERNS,
   DSA_GROUPS,
   PROBLEMS,
   RESOLVE_XP,
@@ -8,27 +9,59 @@ import {
   solveState,
   solveXp,
   toLocalDate,
+  type Difficulty,
   type Pattern,
   type Problem,
   type SolveState,
 } from "@habit/shared";
 import { getDb } from "./db";
-import { problemSolves } from "./schema";
+import { getNote, getNotedIds, type ProblemNote } from "./notes";
+import { leetcodeProblems, problemSolves } from "./schema";
 
+/** Solve history for roadmap problems (ids in PROBLEMS). Other LeetCode solves are handled separately. */
 async function solveIndex() {
   const db = await getDb();
   const rows = await db.select().from(problemSolves).orderBy(problemSolves.id);
   const first = new Map<string, string>();
   const resolved = new Map<string, string>();
+  const auto = new Set<string>();
   for (const r of rows) {
-    if (r.kind === "solve" && !first.has(r.problemId)) first.set(r.problemId, r.solvedOn);
+    if (!(r.problemId in PROBLEMS)) continue;
+    if (r.kind === "solve" && !first.has(r.problemId)) {
+      first.set(r.problemId, r.solvedOn);
+      if (r.source === "leetcode") auto.add(r.problemId);
+    }
     if (r.kind === "resolve") resolved.set(r.problemId, r.solvedOn);
   }
-  return { rows, first, resolved };
+  return { rows, first, resolved, auto };
 }
 
 export interface ProblemView extends Problem {
   status: SolveState;
+  /** First solve was imported from LeetCode */
+  auto: boolean;
+  /** Has notes or saved code */
+  noted: boolean;
+}
+
+/** LeetCode solves of problems outside the roadmap list, newest first. */
+async function getExtraSolves() {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      problemId: problemSolves.problemId,
+      solvedOn: problemSolves.solvedOn,
+      xp: problemSolves.xp,
+      title: leetcodeProblems.title,
+      number: leetcodeProblems.number,
+      slug: leetcodeProblems.slug,
+      difficulty: leetcodeProblems.difficulty,
+    })
+    .from(problemSolves)
+    .innerJoin(leetcodeProblems, eq(problemSolves.problemId, sql`'lcx-' || ${leetcodeProblems.slug}`))
+    .where(and(like(problemSolves.problemId, "lcx-%"), eq(problemSolves.kind, "solve")))
+    .orderBy(desc(problemSolves.solvedOn), desc(problemSolves.id));
+  return rows.map((r) => ({ ...r, url: `https://leetcode.com/problems/${r.slug}/` }));
 }
 
 export interface PatternView extends Pattern {
@@ -40,8 +73,14 @@ export interface PatternView extends Pattern {
 
 export async function getDsaView() {
   const today = toLocalDate();
-  const { rows, first, resolved } = await solveIndex();
-  const view = (id: string): ProblemView => ({ ...PROBLEMS[id], status: solveState(first.get(id), resolved.get(id), today) });
+  const [{ rows, first, resolved, auto }, extraRows, noted] = await Promise.all([solveIndex(), getExtraSolves(), getNotedIds()]);
+  const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId) }));
+  const view = (id: string): ProblemView => ({
+    ...PROBLEMS[id],
+    status: solveState(first.get(id), resolved.get(id), today),
+    auto: auto.has(id),
+    noted: noted.has(id),
+  });
 
   const groups = DSA_GROUPS.map((g) => {
     const patterns: PatternView[] = g.patterns.map((p) => {
@@ -61,14 +100,69 @@ export async function getDsaView() {
     today,
     groups,
     due,
+    extras,
     totals: {
       patterns: patterns.length,
       patternsCovered: patterns.filter((p) => p.covered).length,
       problems: allIds.length,
       solved: first.size,
       resolved: resolved.size,
+      /** Every distinct problem solved, roadmap or not (roadmap checklist: 150+). */
+      allSolved: first.size + extras.length,
       xp: rows.reduce((sum, r) => sum + r.xp, 0),
     },
+  };
+}
+
+export interface ProblemDetail {
+  id: string;
+  kind: "roadmap" | "extra";
+  title: string;
+  number?: number | null;
+  url?: string;
+  difficulty?: Difficulty;
+  premium?: boolean;
+  patterns: Pick<Pattern, "id" | "name" | "recognize">[];
+  status: SolveState;
+  auto: boolean;
+  note: ProblemNote | null;
+}
+
+/** Everything the problem page needs; null for unknown ids. */
+export async function getProblemDetail(id: string): Promise<ProblemDetail | null> {
+  const today = toLocalDate();
+  if (id in PROBLEMS) {
+    const [{ first, resolved, auto }, note] = await Promise.all([solveIndex(), getNote(id)]);
+    return {
+      ...PROBLEMS[id],
+      kind: "roadmap",
+      patterns: ALL_PATTERNS.filter((p) => p.problems.includes(id)).map(({ id, name, recognize }) => ({ id, name, recognize })),
+      status: solveState(first.get(id), resolved.get(id), today),
+      auto: auto.has(id),
+      note,
+    };
+  }
+  if (!id.startsWith("lcx-")) return null;
+  const db = await getDb();
+  const slug = id.slice("lcx-".length);
+  const [info, solve, note] = await Promise.all([
+    db.query.leetcodeProblems.findFirst({ where: eq(leetcodeProblems.slug, slug) }),
+    db.query.problemSolves.findFirst({ where: and(eq(problemSolves.problemId, id), eq(problemSolves.kind, "solve")) }),
+    getNote(id),
+  ]);
+  if (!info) return null;
+  return {
+    id,
+    kind: "extra",
+    title: info.title,
+    number: info.number,
+    url: `https://leetcode.com/problems/${slug}/`,
+    difficulty: info.difficulty,
+    patterns: [],
+    // Re-solves are only scheduled for roadmap problems.
+    status: solve ? { state: "resolved", solvedOn: solve.solvedOn, resolvedOn: solve.solvedOn } : { state: "unsolved" },
+    auto: solve?.source === "leetcode",
+    note,
   };
 }
 
