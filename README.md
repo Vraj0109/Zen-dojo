@@ -12,6 +12,7 @@ Data is stored locally in `data/habit.db` (SQLite).
 | **Design** (`/study/sd`) | System design from the roadmap: 30 concepts (fundamentals, data storage, building blocks) with a "what to know" checklist, 1-5 confidence and notes; 27 classic designs with a practice log scored on the 45-minute framework, re-practice in 7/14/30 days by score, and notes |
 | **LLD** (`/study/lld`) | The roadmap's 6 LLD topics as checklists, and its 10 classic problems with a practice log scored on the 4-step LLD answer, plus notes and your class code |
 | **Core CS** (`/study/core`) | Operating systems, databases and networks: 24 concept checklists with confidence, notes and review reminders |
+| **Stats** (`/stats`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
 
 ### LeetCode auto-sync
 

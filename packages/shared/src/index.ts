@@ -3,3 +3,4 @@ export * from "./dates";
 export * from "./game";
 export * from "./dsa";
 export * from "./study";
+export * from "./stats";
