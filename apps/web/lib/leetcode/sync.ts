@@ -3,7 +3,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import { PROBLEMS, RESOLVE_AFTER_DAYS, RESOLVE_XP, SOLVE_XP, daysBetween, solveXp, toLocalDate } from "@habit/shared";
 import { getDb } from "../db";
 import { leetcodeProblems, leetcodeSubmissions, problemSolves, settings, tasks } from "../schema";
-import { LeetCodeError, USERNAME_RE, fetchQuestion, fetchRecentAccepted, userExists } from "./client";
+import { getPlanStart } from "../tasks";
+import { LeetCodeError, USERNAME_RE, fetchQuestion, fetchRecentAccepted, userExists, type AcceptedSubmission } from "./client";
 
 const KEY_USERNAME = "leetcode_username";
 const KEY_LAST = "leetcode_last_sync";
@@ -97,9 +98,19 @@ async function runSync(): Promise<SyncResult> {
 }
 
 async function importSubmissions(username: string, syncedAt: string) {
+  return recordAccepted(await fetchRecentAccepted(username), syncedAt);
+}
+
+/**
+ * Record solves/re-solves for accepted submissions (from the public sync or the browser extension).
+ * Each submission id is processed once. Solves dated before the plan start count as solved but
+ * give no XP, so importing years of history doesn't inflate your level.
+ */
+export async function recordAccepted(accepted: AcceptedSubmission[], syncedAt: string) {
   const db = await getDb();
-  const subs = (await fetchRecentAccepted(username)).sort((a, b) => a.timestamp - b.timestamp);
+  const subs = [...accepted].sort((a, b) => a.timestamp - b.timestamp);
   if (subs.length === 0) return { added: 0, resolved: 0 };
+  const planStart = await getPlanStart();
 
   const seen = new Set(
     (await db.select({ id: leetcodeSubmissions.id }).from(leetcodeSubmissions).where(inArray(leetcodeSubmissions.id, subs.map((s) => s.id)))).map(
@@ -135,17 +146,18 @@ async function importSubmissions(username: string, syncedAt: string) {
       }
       xp = SOLVE_XP[difficulty ?? "medium"];
     }
+    const beforePlan = solvedOn < planStart;
 
     const existing = await db.select().from(problemSolves).where(eq(problemSolves.problemId, problemId)).orderBy(problemSolves.id);
     const first = existing.find((r) => r.kind === "solve");
     const hasResolve = existing.some((r) => r.kind === "resolve");
 
     if (!first) {
-      await db.insert(problemSolves).values({ problemId, kind: "solve", solvedOn, xp, source: "leetcode" });
+      await db.insert(problemSolves).values({ problemId, kind: "solve", solvedOn, xp: beforePlan ? 0 : xp, source: "leetcode" });
       added++;
       solvedToday ||= solvedOn === today;
     } else if (roadmapId && !hasResolve && daysBetween(first.solvedOn, solvedOn) >= RESOLVE_AFTER_DAYS) {
-      await db.insert(problemSolves).values({ problemId, kind: "resolve", solvedOn, xp: RESOLVE_XP, source: "leetcode" });
+      await db.insert(problemSolves).values({ problemId, kind: "resolve", solvedOn, xp: beforePlan ? 0 : RESOLVE_XP, source: "leetcode" });
       resolved++;
       solvedToday ||= solvedOn === today;
     }

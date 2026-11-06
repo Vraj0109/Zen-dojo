@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const tasks = sqliteTable(
   "tasks",
@@ -55,6 +55,33 @@ export const leetcodeProblems = sqliteTable("leetcode_problems", {
   number: integer("number"),
   title: text("title").notNull(),
   difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).notNull(),
+});
+
+/** Your own accepted LeetCode submissions with code, captured by the browser extension. */
+export const leetcodeUserSubmissions = sqliteTable("leetcode_user_submissions", {
+  /** LeetCode submission id */
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
+  /** Display name, e.g. "Java", "Python3" */
+  lang: text("lang").notNull(),
+  runtime: text("runtime"),
+  runtimePct: real("runtime_pct"),
+  memory: text("memory"),
+  memoryPct: real("memory_pct"),
+  code: text("code").notNull(),
+  /** Notes you wrote on the submission in LeetCode */
+  notes: text("notes").notNull().default(""),
+  /** Unix seconds */
+  submittedAt: integer("submitted_at").notNull(),
+  /** ISO timestamp */
+  importedAt: text("imported_at").notNull(),
+});
+
+/** LeetCode topic tags of a problem, e.g. ["Array", "Hash Table"]. */
+export const leetcodeTopics = sqliteTable("leetcode_topics", {
+  slug: text("slug").primaryKey(),
+  /** JSON array of tag names */
+  tags: text("tags", { mode: "json" }).$type<string[]>().notNull(),
 });
 
 export const settings = sqliteTable("settings", {

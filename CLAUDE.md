@@ -15,7 +15,12 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
   (67 patterns, 201 problems; LeetCode slugs verified against LeetCode), `dates.ts`, `game.ts` (XP/level/streak)
 - `apps/web/lib/`: server-only data layer. `db.ts` (libSQL client + `MIGRATIONS`), `schema.ts` (Drizzle),
   `tasks.ts`, `dsa.ts`, `progress.ts` (XP/streak across tasks + solves), `roadmap.ts`, `leetcode/{client,sync}.ts`
-- `apps/web/app/`: pages `/` (Today), `/roadmap`, `/dsa`; all mutations in `actions.ts` (server actions)
+- `apps/web/app/`: pages `/` (Today), `/roadmap`, `/dsa`, `/dsa/[id]`; all mutations in `actions.ts` (server actions);
+  `api/ext/*` route handlers for the extension (pairing-key auth in `lib/leetcode/extension.ts`)
+- `apps/extension/`: MV3 extension, plain JS + `// @ts-check` (typechecked, no build step). `lib/leetcode.js`
+  (queries/parsing) and `lib/sync.js` (backfill/recent/capture, I/O injected) are pure and tested; `content.js`
+  runs on leetcode.com and calls GraphQL with the user's own session; `background.js` is the only part that
+  calls the app
 - `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
 
 ## Conventions
@@ -27,8 +32,9 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
 - Schema changes: append a new SQL string to `MIGRATIONS` in `db.ts` and update `schema.ts`. Never edit a
   shipped migration (`PRAGMA user_version` tracks them).
 - XP is computed from rows (`tasks.xp` where done, `problem_solves.xp`), not stored as a running total.
-- LeetCode: unofficial public GraphQL, anonymous (no credentials, by design). All HTTP/parsing in
-  `leetcode/client.ts`. Never add cookie/session-based auth.
+- LeetCode: the app's own sync is anonymous public GraphQL (`leetcode/client.ts`); never give the app
+  LeetCode cookies/credentials. Private data (code, notes) comes only via the extension, which runs in the
+  user's logged-in leetcode.com tab. Both paths record solves through `recordAccepted` in `leetcode/sync.ts`.
 - Tests: `*.test.ts` next to the code. DB tests use `DATABASE_URL=":memory:"`, reset `globalThis.habitDb`,
   fake only `Date` (`vi.useFakeTimers({ toFake: ["Date"] })`), and stub `fetch` for LeetCode.
 - UI: Tailwind v4 with theme tokens in `app/globals.css` (`bg-surface`, `text-muted`, `border-line`,

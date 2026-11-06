@@ -8,7 +8,7 @@ Data is stored locally in `data/habit.db` (SQLite).
 | **Today** (`/`) | Daily + weekly tasks from the roadmap, tick/untick, custom tasks, XP, level, streak, re-solve reminder |
 | **Roadmap** (`/roadmap`) | All 16 weeks with focus areas; goals, tasks, problems and XP per week |
 | **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later; LeetCode auto-sync |
-| **Problem** (`/dsa/<id>`) | Patterns it belongs to, solve status, your notes and saved solution code (📝 on the DSA list) |
+| **Problem** (`/dsa/<id>`) | Patterns it belongs to, solve status, your notes and saved solution code (📝 on the DSA list), and every accepted LeetCode submission imported by the extension |
 
 ### LeetCode auto-sync
 
@@ -22,6 +22,40 @@ submissions from LeetCode's GraphQL API (no login, no password) and:
 It syncs when you open Today or DSA (at most every 15 minutes) or when you press **Sync now**.
 LeetCode only exposes your 20 most recent accepted submissions, so open the app on busy days.
 Each submission is imported once, so undoing an imported solve sticks.
+
+### Browser extension: your full LeetCode history
+
+`apps/extension` is a Chrome/Edge extension that imports **your own** accepted submissions:
+code, language, runtime and memory (with percentiles), exact time, and the notes you wrote on them.
+It calls LeetCode from inside a leetcode.com tab where you're already logged in, so it never sees your
+password and nothing about your login is stored. It only runs on leetcode.com and only talks to the app on
+`localhost` / `127.0.0.1`.
+
+**Install (once)**
+
+1. Start the app (`pnpm start`) and open **DSA**. Under *Browser extension*, click **Show pairing key** and copy it.
+2. In Chrome go to `chrome://extensions` (Edge: `edge://extensions`), turn on **Developer mode**,
+   click **Load unpacked** and pick the `apps/extension` folder.
+3. Click the extension's icon (pin it from the puzzle-piece menu), paste the key, and click **Save & test**.
+
+**Use**
+
+- **Import history**: in the popup. It reads your solved list, then only checks problems that are **on
+  HabitManager** (the roadmap list plus your other synced problems) and saves every accepted submission of
+  those, three requests at a time. Keep the leetcode.com tab it opens until it finishes. Running it again only
+  fetches new submissions. *Everything I've solved* imports all your solved problems instead (slower).
+- **Live capture**: with a leetcode.com tab open, each Accepted submission is sent to the app within seconds,
+  and your 20 most recent are caught up every 10 minutes.
+- Submissions show up on each problem's page (`/dsa/<id>`) under *Your LeetCode submissions*.
+- On the DSA list each problem shows: ✓ solved, 📝 notes (yours in the app or on LeetCode), 💻 *n* saved
+  solutions, and its LeetCode topics. Topics arrive with *Import history* (no extra requests to LeetCode), so
+  they appear for problems you've solved.
+- Solves dated **before your plan start** count as solved (and schedule a re-solve) but give **no XP**,
+  so years of history don't inflate your level.
+- After pulling changes to `apps/extension`, click the reload icon on the extension's card in `chrome://extensions`.
+
+**New key**: *New key* on the DSA page makes the old key stop working; paste the new one into the extension.
+The key keeps other websites and programs from adding data to the app.
 
 The database schema is versioned (`PRAGMA user_version`, see `MIGRATIONS` in `apps/web/lib/db.ts`);
 existing databases upgrade automatically on start.
@@ -96,7 +130,8 @@ Run `pnpm check` before pushing to catch what CI would.
 ## Layout
 
 ```
-apps/web/          Next.js app (Today page, server actions, SQLite via Drizzle + libSQL)
+apps/web/          Next.js app (pages, server actions, /api/ext for the extension, SQLite via Drizzle + libSQL)
+apps/extension/    Chrome/Edge extension (plain JS, no build step) that imports your LeetCode submissions
 packages/shared/   Roadmap data, day templates, date helpers, XP/level/streak logic
 data/              Local database (git-ignored)
 ```

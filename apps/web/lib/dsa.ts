@@ -16,7 +16,7 @@ import {
 } from "@habit/shared";
 import { getDb } from "./db";
 import { getNote, getNotedIds, type ProblemNote } from "./notes";
-import { leetcodeProblems, problemSolves } from "./schema";
+import { leetcodeProblems, leetcodeTopics, leetcodeUserSubmissions, problemSolves } from "./schema";
 
 /** Solve history for roadmap problems (ids in PROBLEMS). Other LeetCode solves are handled separately. */
 async function solveIndex() {
@@ -40,8 +40,37 @@ export interface ProblemView extends Problem {
   status: SolveState;
   /** First solve was imported from LeetCode */
   auto: boolean;
-  /** Has notes or saved code */
+  /** Has notes or saved code in this app */
   noted: boolean;
+  /** Accepted LeetCode submissions saved by the extension */
+  submissions: number;
+  /** At least one of those submissions has LeetCode notes */
+  lcNotes: boolean;
+  /** LeetCode topic tags (known once the extension has seen the problem) */
+  topics: string[];
+}
+
+/** Per LeetCode slug: saved submission count, whether any has notes, and topic tags. */
+async function leetcodeIndex() {
+  const db = await getDb();
+  const [subs, topicRows] = await Promise.all([
+    db
+      .select({
+        slug: leetcodeUserSubmissions.slug,
+        count: sql<number>`count(*)`,
+        notes: sql<number>`max(length(${leetcodeUserSubmissions.notes}) > 0)`,
+      })
+      .from(leetcodeUserSubmissions)
+      .groupBy(leetcodeUserSubmissions.slug),
+    db.select().from(leetcodeTopics),
+  ]);
+  const bySlug = new Map(subs.map((s) => [s.slug, { submissions: Number(s.count), lcNotes: Number(s.notes) === 1 }]));
+  const topics = new Map(topicRows.map((t) => [t.slug, t.tags]));
+  return (slug: string | undefined) => ({
+    submissions: (slug && bySlug.get(slug)?.submissions) || 0,
+    lcNotes: (slug && bySlug.get(slug)?.lcNotes) || false,
+    topics: (slug && topics.get(slug)) || [],
+  });
 }
 
 /** LeetCode solves of problems outside the roadmap list, newest first. */
@@ -73,13 +102,14 @@ export interface PatternView extends Pattern {
 
 export async function getDsaView() {
   const today = toLocalDate();
-  const [{ rows, first, resolved, auto }, extraRows, noted] = await Promise.all([solveIndex(), getExtraSolves(), getNotedIds()]);
-  const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId) }));
+  const [{ rows, first, resolved, auto }, extraRows, noted, lc] = await Promise.all([solveIndex(), getExtraSolves(), getNotedIds(), leetcodeIndex()]);
+  const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), ...lc(e.slug) }));
   const view = (id: string): ProblemView => ({
     ...PROBLEMS[id],
     status: solveState(first.get(id), resolved.get(id), today),
     auto: auto.has(id),
     noted: noted.has(id),
+    ...lc(PROBLEMS[id].slug),
   });
 
   const groups = DSA_GROUPS.map((g) => {
@@ -126,13 +156,32 @@ export interface ProblemDetail {
   status: SolveState;
   auto: boolean;
   note: ProblemNote | null;
+  /** Your accepted LeetCode submissions (captured by the browser extension), newest first. */
+  submissions: UserSubmission[];
+  /** LeetCode topic tags */
+  topics: string[];
+}
+
+export type UserSubmission = typeof leetcodeUserSubmissions.$inferSelect;
+
+async function topicsFor(slug: string | undefined): Promise<string[]> {
+  if (!slug) return [];
+  const db = await getDb();
+  return (await db.query.leetcodeTopics.findFirst({ where: eq(leetcodeTopics.slug, slug) }))?.tags ?? [];
+}
+
+async function userSubmissions(slug: string | undefined): Promise<UserSubmission[]> {
+  if (!slug) return [];
+  const db = await getDb();
+  return db.select().from(leetcodeUserSubmissions).where(eq(leetcodeUserSubmissions.slug, slug)).orderBy(desc(leetcodeUserSubmissions.submittedAt));
 }
 
 /** Everything the problem page needs; null for unknown ids. */
 export async function getProblemDetail(id: string): Promise<ProblemDetail | null> {
   const today = toLocalDate();
   if (id in PROBLEMS) {
-    const [{ first, resolved, auto }, note] = await Promise.all([solveIndex(), getNote(id)]);
+    const slug = PROBLEMS[id].slug;
+    const [{ first, resolved, auto }, note, submissions, topics] = await Promise.all([solveIndex(), getNote(id), userSubmissions(slug), topicsFor(slug)]);
     return {
       ...PROBLEMS[id],
       kind: "roadmap",
@@ -140,15 +189,19 @@ export async function getProblemDetail(id: string): Promise<ProblemDetail | null
       status: solveState(first.get(id), resolved.get(id), today),
       auto: auto.has(id),
       note,
+      submissions,
+      topics,
     };
   }
   if (!id.startsWith("lcx-")) return null;
   const db = await getDb();
   const slug = id.slice("lcx-".length);
-  const [info, solve, note] = await Promise.all([
+  const [info, solve, note, submissions, topics] = await Promise.all([
     db.query.leetcodeProblems.findFirst({ where: eq(leetcodeProblems.slug, slug) }),
     db.query.problemSolves.findFirst({ where: and(eq(problemSolves.problemId, id), eq(problemSolves.kind, "solve")) }),
     getNote(id),
+    userSubmissions(slug),
+    topicsFor(slug),
   ]);
   if (!info) return null;
   return {
@@ -163,6 +216,8 @@ export async function getProblemDetail(id: string): Promise<ProblemDetail | null
     status: solve ? { state: "resolved", solvedOn: solve.solvedOn, resolvedOn: solve.solvedOn } : { state: "unsolved" },
     auto: solve?.source === "leetcode",
     note,
+    submissions,
+    topics,
   };
 }
 

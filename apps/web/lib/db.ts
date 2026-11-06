@@ -84,6 +84,30 @@ CREATE TABLE problem_notes (
   updated_at TEXT NOT NULL
 );
 `,
+  // 4: your own LeetCode submissions (code, runtime, notes) captured by the browser extension
+  `
+CREATE TABLE leetcode_user_submissions (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL,
+  lang TEXT NOT NULL,
+  runtime TEXT,
+  runtime_pct REAL,
+  memory TEXT,
+  memory_pct REAL,
+  code TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  submitted_at INTEGER NOT NULL,
+  imported_at TEXT NOT NULL
+);
+CREATE INDEX leetcode_user_submissions_slug ON leetcode_user_submissions (slug, submitted_at);
+`,
+  // 5: LeetCode topic tags per problem (sent by the extension)
+  `
+CREATE TABLE leetcode_topics (
+  slug TEXT PRIMARY KEY,
+  tags TEXT NOT NULL
+);
+`,
 ];
 
 async function migrate(client: Client) {

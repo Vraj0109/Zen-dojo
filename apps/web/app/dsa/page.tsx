@@ -4,11 +4,13 @@ import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { RESOLVE_XP, solveXp } from "@habit/shared";
 import { getDsaView, type PatternView, type ProblemView } from "@/lib/dsa";
+import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import {
   connectLeetCodeAction,
   disconnectLeetCodeAction,
   markSolvedAction,
+  regenerateExtensionKeyAction,
   syncLeetCodeAction,
   undoSolveAction,
 } from "../actions";
@@ -35,7 +37,7 @@ const fmt = (d: string) => {
 async function Dsa() {
   await connection();
   after(syncLeetCodeIfStale);
-  const [{ groups, due, extras, totals }, leetcode] = await Promise.all([getDsaView(), getLeetCodeStatus()]);
+  const [{ groups, due, extras, totals }, leetcode, extension] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus()]);
 
   return (
     <div className="space-y-8">
@@ -47,6 +49,7 @@ async function Dsa() {
       </section>
 
       <LeetCodeCard {...leetcode} />
+      <ExtensionCard {...extension} />
 
       {due.length > 0 && (
         <section>
@@ -94,9 +97,17 @@ async function Dsa() {
               <li key={e.problemId} className="flex items-center gap-3 px-3 py-2">
                 <span className="w-6 text-center" aria-label="Synced from LeetCode">⚡</span>
                 <div className="min-w-0 flex-1">
-                  <ProblemTitle id={e.problemId} label={`${e.number ? `${e.number}. ` : ""}${e.title}`} url={e.url} noted={e.noted} />
+                  <ProblemTitle
+                    id={e.problemId}
+                    label={`${e.number ? `${e.number}. ` : ""}${e.title}`}
+                    url={e.url}
+                    noted={e.noted}
+                    lcNotes={e.lcNotes}
+                    submissions={e.submissions}
+                  />
                   <p className="text-xs text-muted">
                     <span className={`font-medium capitalize ${DIFFICULTY_STYLE[e.difficulty]}`}>{e.difficulty}</span> · Solved {fmt(e.solvedOn)}
+                    <Topics topics={e.topics} />
                   </p>
                 </div>
                 <span className="text-sm text-muted">+{e.xp} XP</span>
@@ -110,7 +121,17 @@ async function Dsa() {
 }
 
 /** Title links to the problem page (notes + code); ↗ opens the problem itself. */
-function ProblemTitle(props: { id: string; label: string; url?: string; noted?: boolean; auto?: boolean; premium?: boolean }) {
+function ProblemTitle(props: {
+  id: string;
+  label: string;
+  url?: string;
+  noted?: boolean;
+  lcNotes?: boolean;
+  submissions?: number;
+  auto?: boolean;
+  premium?: boolean;
+}) {
+  const notesTitle = [props.noted && "your notes / saved code", props.lcNotes && "LeetCode notes"].filter(Boolean).join(" + ");
   return (
     <span>
       <Link href={`/dsa/${encodeURIComponent(props.id)}`} prefetch={false} className="hover:underline">
@@ -127,9 +148,17 @@ function ProblemTitle(props: { id: string; label: string; url?: string; noted?: 
           ↗
         </a>
       )}
-      {props.noted && (
-        <span className="ml-1.5 text-xs" title="Has notes or saved code">
+      {notesTitle && (
+        <span className="ml-1.5 text-xs" title={`Has ${notesTitle}`} aria-label={`Has ${notesTitle}`}>
           📝
+        </span>
+      )}
+      {!!props.submissions && (
+        <span
+          className="ml-1.5 text-xs text-muted"
+          title={`${props.submissions} accepted solution${props.submissions === 1 ? "" : "s"} saved from LeetCode`}
+        >
+          💻{props.submissions > 1 ? ` ${props.submissions}` : ""}
         </span>
       )}
       {props.auto && (
@@ -144,6 +173,12 @@ function ProblemTitle(props: { id: string; label: string; url?: string; noted?: 
       )}
     </span>
   );
+}
+
+/** LeetCode topic tags, after the difficulty/solve line. */
+function Topics({ topics }: { topics: string[] }) {
+  if (topics.length === 0) return null;
+  return <span title="LeetCode topics"> · {topics.join(", ")}</span>;
 }
 
 function ago(iso: string) {
@@ -203,6 +238,42 @@ function LeetCodeCard({ username, last }: Awaited<ReturnType<typeof getLeetCodeS
   );
 }
 
+function ExtensionCard({ token, last }: Awaited<ReturnType<typeof getExtensionStatus>>) {
+  return (
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <h2 className="font-semibold">🧩 Browser extension</h2>
+      <p className="mt-1 text-sm text-muted">
+        Imports your own accepted LeetCode submissions (code, language, runtime, memory, time, notes) while you&apos;re logged in on
+        leetcode.com, including your full history. Install it from <code className="text-foreground">apps/extension</code> (see README),
+        then paste this pairing key into it.
+      </p>
+      <details className="mt-3">
+        <summary className="cursor-pointer text-sm font-medium">Show pairing key</summary>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            readOnly
+            value={token}
+            aria-label="Pairing key"
+            className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2 font-mono text-sm"
+          />
+          <form action={regenerateExtensionKeyAction}>
+            <SubmitButton className="rounded-lg border border-line px-3 py-2 text-sm" title="The extension must be paired again">
+              New key
+            </SubmitButton>
+          </form>
+        </div>
+        <p className="mt-1 text-xs text-muted">Treat it like a password: anything with this key can add solves to this app.</p>
+      </details>
+      {last && (
+        <p role="status" className="mt-2 text-sm text-muted">
+          Last import {ago(last.at)}: {last.stored} submission{last.stored === 1 ? "" : "s"}, {last.added} new solve{last.added === 1 ? "" : "s"}
+          {last.resolved ? `, ${last.resolved} re-solve${last.resolved === 1 ? "" : "s"}` : ""}.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function PatternBlock({ p }: { p: PatternView }) {
   return (
     <div>
@@ -256,7 +327,16 @@ function ProblemRow({ p }: { p: ProblemView }) {
       )}
 
       <div className="min-w-0 flex-1">
-        <ProblemTitle id={p.id} label={label} url={p.url} noted={p.noted} auto={p.auto} premium={p.premium} />
+        <ProblemTitle
+          id={p.id}
+          label={label}
+          url={p.url}
+          noted={p.noted}
+          lcNotes={p.lcNotes}
+          submissions={p.submissions}
+          auto={p.auto}
+          premium={p.premium}
+        />
         <p className="text-xs text-muted">
           {p.difficulty && <span className={`font-medium capitalize ${DIFFICULTY_STYLE[p.difficulty]}`}>{p.difficulty}</span>}
           {s.state === "solved" && (
@@ -269,6 +349,7 @@ function ProblemRow({ p }: { p: ProblemView }) {
               {p.difficulty && " · "}Solved {fmt(s.solvedOn)} · re-solved {fmt(s.resolvedOn)}
             </span>
           )}
+          <Topics topics={p.topics} />
         </p>
       </div>
 

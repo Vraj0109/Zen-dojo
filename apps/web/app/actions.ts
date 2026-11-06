@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { CATEGORIES, type Category } from "@habit/shared";
 import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
 import { saveNote } from "@/lib/notes";
+import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
 import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
 
@@ -70,6 +71,11 @@ export async function syncLeetCodeAction() {
 
 export async function disconnectLeetCodeAction() {
   await disconnectLeetCode();
+  refresh();
+}
+
+export async function regenerateExtensionKeyAction() {
+  await regenerateExtensionToken();
   refresh();
 }
 
