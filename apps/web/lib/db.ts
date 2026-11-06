@@ -108,6 +108,31 @@ CREATE TABLE leetcode_topics (
   tags TEXT NOT NULL
 );
 `,
+  // 6: study areas (system design, LLD, core CS): concept confidence and practice sessions
+  `
+CREATE TABLE concept_progress (
+  concept_id TEXT PRIMARY KEY,
+  confidence INTEGER NOT NULL DEFAULT 0,
+  checked TEXT NOT NULL DEFAULT '[]',
+  notes TEXT NOT NULL DEFAULT '',
+  covered_on TEXT,
+  xp INTEGER NOT NULL DEFAULT 0,
+  updated_on TEXT NOT NULL
+);
+CREATE TABLE practice_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id TEXT NOT NULL,
+  practiced_on TEXT NOT NULL,
+  minutes INTEGER,
+  scores TEXT NOT NULL DEFAULT '{}',
+  score REAL NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  link TEXT,
+  xp INTEGER NOT NULL
+);
+CREATE INDEX practice_sessions_item ON practice_sessions (item_id, practiced_on);
+CREATE INDEX practice_sessions_on ON practice_sessions (practiced_on);
+`,
 ];
 
 async function migrate(client: Client) {

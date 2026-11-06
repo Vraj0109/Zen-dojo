@@ -1,27 +1,30 @@
 import "server-only";
-import { eq, isNotNull, sql } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { currentStreak, levelInfo } from "@habit/shared";
 import { getDb } from "./db";
-import { problemSolves, tasks } from "./schema";
+import { conceptProgress, practiceSessions, problemSolves, tasks } from "./schema";
 
-/** XP, level and streak across everything that earns XP: tasks and DSA solves. */
-export async function getProgress(today: string) {
+/** Every XP-earning row with its local date: done tasks, DSA solves, practice sessions, covered concepts. */
+export async function xpEvents(): Promise<{ on: string; xp: number }[]> {
   const db = await getDb();
-  const [taskXp, solveXp, taskToday, solveToday, taskDays, solveDays] = await Promise.all([
-    db.select({ xp: sql<number>`coalesce(sum(${tasks.xp}), 0)` }).from(tasks).where(eq(tasks.status, "done")),
-    db.select({ xp: sql<number>`coalesce(sum(${problemSolves.xp}), 0)` }).from(problemSolves),
-    db.select({ xp: sql<number>`coalesce(sum(${tasks.xp}), 0)` }).from(tasks).where(eq(tasks.doneOn, today)),
-    db.select({ xp: sql<number>`coalesce(sum(${problemSolves.xp}), 0)` }).from(problemSolves).where(eq(problemSolves.solvedOn, today)),
-    db.selectDistinct({ d: tasks.doneOn }).from(tasks).where(isNotNull(tasks.doneOn)),
-    db.selectDistinct({ d: problemSolves.solvedOn }).from(problemSolves),
+  const [t, s, p, c] = await Promise.all([
+    db.select({ on: tasks.doneOn, xp: tasks.xp }).from(tasks).where(eq(tasks.status, "done")),
+    db.select({ on: problemSolves.solvedOn, xp: problemSolves.xp }).from(problemSolves),
+    db.select({ on: practiceSessions.practicedOn, xp: practiceSessions.xp }).from(practiceSessions),
+    db.select({ on: conceptProgress.coveredOn, xp: conceptProgress.xp }).from(conceptProgress).where(isNotNull(conceptProgress.coveredOn)),
   ]);
+  return [...t, ...s, ...p, ...c].flatMap((r) => (r.on ? [{ on: r.on, xp: r.xp }] : []));
+}
 
-  const totalXp = Number(taskXp[0]?.xp ?? 0) + Number(solveXp[0]?.xp ?? 0);
-  const activeDays = [...taskDays.map((r) => r.d!), ...solveDays.map((r) => r.d)];
+/** XP, level and streak across everything that earns XP. Any activity on a day keeps the streak. */
+export async function getProgress(today: string) {
+  const events = await xpEvents();
+  const totalXp = events.reduce((a, e) => a + e.xp, 0);
   return {
     totalXp,
-    todayXp: Number(taskToday[0]?.xp ?? 0) + Number(solveToday[0]?.xp ?? 0),
-    streak: currentStreak(activeDays, today),
+    todayXp: events.filter((e) => e.on === today).reduce((a, e) => a + e.xp, 0),
+    streak: currentStreak([...new Set(events.map((e) => e.on))], today),
     level: levelInfo(totalXp),
   };
 }
+

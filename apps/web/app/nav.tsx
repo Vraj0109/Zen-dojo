@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/", label: "Today" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/dsa", label: "DSA" },
+  { href: "/study/sd", label: "Design" },
 ] as const;
 
 /** Nav with the current page highlighted. Render inside <Suspense fallback={<NavLinks pathname={null} />}>:
@@ -17,7 +18,7 @@ export function Nav() {
 
 export function NavLinks({ pathname }: { pathname: string | null }) {
   return (
-    <nav aria-label="Main" className="flex gap-1 text-sm">
+    <nav aria-label="Main" className="flex flex-wrap gap-1 text-sm">
       {LINKS.map(({ href, label }) => {
         const active = pathname !== null && (href === "/" ? pathname === "/" : pathname.startsWith(href));
         return (

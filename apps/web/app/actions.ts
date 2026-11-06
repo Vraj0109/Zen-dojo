@@ -1,12 +1,13 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { CATEGORIES, type Category } from "@habit/shared";
+import { ALL_EXERCISES, CATEGORIES, type Category } from "@habit/shared";
 import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
 import { saveNote } from "@/lib/notes";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
 import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
+import { deletePractice, logPractice, saveConcept } from "@/lib/study";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
 // beyond localhost (see SPEC.md "Hosted mode").
@@ -49,7 +50,8 @@ export async function undoSolveAction(formData: FormData) {
 
 export async function saveNoteAction(formData: FormData) {
   const problemId = String(formData.get("problemId") ?? "");
-  if (!(await getProblemDetail(problemId))) return; // only known problems
+  // only known DSA problems, designs and LLD problems
+  if (!(problemId in ALL_EXERCISES) && !(await getProblemDetail(problemId))) return;
   await saveNote(problemId, {
     notes: String(formData.get("notes") ?? ""),
     code: String(formData.get("code") ?? ""),
@@ -83,5 +85,37 @@ export async function setPlanStartAction(formData: FormData) {
   const date = String(formData.get("planStart") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   await setPlanStart(date);
+  refresh();
+}
+
+// Study areas (system design, LLD, core CS)
+
+export async function saveConceptAction(formData: FormData) {
+  await saveConcept(String(formData.get("conceptId") ?? ""), {
+    confidence: Number(formData.get("confidence") ?? 0),
+    checked: formData.getAll("point").map(Number),
+    notes: String(formData.get("notes") ?? ""),
+  });
+  refresh();
+}
+
+export async function logPracticeAction(formData: FormData) {
+  const scores: Record<string, number> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("score:") && value !== "") scores[key.slice("score:".length)] = Number(value);
+  }
+  const minutes = String(formData.get("minutes") ?? "").trim();
+  await logPractice(String(formData.get("itemId") ?? ""), {
+    minutes: minutes ? Number(minutes) : null,
+    scores,
+    notes: String(formData.get("notes") ?? ""),
+    link: String(formData.get("link") ?? ""),
+  });
+  refresh();
+}
+
+export async function deletePracticeAction(formData: FormData) {
+  const id = idFrom(formData);
+  if (id) await deletePractice(id);
   refresh();
 }

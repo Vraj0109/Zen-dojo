@@ -84,6 +84,36 @@ export const leetcodeTopics = sqliteTable("leetcode_topics", {
   tags: text("tags", { mode: "json" }).$type<string[]>().notNull(),
 });
 
+/** Your confidence (0-5), ticked points and notes for a study concept (system design, LLD, core CS). */
+export const conceptProgress = sqliteTable("concept_progress", {
+  conceptId: text("concept_id").primaryKey(),
+  confidence: integer("confidence").notNull().default(0),
+  /** Indexes of the concept's points you've ticked */
+  checked: text("checked", { mode: "json" }).$type<number[]>().notNull().default([]),
+  notes: text("notes").notNull().default(""),
+  /** Local date confidence first reached COVERED_CONFIDENCE (earns CONCEPT_XP once) */
+  coveredOn: text("covered_on"),
+  xp: integer("xp").notNull().default(0),
+  /** Local date of the last change; drives review reminders */
+  updatedOn: text("updated_on").notNull(),
+});
+
+/** One practice of a design or LLD problem, self-scored per framework step (1-5). */
+export const practiceSessions = sqliteTable("practice_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  itemId: text("item_id").notNull(),
+  /** Local date (YYYY-MM-DD); drives the streak and re-practice schedule */
+  practicedOn: text("practiced_on").notNull(),
+  minutes: integer("minutes"),
+  scores: text("scores", { mode: "json" }).$type<Record<string, number>>().notNull().default({}),
+  /** Average of the step scores */
+  score: real("score").notNull(),
+  notes: text("notes").notNull().default(""),
+  /** Diagram or recording link */
+  link: text("link"),
+  xp: integer("xp").notNull(),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),

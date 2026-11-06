@@ -5,8 +5,8 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { RESOLVE_XP, solveXp } from "@habit/shared";
 import { getProblemDetail } from "@/lib/dsa";
-import { LANGUAGES, NOTE_LIMITS } from "@/lib/notes";
-import { markSolvedAction, saveNoteAction, undoSolveAction } from "../../actions";
+import { markSolvedAction, undoSolveAction } from "../../actions";
+import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { PageMain } from "../../ui";
 
@@ -48,7 +48,6 @@ async function Problem({ params }: { params: PageProps<"/dsa/[id]">["params"] })
 
   const s = p.status;
   const label = p.number ? `${p.number}. ${p.title}` : p.title;
-  const field = "w-full rounded-lg border border-line bg-background px-3 py-2";
 
   return (
     <article className="space-y-6">
@@ -152,57 +151,12 @@ async function Problem({ params }: { params: PageProps<"/dsa/[id]">["params"] })
         </section>
       )}
 
-      <form action={saveNoteAction} className="space-y-4">
-        <input type="hidden" name="problemId" value={p.id} />
-        <div>
-          <label htmlFor="notes" className="mb-1 block font-semibold">
-            Your notes
-          </label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={8}
-            maxLength={NOTE_LIMITS.notes}
-            defaultValue={p.note?.notes ?? ""}
-            placeholder={NOTES_TEMPLATE}
-            className={field}
-          />
-        </div>
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-3">
-            <label htmlFor="code" className="font-semibold">
-              Your solution
-            </label>
-            <select
-              name="language"
-              aria-label="Language"
-              defaultValue={p.note?.language || "Java"}
-              className="rounded-lg border border-line bg-background px-2 py-1 text-sm"
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <textarea
-            id="code"
-            name="code"
-            rows={16}
-            maxLength={NOTE_LIMITS.code}
-            spellCheck={false}
-            defaultValue={p.note?.code ?? ""}
-            placeholder="Paste the code you submitted. When you re-solve, write it fresh first, then compare."
-            className={`${field} font-mono text-sm`}
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>
-          {p.note && (
-            <span className="text-sm text-muted">Last saved {new Date(p.note.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</span>
-          )}
-        </div>
-        <p className="text-xs text-muted">Stored only in your local database. Saving both fields empty removes the note.</p>
-      </form>
+      <NotesForm
+        id={p.id}
+        note={p.note}
+        notesPlaceholder={NOTES_TEMPLATE}
+        codePlaceholder="Paste the code you submitted. When you re-solve, write it fresh first, then compare."
+      />
     </article>
   );
 }

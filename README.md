@@ -9,6 +9,7 @@ Data is stored locally in `data/habit.db` (SQLite).
 | **Roadmap** (`/roadmap`) | All 16 weeks with focus areas; goals, tasks, problems and XP per week |
 | **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later; LeetCode auto-sync; search and filter by name/number, difficulty, status, notes and LeetCode topic |
 | **Problem** (`/dsa/<id>`) | Patterns it belongs to, solve status, your notes and saved solution code (📝 on the DSA list), and every accepted LeetCode submission imported by the extension |
+| **Design** (`/study/sd`) | System design from the roadmap: 30 concepts (fundamentals, data storage, building blocks) with a "what to know" checklist, 1-5 confidence and notes; 27 classic designs with a practice log scored on the 45-minute framework, re-practice in 7/14/30 days by score, and notes |
 
 ### LeetCode auto-sync
 

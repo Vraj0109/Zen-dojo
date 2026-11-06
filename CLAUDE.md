@@ -12,10 +12,11 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
 ## Layout
 
 - `packages/shared/src/`: pure logic + data, no I/O. `plan.ts` (16 weeks, task templates), `dsa.ts`
-  (67 patterns, 201 problems; LeetCode slugs verified against LeetCode), `dates.ts`, `game.ts` (XP/level/streak)
+  (67 patterns, 201 problems; LeetCode slugs verified against LeetCode), `dates.ts`, `game.ts` (XP/level/streak),
+  `study.ts` (study areas: concept checklists + practice exercises; system design content from the PDF)
 - `apps/web/lib/`: server-only data layer. `db.ts` (libSQL client + `MIGRATIONS`), `schema.ts` (Drizzle),
-  `tasks.ts`, `dsa.ts`, `progress.ts` (XP/streak across tasks + solves), `roadmap.ts`, `leetcode/{client,sync}.ts`
-- `apps/web/app/`: pages `/` (Today), `/roadmap`, `/dsa`, `/dsa/[id]`; all mutations in `actions.ts` (server actions);
+  `tasks.ts`, `dsa.ts`, `progress.ts` (XP/streak from every XP row: tasks, solves, practice sessions, covered concepts), `study.ts`, `roadmap.ts`, `leetcode/{client,sync}.ts`
+- `apps/web/app/`: pages `/` (Today), `/roadmap`, `/dsa`, `/dsa/[id]`, `/study/[area]`, `/study/[area]/[id]`; all mutations in `actions.ts` (server actions);
   `api/ext/*` route handlers for the extension (pairing-key auth in `lib/leetcode/extension.ts`)
 - `apps/extension/`: MV3 extension, plain JS + `// @ts-check` (typechecked, no build step). `lib/leetcode.js`
   (queries/parsing) and `lib/sync.js` (backfill/recent/capture, I/O injected) are pure and tested; `content.js`

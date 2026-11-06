@@ -4,6 +4,7 @@ import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { CATEGORIES, TOTAL_WEEKS, formatLong, type Category } from "@habit/shared";
 import Link from "next/link";
 import { getResolveDueCount } from "@/lib/dsa";
+import { getStudyDueCount } from "@/lib/study";
 import { getTodayView } from "@/lib/tasks";
 import type { Task } from "@/lib/schema";
 import { addTaskAction, deleteTaskAction, setPlanStartAction, toggleTaskAction } from "./actions";
@@ -25,7 +26,7 @@ async function Today() {
   // Today's date and the database are per-request; render at request time.
   await connection();
   after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
-  const [v, resolveDue] = await Promise.all([getTodayView(), getResolveDueCount()]);
+  const [v, resolveDue, studyDue] = await Promise.all([getTodayView(), getResolveDueCount(), getStudyDueCount()]);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;
   const doneToday = v.dayTasks.filter((t) => t.status === "done").length;
@@ -53,10 +54,16 @@ async function Today() {
 
       {resolveDue > 0 && (
         <Link
-          href="/dsa"
+          href="/dsa?status=due"
           className="block rounded-xl border border-accent bg-surface p-4 font-medium hover:bg-background"
         >
           🔁 {resolveDue} problem{resolveDue === 1 ? " is" : "s are"} due for a re-solve →
+        </Link>
+      )}
+
+      {studyDue > 0 && (
+        <Link href="/study/sd" className="block rounded-xl border border-accent bg-surface p-4 font-medium hover:bg-background">
+          🧠 {studyDue} design{studyDue === 1 ? " or concept is" : "s or concepts are"} due for review →
         </Link>
       )}
 
