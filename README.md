@@ -57,6 +57,19 @@ Set-ExecutionPolicy -Scope CurrentUser Undefined
 | `pnpm start` | Run the production build |
 | `pnpm typecheck` | TypeScript check across the workspace |
 | `pnpm lint` | ESLint |
+| `pnpm test` | Run all tests once (Vitest) |
+| `pnpm test:watch` | Re-run tests on every file change |
+| `pnpm check` | Everything CI runs: lint, typecheck, test, build |
+
+## Tests and CI
+
+- `packages/shared/src/*.test.ts`: date math (including DST), XP/levels, streaks, plan data.
+- `apps/web/lib/tasks.test.ts`: task generation, ticking, XP, streaks and plan-start changes
+  against a real in-memory SQLite database (no files touched).
+- GitHub Actions (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test` and `build` on
+  every push to `main` and every pull request, on both Windows and Linux.
+
+Run `pnpm check` before pushing to catch what CI would.
 
 ## Layout
 
