@@ -1,0 +1,23 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "yoavbls.pretty-ts-errors",
+    "usernamehw.errorlens",
+    "vitest.explorer",
+    "ms-playwright.playwright",
+    "ms-azuretools.vscode-containers",
+    "qwtel.sqlite-viewer",
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "mikestead.dotenv",
+    "editorconfig.editorconfig",
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker",
+    "eamodio.gitlens",
+    "pomdtr.excalidraw-editor",
+    "anthropic.claude-code"
+  ]
+}

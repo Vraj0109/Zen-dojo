@@ -1,0 +1,12 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "files.eol": "\n",
+  "files.associations": { "*.css": "tailwindcss" },
+  "tailwindCSS.experimental.classRegex": [["cn\(([^)]*)\)", "[\"'`]([^\"'`]*).*?[\"'`]"]],
+  "search.exclude": { "**/node_modules": true, "**/.next": true, "**/.output": true, "data/**": true },
+  "cSpell.words": ["HabbitManager", "libsql", "Turso", "Drizzle", "WXT", "Ollama", "Litestream", "shadcn", "Excalidraw"]
+}

@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f5;
+  --foreground: #1a1a1a;
+  --surface: #ffffff;
+  --line: #e4e4e0;
+  --muted: #6b6b66;
+  --accent: #2f7d5b;
+  --on-accent: #ffffff;
+  --cat-dsa: #3b82f6;
+  --cat-sd: #a855f7;
+  --cat-beh: #f59e0b;
+  --cat-mock: #ef4444;
+  --cat-other: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111211;
+    --foreground: #ececea;
+    --surface: #1a1b1a;
+    --line: #2c2d2b;
+    --muted: #9a9a94;
+    --accent: #4fb787;
+    --on-accent: #0b1a12;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-cat-dsa: var(--cat-dsa);
+  --color-cat-sd: var(--cat-sd);
+  --color-cat-beh: var(--cat-beh);
+  --color-cat-mock: var(--cat-mock);
+  --color-cat-other: var(--cat-other);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
