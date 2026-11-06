@@ -66,11 +66,12 @@ async function leetcodeIndex() {
   ]);
   const bySlug = new Map(subs.map((s) => [s.slug, { submissions: Number(s.count), lcNotes: Number(s.notes) === 1 }]));
   const topics = new Map(topicRows.map((t) => [t.slug, t.tags]));
-  return (slug: string | undefined) => ({
+  const lookup = (slug: string | undefined) => ({
     submissions: (slug && bySlug.get(slug)?.submissions) || 0,
     lcNotes: (slug && bySlug.get(slug)?.lcNotes) || false,
     topics: (slug && topics.get(slug)) || [],
   });
+  return lookup;
 }
 
 /** LeetCode solves of problems outside the roadmap list, newest first. */
@@ -125,12 +126,15 @@ export async function getDsaView() {
   const allIds = Object.keys(PROBLEMS);
   const due = allIds.map(view).filter((p) => p.status.state === "solved" && p.status.resolveDue);
   const patterns = groups.flatMap((g) => g.patterns);
+  // Topic tags seen on roadmap problems, for the filter dropdown.
+  const topics = [...new Set(allIds.flatMap((id) => lc(PROBLEMS[id].slug).topics))].sort();
 
   return {
     today,
     groups,
     due,
     extras,
+    topics,
     totals: {
       patterns: patterns.length,
       patternsCovered: patterns.filter((p) => p.covered).length,

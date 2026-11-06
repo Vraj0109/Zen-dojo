@@ -42,5 +42,5 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
 
 ## Workflow
 
-- The user runs git (add/commit/push) themselves. Don't commit or push; give the commands instead.
+- Commit locally after each finished feature (one commit per feature, after `pnpm check`). Never push; the user pushes.
 - After changes: `pnpm test`, then `pnpm check` before telling the user it's ready to push.

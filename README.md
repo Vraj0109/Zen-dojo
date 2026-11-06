@@ -7,7 +7,7 @@ Data is stored locally in `data/habit.db` (SQLite).
 |---|---|
 | **Today** (`/`) | Daily + weekly tasks from the roadmap, tick/untick, custom tasks, XP, level, streak, re-solve reminder |
 | **Roadmap** (`/roadmap`) | All 16 weeks with focus areas; goals, tasks, problems and XP per week |
-| **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later; LeetCode auto-sync |
+| **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later; LeetCode auto-sync; search and filter by name/number, difficulty, status, notes and LeetCode topic |
 | **Problem** (`/dsa/<id>`) | Patterns it belongs to, solve status, your notes and saved solution code (📝 on the DSA list), and every accepted LeetCode submission imported by the extension |
 
 ### LeetCode auto-sync

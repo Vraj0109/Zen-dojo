@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { RESOLVE_XP, solveXp } from "@habit/shared";
 import { getDsaView, type PatternView, type ProblemView } from "@/lib/dsa";
+import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, type DsaFilters } from "@/lib/dsa-filters";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import {
@@ -19,11 +20,11 @@ import { PageMain, ProgressBar, Stat } from "../ui";
 
 export const metadata: Metadata = { title: "DSA" };
 
-export default function DsaPage() {
+export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
   return (
     <PageMain title="DSA patterns">
       <Suspense fallback={<p className="text-muted">Loading patterns…</p>}>
-        <Dsa />
+        <Dsa searchParams={searchParams} />
       </Suspense>
     </PageMain>
   );
@@ -34,10 +35,17 @@ const fmt = (d: string) => {
   return new Date(y, m - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-async function Dsa() {
+async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchParams"] }) {
+  const params = await searchParams;
   await connection();
   after(syncLeetCodeIfStale);
-  const [{ groups, due, extras, totals }, leetcode, extension] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus()]);
+  const [{ groups, due, extras, topics, totals }, leetcode, extension] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus()]);
+
+  const filters = parseDsaFilters(params);
+  const filtering = hasActiveFilters(filters);
+  const results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
+  // Only the open group's problems are rendered (keeps the page small); ?group=none closes all.
+  const openGroup = typeof params.group === "string" ? params.group : groups[0]?.id;
 
   return (
     <div className="space-y-8">
@@ -65,27 +73,59 @@ async function Dsa() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Patterns</h2>
-        <p className="text-sm text-muted">
-          Learn the template, solve 4–6 problems easy to hard, then re-solve cold two weeks later.
-        </p>
-        {groups.map((g, i) => (
-          <details key={g.id} open={i === 0} className="group rounded-xl border border-line bg-surface">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
-              <span className="font-semibold">
-                <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
-                {g.title}
-              </span>
-              <span className="text-sm text-muted">
-                {g.covered}/{g.patterns.length} covered
-              </span>
-            </summary>
-            <div className="space-y-4 border-t border-line p-4">
-              {g.patterns.map((p) => (
-                <PatternBlock key={p.id} p={p} />
-              ))}
-            </div>
-          </details>
-        ))}
+        <FilterBar filters={filters} topics={topics} />
+        {filtering ? (
+          <div>
+            <p className="mb-2 text-sm text-muted" role="status">
+              {results.length} problem{results.length === 1 ? "" : "s"} match.{" "}
+              <Link href="/dsa" className="font-medium text-foreground hover:underline">
+                Clear filters
+              </Link>
+            </p>
+            {results.length > 0 && (
+              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                {results.map(({ problem, patterns }) => (
+                  <ProblemRow key={problem.id} p={problem} patterns={patterns} />
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-muted">
+              Learn the template, solve 4–6 problems easy to hard, then re-solve cold two weeks later.
+            </p>
+            {groups.map((g) => {
+              const open = g.id === openGroup;
+              return (
+                <div key={g.id} id={`g-${g.id}`} className="scroll-mt-4 rounded-xl border border-line bg-surface">
+                  <Link
+                    href={open ? "/dsa?group=none" : `/dsa?group=${g.id}#g-${g.id}`}
+                    scroll={false}
+                    prefetch={false}
+                    aria-expanded={open}
+                    className="flex items-center justify-between gap-3 p-4"
+                  >
+                    <span className="font-semibold">
+                      <span className={`mr-2 inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>
+                      {g.title}
+                    </span>
+                    <span className="text-sm text-muted">
+                      {g.covered}/{g.patterns.length} covered
+                    </span>
+                  </Link>
+                  {open && (
+                    <div className="space-y-4 border-t border-line p-4">
+                      {g.patterns.map((p) => (
+                        <PatternBlock key={p.id} p={p} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
       </section>
 
       {extras.length > 0 && (
@@ -274,6 +314,53 @@ function ExtensionCard({ token, last }: Awaited<ReturnType<typeof getExtensionSt
   );
 }
 
+function FilterBar({ filters, topics }: { filters: DsaFilters; topics: string[] }) {
+  const field = "rounded-lg border border-line bg-background px-2 py-1.5 text-sm";
+  return (
+    <form action="/dsa" className="flex flex-wrap gap-2" role="search">
+      <input
+        name="q"
+        type="search"
+        defaultValue={filters.q}
+        placeholder="Search name or number"
+        aria-label="Search problems"
+        className={`${field} min-w-0 flex-1 basis-40`}
+      />
+      <select name="difficulty" defaultValue={filters.difficulty} aria-label="Difficulty" className={field}>
+        <option value="">Any difficulty</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <select name="status" defaultValue={filters.status} aria-label="Status" className={field}>
+        <option value="">Any status</option>
+        {Object.entries(STATUS_FILTERS).map(([v, label]) => (
+          <option key={v} value={v}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <select name="has" defaultValue={filters.has} aria-label="Notes and solutions" className={field}>
+        <option value="">Notes: any</option>
+        {Object.entries(HAS_FILTERS).map(([v, label]) => (
+          <option key={v} value={v}>
+            {label}
+          </option>
+        ))}
+      </select>
+      {topics.length > 0 && (
+        <select name="topic" defaultValue={filters.topic} aria-label="LeetCode topic" className={field}>
+          <option value="">Any topic</option>
+          {topics.map((t) => (
+            <option key={t}>{t}</option>
+          ))}
+        </select>
+      )}
+      <button className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Filter</button>
+    </form>
+  );
+}
+
 function PatternBlock({ p }: { p: PatternView }) {
   return (
     <div>
@@ -299,7 +386,7 @@ function PatternBlock({ p }: { p: PatternView }) {
 
 const DIFFICULTY_STYLE = { easy: "text-cat-dsa", medium: "text-cat-beh", hard: "text-cat-mock" } as const;
 
-function ProblemRow({ p }: { p: ProblemView }) {
+function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[] }) {
   const s = p.status;
   const solved = s.state !== "unsolved";
   const due = s.state === "solved" && s.resolveDue;
@@ -350,6 +437,7 @@ function ProblemRow({ p }: { p: ProblemView }) {
             </span>
           )}
           <Topics topics={p.topics} />
+          {patterns && <span> · {patterns.join(", ")}</span>}
         </p>
       </div>
 
