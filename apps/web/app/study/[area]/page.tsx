@@ -72,6 +72,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         </section>
       )}
 
+      <div className="grid gap-8 xl:grid-cols-2">
       {sections.map((s) => {
         const covered = s.concepts.filter((c) => c.confidence >= COVERED_CONFIDENCE).length;
         return (
@@ -94,6 +95,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
           </section>
         );
       })}
+      </div>
 
       {area.exercises && (
         <section>

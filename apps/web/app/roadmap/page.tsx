@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { TOTAL_WEEKS } from "@habit/shared";
@@ -42,7 +43,7 @@ async function Roadmap() {
         </p>
       </section>
 
-      <ol className="space-y-3">
+      <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {weeks.map((w) => (
           <WeekCard key={w.week} w={w} state={w.week < currentWeek ? "past" : w.week === currentWeek ? "current" : "future"} />
         ))}
@@ -88,6 +89,9 @@ function WeekCard({ w, state }: { w: RoadmapWeek; state: "past" | "current" | "f
           <ProgressBar value={w.goalsDone} max={w.goalsTotal} label={`Week ${w.week} goals done`} />
         </div>
       )}
+      <Link href={state === "current" ? "/" : `/?week=${w.week}`} prefetch={false} className="mt-3 inline-block text-sm font-medium hover:underline">
+        {state === "future" ? "Work ahead" : "Open"}: week {w.week} focus →
+      </Link>
     </li>
   );
 }

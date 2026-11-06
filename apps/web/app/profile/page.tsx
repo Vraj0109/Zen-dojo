@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import type { Category, HeatCell } from "@habit/shared";
+import { TOTAL_WEEKS, planWeekNumber, type Category, type HeatCell } from "@habit/shared";
 import { BALANCE_DAYS, getStats } from "@/lib/stats";
-import { PageMain, Stat } from "../ui";
+import { getPlanStart } from "@/lib/tasks";
+import { PageMain, ProgressBar, Stat } from "../ui";
+import { ProfileTabs } from "./profile-ui";
 
-export const metadata: Metadata = { title: "Stats" };
+export const metadata: Metadata = { title: "Profile" };
 
-export default function StatsPage() {
+export default function ProfilePage() {
   return (
-    <PageMain title="Stats">
+    <PageMain title="Profile">
+      <ProfileTabs active="/profile" />
       <Suspense fallback={<p className="text-muted">Loading stats…</p>}>
         <Stats />
       </Suspense>
@@ -24,25 +27,48 @@ const fmt = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: "short", m
 
 async function Stats() {
   await connection();
-  const s = await getStats();
+  const [s, planStart] = await Promise.all([getStats(), getPlanStart()]);
   const { totals } = s;
+  const { level } = totals;
   const earned = s.badges.filter((b) => b.earned).length;
+  const weekNo = planWeekNumber(planStart, s.today);
+  const toNext = level.xpForNext - level.xpIntoLevel;
 
   return (
     <div className="space-y-8">
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Level" value={`${totals.level.level} · ${totals.level.tier}`} hint={`${totals.totalXp} XP total`} />
-        <Stat label="Streak" value={`${totals.streak} day${totals.streak === 1 ? "" : "s"}`} hint={`best ${totals.bestStreak}`} />
-        <Stat label="Active days" value={String(totals.activeDays)} hint={`${totals.hours} h logged`} />
-        <Stat label="Badges" value={`${earned} / ${s.badges.length}`} hint="earned" />
+      <section className="flex flex-col gap-6 rounded-xl border border-line bg-surface p-5 md:flex-row md:items-center">
+        <div className="flex items-center gap-4 md:w-80 md:shrink-0">
+          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-semibold text-on-accent" aria-hidden>
+            {level.level}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold">
+              Level {level.level} · {level.tier}
+            </p>
+            <div className="mt-2">
+              <ProgressBar value={level.xpIntoLevel} max={level.xpForNext} label="Progress to next level" />
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              {totals.totalXp} XP · {toNext} to level {level.level + 1}
+            </p>
+          </div>
+        </div>
+        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Plan" value={weekNo < 1 ? "Not started" : weekNo > TOTAL_WEEKS ? "Finished" : `Week ${weekNo} / ${TOTAL_WEEKS}`} hint={`started ${fmt(planStart, { month: "short", day: "numeric" })}`} />
+          <Stat label="Streak" value={`${totals.streak} day${totals.streak === 1 ? "" : "s"}`} hint={`best ${totals.bestStreak}`} />
+          <Stat label="Active days" value={String(totals.activeDays)} hint={`${totals.hours} h logged`} />
+          <Stat label="Badges" value={`${earned} / ${s.badges.length}`} hint="earned" />
+        </div>
       </section>
 
-      <Heatmap weeks={s.heatmap} today={s.today} />
-      <Balance rows={s.balance} recentXp={s.recentXp} />
+      <div className="grid gap-8 xl:grid-cols-2">
+        <Heatmap weeks={s.heatmap} today={s.today} />
+        <Balance rows={s.balance} recentXp={s.recentXp} />
+      </div>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Badges</h2>
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {s.badges.map((b) => (
             <li
               key={b.id}

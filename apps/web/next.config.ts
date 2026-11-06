@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@habit/shared"],
   cacheComponents: true,
   partialPrefetching: true,
+  // Old URLs from before Stats and Settings moved under Profile.
+  async redirects() {
+    return [
+      { source: "/stats", destination: "/profile", permanent: false },
+      { source: "/settings", destination: "/profile/settings", permanent: false },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

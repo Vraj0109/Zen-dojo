@@ -26,9 +26,10 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
   );
 }
 
-export function PageMain({ title, children }: { title: string; children: React.ReactNode }) {
+/** Page wrapper: wide content area next to the sidebar. `narrow` for reading/form pages. */
+export function PageMain({ title, children, narrow = false }: { title: string; children: React.ReactNode; narrow?: boolean }) {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8">
+    <main className={`w-full px-4 py-6 sm:px-6 lg:px-10 lg:py-8 ${narrow ? "max-w-4xl" : "max-w-7xl"}`}>
       <h1 className="sr-only">{title}</h1>
       {children}
     </main>

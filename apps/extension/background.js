@@ -10,7 +10,7 @@ const PATHS = new Set(["/api/ext/known", "/api/ext/submissions"]);
 async function callApp({ method, path, body }) {
   if (!PATHS.has(path) || (method !== "GET" && method !== "POST")) return { ok: false, error: "Not allowed" };
   const { appUrl = DEFAULT_APP_URL, token = "" } = await chrome.storage.local.get(["appUrl", "token"]);
-  if (!token) return { ok: false, error: "Paste the pairing key from the HabitManager DSA page into the extension." };
+  if (!token) return { ok: false, error: "Paste the pairing key from HabitManager (Profile → Settings) into the extension." };
   const origin = normalizeAppUrl(String(appUrl));
   if (!origin) return { ok: false, error: "App URL must be http://localhost:<port> or http://127.0.0.1:<port>." };
   try {

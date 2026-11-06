@@ -7,7 +7,7 @@ import { leetcodeProblems, leetcodeTopics, leetcodeUserSubmissions, settings } f
 import { recordAccepted } from "./sync";
 
 // The browser extension (apps/extension) reads your own LeetCode submissions while you're logged in
-// on leetcode.com and posts them here. Requests must carry the pairing key shown on the DSA page.
+// on leetcode.com and posts them here. Requests must carry the pairing key shown in Profile → Settings.
 
 const KEY_TOKEN = "extension_token";
 const KEY_LAST = "extension_last_import";
@@ -81,7 +81,7 @@ export async function authorizeExtension(request: Request): Promise<Response | n
   const given = Buffer.from(header.replace(/^Bearer\s+/i, ""));
   const expected = Buffer.from(await getExtensionToken());
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
-    return Response.json({ error: "Wrong or missing pairing key. Copy it from the DSA page into the extension." }, { status: 401 });
+    return Response.json({ error: "Wrong or missing pairing key. Copy it from Profile → Settings into the extension." }, { status: 401 });
   }
   return null;
 }

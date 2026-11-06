@@ -60,7 +60,7 @@ export async function saveNoteAction(formData: FormData) {
   refresh();
 }
 
-// Results of these are stored in settings and shown by the LeetCode card on the DSA page.
+// Results of these are stored in settings and shown in Profile → Settings and the DSA sync card.
 export async function connectLeetCodeAction(formData: FormData) {
   await connectLeetCode(String(formData.get("username") ?? "").trim());
   refresh();

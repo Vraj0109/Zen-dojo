@@ -5,19 +5,19 @@ Data is stored locally in `data/habit.db` (SQLite).
 
 | Page | What it does |
 |---|---|
-| **Today** (`/`) | Daily + weekly tasks from the roadmap, tick/untick, custom tasks, XP, level, streak, re-solve reminder |
-| **Roadmap** (`/roadmap`) | All 16 weeks with focus areas; goals, tasks, problems and XP per week |
+| **Today** (`/`) | Daily + weekly tasks from the roadmap, each with a button to the exact problem, concept or design to work on; the week's focus panel (patterns, concepts, designs with your progress), with ‹ › to work ahead (`/?week=N`); custom tasks, XP, level, streak, review reminders |
 | **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later; LeetCode auto-sync; search and filter by name/number, difficulty, status, notes and LeetCode topic |
 | **Problem** (`/dsa/<id>`) | Patterns it belongs to, solve status, your notes and saved solution code (📝 on the DSA list), and every accepted LeetCode submission imported by the extension |
 | **Design** (`/study/sd`) | System design from the roadmap: 30 concepts (fundamentals, data storage, building blocks) with a "what to know" checklist, 1-5 confidence and notes; 27 classic designs with a practice log scored on the 45-minute framework, re-practice in 7/14/30 days by score, and notes |
 | **LLD** (`/study/lld`) | The roadmap's 6 LLD topics as checklists, and its 10 classic problems with a practice log scored on the 4-step LLD answer, plus notes and your class code |
 | **Core CS** (`/study/core`) | Operating systems, databases and networks: 24 concept checklists with confidence, notes and review reminders |
-| **Stats** (`/stats`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
-| **Backup** (`/settings`, footer link) | Download all data as one JSON file; restore from one (all or nothing, safety copy saved to `data/backups/` first) |
+| **Roadmap** (`/roadmap`, bottom of the sidebar) | All 16 weeks with focus areas; goals, tasks, problems and XP per week; link to any week's focus |
+| **Profile** (`/profile`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
+| **Settings** (`/profile/settings`) | Plan start date, LeetCode username sync and extension pairing key, backup: download all data as one JSON file; restore from one (all or nothing, safety copy saved to `data/backups/` first) |
 
 ### LeetCode auto-sync
 
-On the DSA page, connect your LeetCode username. The app reads your **public** recent accepted
+In Profile → Settings, connect your LeetCode username. The app reads your **public** recent accepted
 submissions from LeetCode's GraphQL API (no login, no password) and:
 
 - ticks roadmap problems you solve (marked ⚡) and records a re-solve if you solve one again 14+ days later;
@@ -38,7 +38,7 @@ password and nothing about your login is stored. It only runs on leetcode.com an
 
 **Install (once)**
 
-1. Start the app (`pnpm start`) and open **DSA**. Under *Browser extension*, click **Show pairing key** and copy it.
+1. Start the app (`pnpm start`) and open **Profile → Settings**. Under *Browser extension*, click **Show pairing key** and copy it.
 2. In Chrome go to `chrome://extensions` (Edge: `edge://extensions`), turn on **Developer mode**,
    click **Load unpacked** and pick the `apps/extension` folder.
 3. Click the extension's icon (pin it from the puzzle-piece menu), paste the key, and click **Save & test**.
@@ -59,7 +59,7 @@ password and nothing about your login is stored. It only runs on leetcode.com an
   so years of history don't inflate your level.
 - After pulling changes to `apps/extension`, click the reload icon on the extension's card in `chrome://extensions`.
 
-**New key**: *New key* on the DSA page makes the old key stop working; paste the new one into the extension.
+**New key**: *New key* in Profile → Settings makes the old key stop working; paste the new one into the extension.
 The key keeps other websites and programs from adding data to the app.
 
 The database schema is versioned (`PRAGMA user_version`, see `MIGRATIONS` in `apps/web/lib/db.ts`);

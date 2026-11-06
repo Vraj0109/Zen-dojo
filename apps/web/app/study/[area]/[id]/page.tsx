@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/study/[area]/[id]
 
 export default function StudyItemPage({ params }: PageProps<"/study/[area]/[id]">) {
   return (
-    <PageMain title="Study">
+    <PageMain title="Study" narrow>
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
         <Item params={params} />
       </Suspense>

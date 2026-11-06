@@ -22,26 +22,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <header className="mx-auto flex w-full max-w-3xl flex-wrap items-end justify-between gap-3 px-4 pt-8 sm:pt-12">
-          <div>
-            <p className="text-sm font-medium text-muted">SDE2 / SWE3 prep</p>
-            <p className="text-3xl font-semibold tracking-tight">HabitManager</p>
-          </div>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full lg:flex">
+        {/* Sidebar on wide screens, a scrolling top bar on phones */}
+        <aside className="sticky top-0 z-10 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
+          <Link href="/" className="mb-2 block px-1 lg:mb-6 lg:px-3">
+            <span className="block text-xs font-medium text-muted">SDE2 / SWE3 prep</span>
+            <span className="block text-lg font-semibold tracking-tight">HabitManager</span>
+          </Link>
           <Suspense fallback={<NavLinks pathname={null} />}>
             <Nav />
           </Suspense>
-        </header>
-        {children}
-        <footer className="mx-auto mt-auto w-full max-w-3xl px-4 pb-8 text-sm text-muted">
-          <Link href="/settings" className="hover:text-foreground">
-            Backup &amp; restore
-          </Link>
-        </footer>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </body>
     </html>
   );

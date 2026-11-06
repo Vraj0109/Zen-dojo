@@ -3,10 +3,10 @@ import { restoreBackup } from "@/lib/backup";
 const MAX_BACKUP_BYTES = 50_000_000;
 
 const back = (request: Request, params: Record<string, string>) =>
-  Response.redirect(new URL(`/settings?${new URLSearchParams(params)}`, request.url), 303);
+  Response.redirect(new URL(`/profile/settings?${new URLSearchParams(params)}#backup`, request.url), 303);
 
 /**
- * Restore from an uploaded backup (form post from /settings). Only accepted from this app's own pages:
+ * Restore from an uploaded backup (form post from /profile/settings). Only accepted from this app's own pages:
  * a form on another website can't post here and wipe your data.
  */
 export async function POST(request: Request) {

@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Problem" };
 
 export default function ProblemPage({ params }: PageProps<"/dsa/[id]">) {
   return (
-    <PageMain title="Problem">
+    <PageMain title="Problem" narrow>
       <Link href="/dsa" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
         ← All patterns
       </Link>
