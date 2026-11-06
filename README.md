@@ -1,8 +1,13 @@
 # HabitManager
 
 Daily progress tracker for the SDE2 (Amazon) / SWE3 (Google) 16-week prep roadmap.
-Bare-bones version: daily + weekly tasks generated from the roadmap, tick/untick, custom
-tasks, XP, levels and a streak. Data is stored locally in `data/habit.db` (SQLite).
+Data is stored locally in `data/habit.db` (SQLite).
+
+| Page | What it does |
+|---|---|
+| **Today** (`/`) | Daily + weekly tasks from the roadmap, tick/untick, custom tasks, XP, level, streak, re-solve reminder |
+| **Roadmap** (`/roadmap`) | All 16 weeks with focus areas; goals, tasks, problems and XP per week |
+| **DSA** (`/dsa`) | 67 patterns / 201 problems from the roadmap; mark solved (XP by difficulty), re-solve due 14 days later |
 
 ## Quick start
 

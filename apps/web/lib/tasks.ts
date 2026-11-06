@@ -1,19 +1,18 @@
 import "server-only";
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import {
   PLAN_WEEKS,
   TOTAL_WEEKS,
   WEEK_TEMPLATE,
   WEEKDAY_TEMPLATE,
   WEEKEND_TEMPLATE,
-  currentStreak,
   isWeekend,
-  levelInfo,
   planWeekNumber,
   startOfWeek,
   toLocalDate,
 } from "@habit/shared";
 import { getDb } from "./db";
+import { getProgress } from "./progress";
 import { settings, tasks, type Task } from "./schema";
 
 const PLAN_START_KEY = "plan_start_date";
@@ -28,7 +27,9 @@ export async function getPlanStart(): Promise<string> {
   return start;
 }
 
-export async function setPlanStart(date: string) {
+/** Plan weeks run Monday-Sunday so weekly goals line up with calendar weeks; snaps to that Monday. */
+export async function setPlanStart(input: string) {
+  const date = startOfWeek(input);
   const db = await getDb();
   await db
     .insert(settings)
@@ -73,7 +74,7 @@ export interface TodayView {
   totalXp: number;
   todayXp: number;
   streak: number;
-  level: ReturnType<typeof levelInfo>;
+  level: Awaited<ReturnType<typeof getProgress>>["level"];
 }
 
 export async function getTodayView(): Promise<TodayView> {
@@ -84,27 +85,13 @@ export async function getTodayView(): Promise<TodayView> {
   if (weekNo >= 1 && weekNo <= TOTAL_WEEKS) await ensureTasks(today, weekNo);
 
   const monday = startOfWeek(today);
-  const [dayTasks, weekTasks, xpRow, todayXpRow, activeDays] = await Promise.all([
+  const [dayTasks, weekTasks, progress] = await Promise.all([
     db.select().from(tasks).where(and(eq(tasks.scope, "day"), eq(tasks.date, today))).orderBy(tasks.id),
     db.select().from(tasks).where(and(eq(tasks.scope, "week"), eq(tasks.date, monday))).orderBy(tasks.id),
-    db.select({ xp: sql<number>`coalesce(sum(${tasks.xp}), 0)` }).from(tasks).where(eq(tasks.status, "done")),
-    db.select({ xp: sql<number>`coalesce(sum(${tasks.xp}), 0)` }).from(tasks).where(eq(tasks.doneOn, today)),
-    db.selectDistinct({ d: tasks.doneOn }).from(tasks).where(isNotNull(tasks.doneOn)),
+    getProgress(today),
   ]);
 
-  const totalXp = Number(xpRow[0]?.xp ?? 0);
-  return {
-    today,
-    weekNo,
-    planStart,
-    week: weekFor(weekNo),
-    dayTasks,
-    weekTasks,
-    totalXp,
-    todayXp: Number(todayXpRow[0]?.xp ?? 0),
-    streak: currentStreak(activeDays.map((r) => r.d!), today),
-    level: levelInfo(totalXp),
-  };
+  return { today, weekNo, planStart, week: weekFor(weekNo), dayTasks, weekTasks, ...progress };
 }
 
 export async function toggleTask(id: number) {

@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { CATEGORIES, type Category } from "@habit/shared";
+import { markSolved, undoSolve } from "@/lib/dsa";
 import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
@@ -30,6 +31,16 @@ export async function addTaskAction(formData: FormData) {
 export async function deleteTaskAction(formData: FormData) {
   const id = idFrom(formData);
   if (id) await deleteCustomTask(id);
+  refresh();
+}
+
+export async function markSolvedAction(formData: FormData) {
+  await markSolved(String(formData.get("problemId") ?? "")); // ignores unknown ids
+  refresh();
+}
+
+export async function undoSolveAction(formData: FormData) {
+  await undoSolve(String(formData.get("problemId") ?? ""));
   refresh();
 }
 

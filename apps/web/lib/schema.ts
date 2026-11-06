@@ -20,6 +20,16 @@ export const tasks = sqliteTable(
   (t) => [uniqueIndex("tasks_generated_unique").on(t.date, t.scope, t.templateKey)],
 );
 
+/** One row per solve or re-solve of a DSA problem. */
+export const problemSolves = sqliteTable("problem_solves", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  problemId: text("problem_id").notNull(),
+  kind: text("kind", { enum: ["solve", "resolve"] }).notNull(),
+  /** Local date (YYYY-MM-DD); drives the streak and re-solve schedule. */
+  solvedOn: text("solved_on").notNull(),
+  xp: integer("xp").notNull(),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),

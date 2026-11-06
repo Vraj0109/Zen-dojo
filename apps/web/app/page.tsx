@@ -1,18 +1,18 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { CATEGORIES, TOTAL_WEEKS, formatLong, type Category } from "@habit/shared";
+import Link from "next/link";
+import { getResolveDueCount } from "@/lib/dsa";
 import { getTodayView } from "@/lib/tasks";
 import type { Task } from "@/lib/schema";
 import { addTaskAction, deleteTaskAction, setPlanStartAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
+import { Stat } from "./ui";
 
 export default function Page() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-      <header className="mb-8">
-        <p className="text-sm font-medium text-muted">SDE2 / SWE3 prep</p>
-        <h1 className="text-3xl font-semibold tracking-tight">HabitManager</h1>
-      </header>
+    <main className="mx-auto w-full max-w-3xl px-4 py-8">
+      <h1 className="sr-only">Today</h1>
       <Suspense fallback={<p className="text-muted">Loading today…</p>}>
         <Today />
       </Suspense>
@@ -23,7 +23,7 @@ export default function Page() {
 async function Today() {
   // Today's date and the database are per-request; render at request time.
   await connection();
-  const v = await getTodayView();
+  const [v, resolveDue] = await Promise.all([getTodayView(), getResolveDueCount()]);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;
   const doneToday = v.dayTasks.filter((t) => t.status === "done").length;
@@ -48,6 +48,15 @@ async function Today() {
           </p>
         </div>
       </section>
+
+      {resolveDue > 0 && (
+        <Link
+          href="/dsa"
+          className="block rounded-xl border border-accent bg-surface p-4 font-medium hover:bg-background"
+        >
+          🔁 {resolveDue} problem{resolveDue === 1 ? " is" : "s are"} due for a re-solve →
+        </Link>
+      )}
 
       {beforeStart && (
         <p className="rounded-xl border border-line bg-surface p-4">
@@ -106,7 +115,7 @@ async function Today() {
 
       <section className="text-sm text-muted">
         <form action={setPlanStartAction} className="flex flex-wrap items-center gap-2">
-          <label htmlFor="planStart">Plan start date</label>
+          <label htmlFor="planStart">Plan start (weeks run Monday–Sunday)</label>
           <input
             id="planStart"
             type="date"
@@ -117,15 +126,6 @@ async function Today() {
           <SubmitButton className="rounded-lg border border-line px-3 py-1 text-foreground">Save</SubmitButton>
         </form>
       </section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-line bg-surface p-4">
-      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );
 }

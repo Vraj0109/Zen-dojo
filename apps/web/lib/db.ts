@@ -39,6 +39,15 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS tasks_generated_unique ON tasks (date, scope, template_key);
 CREATE INDEX IF NOT EXISTS tasks_done_on ON tasks (done_on);
+CREATE TABLE IF NOT EXISTS problem_solves (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  problem_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  solved_on TEXT NOT NULL,
+  xp INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS problem_solves_problem ON problem_solves (problem_id);
+CREATE INDEX IF NOT EXISTS problem_solves_solved_on ON problem_solves (solved_on);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
