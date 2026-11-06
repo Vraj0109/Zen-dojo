@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
 import { Suspense } from "react";
 import { Nav, NavLinks } from "./nav";
 
@@ -36,6 +37,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </Suspense>
         </header>
         {children}
+        <footer className="mx-auto mt-auto w-full max-w-3xl px-4 pb-8 text-sm text-muted">
+          <Link href="/settings" className="hover:text-foreground">
+            Backup &amp; restore
+          </Link>
+        </footer>
       </body>
     </html>
   );

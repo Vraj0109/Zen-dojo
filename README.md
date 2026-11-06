@@ -13,6 +13,7 @@ Data is stored locally in `data/habit.db` (SQLite).
 | **LLD** (`/study/lld`) | The roadmap's 6 LLD topics as checklists, and its 10 classic problems with a practice log scored on the 4-step LLD answer, plus notes and your class code |
 | **Core CS** (`/study/core`) | Operating systems, databases and networks: 24 concept checklists with confidence, notes and review reminders |
 | **Stats** (`/stats`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
+| **Backup** (`/settings`, footer link) | Download all data as one JSON file; restore from one (all or nothing, safety copy saved to `data/backups/` first) |
 
 ### LeetCode auto-sync
 

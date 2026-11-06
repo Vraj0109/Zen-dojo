@@ -31,7 +31,7 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
   wrapped in `<Suspense>`. Server actions call `refresh()` after mutating.
 - Dates are local `YYYY-MM-DD` strings (helpers in `dates.ts`); never use UTC day math.
 - Schema changes: append a new SQL string to `MIGRATIONS` in `db.ts` and update `schema.ts`. Never edit a
-  shipped migration (`PRAGMA user_version` tracks them).
+  shipped migration (`PRAGMA user_version` tracks them). New tables must also be added to `BACKUP_TABLES` in `lib/backup.ts`.
 - XP is computed from rows (`tasks.xp` where done, `problem_solves.xp`), not stored as a running total.
 - LeetCode: the app's own sync is anonymous public GraphQL (`leetcode/client.ts`); never give the app
   LeetCode cookies/credentials. Private data (code, notes) comes only via the extension, which runs in the

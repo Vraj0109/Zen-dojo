@@ -16,7 +16,7 @@ function repoRoot(): string {
   return dir;
 }
 
-function databaseUrl(): string {
+export function databaseUrl(): string {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
   const dataDir = path.join(repoRoot(), "data");
   mkdirSync(dataDir, { recursive: true });
