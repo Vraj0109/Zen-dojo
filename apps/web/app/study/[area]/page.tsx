@@ -50,7 +50,11 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         ) : (
           <Stat label="Reviews due" value={String(due.concepts.length)} hint="rated below 4" />
         )}
-        <Stat label="Practice time" value={`${hours} h`} hint="logged" />
+        {area.exercises ? (
+          <Stat label="Practice time" value={`${hours} h`} hint="logged" />
+        ) : (
+          <Stat label="Points ticked" value={`${totals.pointsChecked} / ${totals.points}`} hint="can explain" />
+        )}
         <Stat label="XP" value={String(totals.xp)} hint={`${due.concepts.length + due.exercises.length} due now`} />
       </section>
 

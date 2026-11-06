@@ -8,6 +8,8 @@ const LINKS = [
   { href: "/roadmap", label: "Roadmap" },
   { href: "/dsa", label: "DSA" },
   { href: "/study/sd", label: "Design" },
+  { href: "/study/lld", label: "LLD" },
+  { href: "/study/core", label: "Core CS" },
 ] as const;
 
 /** Nav with the current page highlighted. Render inside <Suspense fallback={<NavLinks pathname={null} />}>:

@@ -35,6 +35,21 @@ describe("study content", () => {
   });
 });
 
+describe("LLD and core CS", () => {
+  it("cover the roadmap's LLD section and the core subjects", () => {
+    const lld = STUDY_AREAS.find((a) => a.id === "lld")!;
+    expect(lld.sections[0].concepts).toHaveLength(6);
+    expect(lld.exercises!.items).toHaveLength(10);
+    expect(lld.exercises!.steps.map((s) => s.minutes).reduce((a, b) => a + b, 0)).toBe(45);
+    expect(ALL_CONCEPTS["lld-patterns"].points).toHaveLength(10);
+
+    const core = STUDY_AREAS.find((a) => a.id === "core")!;
+    expect(core.sections.map((s) => s.title)).toEqual(["Operating systems", "Databases (DBMS)", "Computer networks"]);
+    expect(core.exercises).toBeUndefined();
+    expect(STUDY_AREAS.map((a) => a.id)).toEqual(["sd", "lld", "core"]);
+  });
+});
+
 describe("practice schedule", () => {
   it("spaces practice by how well it went", () => {
     expect([1, 2.9, 3, 3.9, 4, 5].map(practiceInterval)).toEqual([7, 7, 14, 14, 30, 30]);

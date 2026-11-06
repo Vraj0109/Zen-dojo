@@ -7,6 +7,7 @@ import {
   COVERED_CONFIDENCE,
   averageScore,
   conceptReviewDue,
+  STUDY_AREAS,
   getStudyArea,
   practiceState,
   toLocalDate,
@@ -104,6 +105,8 @@ export async function getStudyView(areaId: string) {
     },
     totals: {
       concepts: allConcepts.length,
+      points: allConcepts.reduce((a, x) => a + x.points.length, 0),
+      pointsChecked: allConcepts.reduce((a, x) => a + x.checked, 0),
       covered: allConcepts.filter((x) => x.confidence >= COVERED_CONFIDENCE).length,
       avgConfidence: rated.length ? Math.round((rated.reduce((a, x) => a + x.confidence, 0) / rated.length) * 10) / 10 : 0,
       exercises: exercises.length,
@@ -207,15 +210,16 @@ export async function deletePractice(sessionId: number) {
   await db.delete(practiceSessions).where(eq(practiceSessions.id, sessionId));
 }
 
-/** Study items waiting for you (shown on the Today page). */
-export async function getStudyDueCount(): Promise<number> {
+/** Study items waiting for review, per area (shown on the Today page). */
+export async function getStudyDue(): Promise<{ area: StudyArea; count: number }[]> {
   const today = toLocalDate();
   const [concepts, practice] = await Promise.all([conceptIndex(), practiceIndex()]);
-  let n = 0;
-  for (const [id, r] of concepts) if (ALL_CONCEPTS[id] && conceptReviewDue(r.confidence, r.updatedOn, today)) n++;
+  const counts = new Map<string, number>();
+  const bump = (area: string) => counts.set(area, (counts.get(area) ?? 0) + 1);
+  for (const [id, r] of concepts) if (ALL_CONCEPTS[id] && conceptReviewDue(r.confidence, r.updatedOn, today)) bump(ALL_CONCEPTS[id].area);
   for (const [id, last] of practice.last) {
     const s = practiceState(last, today);
-    if (ALL_EXERCISES[id] && s.state === "practiced" && s.due) n++;
+    if (ALL_EXERCISES[id] && s.state === "practiced" && s.due) bump(ALL_EXERCISES[id].area);
   }
-  return n;
+  return STUDY_AREAS.flatMap((area) => (counts.get(area.id) ? [{ area, count: counts.get(area.id)! }] : []));
 }

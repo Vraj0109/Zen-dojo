@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONCEPT_XP } from "@habit/shared";
 import { getProgress } from "./progress";
-import { deletePractice, getConceptDetail, getExerciseDetail, getStudyDueCount, getStudyView, logPractice, saveConcept } from "./study";
+import { deletePractice, getConceptDetail, getExerciseDetail, getStudyDue, getStudyView, logPractice, saveConcept } from "./study";
 
 const setDay = (d: number, m = 11) => vi.setSystemTime(new Date(2026, m - 1, d, 12));
 
@@ -44,9 +44,9 @@ describe("concepts", () => {
 
   it("asks for a review a week after rating a concept below 4", async () => {
     await saveConcept("sd-cap", { confidence: 2, checked: [], notes: "" });
-    expect(await getStudyDueCount()).toBe(0);
+    expect(await getStudyDue()).toEqual([]);
     setDay(13);
-    expect(await getStudyDueCount()).toBe(1);
+    expect((await getStudyDue()).map((d) => [d.area.id, d.count])).toEqual([["sd", 1]]);
     expect((await getStudyView("sd"))!.due.concepts.map((c) => c.id)).toEqual(["sd-cap"]);
   });
 });
@@ -84,10 +84,22 @@ describe("practice", () => {
   it("schedules the next practice and shows it as due", async () => {
     await practice({ req: 2 });
     setDay(13);
-    expect(await getStudyDueCount()).toBe(1);
+    expect((await getStudyDue()).map((d) => [d.area.id, d.count])).toEqual([["sd", 1]]);
     const view = (await getStudyView("sd"))!;
     expect(view.due.exercises.map((e) => e.id)).toEqual(["sdd-url-shortener"]);
     expect(view.totals).toMatchObject({ practiced: 1, exercises: 27, sessions: 1, minutes: 45, xp: 30 });
+  });
+
+  it("works the same for LLD problems and core CS concepts", async () => {
+    expect(await logPractice("lldp-parking-lot", { minutes: 40, scores: { model: 4, code: 3 }, notes: "", link: "" })).toBe(true);
+    expect((await getExerciseDetail("lldp-parking-lot"))!.sessions[0]).toMatchObject({ score: 3.5, xp: 25 });
+    await saveConcept("os-deadlocks", { confidence: 4, checked: [0, 1], notes: "" });
+    const core = (await getStudyView("core"))!;
+    expect(core.exercises).toEqual([]);
+    expect(core.totals).toMatchObject({ covered: 1, concepts: 24, pointsChecked: 2, xp: CONCEPT_XP });
+    expect((await getStudyView("lld"))!.totals).toMatchObject({ practiced: 1, exercises: 10, xp: 25 });
+    // step ids from another area are ignored
+    expect(await logPractice("lldp-elevator", { minutes: null, scores: { req: 5 }, notes: "", link: "" })).toBe(false);
   });
 
   it("returns null for unknown areas", async () => {

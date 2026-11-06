@@ -13,7 +13,7 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
 
 - `packages/shared/src/`: pure logic + data, no I/O. `plan.ts` (16 weeks, task templates), `dsa.ts`
   (67 patterns, 201 problems; LeetCode slugs verified against LeetCode), `dates.ts`, `game.ts` (XP/level/streak),
-  `study.ts` (study areas: concept checklists + practice exercises; system design content from the PDF)
+  `study.ts` (study areas: concept checklists + practice exercises; system design and LLD from the PDF, core CS written for this app)
 - `apps/web/lib/`: server-only data layer. `db.ts` (libSQL client + `MIGRATIONS`), `schema.ts` (Drizzle),
   `tasks.ts`, `dsa.ts`, `progress.ts` (XP/streak from every XP row: tasks, solves, practice sessions, covered concepts), `study.ts`, `roadmap.ts`, `leetcode/{client,sync}.ts`
 - `apps/web/app/`: pages `/` (Today), `/roadmap`, `/dsa`, `/dsa/[id]`, `/study/[area]`, `/study/[area]/[id]`; all mutations in `actions.ts` (server actions);

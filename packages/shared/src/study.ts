@@ -174,10 +174,118 @@ export const SYSTEM_DESIGN: StudyArea = {
   },
 };
 
+// ---------------------------------------------------------------- Low-level design
+
+const LLD_STEPS: FrameworkStep[] = [
+  { id: "clarify", title: "Clarify requirements", minutes: 5, hint: "What's in and out of scope; the main use cases" },
+  { id: "model", title: "Entities and public API", minutes: 10, hint: "Classes, relationships, enums for states, each class's public methods" },
+  { id: "code", title: "Compilable core flow", minutes: 20, hint: "Clean code for the main flow, interfaces for the extensible parts" },
+  { id: "extend", title: "Walkthrough, extension, concurrency", minutes: 10, hint: "One scenario and one failure case; how it extends; thread safety" },
+];
+
+const lldProblem = (id: string, title: string, focus: string): Exercise => ({ id: `lldp-${id}`, title, focus });
+
+export const LOW_LEVEL_DESIGN: StudyArea = {
+  id: "lld",
+  title: "Low-level design",
+  short: "LLD",
+  intro:
+    "Amazon SDE2 loops often include an LLD / object-oriented round; Google grades code cleanliness inside coding rounds. About 2 weeks (weeks 8-9). Use the language you code in daily (Java is safest at Amazon).",
+  sections: [
+    {
+      id: "lld-topics",
+      title: "Topics",
+      weeks: "8-9",
+      concepts: [
+        c("lld-oop", "OOP principles", "Encapsulation; Inheritance vs composition; Polymorphism; Interfaces and abstract classes"),
+        c("lld-solid", "SOLID", "Single responsibility (with an example); Open/closed (with an example); Liskov substitution (with an example); Interface segregation (with an example); Dependency inversion (with an example)"),
+        c("lld-patterns", "Design patterns", "Strategy; Observer; Factory and Abstract Factory; Builder; Singleton (and its pitfalls); Decorator; State; Command; Adapter; Chain of Responsibility"),
+        c("lld-modeling", "Modeling", "Entities and relationships; Enums for states; State machines; Validation and error handling; Extensibility"),
+        c("lld-concurrency", "Concurrency in code", "Threads vs processes; Mutex and semaphore; Producer-consumer with a blocking queue; Thread pools; Deadlock conditions; Atomic operations; Thread-safe singleton and LRU cache"),
+        c("lld-testing", "Testing mindset", "Unit tests for the class you wrote; Edge cases; Mocks; What you'd test in integration"),
+      ],
+    },
+  ],
+  exercises: {
+    title: "Classic LLD problems",
+    intro: "Do each in 45 minutes with real, compilable code. Save your classes below, then rewrite them from scratch when you practice again.",
+    xp: 25,
+    steps: LLD_STEPS,
+    items: [
+      lldProblem("parking-lot", "Parking lot", "Entities, pricing strategy, concurrency on slots"),
+      lldProblem("elevator", "Elevator system", "State machine, scheduling strategy"),
+      lldProblem("booking", "Library / hotel / movie ticket booking", "Reservations, locking, state transitions"),
+      lldProblem("lru-rate-limiter", "LRU cache, rate limiter (as classes)", "Data structure choice, thread safety"),
+      lldProblem("splitwise", "Splitwise / expense sharing", "Balances graph, simplify debts"),
+      lldProblem("games", "Chess / tic-tac-toe / snake game", "Game loop, rules engine, extensibility"),
+      lldProblem("vending-atm", "Vending machine / ATM", "State pattern, inventory, error handling"),
+      lldProblem("logger-notifications", "Logger / notification system", "Observer, strategy for channels"),
+      lldProblem("food-cab", "Food delivery / cab booking (small scope)", "Matching strategy, order lifecycle"),
+      lldProblem("file-system-kv", "In-memory file system / key-value store", "Trie or map design, API cleanliness"),
+    ],
+  },
+};
+
+// ---------------------------------------------------------------- Core CS
+// Not a separate section in the roadmap; these fill in the OS, database and networking basics that
+// interviewers probe underneath system design and LLD answers.
+
+export const CORE_CS: StudyArea = {
+  id: "core",
+  title: "Core CS",
+  short: "Core CS",
+  intro:
+    "Operating systems, databases and networks: the fundamentals underneath system design and LLD answers. Tick a point when you can explain it with an example; rate yourself honestly so weak spots come back for review.",
+  sections: [
+    {
+      id: "core-os",
+      title: "Operating systems",
+      concepts: [
+        c("os-processes", "Processes and threads", "Process vs thread (memory, cost, isolation); Process states and context switching; fork/exec and inter-process communication (pipes, shared memory, sockets); User vs kernel threads, green threads / coroutines"),
+        c("os-scheduling", "CPU scheduling", "FCFS, SJF, round robin, priority; Multilevel feedback queues; Preemption and starvation; Throughput vs latency vs fairness"),
+        c("os-sync", "Synchronization", "Race conditions and critical sections; Mutexes, spinlocks, semaphores; Condition variables and monitors; Reader-writer locks; Memory visibility and atomics (volatile, CAS)"),
+        c("os-deadlocks", "Deadlocks", "The four Coffman conditions; Prevention (lock ordering, timeouts); Avoidance (Banker's algorithm idea); Detection and recovery; Livelock and starvation"),
+        c("os-memory", "Memory management", "Stack vs heap; Fragmentation (internal vs external); Paging and page tables; TLB; Segmentation (idea)"),
+        c("os-virtual-memory", "Virtual memory", "Demand paging and page faults; Page replacement (LRU, clock, FIFO); Thrashing and working set; Memory-mapped files; Copy-on-write"),
+        c("os-files-io", "File systems and I/O", "Inodes, directories, links; Buffered I/O, page cache, fsync; Blocking vs non-blocking vs async I/O; select / poll / epoll and event loops; Zero-copy (sendfile)"),
+        c("os-kernel", "Kernel and system calls", "User vs kernel mode; System calls and their cost; Interrupts and signals; Containers: namespaces and cgroups"),
+      ],
+    },
+    {
+      id: "core-db",
+      title: "Databases (DBMS)",
+      concepts: [
+        c("db-relational", "Relational model and SQL", "Keys (primary, foreign, candidate); Joins (inner, outer, self) and their cost; GROUP BY, HAVING, window functions; Subqueries vs joins"),
+        c("db-normalization", "Normalization", "1NF, 2NF, 3NF, BCNF; Functional dependencies; Denormalization trade-offs for reads"),
+        c("db-indexing", "Indexing", "B+ tree structure and why it fits disks; Clustered vs secondary indexes; Composite index column order; Hash indexes; When an index is not used"),
+        c("db-transactions", "Transactions and ACID", "Atomicity, consistency, isolation, durability; Commit and rollback; Savepoints; Autocommit pitfalls"),
+        c("db-isolation", "Isolation levels and anomalies", "Dirty read, non-repeatable read, phantom; Lost update and write skew; Read committed, repeatable read, serializable; Snapshot isolation"),
+        c("db-concurrency", "Concurrency control", "Two-phase locking; Shared vs exclusive locks, lock granularity; MVCC; Optimistic vs pessimistic locking; Deadlock detection in databases"),
+        c("db-query", "Query processing", "Query plans and EXPLAIN; Nested loop vs hash vs merge join; Cost-based optimization and statistics; N+1 queries"),
+        c("db-recovery", "Recovery and durability", "Write-ahead log (WAL); Checkpoints; Crash recovery (redo / undo); Backups and point-in-time recovery"),
+      ],
+    },
+    {
+      id: "core-net",
+      title: "Computer networks",
+      concepts: [
+        c("net-layers", "Layers", "OSI vs TCP/IP model; What each layer adds (frames, packets, segments); Encapsulation; Where load balancers, proxies and firewalls sit"),
+        c("net-ip", "IP and routing", "IPv4 vs IPv6, subnets and CIDR; NAT; ARP; Routing basics (BGP idea, anycast)"),
+        c("net-tcp", "TCP internals", "Three-way handshake and teardown (TIME_WAIT); Reliable delivery: sequence numbers, ACKs, retransmission; Flow control (sliding window); Congestion control (slow start, AIMD); Head-of-line blocking; Nagle and keep-alive"),
+        c("net-udp", "UDP and QUIC", "When UDP fits (DNS, video, games); QUIC: streams without head-of-line blocking; 0-RTT"),
+        c("net-dns", "DNS in depth", "Recursive vs iterative resolution; Record types (A, AAAA, CNAME, MX, TXT); TTLs and caching; DNS-based load balancing and failover"),
+        c("net-http", "HTTP", "Methods, idempotency and status codes; Headers, caching (Cache-Control, ETag); Cookies and CORS; Keep-alive, HTTP/2 multiplexing, HTTP/3"),
+        c("net-tls", "TLS and HTTPS", "Handshake (TLS 1.3); Certificates and chains of trust; Symmetric vs asymmetric crypto; mTLS"),
+        c("net-sockets", "Sockets and the request path", "What happens when you type a URL; Sockets: bind, listen, accept, connect; Connection pooling; Latency sources along the path"),
+      ],
+    },
+  ],
+};
+
 // ---------------------------------------------------------------- Registry
 
 /** Study areas in nav order. */
-export const STUDY_AREAS: StudyArea[] = [SYSTEM_DESIGN];
+export const STUDY_AREAS: StudyArea[] = [SYSTEM_DESIGN, LOW_LEVEL_DESIGN, CORE_CS];
 
 export const getStudyArea = (id: string): StudyArea | undefined => STUDY_AREAS.find((a) => a.id === id);
 
