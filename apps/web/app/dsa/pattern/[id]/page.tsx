@@ -11,6 +11,7 @@ import { getSimpleMode } from "@/lib/ui-prefs";
 import { focusMinutes, patternTimerId } from "@/lib/timer";
 import { StartTimer } from "../../../start-timer";
 import { Code } from "../../../code";
+import { Diagram } from "../../../diagram";
 import { ArticleLayout, ArticleSection, CodeBlock } from "../../../learn-blocks";
 import { Tabs } from "../../../tabs";
 import { PageMain, ProgressBar, SimpleHint } from "../../../ui";
@@ -201,7 +202,8 @@ function ArticleView({ article }: { article: PatternArticle }) {
                 {para}
               </p>
             ))}
-            {s.code && <Code code={s.code} lang="C++" />}
+            {s.diagram && <Diagram source={s.diagram} caption={s.diagramCaption} />}
+            {s.code && <Code code={s.code} lang={s.lang ?? "C++"} />}
           </div>
         </ArticleSection>
       ))}

@@ -293,6 +293,15 @@ int trap(const vector<int>& h) {
     sections: [
       {
         title: "The intuition",
+        diagram: `flowchart TD
+    A["Move right end: add s[right]"] --> B{Window still valid?}
+    B -- yes --> C[Record the best window so far]
+    B -- no --> D["Move left end: remove s[left]"]
+    D --> B
+    C --> E{More characters?}
+    E -- yes --> A
+    E -- no --> F[Answer]`,
+        diagramCaption: "Each index enters the window once and leaves once, so the loop is O(n) even though it has an inner while.",
         body: "A subarray is defined by two ends, and there are about n squared pairs of ends. If checking one pair takes a pass over the window, the brute force is cubic. The sliding window removes both costs.\n\nPicture a window between a left end and a right end. You grow it by moving the right end forward by one, and you shrink it by moving the left end forward by one. Instead of recomputing the summary of the window each time, you update it: when an element enters you add it in, when an element leaves you take it out. A sum, a count of each letter, and the number of distinct values can all be updated in constant time per element.\n\nThe second saving is that the left end never moves backwards. Once you decide that no window starting at an earlier position can be the answer, you never look at those positions again. Each element is added once and removed at most once, so the total number of moves is at most 2n. That is the whole trick: two monotone ends and a summary that can be updated incrementally.",
       },
       {

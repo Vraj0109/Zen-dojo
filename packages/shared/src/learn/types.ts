@@ -39,6 +39,16 @@ export interface Section {
   code?: string;
   /** Language of `code` (C++, Java, SQL...). Optional: guessed from the code when missing. */
   lang?: string;
+  /** Mermaid source of a diagram shown before the code (plan 0012). */
+  diagram?: string;
+  diagramCaption?: string;
+}
+
+/** A diagram that is not part of a section (system design walkthroughs, LLD answers). */
+export interface DiagramBlock {
+  title: string;
+  source: string;
+  caption?: string;
 }
 
 /** Extra depth for a concept lesson, kept apart from the base lesson (learn/deep-*.ts). */

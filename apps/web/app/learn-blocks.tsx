@@ -1,5 +1,6 @@
 import type { Section } from "@habit/shared";
 import { Code } from "./code";
+import { Diagram } from "./diagram";
 
 // Presentational blocks for learning content: DSA guides, concept lessons, design and LLD extras.
 
@@ -110,6 +111,7 @@ export function DeeperSections({ sections }: { sections: Section[] }) {
               </p>
             ))}
           </div>
+          {s.diagram && <Diagram source={s.diagram} caption={s.diagramCaption} />}
           {s.code && <CodeBlock code={s.code} lang={s.lang} />}
         </div>
       ))}
