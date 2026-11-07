@@ -72,6 +72,11 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     subgraph Callers
         G["Entry and exit gates"]
         K["Payment kiosk"]
+        W["Booking app"]
+        O["Operator console"]
+    end
+    subgraph Router
+        GA["Garage"]
     end
     subgraph Core
         L["ParkingLot"]
@@ -79,27 +84,39 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     subgraph Policies
         A["SpotAllocationStrategy"]
         P["PricingStrategy"]
+        Y["PaymentProcessor"]
     end
     subgraph Data
-        S["Spots"]
+        S["Spots with parked and hold state"]
         T["Active tickets map"]
         N["Plates inside set"]
+        V["Reservations by plate"]
+        M["Revenue counters"]
     end
-    subgraph Observers
+    subgraph Outside
+        C["CardGateway"]
         B["DisplayBoard"]
     end
+    G --> GA
+    GA --> L
     G --> L
     K --> L
+    W --> L
+    O --> L
     L --> A
     L --> P
+    L --> Y
     L --> S
     L --> T
     L --> N
+    L --> V
+    L --> M
+    Y --> C
     L --> B`,
     },
     {
-      title: "Pricing: a rule wrapped by a rule",
-      caption: "DailyCapPricing is a decorator. The lot sees one PricingStrategy and does not know how many are stacked.",
+      title: "Pricing: rules wrapped by rules",
+      caption: "DailyCapPricing and ChargingSurcharge are decorators. The lot sees one PricingStrategy and does not know how many are stacked.",
       source: `classDiagram
     class PricingStrategy {
         <<interface>>
@@ -114,18 +131,169 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
         -capPerDay long
         +fee(ticket, exit) long
     }
+    class ChargingSurcharge {
+        -inner PricingStrategy
+        -centsPerHour long
+        +fee(ticket, exit) long
+    }
     PricingStrategy <|.. HourlyPricing
     PricingStrategy <|.. DailyCapPricing
-    DailyCapPricing o-- PricingStrategy : wraps any rule`,
+    PricingStrategy <|.. ChargingSurcharge
+    DailyCapPricing o-- PricingStrategy : wraps any rule
+    ChargingSurcharge o-- PricingStrategy : wraps any rule`,
     },
     {
       title: "Life of a spot",
-      caption: "Two states, and a failed tryPark changes nothing. That is why a boolean field is enough and State would be overkill.",
+      caption: "Three states. A hold is time limited, so an expired hold needs no clean-up job: it just stops counting.",
       source: `stateDiagram-v2
     [*] --> Free
+    Free --> Held: tryHold for a plate
+    Held --> Free: cancelled or the hold expires
+    Held --> Occupied: tryPark by the holder
+    Held --> Held: tryPark by another plate rejected
     Free --> Occupied: tryPark succeeds
-    Occupied --> Occupied: tryPark rejected
+    Occupied --> Occupied: tryPark and tryHold rejected
     Occupied --> Free: release after exit`,
+    },
+    {
+      title: "Reservation, hold and arrival",
+      caption: "The reservation and the gate meet at the spot, not at the lot. The spot's lock decides who gets it.",
+      source: `sequenceDiagram
+    actor App as Booking app
+    participant Lot as ParkingLot
+    participant Spot
+    actor Gate as Gate
+    App->>Lot: reserve(vehicle, 30 min)
+    Lot->>Lot: reservations.compute(plate)
+    Lot->>Spot: tryHold(plate, until, now)
+    Spot-->>Lot: true
+    Lot-->>App: Reservation R-1 for spot F0-M2
+    Gate->>Lot: enter(other vehicle)
+    Lot->>Spot: tryPark(other vehicle, now)
+    Spot-->>Lot: false, held by another plate
+    Lot-->>Gate: LotFullException
+    Gate->>Lot: enter(holder vehicle)
+    Lot->>Lot: reservations.remove(plate) is atomic
+    Lot->>Spot: tryPark(holder vehicle, now)
+    Spot-->>Lot: true, hold cleared
+    Lot-->>Gate: Ticket T-3 for F0-M2`,
+    },
+    {
+      title: "Checkout with payment",
+      caption: "The ticket leaves the map first. A declined payment puts it back, so the customer can pay another way.",
+      source: `sequenceDiagram
+    actor Driver
+    participant Lot as ParkingLot
+    participant Pricing as PricingStrategy
+    participant Pay as PaymentProcessor
+    participant Spot
+    Driver->>Lot: checkout(T-1, cash 10)
+    Lot->>Lot: active.remove(T-1)
+    Lot->>Pricing: fee(ticket, now)
+    Pricing-->>Lot: 40
+    Lot->>Pay: charge(40)
+    Pay-->>Lot: declined
+    Lot->>Lot: active.put(T-1) again
+    Lot-->>Driver: PaymentFailedException
+    Driver->>Lot: checkout(T-1, card 4242)
+    Lot->>Lot: active.remove(T-1)
+    Lot->>Pay: charge(40)
+    Pay-->>Lot: approved
+    Lot->>Spot: release()
+    Lot->>Lot: add 40 to revenue
+    Lot-->>Driver: Receipt T-1`,
+    },
+    {
+      title: "Checkout activity",
+      caption: "Every outcome of ParkingLot.checkout. Only an approved payment frees the spot and counts as revenue.",
+      source: `flowchart TD
+    A["checkout(ticketId, payment)"] --> B{"Ticket in the active map?"}
+    B -- no --> R1["InvalidTicketException"]
+    B -- yes --> C["Remove it, price the stay"]
+    C --> D{"Pricing threw?"}
+    D -- yes --> E["Free the spot anyway, rethrow"]
+    D -- no --> F["payment.charge(fee)"]
+    F --> G{"Approved?"}
+    G -- no --> H["Put the ticket back"]
+    H --> R2["PaymentFailedException"]
+    G -- yes --> I["Add fee to revenue, count the stay"]
+    I --> J["Release the spot, drop the plate, notify listeners"]
+    J --> K["Return Receipt"]`,
+    },
+    {
+      title: "Lost ticket",
+      caption: "The ticket is found by plate. The customer pays the larger of the real fee and the flat penalty.",
+      source: `flowchart TD
+    A["lostTicket(plate, payment)"] --> B{"Active ticket with this plate?"}
+    B -- no --> R1["InvalidTicketException"]
+    B -- yes --> C{"active.remove succeeds?"}
+    C -- no --> R1
+    C -- yes --> D["fee = max(pricing fee, lost ticket penalty)"]
+    D --> E["settle(ticket, fee, payment)"]
+    E --> F["Same path as a normal checkout: charge, free, receipt"]`,
+    },
+    {
+      title: "Garage: two lots, one door",
+      caption: "The garage only routes. It keeps its own plate set so one vehicle cannot be inside two lots.",
+      source: `flowchart TD
+    A["garage.enter(vehicle)"] --> B{"Plate already in the garage?"}
+    B -- yes --> R1["Reject: already inside"]
+    B -- no --> C["Take the next lot in preference order"]
+    C --> D["lot.enter(vehicle)"]
+    D --> E{"LotFullException?"}
+    E -- no --> F["GarageTicket: lot name slash ticket id"]
+    E -- yes --> G{"Another lot left?"}
+    G -- yes --> C
+    G -- no --> H["Release the plate, reject: garage full"]`,
+    },
+    {
+      title: "Package view",
+      caption: "Which file depends on which. Arrows point at what is used. Nothing in the core imports a payment vendor.",
+      source: `flowchart LR
+    subgraph Domain
+        VT["Vehicle, VehicleType"]
+        SP["Spot, SpotSize"]
+        TK["Ticket, Reservation, Receipt"]
+    end
+    subgraph Policies
+        AL["SpotAllocationStrategy, NearestSpotStrategy, EvAwareStrategy"]
+        PR["PricingStrategy, HourlyPricing, DailyCapPricing, ChargingSurcharge"]
+        PM["PaymentProcessor, CashPayment, CardPayment, CardGateway"]
+    end
+    subgraph Facade
+        PL["ParkingLot"]
+        GA["Garage"]
+    end
+    subgraph Reports
+        RP["LotReport, GarageReport"]
+        OB["OccupancyListener, DisplayBoard"]
+    end
+    GA --> PL
+    PL --> Domain
+    PL --> Policies
+    PL --> Reports
+    Policies --> Domain`,
+    },
+    {
+      title: "A snapshot at 09:10",
+      caption: "Objects alive in the second part of Main just after the reserved car arrives. Compare it with the class diagram.",
+      source: `flowchart LR
+    subgraph Spots
+        S0["Spot F0-M0-EV: parked E1, charger"]
+        S1["Spot F0-M1: parked P1"]
+        S2["Spot F0-M2: parked R1, hold cleared"]
+    end
+    subgraph AT["Active tickets"]
+        T1["T-1: P1 on F0-M1, entry 09:00"]
+        T2["T-2: E1 on F0-M0-EV, entry 09:00"]
+        T3["T-3: R1 on F0-M2, entry 09:10"]
+    end
+    subgraph Reservations
+        RS["empty: R-1 was consumed on arrival"]
+    end
+    T1 --> S1
+    T2 --> S0
+    T3 --> S2`,
     },
     {
       title: "Life of a ticket",
@@ -136,18 +304,20 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     },
     {
       title: "Extension map",
-      caption: "Where each likely follow-up lands. Most of them add a class and change one line in Main.",
+      caption: "Where each follow-up landed in this code, and the ones that are still open.",
       source: `flowchart TD
     X["Follow-up request"] --> V["New vehicle type"]
     X --> E["Electric vehicle charging"]
     X --> R["Reservations"]
     X --> M["Several lots"]
-    X --> Y["Payment"]
+    X --> Y["Payment and lost tickets"]
+    X --> O["Still open"]
     V --> V1["Add enum constant, one case in Vehicle.minSize, one rate"]
-    E --> E1["Capability on Spot, a new allocation strategy, a pricing rule for energy"]
-    R --> R1["Reserved-until on Spot and a tryPark that respects it"]
-    M --> M1["A Garage that routes to lots, ParkingLot unchanged"]
-    Y --> Y1["Separate service called by the exit gate, the lot stays unaware"]`,
+    E --> E1["Done: Spot.isEv, EvAwareStrategy, ChargingSurcharge"]
+    R --> R1["Done: Spot.tryHold, Reservation, ParkingLot.reserve"]
+    M --> M1["Done: Garage routes to lots, ParkingLot unchanged"]
+    Y --> Y1["Done: PaymentProcessor, checkout, lostTicket, LotReport"]
+    O --> O1["Persistence behind a repository, faster allocation with free lists, valet and handicapped spots"]`,
     },
   ],
 
