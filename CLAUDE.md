@@ -28,7 +28,7 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
   `HABIT_STANDALONE=1` (Next `output: "standalone"`) and copies it to `server/` with pnpm's symlinked packages
   flattened (installers drop symlinks); `scripts/after-pack.cjs` adds `server/node_modules` (extraResources skips it).
   `main.js` runs the server with `utilityProcess` on 127.0.0.1:3000 (or a free port), `DATABASE_URL` in the OS
-  app-data folder. `lib/setup.js` is pure and tested. Installers are built per OS (native libSQL) by
+  app-data folder. `lib/setup.js` and `lib/updates.js` are pure and tested. Auto-update via electron-updater from GitHub releases (Windows/AppImage install; macOS only notifies); the DB is copied to backups/ when the app version changes. Installers are built per OS (native libSQL) by
   `.github/workflows/desktop.yml`. To try a build without touching real data, set `HABIT_DATA_DIR`
 - `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
 
@@ -48,6 +48,15 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
   fake only `Date` (`vi.useFakeTimers({ toFake: ["Date"] })`), and stub `fetch` for LeetCode.
 - UI: Tailwind v4 with theme tokens in `app/globals.css` (`bg-surface`, `text-muted`, `border-line`,
   `bg-accent`…); shared bits in `app/ui.tsx`. Forms post to server actions and work without JS.
+
+## Desktop releases and updates
+
+- Release: bump `version` in `apps/desktop/package.json`, commit, `git tag vX.Y.Z` (must match, the workflow checks), push the tag.
+  `.github/workflows/desktop.yml` builds Windows/macOS/Linux installers and publishes a GitHub release with `latest*.yml` + `.blockmap`.
+- Installed apps check that release at start and every 6 h (electron-updater): Windows and AppImage download and install on restart;
+  macOS only notifies (no Developer ID). Never reuse or move a published tag; ship a new version instead.
+- Before a new version first starts, `main.js` copies `habit.db` to `backups/` in the app-data folder (newest 5 kept), so a bad migration
+  can be undone. Schema changes still follow the `MIGRATIONS` rules below.
 
 ## Workflow
 

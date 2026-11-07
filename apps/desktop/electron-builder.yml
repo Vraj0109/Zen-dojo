@@ -29,6 +29,11 @@ mac:
   # Hardened runtime needs a real Developer ID; with ad-hoc signing it blocks loading the SQLite native module.
   hardenedRuntime: false
 linux:
-  target: AppImage
+  target: AppImage  # updates itself; a .deb would not
   category: Education
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+# Auto-update: installed apps read latest*.yml from the newest GitHub release (see main.js → setupUpdates).
+publish:
+  provider: github
+  owner: Vraj0109
+  repo: habit-manager

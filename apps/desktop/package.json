@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "productName": "HabitManager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "HabitManager desktop app (Windows, macOS, Linux)",
   "author": "Vraj Limbachiya",
@@ -19,5 +19,8 @@
     "electron": "44.9.3",
     "electron-builder": "26.17.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.10"
   }
 }

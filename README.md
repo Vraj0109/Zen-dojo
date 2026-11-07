@@ -123,8 +123,8 @@ Set-ExecutionPolicy -Scope CurrentUser Undefined
 **Get an installer**
 
 - **From GitHub:** Actions → *Desktop app* → *Run workflow*. When it finishes, download the installer for your OS
-  from the run's *Artifacts*. Pushing a tag like `v0.2.0` also publishes the installers as a GitHub release (bump
-  `version` in `apps/desktop/package.json` first; it's in the file names).
+  from the run's *Artifacts*. Tagged versions are published as GitHub releases (see *Releasing a new version*
+  below); download the installer from the newest release.
 - **Build it yourself:** `pnpm desktop:build` builds the installer for the OS you run it on, in `apps/desktop/dist/`:
   `.exe` (Windows), `.dmg` (macOS, Apple Silicon), `.AppImage` (Linux).
 
@@ -147,6 +147,22 @@ Profile → Settings. The desktop app and `pnpm start` use separate databases, s
   open it again (or right-click → *Open*).
 - **Linux:** `chmod +x HabitManager-*.AppImage`. If it exits with a *SUID sandbox* error (Ubuntu 24.04+), start it
   with `--no-sandbox`.
+
+**Updates.** The installed app checks GitHub releases 10 seconds after it starts and every 6 hours (or Help →
+*Check for updates…*):
+
+- **Windows and Linux (AppImage):** the update downloads in the background, then it asks *Restart now* or *Later*
+  (Later installs it the next time you quit).
+- **macOS:** installing updates needs a paid Apple Developer ID, so it tells you a new version is out and opens the
+  release page to download the new `.dmg`.
+- **Your data is backed up first.** The first time a new version starts, it copies `habit.db` to `backups/` in the
+  data folder (`habit-v0.2.0-to-v0.3.0-….db`) before any database migration runs; the newest 5 are kept.
+
+**Releasing a new version**
+
+1. Bump `version` in `apps/desktop/package.json` (e.g. `0.2.0` → `0.3.0`) and commit.
+2. `git tag v0.3.0` then `git push origin main --tags`. The tag must match the version or the workflow stops.
+3. The *Desktop app* workflow builds all three installers and publishes the release; installed apps pick it up.
 
 **Port.** It uses 3000, the extension's default. If 3000 is busy (say `pnpm start` is running), it picks another port
 and tells you which; set that URL in the extension, or close the other app and restart. `HABIT_PORT=4000` picks a port.

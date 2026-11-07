@@ -5,11 +5,15 @@
 //   electron .          use the bundled server
 //   electron . --dev    show the dev server on http://localhost:3000 instead (run `pnpm dev` first)
 import { app, BrowserWindow, Menu, dialog, shell, utilityProcess } from "electron";
-import { createWriteStream, existsSync, mkdirSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import updaterPkg from "electron-updater";
 import { DEFAULT_PORT, databaseUrl, importDatabase, isExternal, pickPort, waitForServer } from "./lib/setup.js";
+import { CHECK_EVERY_MS, RELEASES_REPO, backupName, backupsToPrune, isNewer, needsBackup } from "./lib/updates.js";
+
+const { autoUpdater } = updaterPkg;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const devMode = process.argv.includes("--dev");
@@ -57,6 +61,7 @@ async function start() {
 
   const dbFile = path.join(dataDir(), "habit.db");
   if (!existsSync(dbFile)) await firstRun(dbFile);
+  backupIfVersionChanged(dbFile);
 
   const serverJs = path.join(app.isPackaged ? process.resourcesPath : here, "server", "apps", "web", "server.js");
   if (!existsSync(serverJs)) {
@@ -99,6 +104,7 @@ async function start() {
   if (!up) return fail("HabitManager couldn't start", `The server didn't respond in time.\n\nLog: ${logFile}`);
 
   openWindow(origin);
+  setupUpdates();
   if (fallback) {
     dialog.showMessageBox({
       type: "info",
@@ -186,6 +192,24 @@ function buildMenu() {
     { role: "editMenu" },
     { role: "viewMenu" },
     { role: "windowMenu" },
+    {
+      role: "help",
+      submenu: [
+        { label: "Check for updates…", click: () => checkForUpdates(true) },
+        { label: "Release notes", click: () => shell.openExternal(`https://github.com/${RELEASES_REPO}/releases`) },
+        { type: "separator" },
+        {
+          label: "About HabitManager",
+          click: () =>
+            dialog.showMessageBox({
+              type: "info",
+              message: `HabitManager ${app.getVersion()}`,
+              detail: `Electron ${process.versions.electron} · Node ${process.versions.node}
+Data: ${dataDir()}`,
+            }),
+        },
+      ],
+    },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -245,4 +269,120 @@ function anyFreePort() {
       probe.close(() => resolve(port));
     });
   });
+}
+
+// ---------------------------------------------------------------- Updates
+
+/**
+ * When the app version changed since the last run, copy the database to backups/ before the new
+ * version's migrations run. Keeps the newest few. Covers automatic updates and manual reinstalls.
+ * @param {string} dbFile
+ */
+function backupIfVersionChanged(dbFile) {
+  const marker = path.join(dataDir(), "last-version");
+  const last = existsSync(marker) ? readFileSync(marker, "utf8").trim() : null;
+  const current = app.getVersion();
+  if (needsBackup(last, current) && existsSync(dbFile)) {
+    const dir = path.join(dataDir(), "backups");
+    mkdirSync(dir, { recursive: true });
+    try {
+      importDatabase(dbFile, path.join(dir, backupName(/** @type {string} */ (last), current, new Date())));
+      for (const old of backupsToPrune(readdirSync(dir))) {
+        for (const f of [old, old + "-wal", old + "-shm"]) rmSync(path.join(dir, f), { force: true });
+      }
+    } catch (err) {
+      dialog.showErrorBox("Backup before update failed", `${err}
+
+HabitManager will start anyway; your data is unchanged so far.`);
+    }
+  }
+  writeFileSync(marker, current);
+}
+
+let updateReady = false;
+
+/** Background checks: shortly after start, then every few hours. Installed builds only. */
+function setupUpdates() {
+  if (!app.isPackaged || process.env.HABIT_NO_UPDATES) return;
+  const logFile = path.join(dataDir(), "logs", "updates.log");
+  const log = (/** @type {unknown[]} */ ...m) => {
+    try {
+      mkdirSync(path.dirname(logFile), { recursive: true });
+      writeFileSync(logFile, `${new Date().toISOString()} ${m.join(" ")}
+`, { flag: "a" });
+    } catch {}
+  };
+  autoUpdater.logger = { info: log, warn: log, error: log, debug: () => {} };
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("update-downloaded", async (info) => {
+    updateReady = true;
+    const { response } = await dialog.showMessageBox({
+      type: "info",
+      buttons: ["Restart now", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+      message: `HabitManager ${info.version} is ready`,
+      detail: "Restart to update. Your data is backed up first. Choosing Later installs it the next time you quit.",
+    });
+    if (response === 0) autoUpdater.quitAndInstall();
+  });
+  setTimeout(() => checkForUpdates(false), 10_000);
+  setInterval(() => checkForUpdates(false), CHECK_EVERY_MS);
+}
+
+/**
+ * Windows and Linux (AppImage) download and install updates themselves. macOS needs a paid Developer ID
+ * to install updates, so there we only say a new version exists and open the release page.
+ * @param {boolean} manual show a result even when there's nothing new
+ */
+async function checkForUpdates(manual) {
+  if (!app.isPackaged) {
+    if (manual) dialog.showMessageBox({ type: "info", message: "Updates work in the installed app", detail: "This is a development build." });
+    return;
+  }
+  if (updateReady) {
+    if (manual) autoUpdater.quitAndInstall();
+    return;
+  }
+  try {
+    if (process.platform === "darwin") return await notifyMacRelease(manual);
+    if (process.platform === "linux" && !process.env.APPIMAGE) {
+      if (manual) dialog.showMessageBox({ type: "info", message: "Automatic updates need the AppImage build", detail: `Download new versions from github.com/${RELEASES_REPO}/releases.` });
+      return;
+    }
+    const result = await autoUpdater.checkForUpdates();
+    const latest = result?.updateInfo.version;
+    if (!manual) return;
+    if (latest && isNewer(latest, app.getVersion())) {
+      dialog.showMessageBox({ type: "info", message: `Downloading HabitManager ${latest}…`, detail: "You'll be asked to restart when it's ready." });
+    } else {
+      dialog.showMessageBox({ type: "info", message: "You're up to date", detail: `HabitManager ${app.getVersion()} is the latest version.` });
+    }
+  } catch (err) {
+    if (manual) dialog.showMessageBox({ type: "warning", message: "Couldn't check for updates", detail: String(err) });
+  }
+}
+
+/** @param {boolean} manual */
+async function notifyMacRelease(manual) {
+  const res = await fetch(`https://api.github.com/repos/${RELEASES_REPO}/releases/latest`, {
+    headers: { Accept: "application/vnd.github+json", "User-Agent": "HabitManager-desktop" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
+  const release = /** @type {{ tag_name: string, html_url: string }} */ (await res.json());
+  if (isNewer(release.tag_name, app.getVersion())) {
+    const { response } = await dialog.showMessageBox({
+      type: "info",
+      buttons: ["Download", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+      message: `HabitManager ${release.tag_name.replace(/^v/, "")} is available`,
+      detail: `You have ${app.getVersion()}. Download the new .dmg and drag it to Applications; your data stays where it is.`,
+    });
+    if (response === 0) shell.openExternal(release.html_url);
+  } else if (manual) {
+    dialog.showMessageBox({ type: "info", message: "You're up to date", detail: `HabitManager ${app.getVersion()} is the latest version.` });
+  }
 }
