@@ -14,6 +14,7 @@ import { DSA_GUIDES_C } from "./dsa-c";
 import { DSA_GUIDES_D } from "./dsa-d";
 import { LLD_GUIDES, LLD_LESSONS } from "./lld";
 import { LLD_EXTRA } from "./lld-extra";
+import { LLD_DEEP_A, LLD_PROJECTS_A } from "./lld-projects-a";
 import { MORE_DB } from "./more-db";
 import { MORE_LLD } from "./more-lld";
 import { MORE_NET } from "./more-net";
@@ -23,9 +24,9 @@ import { MORE_SD_B } from "./more-sd-b";
 import { MORE_SD_C } from "./more-sd-c";
 import { SD_LESSONS } from "./sd";
 import { DEEP_SD_GAPS, SD_GAP_LESSONS } from "./sd-gaps";
-import type { LessonExtra, LldGuide, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
+import type { LessonExtra, LldDeep, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
-export type { DiagramBlock, LessonExtra, LldExtra, LldGuide, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
+export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 /** Concept lessons by concept id (system design, LLD, core CS). */
 export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
@@ -35,6 +36,10 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESI
 
 /** Reference answers by LLD problem id. */
 export { LLD_GUIDES };
+
+/** Full Java projects and their long explanations, by LLD problem id (plan 0013). */
+export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A };
+export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A };
 export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 
 /** DSA pattern guides by pattern id (dsa.ts). Templates are C++. */

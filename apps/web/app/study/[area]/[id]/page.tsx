@@ -9,6 +9,8 @@ import {
   CONFIDENCE_LABELS,
   COVERED_CONFIDENCE,
   LESSON_EXTRA,
+  LLD_DEEP,
+  LLD_PROJECTS,
   LESSONS,
   LLD_EXTRA,
   LLD_GUIDES,
@@ -30,7 +32,7 @@ import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
 import { PageMain, SimpleHint } from "../../../ui";
 import { ArticleLayout, ArticleSection, DeeperSections } from "../../../learn-blocks";
-import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, ReadingSection, WalkthroughView } from "../../learn-ui";
+import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, LldProjectView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
 
 /** Every concept and exercise is known at build time. */
@@ -211,12 +213,20 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
   const hasWalkthrough = isDesign && !!WALKTHROUGHS[id];
   const hasLldGuide = !isDesign && !!LLD_GUIDES[id];
   const hasFollowUps = isDesign && !!WALKTHROUGH_EXTRA[id]?.followUps?.length;
+  const hasLldProject = !isDesign && (!!LLD_PROJECTS[id] || !!LLD_DEEP[id]);
   const hasFlow = !isDesign && !!LLD_EXTRA[id]?.flow?.length;
   const hasEdgeCases = !isDesign && !!LLD_EXTRA[id]?.edgeCases?.length;
 
   const toc = [
     ...(hasWalkthrough ? [{ id: "reference", title: "Reference walkthrough" }] : []),
     ...(hasLldGuide ? [{ id: "reference", title: "Reference answer" }] : []),
+    ...(hasLldProject
+      ? [
+          ...(LLD_DEEP[id] ? [{ id: "walkthrough", title: "Full design walkthrough" }, { id: "lld-diagrams", title: "Diagrams" }] : []),
+          ...(LLD_PROJECTS[id] ? [{ id: "java-code", title: "The full code (Java 17)" }] : []),
+          ...(LLD_DEEP[id]?.concurrency.length ? [{ id: "concurrency", title: "Concurrency" }] : []),
+        ]
+      : []),
     ...(hasFollowUps ? [{ id: "follow-ups", title: "Follow-ups they'll ask" }] : []),
     ...(hasFlow ? [{ id: "trace", title: "Trace one use case" }] : []),
     ...(hasEdgeCases ? [{ id: "edge-cases", title: "Edge cases to name" }] : []),
@@ -258,6 +268,8 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
         </p>
 
         {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
+
+        {!isDesign && hasLldProject && <LldProjectView project={LLD_PROJECTS[id]} deep={LLD_DEEP[id]} />}
 
         {isDesign && WALKTHROUGH_EXTRA[id]?.followUps && (
           <FollowUps items={WALKTHROUGH_EXTRA[id].followUps} />

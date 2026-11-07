@@ -189,6 +189,17 @@ try {
     else { Add-Result 'C++ compiler' 'action' 'installed but not on PATH yet (open a new terminal), or skip: the article-code test is optional' }
   }
 
+  # JDK 17. Dev-only: the test that compiles and runs the Java code in the LLD lessons
+  # (apps/web/lib/lld-projects.test.ts) needs javac; it is skipped without one.
+  if (Test-Command 'javac') { Add-Result 'JDK' 'ok' ((javac -version 2>&1) -join ' ') }
+  elseif ($SkipCompiler) { Add-Result 'JDK' 'skipped' '-SkipCompiler' }
+  elseif ($CheckOnly) { Add-Result 'JDK' 'missing' 'would install: winget install EclipseAdoptium.Temurin.17.JDK' }
+  else {
+    $null = Invoke-Winget 'install' 'EclipseAdoptium.Temurin.17.JDK'
+    if (Test-Command 'javac') { Add-Result 'JDK' 'installed' 'open a new terminal to use it' }
+    else { Add-Result 'JDK' 'action' 'installed but not on PATH yet (open a new terminal), or skip: the Java test is optional' }
+  }
+
   # Docker (optional)
   if ($Docker) {
     $null = wsl.exe --status 2>&1

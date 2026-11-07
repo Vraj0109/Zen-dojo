@@ -76,6 +76,16 @@ else
   fi
 fi
 
+# JDK 17: dev-only (compiles and runs the Java code in the LLD lessons; the test is skipped without one).
+if has javac; then ok "JDK"
+else
+  miss "JDK (only used by a dev test)"
+  if [ "$CHECK_ONLY" = 0 ] && [ "$SKIP_COMPILER" = 0 ]; then
+    if [ "$OS" = Darwin ]; then pkg_install openjdk@17 openjdk@17 || FAILED+=(jdk)
+    else pkg_install openjdk@17 openjdk-17-jdk || FAILED+=(jdk); fi
+  fi
+fi
+
 CODE=""
 if has code; then CODE=code; ok "VS Code"
 elif [ -x "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" ]; then

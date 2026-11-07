@@ -66,6 +66,26 @@ export interface WalkthroughExtra {
   followUps: { q: string; a: string }[];
 }
 
+/** A complete, compilable Java project for an LLD problem (learn/lld-projects-*.ts, plan 0013). Standard library only. */
+export interface LldProject {
+  /** Source files, one top-level type each, in the default package. Must include Main.java. */
+  files: { name: string; code: string }[];
+  /** Optional self-checking tests: a class with a main method (no JUnit). Run by the compile test. */
+  tests?: { name: string; code: string }[];
+  /** Lines that Main must print (each must appear in stdout). */
+  expectedOutput: string[];
+}
+
+/** The long explanation around an LLD project: walkthrough, diagrams, concurrency. */
+export interface LldDeep {
+  /** 6-10 sections, 1,200+ words in total. */
+  walkthrough: Section[];
+  classDiagram: string;
+  sequenceDiagram: string;
+  stateDiagram?: string;
+  concurrency: string[];
+}
+
 /** Extra depth for an LLD reference answer (learn/lld-extra.ts). */
 export interface LldExtra {
   recap: string[];

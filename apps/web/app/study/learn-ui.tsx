@@ -1,9 +1,10 @@
-import { READING_KINDS, type Lesson, type LldGuide, type Walkthrough } from "@habit/shared";
+import { READING_KINDS, type Lesson, type LldDeep, type LldGuide, type LldProject, type Walkthrough } from "@habit/shared";
 import type { DiagramView } from "@/lib/diagrams";
 import type { ReadingView } from "@/lib/reading";
 import { addReadingAction, deleteDiagramAction, deleteReadingAction, toggleReadingAction } from "../actions";
 import { Code } from "../code";
-import { ArticleSection } from "../learn-blocks";
+import { Diagram } from "../diagram";
+import { ArticleSection, DeeperSections } from "../learn-blocks";
 import { SubmitButton } from "../submit-button";
 
 // Learning content and per-item resources (reading list, diagrams) for study pages.
@@ -124,6 +125,50 @@ export function LldGuideView({ g }: { g: LldGuide }) {
         </div>
       </details>
     </ArticleSection>
+  );
+}
+
+/** The full Java project for an LLD problem (plan 0013): walkthrough, diagrams, one block per file, concurrency. */
+export function LldProjectView({ project, deep }: { project?: LldProject; deep?: LldDeep }) {
+  return (
+    <>
+      {deep && (
+        <ArticleSection id="walkthrough" title="Full design walkthrough">
+          <DeeperSections sections={deep.walkthrough} />
+        </ArticleSection>
+      )}
+      {deep && (
+        <ArticleSection id="lld-diagrams" title="Diagrams">
+          <div className="space-y-2">
+            <Diagram source={deep.classDiagram} caption="Class diagram" />
+            <Diagram source={deep.sequenceDiagram} caption="Sequence diagram: the main flow" />
+            {deep.stateDiagram && <Diagram source={deep.stateDiagram} caption="State diagram" />}
+          </div>
+        </ArticleSection>
+      )}
+      {project && (
+        <ArticleSection id="java-code" title="The full code (Java 17)">
+          <p className="mb-3 text-sm text-muted">
+            Standard library only. Copy the files into one folder, compile with <code>javac *.java</code> and run <code>java Main</code>.
+            The checks in this app compile and run exactly this code.
+          </p>
+          <div className="space-y-4">
+            {[...project.files, ...(project.tests ?? [])].map((f) => (
+              <Code key={f.name} code={f.code} lang="Java" label={f.name} maxHeight="32rem" />
+            ))}
+          </div>
+        </ArticleSection>
+      )}
+      {deep && deep.concurrency.length > 0 && (
+        <ArticleSection id="concurrency" title="Concurrency">
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
+            {deep.concurrency.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </ArticleSection>
+      )}
+    </>
   );
 }
 

@@ -35,6 +35,12 @@ jobs:
           node-version: lts/*
           cache: pnpm
 
+      # JDK 17 so the Java code in the LLD lessons is compiled and run by pnpm test (apps/web/lib/lld-projects.test.ts)
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck

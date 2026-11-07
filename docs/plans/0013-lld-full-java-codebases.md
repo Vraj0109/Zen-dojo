@@ -1,8 +1,8 @@
 # 0013: LLD problems with full Java codebases, diagrams and long explanations
 
-- **Status:** ready (the diagrams need 0012; the code and text can start first)
+- **Status:** in-progress (batch A written; Java not compiled yet, no JDK on the dev machine)
 - **Planned by:** Claude Code, 2026-11-07
-- **Implemented by:**
+- **Implemented by:** Claude Code
 
 ## Goal
 
@@ -30,11 +30,11 @@ parking lot, URL shortener, elevator.
 
 ## Steps
 
-- [ ] **1. Types.** In `learn/types.ts` add `LldProject { files: { name: string; code: string }[]; main: string;
+- [x] **1. Types.** In `learn/types.ts` add `LldProject { files: { name: string; code: string }[]; main: string;
   expectedOutput: string[]; tests?: { name: string; code: string }[] }` and `LldDeep { walkthrough: Section[];
   classDiagram: string; sequenceDiagram: string; stateDiagram?: string; concurrency: string[] }`.
   - Done when: typecheck passes.
-- [ ] **2. Data.** New files `learn/lld-projects-a.ts`, `-b.ts`, `-c.ts`, `-d.ts`, exported and merged in
+- [x] **2. Data.** New files `learn/lld-projects-a.ts`, `-b.ts`, `-c.ts`, `-d.ts`, exported and merged in
   `learn/index.ts` as `LLD_PROJECTS` and `LLD_DEEP`.
 - [ ] **3. Content per problem (the unit of work).**
   - 5-12 Java files with the real classes (parking lot: `VehicleType`, `Vehicle`, `Spot`, `Floor`, `Ticket`,
@@ -47,7 +47,7 @@ parking lot, URL shortener, elevator.
     booking, ticket).
   - 2-4 tests as plain `main`-style assertions in a tiny `TestRunner` (no JUnit dependency).
   - Done when: the files compile and `Main` prints the `expectedOutput` lines (step 5).
-- [ ] **4. Page.** `study/[area]/[id]/page.tsx` for LLD problems: Requirements, Design (class diagram), Code (one
+- [x] **4. Page.** `study/[area]/[id]/page.tsx` for LLD problems: Requirements, Design (class diagram), Code (one
   coloured block per file, copy button), Flow (sequence diagram), Concurrency, Extensions, Tests. Keep Simple-mode
   behaviour from 0005. No new nav item.
   - Done when: a problem page shows all of it.
@@ -57,12 +57,12 @@ parking lot, URL shortener, elevator.
   to `.github/workflows/ci.yml` (`actions/setup-java`, temurin 17). Add a JDK check/install to `setup.ps1`
   (`EclipseAdoptium.Temurin.17.JDK` via winget) and `setup.sh`, same pattern as the C++ compiler step.
   - Done when: `pnpm test` runs the Java tests when a JDK exists, and CI runs them.
-- [ ] **6. Content tests.** In `learn/learn.test.ts`: every LLD problem has a project, a 1,000+ word walkthrough, a class
+- [x] **6. Content tests.** In `learn/learn.test.ts`: every LLD problem has a project, a 1,000+ word walkthrough, a class
   diagram, a sequence diagram and a `Main`.
 
 ## Batches (one per sitting; `pnpm check`, then tick)
 
-- [ ] A. parking-lot, elevator, vending-atm
+- [x] A. parking-lot, elevator, vending-atm (written; awaiting the Java compile run)
 - [ ] B. lru-rate-limiter, logger-notifications, url-shortener
 - [ ] C. booking, splitwise, library
 - [ ] D. food-cab, games, file-system-kv
@@ -77,5 +77,16 @@ parking lot, URL shortener, elevator.
 ## Open questions
 
 ## Implementation notes
+
+**Batch A, 2026-11-07.** `learn/lld-projects-a.ts` has `LLD_PROJECTS_A` and `LLD_DEEP_A` for parking lot (19 files + tests), elevator (8 + tests) and vending machine (12 + tests).
+
+- Parking lot: Strategy (allocation, pricing), Decorator (daily cap), Observer (display board); per-spot locking, no global lock; 100 threads racing for 20 spots in a test.
+- Elevator: LOOK sweep per car (TreeSet of stops), a cost-based dispatch strategy, tick-driven so tests are deterministic, one lock in the controller.
+- Vending machine: State pattern, exact change by bounded backtracking (plain greedy fails with limited stock; a test covers it). The ATM is covered in the walkthrough only (state mapping, note dispensing, debit-then-dispense), not as code. Say so if you want it implemented too.
+- Each problem has a 1,500+ word walkthrough (6-7 sections), class and sequence diagrams, a state diagram where it applies, and concurrency notes. All 14 diagrams parse with Mermaid (jsdom test).
+- Page: `LldProjectView` in `study/learn-ui.tsx` shows Full design walkthrough, Diagrams, The full code (one block per file) and Concurrency after the old collapsed reference answer. Looked at it in a real window (dark theme).
+- `apps/web/lib/lld-projects.test.ts` compiles with `javac -Xlint:all`, runs `Main`, checks every `expectedOutput` line and runs `Tests`. CI installs JDK 17 (`actions/setup-java`). `setup.ps1` / `setup.sh` install a JDK like they install g++.
+- **Not verified:** there is no JDK on this machine, so the test is skipped and **none of the Java has been compiled or run**. I traced Main and Tests by hand (ticket numbers, tick counts, change-making cases), but that is not a compile. Run `winget install EclipseAdoptium.Temurin.17.JDK` (or `setup.cmd`), open a new terminal and run `pnpm test`; fix anything it reports before releasing.
+- Remaining: batches B to E, the four new problems (url-shortener, library, hotel, meeting-rooms) and registering them in `study.ts`.
 
 ## Review
