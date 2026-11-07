@@ -69,12 +69,24 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: installers
           merge-multiple: true
 
+      # Hand-written notes live in docs/releases/<tag>.md; GitHub's generated list of changes is added below them.
+      - name: Release notes
+        run: |
+          if [ -f "docs/releases/$GITHUB_REF_NAME.md" ]; then
+            cp "docs/releases/$GITHUB_REF_NAME.md" release-notes.md
+          else
+            echo "No hand-written notes for $GITHUB_REF_NAME." > release-notes.md
+          fi
+
       - uses: softprops/action-gh-release@v2
         with:
           files: installers/*
+          body_path: release-notes.md
           generate_release_notes: true
