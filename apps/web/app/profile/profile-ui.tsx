@@ -1,11 +1,12 @@
 import Link from "next/link";
 
 const TABS = [
-  { href: "/profile", label: "Overview" },
+  { href: "/profile", label: "Stats" },
+  { href: "/roadmap", label: "Roadmap" },
   { href: "/profile/settings", label: "Settings" },
 ] as const;
 
-/** Profile heading with Overview / Settings tabs. */
+/** Profile heading with Stats / Roadmap / Settings tabs. */
 export function ProfileTabs({ active }: { active: (typeof TABS)[number]["href"] }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-line">

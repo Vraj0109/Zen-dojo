@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Nav, NavLinks } from "./nav";
+import { GlobalTimer } from "./global-timer";
+import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={<NavLinks pathname={null} />}>
             <Nav />
           </Suspense>
+          {/* The one focus timer, above Profile on wide screens and under the top bar on phones */}
+          <div className="mt-2 space-y-3 lg:mt-auto">
+            <GlobalTimer />
+            <Suspense fallback={<NavFooterLinks pathname={null} />}>
+              <NavFooter />
+            </Suspense>
+          </div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </body>

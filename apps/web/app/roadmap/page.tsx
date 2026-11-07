@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { TOTAL_WEEKS } from "@habit/shared";
 import { getRoadmapView, type RoadmapWeek } from "@/lib/roadmap";
+import { ProfileTabs } from "../profile/profile-ui";
 import { PageMain, ProgressBar } from "../ui";
 
 export const metadata: Metadata = { title: "Roadmap" };
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "Roadmap" };
 export default function RoadmapPage() {
   return (
     <PageMain title="Roadmap">
+      <ProfileTabs active="/roadmap" />
       <Suspense fallback={<p className="text-muted">Loading roadmap…</p>}>
         <Roadmap />
       </Suspense>

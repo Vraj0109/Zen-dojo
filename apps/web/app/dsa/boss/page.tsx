@@ -6,7 +6,7 @@ import { PROBLEMS } from "@habit/shared";
 import { BOSS_MINUTES, BOSS_RESULTS, getBossView } from "@/lib/boss";
 import { BOSS_ITEM, focusMinutes } from "@/lib/timer";
 import { saveBossFightAction } from "../../actions";
-import { FocusTimer } from "../../focus-timer";
+import { StartTimer } from "../../start-timer";
 import { SubmitButton } from "../../submit-button";
 import { Difficulty, PageMain, StatusMark } from "../../ui";
 
@@ -87,7 +87,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
             ↻ Different problems
           </Link>
 
-          <FocusTimer itemId={BOSS_ITEM} defaultMinutes={BOSS_MINUTES} presets={[60, 90, 120]} totalMinutes={focused} />
+          <StartTimer itemId={BOSS_ITEM} label="Boss fight" href="/dsa/boss" defaultMinutes={BOSS_MINUTES} totalMinutes={focused} />
 
           <form action={saveBossFightAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
             <h3 className="font-semibold">How did it go?</h3>

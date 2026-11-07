@@ -90,6 +90,27 @@ body {
   }
 }
 
+/* Imported cp-algorithms articles (HTML from markdown). */
+.cp-prose { line-height: 1.75; font-size: 0.95rem; overflow-wrap: anywhere; }
+.cp-prose > * + * { margin-top: 1rem; }
+.cp-prose h1, .cp-prose h2, .cp-prose h3, .cp-prose h4 { font-weight: 600; line-height: 1.3; margin-top: 2rem; }
+.cp-prose h2 { font-size: 1.25rem; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+.cp-prose h3 { font-size: 1.1rem; }
+.cp-prose h4 { font-size: 1rem; }
+.cp-prose ul { list-style: disc; padding-left: 1.5rem; }
+.cp-prose ol { list-style: decimal; padding-left: 1.5rem; }
+.cp-prose li + li { margin-top: 0.35rem; }
+.cp-prose a { text-decoration: underline; text-underline-offset: 2px; }
+.cp-prose code:not(pre code) { background: var(--surface); border: 1px solid var(--line); border-radius: 0.25rem; padding: 0.05rem 0.3rem; font-family: var(--font-mono), ui-monospace, monospace; font-size: 0.85em; }
+.cp-prose table { display: block; overflow-x: auto; border-collapse: collapse; }
+.cp-prose th, .cp-prose td { border: 1px solid var(--line); padding: 0.35rem 0.6rem; text-align: left; }
+.cp-prose blockquote { border-left: 3px solid var(--line); padding-left: 1rem; color: var(--muted); }
+.cp-prose img { max-width: 100%; height: auto; background: #fff; border-radius: 0.5rem; }
+.cp-prose details { border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.5rem 0.9rem; background: var(--surface); }
+.cp-prose summary { cursor: pointer; font-weight: 500; }
+.cp-prose .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.25rem 0; }
+.cp-prose hr { border-color: var(--line); }
+
 pre.code-block {
   margin: 0;
   overflow: auto;

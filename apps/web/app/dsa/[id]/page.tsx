@@ -10,12 +10,13 @@ import { getPatternNotes } from "@/lib/pattern-notes";
 import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggles";
 import { focusMinutes } from "@/lib/timer";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, undoSolveAction } from "../../actions";
-import { FocusTimer } from "../../focus-timer";
+import { StartTimer } from "../../start-timer";
 import { Code } from "../../code";
 import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { Tabs, type TabItem } from "../../tabs";
-import { Difficulty, PageMain, StatusMark } from "../../ui";
+import { getSimpleMode } from "@/lib/ui-prefs";
+import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 
 export const metadata: Metadata = { title: "Problem" };
 
@@ -66,7 +67,7 @@ async function Problem({
   await connection(); // reads today's date and the database
   const p = await getProblemDetail(decodeURIComponent(id));
   if (!p) notFound();
-  const [struggles, focused, cheats] = await Promise.all([getStruggles(p.id), focusMinutes(p.id), getPatternNotes()]);
+  const [struggles, focused, cheats, simple] = await Promise.all([getStruggles(p.id), focusMinutes(p.id), getPatternNotes(), getSimpleMode()]);
   const open = struggles.filter((x) => !x.clearedOn);
 
   const s = p.status;
@@ -159,10 +160,11 @@ async function Problem({
         )}
       </section>
 
-      <FocusTimer
+      <StartTimer
         itemId={p.id}
+        label={p.title}
+        href={`/dsa/${encodeURIComponent(p.id)}`}
         defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25}
-        presets={[15, 25, 45]}
         totalMinutes={focused}
       />
 
@@ -184,7 +186,7 @@ async function Problem({
                           {pat.name}
                         </Link>
                         <span className="text-muted"> · recognize by: {pat.recognize}</span>
-                        {cheats.get(pat.id)?.template && (
+                        {!simple && cheats.get(pat.id)?.template && (
                           <details className="mt-1">
                             <summary className="cursor-pointer text-xs font-medium text-muted">Your template</summary>
                             <div className="mt-1">
@@ -263,7 +265,8 @@ async function Problem({
         </section>
       )}
 
-      {tab === "stuck" && <StuckPanel problemId={p.id} open={open} history={struggles} />}
+      {tab === "stuck" && <StuckPanel problemId={p.id} open={open} history={simple ? [] : struggles} />}
+      {simple && <SimpleHint />}
     </article>
   );
 }

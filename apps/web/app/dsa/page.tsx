@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { getDsaView, type PatternView } from "@/lib/dsa";
+import { getSimpleMode } from "@/lib/ui-prefs";
 import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, parseDsaTab, type DsaFilters } from "@/lib/dsa-filters";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
@@ -11,7 +12,7 @@ import { CheatSheet, ProblemRow, ProblemTitle } from "./problem-ui";
 import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
-import { Difficulty, PageMain, ProgressBar, Stat, StatusMark } from "../ui";
+import { Difficulty, PageMain, ProgressBar, SimpleHint, Stat, StatusMark } from "../ui";
 
 export const metadata: Metadata = { title: "DSA" };
 
@@ -42,7 +43,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   const params = await searchParams;
   await connection();
   after(syncLeetCodeIfStale);
-  const [{ groups, due, extras, topics, totals }, leetcode, extension] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus()]);
+  const [{ groups, due, extras, topics, totals }, leetcode, extension, simple] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus(), getSimpleMode()]);
 
   const tab = parseDsaTab(params);
   const filters = parseDsaFilters(params);
@@ -192,10 +193,13 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
         </div>
 
         <aside className="space-y-6">
-          <Link href="/dsa/boss" className="block rounded-lg border border-line bg-surface p-3 text-sm hover:bg-background">
-            <span className="font-semibold text-foreground">Boss fight</span> · <span className="text-muted">2 unsolved problems against a 2-hour timer.</span>
-          </Link>
+          {!simple && (
+            <Link href="/dsa/boss" className="block rounded-lg border border-line bg-surface p-3 text-sm hover:bg-background">
+              <span className="font-semibold text-foreground">Boss fight</span> · <span className="text-muted">2 unsolved problems against a 2-hour timer.</span>
+            </Link>
+          )}
           <SyncStatus leetcode={leetcode} extension={extension} />
+          {simple && <SimpleHint />}
         </aside>
       </div>
     </div>

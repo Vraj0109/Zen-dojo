@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ALL_PATTERNS, DSA_GROUPS, PATTERN_GUIDES } from "@habit/shared";
+import "katex/dist/katex.min.css";
+import { cpAlgoCount, getCpAlgoArticles } from "@/lib/cp-algorithms";
 import { getDsaView } from "@/lib/dsa";
+import { getSimpleMode } from "@/lib/ui-prefs";
 import { focusMinutes, patternTimerId } from "@/lib/timer";
-import { FocusTimer } from "../../../focus-timer";
+import { StartTimer } from "../../../start-timer";
 import { ArticleLayout, ArticleSection, CodeBlock } from "../../../learn-blocks";
 import { Tabs } from "../../../tabs";
-import { PageMain, ProgressBar } from "../../../ui";
+import { PageMain, ProgressBar, SimpleHint } from "../../../ui";
 import { CheatSheet, ProblemRow } from "../../problem-ui";
 
 /** One page per pattern, known at build time. */
@@ -22,11 +25,15 @@ export async function generateMetadata({ params }: PageProps<"/dsa/pattern/[id]"
   return { title: ALL_PATTERNS.find((p) => p.id === id)?.name ?? "Pattern" };
 }
 
-const TABS = [
-  { id: "learn", label: "Learn" },
-  { id: "practice", label: "Practice" },
-  // Plan 0003 will add a "Reference" tab here
-] as const;
+/** Learn and Practice always; Reference (cp-algorithms articles) only for patterns that have some. */
+function tabsFor(patternId: string) {
+  const refs = cpAlgoCount(patternId);
+  return [
+    { id: "learn", label: "Learn" },
+    { id: "practice", label: "Practice" },
+    ...(refs > 0 ? [{ id: "reference", label: "Reference", count: refs }] : []),
+  ];
+}
 
 export default async function PatternPage({
   params,
@@ -62,7 +69,9 @@ async function PatternView({
   const prev = ALL_PATTERNS[idx - 1];
   const next = ALL_PATTERNS[idx + 1];
 
-  const currentTab = typeof sp?.tab === "string" && sp.tab === "practice" ? "practice" : "learn";
+  const tabs = tabsFor(id);
+  const requested = typeof sp?.tab === "string" ? sp.tab : "learn";
+  const currentTab = tabs.some((t) => t.id === requested) ? requested : "learn";
 
   const toc = [
     { id: "idea", title: "The idea" },
@@ -85,7 +94,7 @@ async function PatternView({
       </header>
 
       <Tabs
-        tabs={TABS}
+        tabs={tabs}
         active={currentTab}
         hrefFor={(t) => (t === "learn" ? `/dsa/pattern/${id}` : `/dsa/pattern/${id}?tab=${t}`)}
         label="Pattern sections"
@@ -140,6 +149,8 @@ async function PatternView({
         </ArticleLayout>
       )}
 
+      {currentTab === "reference" && <Reference id={id} />}
+
       {currentTab === "practice" && (
         <Suspense fallback={<p className="text-sm text-muted">Loading your progress…</p>}>
           <Practice id={id} />
@@ -170,9 +181,31 @@ async function PatternView({
   );
 }
 
+/** cp-algorithms articles for this pattern: full text with proofs, variants and code (CC BY-SA 4.0). */
+async function Reference({ id }: { id: string }) {
+  const articles = await getCpAlgoArticles(id);
+  if (articles.length === 0) return <p className="text-sm text-muted">No reference articles for this pattern.</p>;
+  const toc = articles.map((a, i) => ({ id: `ref-${i}`, title: a.title }));
+  return (
+    <ArticleLayout toc={toc}>
+      {articles.map((a, i) => (
+        <ArticleSection key={a.path} id={`ref-${i}`} title={a.title}>
+          <p className="mb-4 text-xs leading-relaxed text-muted">
+            From <a href={a.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">cp-algorithms</a> by
+            cp-algorithms contributors, CC BY-SA 4.0 (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">license</a>).
+            Converted to HTML; text unchanged.
+          </p>
+          {/* Imported at build time from the cp-algorithms repo; scripts are stripped by the importer and code is coloured by our highlighter. */}
+          <div className="cp-prose" dangerouslySetInnerHTML={{ __html: a.html }} />
+        </ArticleSection>
+      ))}
+    </ArticleLayout>
+  );
+}
+
 async function Practice({ id }: { id: string }) {
   await connection();
-  const [view, minutes] = await Promise.all([getDsaView(), focusMinutes(patternTimerId(id))]);
+  const [view, minutes, simple] = await Promise.all([getDsaView(), focusMinutes(patternTimerId(id)), getSimpleMode()]);
   const p = view.groups.flatMap((g) => g.patterns).find((x) => x.id === id);
   if (!p) return null;
   return (
@@ -193,10 +226,10 @@ async function Practice({ id }: { id: string }) {
           </ul>
           <p className="mt-2 text-xs text-muted">Easy to hard. Solve, then re-solve cold two weeks later.</p>
         </section>
-        <CheatSheet p={p} />
+        {simple ? <SimpleHint /> : <CheatSheet p={p} />}
       </div>
       <aside className="xl:sticky xl:top-6 self-start">
-        <FocusTimer itemId={patternTimerId(id)} defaultMinutes={25} presets={[15, 25, 45]} totalMinutes={minutes} />
+        <StartTimer itemId={patternTimerId(id)} label={p.name} href={`/dsa/pattern/${id}`} defaultMinutes={25} totalMinutes={minutes} />
       </aside>
     </div>
   );

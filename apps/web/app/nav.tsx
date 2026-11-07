@@ -6,33 +6,40 @@ import { usePathname } from "next/navigation";
 // Icons: 24x24 stroke paths (lucide-style), drawn in currentColor.
 const ICONS = {
   today: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 16l2 2 4-4",
-  revise: "M13 2 3 14h9l-1 8 10-12h-9l1-8z",
   review: "M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5",
   dsa: "m16 18 6-6-6-6M8 6l-6 6 6 6",
-  sd: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM6.5 10v4a2 2 0 0 0 2 2H14",
-  lld: "M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5M3 18l9 5 9-5",
-  core: "M5 5h14v14H5zM9 9h6v6H9zM9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4",
-  roadmap: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14",
+  learn: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM6.5 10v4a2 2 0 0 0 2 2H14",
   profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
 } as const;
 
-type NavLink = { href: string; label: string; icon: keyof typeof ICONS };
+type NavLink = {
+  href: string;
+  label: string;
+  icon: keyof typeof ICONS;
+  /** Pages (besides `href` itself) that highlight this item. */
+  matches: readonly string[];
+};
 
+// Five items: the daily list, practice, learning, review, and you. Everything else is a tab inside one of them.
 const MAIN: NavLink[] = [
-  { href: "/", label: "Today", icon: "today" },
-  { href: "/review", label: "Review", icon: "review" },
-  { href: "/revise", label: "Quick revise", icon: "revise" },
-  { href: "/dsa", label: "DSA", icon: "dsa" },
-  { href: "/study/sd", label: "System design", icon: "sd" },
-  { href: "/study/lld", label: "LLD", icon: "lld" },
-  { href: "/study/core", label: "Core CS", icon: "core" },
+  { href: "/", label: "Today", icon: "today", matches: [] },
+  { href: "/dsa", label: "Practice", icon: "dsa", matches: ["/dsa"] },
+  { href: "/study/sd", label: "Learn", icon: "learn", matches: ["/study"] },
+  { href: "/review", label: "Review", icon: "review", matches: ["/review", "/revise"] },
 ];
 
 // Less-visited pages sit at the bottom of the sidebar (end of the bar on phones).
-const SECONDARY: NavLink[] = [
-  { href: "/roadmap", label: "Roadmap", icon: "roadmap" },
-  { href: "/profile", label: "Profile", icon: "profile" },
-];
+const SECONDARY: NavLink[] = [{ href: "/profile", label: "Profile", icon: "profile", matches: ["/profile", "/roadmap"] }];
+
+/** True when `pathname` is `base` or inside it. */
+const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(base + "/");
+
+/** Which nav item a path belongs to (exported for tests). */
+export function isActive(link: Pick<NavLink, "href" | "matches">, pathname: string | null): boolean {
+  if (pathname === null) return false;
+  if (link.href === "/") return pathname === "/";
+  return link.matches.some((m) => within(pathname, m));
+}
 
 function Icon({ name }: { name: keyof typeof ICONS }) {
   return (
@@ -42,38 +49,57 @@ function Icon({ name }: { name: keyof typeof ICONS }) {
   );
 }
 
-/** Nav with the current page highlighted. Render inside <Suspense fallback={<NavLinks pathname={null} />}>:
+/** Main nav with the current page highlighted. Render inside <Suspense fallback={<NavLinks pathname={null} />}>:
  * on routes with request-time params (e.g. /dsa/[id]) the pathname isn't known while prerendering. */
 export function Nav() {
   return <NavLinks pathname={usePathname()} />;
 }
 
-export function NavLinks({ pathname }: { pathname: string | null }) {
-  const item = ({ href, label, icon }: NavLink, extra = "") => {
-    const active = pathname !== null && (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/"));
-    return (
-      <li key={href} className={`shrink-0 ${extra}`}>
-        <Link
-          href={href}
-          aria-current={active ? "page" : undefined}
-          className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-            active ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
-          }`}
-        >
-          <Icon name={icon} />
-          {label}
-        </Link>
-      </li>
-    );
-  };
+/** The Profile link at the bottom of the sidebar (wide screens). On phones Profile is the last item of the top bar. */
+export function NavFooter() {
+  return <NavFooterLinks pathname={usePathname()} />;
+}
+
+function NavItem({ link, pathname, extra = "" }: { link: NavLink; pathname: string | null; extra?: string }) {
+  const active = isActive(link, pathname);
   return (
-    <nav aria-label="Main" className="-mx-1 overflow-x-auto px-1 lg:mx-0 lg:flex lg:flex-1 lg:flex-col lg:overflow-visible lg:px-0">
+    <li className={`shrink-0 ${extra}`}>
+      <Link
+        href={link.href}
+        aria-current={active ? "page" : undefined}
+        className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+          active ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
+        }`}
+      >
+        <Icon name={link.icon} />
+        {link.label}
+      </Link>
+    </li>
+  );
+}
+
+export function NavLinks({ pathname }: { pathname: string | null }) {
+  return (
+    <nav aria-label="Main" className="-mx-1 overflow-x-auto px-1 lg:mx-0 lg:overflow-visible lg:px-0">
       <ul className="flex gap-1 lg:flex-col">
-        {MAIN.map((l) => item(l))}
+        {MAIN.map((l) => (
+          <NavItem key={l.href} link={l} pathname={pathname} />
+        ))}
         <li aria-hidden className="mx-1 w-px shrink-0 self-stretch bg-line lg:hidden" />
-        {SECONDARY.map((l) => item(l, "lg:hidden"))}
+        {SECONDARY.map((l) => (
+          <NavItem key={l.href} link={l} pathname={pathname} extra="lg:hidden" />
+        ))}
       </ul>
-      <ul className="mt-auto hidden flex-col gap-1 border-t border-line pt-3 lg:flex">{SECONDARY.map((l) => item(l))}</ul>
     </nav>
+  );
+}
+
+export function NavFooterLinks({ pathname }: { pathname: string | null }) {
+  return (
+    <ul className="hidden flex-col gap-1 border-t border-line pt-3 lg:flex">
+      {SECONDARY.map((l) => (
+        <NavItem key={l.href} link={l} pathname={pathname} />
+      ))}
+    </ul>
   );
 }

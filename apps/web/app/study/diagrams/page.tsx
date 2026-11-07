@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { ALL_EXERCISES, studyHref } from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
+import { LearnTabs } from "../../section-tabs";
 import { PageMain } from "../../ui";
 
 export const metadata: Metadata = { title: "Your diagrams" };
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "Your diagrams" };
 export default function DiagramsPage() {
   return (
     <PageMain title="Your diagrams">
+      <LearnTabs active="diagrams" />
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
         <Gallery />
       </Suspense>

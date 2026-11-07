@@ -13,6 +13,9 @@ import { addTaskAction, deleteTaskAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
 import { PageMain, ProgressBar, StatusMark } from "./ui";
 
+/** Rows shown in "Up next" before "+N more". */
+const UP_NEXT_VISIBLE = 5;
+
 export default function Page({ searchParams }: PageProps<"/">) {
   return (
     <PageMain title="Today">
@@ -22,6 +25,11 @@ export default function Page({ searchParams }: PageProps<"/">) {
     </PageMain>
   );
 }
+
+/** One line of the Up next list: the interview countdown, the review queue, or an undone task for today. */
+type UpNextRow =
+  | { kind: "link"; key: string; label: string; title: string; detail: string; href: string }
+  | { kind: "task"; key: string; task: Task };
 
 async function Today({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   // Today's date and the database are per-request; render at request time.
@@ -34,7 +42,8 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
   const currentWeek = Math.min(Math.max(v.weekNo, 1), TOTAL_WEEKS);
   // ?week=N shows another week's focus, so you can work ahead (or catch up).
   const asked = Number(Array.isArray(params.week) ? params.week[0] : params.week);
-  const shownWeek = Number.isInteger(asked) && asked >= 1 && asked <= TOTAL_WEEKS ? asked : currentWeek;
+  const browsingWeek = Number.isInteger(asked) && asked >= 1 && asked <= TOTAL_WEEKS;
+  const shownWeek = browsingWeek ? asked : currentWeek;
   const [focus, shown] = await Promise.all([
     getWeekFocus(currentWeek),
     shownWeek === currentWeek ? null : getWeekFocus(shownWeek),
@@ -42,9 +51,35 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
 
   const due = { resolve: resolveDue, reviews: reviews.length };
   const link = (t: Task) => taskLink(t, focus, due);
-  const doneToday = v.dayTasks.filter((t) => t.status === "done").length;
-  const dayXp = v.dayTasks.reduce((a, t) => a + t.xp, 0);
+  const doneTasks = v.dayTasks.filter((t) => t.status === "done");
+  const undoneTasks = v.dayTasks.filter((t) => t.status !== "done");
   const lvl = v.level;
+
+  const rows: UpNextRow[] = [];
+  if (countdown && countdown.daysLeft >= 0 && countdown.daysLeft <= 14) {
+    rows.push({
+      kind: "link",
+      key: "countdown",
+      label: "Interview",
+      title: countdown.daysLeft === 0 ? "Interview today" : countdown.daysLeft === 1 ? "Interview tomorrow" : `${countdown.daysLeft} days to your interview`,
+      detail: countdown.phase ? `${countdown.phase.title}: see the plan` : "Quick revise",
+      href: "/revise",
+    });
+  }
+  if (reviews.length > 0) {
+    const kinds = Object.entries(
+      reviews.reduce<Record<string, number>>((acc, r) => ({ ...acc, [REVIEW_KIND_LABELS[r.kind]]: (acc[REVIEW_KIND_LABELS[r.kind]] ?? 0) + 1 }), {}),
+    )
+      .map(([label, n]) => `${n} ${label.toLowerCase()}`)
+      .join(" · ");
+    rows.push({ kind: "link", key: "reviews", label: "Review", title: `${reviews.length} review${reviews.length === 1 ? "" : "s"} due today`, detail: kinds, href: "/review" });
+  }
+  if (!beforeStart && !finished) for (const t of undoneTasks) rows.push({ kind: "task", key: `task-${t.id}`, task: t });
+
+  const visible = rows.slice(0, UP_NEXT_VISIBLE);
+  const more = rows.slice(UP_NEXT_VISIBLE);
+  const nextWeekTask = v.weekTasks.find((t) => t.status !== "done");
+  const showUpNext = rows.length > 0 || (!beforeStart && !finished);
 
   return (
     <div className="space-y-6">
@@ -70,106 +105,120 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
         </div>
       </header>
 
-      {countdown && countdown.daysLeft >= 0 && countdown.daysLeft <= 14 && (
-        <Link href="/revise" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">
-          <span className="font-semibold">
-            {countdown.daysLeft === 0 ? "Interview today" : countdown.daysLeft === 1 ? "Interview tomorrow" : `${countdown.daysLeft} days to your interview`}
-          </span>
-          <span className="text-sm text-muted">{countdown.phase ? `${countdown.phase.title}: see the plan` : "Quick revise"} →</span>
-        </Link>
+      {beforeStart && (
+        <p className="rounded-xl border border-line bg-surface p-4">
+          Your plan starts on <strong>{formatLong(v.planStart)}</strong>. You can work ahead from the week focus below, or{" "}
+          <Link href="/profile/settings" className="font-medium underline">
+            change the start date
+          </Link>
+          .
+        </p>
       )}
+      {finished && <p className="rounded-xl border border-line bg-surface p-4">You finished all {TOTAL_WEEKS} weeks. Good luck in the interviews!</p>}
 
-      {reviews.length > 0 && (
-        <Link href="/review" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">
-          <span className="font-semibold">
-            {reviews.length} review{reviews.length === 1 ? "" : "s"} due today
-          </span>
-          <span className="text-sm text-muted">
-            {Object.entries(
-              reviews.reduce<Record<string, number>>((acc, r) => ({ ...acc, [REVIEW_KIND_LABELS[r.kind]]: (acc[REVIEW_KIND_LABELS[r.kind]] ?? 0) + 1 }), {}),
-            )
-              .map(([label, n]) => `${n} ${label.toLowerCase()}`)
-              .join(" · ")}{" "}
-            →
-          </span>
-        </Link>
-      )}
+      {showUpNext && (
+        <section aria-labelledby="up-next" className="rounded-xl border border-line bg-surface">
+          <div className="flex items-center justify-between gap-3 border-b border-line p-4">
+            <h3 id="up-next" className="font-semibold">
+              Up next
+            </h3>
+            {!beforeStart && !finished && (
+              <span className="text-sm text-muted">
+                {doneTasks.length} / {v.dayTasks.length} tasks done today
+              </span>
+            )}
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-        <div className="min-w-0 space-y-6">
-          {beforeStart && (
-            <p className="rounded-xl border border-line bg-surface p-4">
-              Your plan starts on <strong>{formatLong(v.planStart)}</strong>. You can work ahead from the week panel, or{" "}
-              <Link href="/profile/settings" className="font-medium underline">
-                change the start date
-              </Link>
-              .
-            </p>
-          )}
-          {finished && (
-            <p className="rounded-xl border border-line bg-surface p-4">You finished all {TOTAL_WEEKS} weeks. Good luck in the interviews!</p>
-          )}
-
-          {!beforeStart && !finished && (
+          {rows.length === 0 ? (
+            <div className="space-y-2 p-4">
+              <p className="font-medium">All done for today.</p>
+              {focus.dsa.next ? (
+                <p className="text-sm text-muted">
+                  Want to get ahead? Next problem:{" "}
+                  <Link href={focus.dsa.next.href} className="font-medium text-foreground underline">
+                    {focus.dsa.next.title}
+                  </Link>
+                </p>
+              ) : nextWeekTask ? (
+                <p className="text-sm text-muted">Next on this week&apos;s list: {nextWeekTask.title}</p>
+              ) : null}
+            </div>
+          ) : (
             <>
-              <section className="rounded-xl border border-line bg-surface">
-                <div className="flex items-center justify-between gap-3 border-b border-line p-4">
-                  <h3 className="font-semibold">Today&apos;s plan</h3>
-                  <span className="text-sm text-muted">
-                    {doneToday} / {v.dayTasks.length} done · {dayXp} XP available
-                  </span>
-                </div>
-                <div className="px-4 pt-3">
-                  <ProgressBar value={doneToday} max={v.dayTasks.length} label="Today's tasks done" />
-                </div>
-                <TaskList tasks={v.dayTasks} link={link} />
-              </section>
-
-              <section className="rounded-xl border border-line bg-surface">
-                <div className="flex items-center justify-between gap-3 border-b border-line p-4">
-                  <h3 className="font-semibold">Week {v.weekNo} goals</h3>
-                  <span className="text-sm text-muted">
-                    {v.weekTasks.filter((t) => t.status === "done").length} / {v.weekTasks.length} done
-                  </span>
-                </div>
-                <TaskList tasks={v.weekTasks} link={link} />
-              </section>
+              <ul className="divide-y divide-line">
+                {visible.map((r) => (
+                  <UpNextItem key={r.key} row={r} link={link} />
+                ))}
+              </ul>
+              {more.length > 0 && (
+                <details className="group border-t border-line">
+                  <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-muted hover:text-foreground">
+                    <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+                    +{more.length} more
+                  </summary>
+                  <ul className="divide-y divide-line border-t border-line">
+                    {more.map((r) => (
+                      <UpNextItem key={r.key} row={r} link={link} />
+                    ))}
+                  </ul>
+                </details>
+              )}
             </>
           )}
+        </section>
+      )}
 
-          <details className="group rounded-xl border border-line bg-surface">
-            <summary className="cursor-pointer list-none p-4 font-semibold">
-              <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
-              Add your own task
-            </summary>
-            <form action={addTaskAction} className="flex flex-col gap-2 border-t border-line p-4 sm:flex-row">
-              <input
-                name="title"
-                required
-                maxLength={200}
-                placeholder="e.g. LeetCode 560 Subarray Sum Equals K"
-                aria-label="Task title"
-                className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2"
-              />
-              <select name="category" aria-label="Category" className="rounded-lg border border-line bg-background px-3 py-2" defaultValue="dsa">
-                {Object.entries(CATEGORIES).map(([key, c]) => (
-                  <option key={key} value={key}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <select name="scope" aria-label="When" className="rounded-lg border border-line bg-background px-3 py-2" defaultValue="day">
-                <option value="day">Today</option>
-                <option value="week">This week</option>
-              </select>
-              <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Add</SubmitButton>
-            </form>
-          </details>
-        </div>
+      {!beforeStart && !finished && doneTasks.length > 0 && (
+        <Fold title={`Done today · ${doneTasks.length}`}>
+          <TaskList tasks={doneTasks} link={link} />
+        </Fold>
+      )}
 
+      {!beforeStart && !finished && (
+        <Fold title={`This week · ${v.weekTasks.filter((t) => t.status === "done").length} / ${v.weekTasks.length} done`}>
+          <TaskList tasks={v.weekTasks} link={link} />
+          <form action={addTaskAction} className="flex flex-col gap-2 border-t border-line p-4 sm:flex-row">
+            <input
+              name="title"
+              required
+              maxLength={200}
+              placeholder="Add your own task, e.g. LeetCode 560 Subarray Sum Equals K"
+              aria-label="Task title"
+              className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2"
+            />
+            <select name="category" aria-label="Category" className="rounded-lg border border-line bg-background px-3 py-2" defaultValue="dsa">
+              {Object.entries(CATEGORIES).map(([key, c]) => (
+                <option key={key} value={key}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <select name="scope" aria-label="When" className="rounded-lg border border-line bg-background px-3 py-2" defaultValue="day">
+              <option value="day">Today</option>
+              <option value="week">This week</option>
+            </select>
+            <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Add</SubmitButton>
+          </form>
+        </Fold>
+      )}
+
+      <Fold title={`Week ${shownWeek} focus`} open={browsingWeek || beforeStart}>
         <FocusPanel focus={shown ?? focus} currentWeek={currentWeek} started={!beforeStart} />
-      </div>
+      </Fold>
     </div>
+  );
+}
+
+/** A collapsed section: summary line, body behind one click. */
+function Fold({ title, open, children }: { title: string; open?: boolean; children: React.ReactNode }) {
+  return (
+    <details open={open} className="group rounded-xl border border-line bg-surface">
+      <summary className="cursor-pointer list-none p-4 font-semibold">
+        <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+        {title}
+      </summary>
+      <div className="border-t border-line">{children}</div>
+    </details>
   );
 }
 
@@ -190,70 +239,93 @@ const CATEGORY_STYLES: Record<Category, string> = {
   other: "bg-cat-other",
 };
 
+function UpNextItem({ row, link }: { row: UpNextRow; link: (t: Task) => TaskLink | null }) {
+  if (row.kind === "task") return <TaskRow t={row.task} link={link} />;
+  return (
+    <li className="flex items-center gap-3 p-4">
+      <span aria-hidden className="size-6 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{row.title}</p>
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+          <span className="font-medium text-accent">{row.label}</span>
+          <span>· {row.detail}</span>
+        </p>
+      </div>
+      <Link href={row.href} prefetch={false} className="shrink-0 rounded-lg border border-accent px-3 py-1.5 text-sm font-medium hover:bg-background">
+        Open <span aria-hidden>→</span>
+      </Link>
+    </li>
+  );
+}
+
 function TaskList({ tasks, link }: { tasks: Task[]; link: (t: Task) => TaskLink | null }) {
   if (tasks.length === 0) return <p className="p-4 text-muted">Nothing here yet.</p>;
   return (
     <ul className="divide-y divide-line">
-      {tasks.map((t) => {
-        const done = t.status === "done";
-        const cat = (t.category in CATEGORIES ? t.category : "other") as Category;
-        const go = link(t);
-        return (
-          <li key={t.id} className="flex items-start gap-3 p-4">
-            <form action={toggleTaskAction} className="pt-0.5">
-              <input type="hidden" name="id" value={t.id} />
-              <SubmitButton
-                aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
-                className={`flex size-6 shrink-0 items-center justify-center rounded-md border-2 ${
-                  done ? "border-accent bg-accent text-on-accent" : "border-line hover:border-accent"
-                }`}
-              >
-                {done && (
-                  <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m3.5 8.5 3 3 6-7" />
-                  </svg>
-                )}
-              </SubmitButton>
-            </form>
-            <div className="min-w-0 flex-1">
-              <p className={done ? "text-muted line-through" : "font-medium"}>{t.title}</p>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                <span className={`inline-block size-2 rounded-full ${CATEGORY_STYLES[cat]}`} />
-                {CATEGORIES[cat].label}
-                {t.minutes ? <span>· {t.minutes} min</span> : null}
-                <span className={done ? "" : "font-medium text-accent"}>· +{t.xp} XP</span>
-              </p>
-            </div>
-            {go && (
-              <Link
-                href={go.href}
-                prefetch={false}
-                title={go.label}
-                className={`hidden max-w-60 shrink-0 items-center gap-1 truncate rounded-lg border px-3 py-1.5 text-sm font-medium sm:inline-flex ${
-                  done ? "border-line text-muted hover:text-foreground" : "border-accent text-foreground hover:bg-background"
-                }`}
-              >
-                <span className="truncate">{go.label}</span>
-                <span aria-hidden>→</span>
-              </Link>
-            )}
-            {go && (
-              <Link href={go.href} prefetch={false} aria-label={`Open: ${go.label}`} className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-sm sm:hidden">
-                →
-              </Link>
-            )}
-            {t.templateKey === null && (
-              <form action={deleteTaskAction}>
-                <input type="hidden" name="id" value={t.id} />
-                <SubmitButton aria-label={`Delete "${t.title}"`} className="px-1 text-muted hover:text-foreground">
-                  ×
-                </SubmitButton>
-              </form>
-            )}
-          </li>
-        );
-      })}
+      {tasks.map((t) => (
+        <TaskRow key={t.id} t={t} link={link} />
+      ))}
     </ul>
+  );
+}
+
+function TaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
+  const done = t.status === "done";
+  const cat = (t.category in CATEGORIES ? t.category : "other") as Category;
+  const go = link(t);
+  return (
+    <li className="flex items-start gap-3 p-4">
+      <form action={toggleTaskAction} className="pt-0.5">
+        <input type="hidden" name="id" value={t.id} />
+        <SubmitButton
+          aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
+          className={`flex size-6 shrink-0 items-center justify-center rounded-md border-2 ${
+            done ? "border-accent bg-accent text-on-accent" : "border-line hover:border-accent"
+          }`}
+        >
+          {done && (
+            <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m3.5 8.5 3 3 6-7" />
+            </svg>
+          )}
+        </SubmitButton>
+      </form>
+      <div className="min-w-0 flex-1">
+        <p className={done ? "text-muted line-through" : "font-medium"}>{t.title}</p>
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+          <span className={`inline-block size-2 rounded-full ${CATEGORY_STYLES[cat]}`} />
+          {CATEGORIES[cat].label}
+          {t.minutes ? <span>· {t.minutes} min</span> : null}
+          <span className={done ? "" : "font-medium text-accent"}>· +{t.xp} XP</span>
+        </p>
+      </div>
+      {go && (
+        <Link
+          href={go.href}
+          prefetch={false}
+          title={go.label}
+          className={`hidden max-w-60 shrink-0 items-center gap-1 truncate rounded-lg border px-3 py-1.5 text-sm font-medium sm:inline-flex ${
+            done ? "border-line text-muted hover:text-foreground" : "border-accent text-foreground hover:bg-background"
+          }`}
+        >
+          <span className="truncate">{go.label}</span>
+          <span aria-hidden>→</span>
+        </Link>
+      )}
+      {go && (
+        <Link href={go.href} prefetch={false} aria-label={`Open: ${go.label}`} className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-sm sm:hidden">
+          →
+        </Link>
+      )}
+      {t.templateKey === null && (
+        <form action={deleteTaskAction}>
+          <input type="hidden" name="id" value={t.id} />
+          <SubmitButton aria-label={`Delete "${t.title}"`} className="px-1 text-muted hover:text-foreground">
+            ×
+          </SubmitButton>
+        </form>
+      )}
+    </li>
   );
 }
 
@@ -264,7 +336,7 @@ function FocusPanel({ focus, currentWeek, started }: { focus: WeekFocusView; cur
   const weekHref = (w: number) => (w === currentWeek ? "/" : `/?week=${w}`);
   const arrow = "flex size-8 items-center justify-center rounded-lg border border-line hover:bg-background";
   return (
-    <aside className="h-fit rounded-xl border border-line bg-surface lg:sticky lg:top-6" aria-labelledby="focus-title">
+    <div aria-labelledby="focus-title">
       <div className="flex items-center justify-between gap-2 border-b border-line p-4">
         <div className="min-w-0">
           <h3 id="focus-title" className="font-semibold">
@@ -304,7 +376,7 @@ function FocusPanel({ focus, currentWeek, started }: { focus: WeekFocusView; cur
         </nav>
       </div>
 
-      <div className="space-y-5 p-4">
+      <div className="grid gap-5 p-4 lg:grid-cols-3">
         <FocusGroup title="DSA" dot="bg-cat-dsa" summary={focus.week.dsa} items={focus.dsa.items} moreHref={focus.dsa.href} moreLabel="Open in DSA">
           {focus.dsa.next && (
             <Link href={focus.dsa.next.href} className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent">
@@ -323,7 +395,7 @@ function FocusPanel({ focus, currentWeek, started }: { focus: WeekFocusView; cur
           moreLabel="All LLD"
         />
       </div>
-    </aside>
+    </div>
   );
 }
 

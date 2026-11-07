@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { CONFIDENCE_LABELS } from "@habit/shared";
 import { REVIEW_KIND_LABELS, applySkips, getReviewQueue, type ReviewItem } from "@/lib/review";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, rateConceptAction } from "../actions";
+import { ReviewTabs } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
 import { PageMain } from "../ui";
 
@@ -34,6 +35,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
 
   return (
     <div className="space-y-6">
+      <ReviewTabs active="review" due={items.length} />
       <header>
         <h2 className="text-2xl font-semibold tracking-tight">Review</h2>
         <p className="mt-1 text-sm text-muted">

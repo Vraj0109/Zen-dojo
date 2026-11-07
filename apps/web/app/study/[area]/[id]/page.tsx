@@ -16,17 +16,19 @@ import {
   WALKTHROUGH_EXTRA,
   WALKTHROUGHS,
   getStudyArea,
+  studyHref,
   readingMinutes,
 } from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
+import { getSimpleMode } from "@/lib/ui-prefs";
 import { getReadingFor } from "@/lib/reading";
 import { focusMinutes } from "@/lib/timer";
 import { PRACTICE_LIMITS, getConceptDetail, getExerciseDetail } from "@/lib/study";
 import { deletePracticeAction, logPracticeAction, saveConceptAction } from "../../../actions";
-import { FocusTimer } from "../../../focus-timer";
+import { StartTimer } from "../../../start-timer";
 import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
-import { PageMain } from "../../../ui";
+import { PageMain, SimpleHint } from "../../../ui";
 import { ArticleLayout, ArticleSection, DeeperSections } from "../../../learn-blocks";
 import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
@@ -77,7 +79,7 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
 }
 
 async function ConceptView({ id }: { id: string }) {
-  const [d0, reading, focused] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id)]);
+  const [d0, reading, focused, simple] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id), getSimpleMode()]);
   const d = d0!;
   const lesson = LESSONS[id];
   const extra = LESSON_EXTRA[id];
@@ -95,7 +97,7 @@ async function ConceptView({ id }: { id: string }) {
     ...(lesson && lesson.questions.length > 0 ? [{ id: "interview-questions", title: "Interview questions" }] : []),
     ...(lesson && lesson.pitfalls && lesson.pitfalls.length > 0 ? [{ id: "common-mistakes", title: "Common mistakes" }] : []),
     { id: "your-turn", title: "Your turn" },
-    ...(reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
+    ...(!simple && reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
   ];
 
   return (
@@ -113,7 +115,7 @@ async function ConceptView({ id }: { id: string }) {
 
       <ArticleLayout
         toc={toc}
-        rail={<FocusTimer itemId={id} defaultMinutes={studyMinutes} presets={[15, 25, 45]} totalMinutes={focused} />}
+        rail={<StartTimer itemId={id} label={d.concept.title} href={studyHref(d.concept.area, id)} defaultMinutes={studyMinutes} totalMinutes={focused} />}
       >
         {lesson?.overview && (
           <ArticleSection id="overview" title="Overview">
@@ -193,14 +195,14 @@ async function ConceptView({ id }: { id: string }) {
           </form>
         </ArticleSection>
 
-        <ReadingSection itemId={id} items={reading} />
+        {simple ? <SimpleHint /> : <ReadingSection itemId={id} items={reading} />}
       </ArticleLayout>
     </div>
   );
 }
 
 async function ExerciseView({ id, diagramError }: { id: string; diagramError?: string }) {
-  const [d0, reading, focused, diagrams] = await Promise.all([getExerciseDetail(id), getReadingFor(id), focusMinutes(id), getDiagrams(id)]);
+  const [d0, reading, focused, diagrams, simple] = await Promise.all([getExerciseDetail(id), getReadingFor(id), focusMinutes(id), getDiagrams(id), getSimpleMode()]);
   const d = d0!;
   const { exercise, area, sessions, practice } = d;
   const steps = area.exercises.steps;
@@ -219,8 +221,8 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
     ...(hasFlow ? [{ id: "trace", title: "Trace one use case" }] : []),
     ...(hasEdgeCases ? [{ id: "edge-cases", title: "Edge cases to name" }] : []),
     { id: "your-turn", title: "Your turn" },
-    { id: "diagrams", title: "Your diagrams" },
-    ...(reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
+    ...(!simple ? [{ id: "diagrams", title: "Your diagrams" }] : []),
+    ...(!simple && reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
   ];
 
   return (
@@ -249,7 +251,7 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
 
       <ArticleLayout
         toc={toc}
-        rail={<FocusTimer itemId={id} defaultMinutes={steps.reduce((a, s) => a + s.minutes, 0)} presets={[30, 45, 60]} totalMinutes={focused} />}
+        rail={<StartTimer itemId={id} label={exercise.title} href={studyHref(area.id, id)} defaultMinutes={steps.reduce((a, s) => a + s.minutes, 0)} totalMinutes={focused} />}
       >
         <p className="text-sm text-muted">
           {isDesign ? "Attempt it first (timer on), then compare with the reference." : "Write your classes first, then compare."}
@@ -386,9 +388,15 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
           </div>
         </ArticleSection>
 
-        <DiagramsSection itemId={id} diagrams={diagrams} error={diagramError} />
+        {simple ? (
+          <SimpleHint />
+        ) : (
+          <>
+            <DiagramsSection itemId={id} diagrams={diagrams} error={diagramError} />
 
-        <ReadingSection itemId={id} items={reading} />
+            <ReadingSection itemId={id} items={reading} />
+          </>
+        )}
       </ArticleLayout>
     </div>
   );

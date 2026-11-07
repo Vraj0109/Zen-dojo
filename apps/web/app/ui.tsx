@@ -23,6 +23,19 @@ export function Stat({ label, value, hint, href }: { label: string; value: strin
   );
 }
 
+/** Shown at the bottom of pages where Simple mode hid something. */
+export function SimpleHint() {
+  return (
+    <p className="text-xs text-muted">
+      Simple mode hides some tools. Turn it off in{" "}
+      <Link href="/profile/settings" className="underline hover:text-foreground">
+        Profile → Settings
+      </Link>
+      .
+    </p>
+  );
+}
+
 export function Difficulty({ level }: { level?: string | null }) {
   if (!level) return null;
   const key = level.toLowerCase();

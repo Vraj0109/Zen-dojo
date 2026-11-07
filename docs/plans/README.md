@@ -62,9 +62,9 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 |---|---|---|
 | 0001 | [DSA pages: the problem first, everything else in tabs](0001-dsa-focus-and-tabs.md) | done |
 | 0002 | [Study pages: all the learning first, your notes and tools after](0002-study-pages-learn-first.md) | done |
-| 0003 | [cp-algorithms articles as a reference tab on DSA pattern guides](0003-cp-algorithms-reference.md) | in-progress (step 2 written, steps 3-6 open) |
-| 0004 | [Five-item navigation and a short "Up next" Today](0004-nav-and-today.md) | ready |
-| 0005 | [One focus timer for the whole app, and Simple mode](0005-global-timer-and-simple-mode.md) | ready |
+| 0003 | [cp-algorithms articles as a reference tab on DSA pattern guides](0003-cp-algorithms-reference.md) | implemented (by Claude Code) |
+| 0004 | [Five-item navigation and a short "Up next" Today](0004-nav-and-today.md) | implemented (by Claude Code) |
+| 0005 | [One focus timer for the whole app, and Simple mode](0005-global-timer-and-simple-mode.md) | implemented (by Claude Code) |
 | 0006 | [Learning pages: one calm reading layout, no summaries inside lessons](0006-learning-pages-declutter.md) | done |
 | 0007 | [Full DSA pattern articles: structure, checks, three exemplars](0007-dsa-pattern-articles.md) | ready |
 | 0008 | [The remaining 64 DSA pattern articles, one group at a time](0008-dsa-pattern-articles-batches.md) | draft (waits for the 0007 exemplars) |

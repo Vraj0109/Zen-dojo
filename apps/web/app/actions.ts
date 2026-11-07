@@ -15,6 +15,7 @@ import { addCustomReading, deleteCustomReading, setReadingDone } from "@/lib/rea
 import { clearStruggles, logStruggle } from "@/lib/struggles";
 import { logFocus } from "@/lib/timer";
 import { setInterviewDate } from "@/lib/revise";
+import { setSimpleMode } from "@/lib/ui-prefs";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
 // beyond localhost (see SPEC.md "Hosted mode").
@@ -99,6 +100,12 @@ export async function setPlanStartAction(formData: FormData) {
 export async function setInterviewDateAction(formData: FormData) {
   const clear = formData.get("clear") === "1";
   await setInterviewDate(clear ? "" : String(formData.get("interviewDate") ?? ""));
+  refresh();
+}
+
+/** Simple mode on or off (Profile, Settings). */
+export async function setSimpleModeAction(formData: FormData) {
+  await setSimpleMode(formData.get("simple") === "1");
   refresh();
 }
 

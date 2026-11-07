@@ -20,6 +20,7 @@ import { getCountdown, getReviseAreas, getRevisePatterns, getWeakSpots, weakConc
 import { setInterviewDateAction } from "../actions";
 import { CodeBlock } from "../learn-blocks";
 import { Confidence } from "../study/study-ui";
+import { ReviewTabs, ReviewTabsWithCount } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
 import { PageMain } from "../ui";
@@ -44,6 +45,9 @@ const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : u
 export default function RevisePage({ searchParams }: PageProps<"/revise">) {
   return (
     <PageMain title="Quick revise">
+      <Suspense fallback={<ReviewTabs active="revise" />}>
+        <ReviewTabsWithCount active="revise" />
+      </Suspense>
       <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Quick revise</h2>

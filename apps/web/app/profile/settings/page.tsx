@@ -5,7 +5,8 @@ import { formatLong } from "@habit/shared";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus } from "@/lib/leetcode/sync";
 import { getPlanStart } from "@/lib/tasks";
-import { setPlanStartAction } from "../../actions";
+import { getSimpleMode } from "@/lib/ui-prefs";
+import { setPlanStartAction, setSimpleModeAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
@@ -19,6 +20,11 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
       <ProfileTabs active="/profile/settings" />
       <div className="grid gap-8 xl:grid-cols-2">
         <div className="space-y-6">
+          <h3 className="text-lg font-semibold">Interface</h3>
+          <Suspense fallback={<p className="text-muted">Loading…</p>}>
+            <InterfaceSettings />
+          </Suspense>
+
           <h3 className="text-lg font-semibold">Plan</h3>
           <Suspense fallback={<p className="text-muted">Loading…</p>}>
             <PlanSettings />
@@ -77,6 +83,26 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </div>
       </div>
     </PageMain>
+  );
+}
+
+async function InterfaceSettings() {
+  await connection();
+  const simple = await getSimpleMode();
+  return (
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <h4 className="font-semibold">Simple mode: {simple ? "on" : "off"}</h4>
+      <p className="mt-1 mb-3 text-sm text-muted">
+        Hides the power tools so each page shows what to do next: the boss fight, pattern cheat sheets, your diagrams, the reading list and
+        the stuck-list history. Nothing is deleted and the pages stay reachable by their address.
+      </p>
+      <form action={setSimpleModeAction}>
+        <input type="hidden" name="simple" value={simple ? "0" : "1"} />
+        <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">
+          {simple ? "Turn Simple mode off" : "Turn Simple mode on"}
+        </SubmitButton>
+      </form>
+    </section>
   );
 }
 
