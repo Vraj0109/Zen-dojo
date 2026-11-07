@@ -7,6 +7,8 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
 
 - `pnpm dev` / `pnpm build` / `pnpm start`: web app on http://localhost:3000
 - `pnpm test`: Vitest, all tests once (~5s). `pnpm check`: lint + typecheck + test + build (what CI runs)
+- `pnpm desktop:build`: Electron installer for the current OS in `apps/desktop/dist/` (~2 min);
+  `pnpm desktop:dev`: Electron window on the dev server
 - Windows: in PowerShell use `pnpm.cmd` / `npm.cmd` (script execution policy may block `pnpm.ps1`)
 
 ## Layout
@@ -22,6 +24,12 @@ SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only 
   (queries/parsing) and `lib/sync.js` (backfill/recent/capture, I/O injected) are pure and tested; `content.js`
   runs on leetcode.com and calls GraphQL with the user's own session; `background.js` is the only part that
   calls the app
+- `apps/desktop/`: Electron shell, plain JS + `// @ts-check`. `scripts/prepare-server.mjs` builds the web app with
+  `HABIT_STANDALONE=1` (Next `output: "standalone"`) and copies it to `server/` with pnpm's symlinked packages
+  flattened (installers drop symlinks); `scripts/after-pack.cjs` adds `server/node_modules` (extraResources skips it).
+  `main.js` runs the server with `utilityProcess` on 127.0.0.1:3000 (or a free port), `DATABASE_URL` in the OS
+  app-data folder. `lib/setup.js` is pure and tested. Installers are built per OS (native libSQL) by
+  `.github/workflows/desktop.yml`. To try a build without touching real data, set `HABIT_DATA_DIR`
 - `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
 
 ## Conventions

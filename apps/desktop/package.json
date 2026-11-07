@@ -1,0 +1,23 @@
+{
+  "name": "desktop",
+  "productName": "HabitManager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HabitManager desktop app (Windows, macOS, Linux)",
+  "author": "Vraj Limbachiya",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "prepare-server": "node scripts/prepare-server.mjs",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "node scripts/prepare-server.mjs && electron-builder --publish never",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "electron": "44.9.3",
+    "electron-builder": "26.17.0",
+    "typescript": "^5.9.3"
+  }
+}

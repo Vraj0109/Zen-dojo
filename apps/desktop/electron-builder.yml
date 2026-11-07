@@ -1,0 +1,34 @@
+# Installers: pnpm desktop:build (builds for the OS you run it on). CI: .github/workflows/desktop.yml
+appId: dev.habitmanager.app
+productName: HabitManager
+directories:
+  output: dist
+  buildResources: build
+files:
+  - main.js
+  - lib/**/*.js
+  - "!lib/**/*.test.*"
+  - package.json
+# The Next.js server runs as a plain Node script, so it stays outside the asar archive.
+extraResources:
+  - from: server
+    to: server
+# extraResources skips node_modules folders; this hook copies server/node_modules in.
+afterPack: scripts/after-pack.cjs
+npmRebuild: false
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  target: dmg
+  category: public.app-category.education
+  # No Apple Developer ID: ad-hoc signature, so Apple Silicon runs it (Gatekeeper still warns once).
+  identity: "-"
+  # Hardened runtime needs a real Developer ID; with ad-hoc signing it blocks loading the SQLite native module.
+  hardenedRuntime: false
+linux:
+  target: AppImage
+  category: Education
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}

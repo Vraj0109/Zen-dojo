@@ -9,6 +9,8 @@ node_modules/
 out/
 *.tsbuildinfo
 next-env.d.ts
+apps/desktop/server/
+apps/desktop/dist/
 
 # --- Local data & logs ---
 data/

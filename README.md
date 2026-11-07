@@ -17,7 +17,7 @@ Data is stored locally in `data/habit.db` (SQLite).
 | **Core CS** (`/study/core`) | Operating systems, databases and networks: 24 lessons with checklists, interview questions, confidence, notes and review reminders |
 | **Roadmap** (`/roadmap`, bottom of the sidebar) | All 16 weeks with focus areas; goals, tasks, problems and XP per week; link to any week's focus |
 | **Profile** (`/profile`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
-| **Settings** (`/profile/settings`) | Plan start date, LeetCode username sync and extension pairing key, backup: download all data as one JSON file; restore from one (all or nothing, safety copy saved to `data/backups/` first) |
+| **Settings** (`/profile/settings`) | Plan start date, LeetCode username sync and extension pairing key, backup: download all data as one JSON file; restore from one (all or nothing, safety copy saved to a `backups` folder next to the database first) |
 
 ### LeetCode auto-sync
 
@@ -113,6 +113,46 @@ Set-ExecutionPolicy -Scope CurrentUser Undefined
 
 **Don't want to change it?** Type `pnpm.cmd` / `npm.cmd` instead of `pnpm` / `npm`. They work under any policy.
 
+## Desktop app (Windows, macOS, Linux)
+
+`apps/desktop` wraps the app in Electron: it runs the same Next.js server inside the app on
+`http://127.0.0.1:3000` and shows it in a window. The browser extension keeps working unchanged.
+
+**Get an installer**
+
+- **From GitHub:** Actions → *Desktop app* → *Run workflow*. When it finishes, download the installer for your OS
+  from the run's *Artifacts*. Pushing a tag like `v0.2.0` also publishes the installers as a GitHub release (bump
+  `version` in `apps/desktop/package.json` first; it's in the file names).
+- **Build it yourself:** `pnpm desktop:build` builds the installer for the OS you run it on, in `apps/desktop/dist/`:
+  `.exe` (Windows), `.dmg` (macOS, Apple Silicon), `.AppImage` (Linux).
+
+**Your data** lives in the OS app-data folder, not the repo (File → *Open data folder*):
+
+| OS | Folder |
+|---|---|
+| Windows | `%APPDATA%\HabitManager` |
+| macOS | `~/Library/Application Support/HabitManager` |
+| Linux | `~/.config/HabitManager` |
+
+On first launch it offers to import your existing `data/habit.db` (it copies the file; the original isn't changed).
+Stop `pnpm start` / `pnpm dev` first so the copy is up to date. Or start fresh and restore a JSON backup in
+Profile → Settings. The desktop app and `pnpm start` use separate databases, so pick one to use day to day.
+
+**First launch warnings.** The installers aren't signed with a paid certificate:
+
+- **Windows:** SmartScreen says *Windows protected your PC*. Click *More info* → *Run anyway*.
+- **macOS:** if it says the app *is damaged* or *can't be opened*, run `xattr -cr /Applications/HabitManager.app`, then
+  open it again (or right-click → *Open*).
+- **Linux:** `chmod +x HabitManager-*.AppImage`. If it exits with a *SUID sandbox* error (Ubuntu 24.04+), start it
+  with `--no-sandbox`.
+
+**Port.** It uses 3000, the extension's default. If 3000 is busy (say `pnpm start` is running), it picks another port
+and tells you which; set that URL in the extension, or close the other app and restart. `HABIT_PORT=4000` picks a port.
+
+**Development:** `pnpm desktop:dev` opens the window on the dev server (run `pnpm dev` first).
+`pnpm --filter desktop prepare-server` then `pnpm desktop` runs the bundled server without making an installer.
+`HABIT_DATA_DIR=/some/folder` uses another data folder, to try a build without touching your data.
+
 ## Scripts
 
 | Command | What it does |
@@ -125,6 +165,8 @@ Set-ExecutionPolicy -Scope CurrentUser Undefined
 | `pnpm test` | Run all tests once (Vitest) |
 | `pnpm test:watch` | Re-run tests on every file change |
 | `pnpm check` | Everything CI runs: lint, typecheck, test, build |
+| `pnpm desktop:build` | Desktop installer for this OS (`apps/desktop/dist/`) |
+| `pnpm desktop:dev` | Desktop window on the dev server (run `pnpm dev` first) |
 
 ## Tests and CI
 
@@ -133,6 +175,7 @@ Set-ExecutionPolicy -Scope CurrentUser Undefined
   against a real in-memory SQLite database (no files touched).
 - GitHub Actions (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test` and `build` on
   every push to `main` and every pull request, on both Windows and Linux.
+- `.github/workflows/desktop.yml` builds the desktop installers on Windows, macOS and Linux (run by hand, or on a `v*` tag).
 
 Run `pnpm check` before pushing to catch what CI would.
 
@@ -140,6 +183,7 @@ Run `pnpm check` before pushing to catch what CI would.
 
 ```
 apps/web/          Next.js app (pages, server actions, /api/ext for the extension, SQLite via Drizzle + libSQL)
+apps/desktop/      Electron shell: bundles the Next.js server and shows it in a window
 apps/extension/    Chrome/Edge extension (plain JS, no build step) that imports your LeetCode submissions
 packages/shared/   Roadmap data, day templates, date helpers, XP/level/streak logic
 data/              Local database (git-ignored)

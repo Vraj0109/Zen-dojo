@@ -55,7 +55,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             <h4 className="font-semibold">Restore from a backup</h4>
             <p className="mt-1 mb-3 text-sm text-muted">
               <strong className="text-foreground">Replaces all your current data</strong> with the file&apos;s contents. A copy of your current
-              data is saved to <code>data/backups/</code> first, so you can undo by restoring that file. All or nothing: if anything is wrong
+              data is saved to a <code>backups</code> folder next to your database first, so you can undo by restoring that file. All or nothing: if anything is wrong
               with the file, nothing changes.
             </p>
             <form action="/api/backup/restore" method="post" encType="multipart/form-data" className="space-y-3">
