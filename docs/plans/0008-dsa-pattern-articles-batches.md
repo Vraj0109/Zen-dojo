@@ -1,8 +1,8 @@
 # 0008: Write the remaining 64 DSA pattern articles, one group at a time
 
-- **Status:** draft <!-- becomes `ready` once the user approves the exemplars from plan 0007 -->
+- **Status:** in-progress <!-- approved 2026-11-07: the user read the 0007 exemplars and said the depth is right -->
 - **Planned by:** Claude Code, 2026-11-07
-- **Implemented by:**
+- **Implemented by:** Claude Code
 - **Depends on:** 0007 done **and** the user has read the three exemplars and said the depth is right (adjust the
   rules in this plan if they ask for more or less).
 
@@ -29,7 +29,7 @@ complete teaching material and the old summary-style guide is gone from the page
 
 Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file if a group changed):
 
-- [ ] **1. Arrays and strings** → `dsa-articles-b.ts`: prefix-sums, kadane, intervals, cyclic-sort, string-matching,
+- [x] **1. Arrays and strings** → `dsa-articles-b.ts`: prefix-sums, kadane, intervals, cyclic-sort, string-matching,
   matrix. (`hash-map`, `two-pointers`, `sliding-window` are done in 0007.) String matching must cover KMP
   (prefix function and why it never goes back), Z-function, rolling hash and when each wins.
 - [ ] **2. Searching and sorting** → `dsa-articles-c.ts`: bs-index, bs-answer, quickselect, custom-sort,
@@ -71,5 +71,7 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
 ## Implementation notes
 
 (Record the batch you finished and anything skipped, after each sitting.)
+
+**Batch 1 (arrays and strings), 2026-11-07:** `learn/dsa-articles-b.ts` has prefix-sums, kadane, intervals, cyclic-sort, string-matching, matrix (KMP prefix function, Z-function and Rabin-Karp with the amortised argument and a when-to-use comparison). 9 of 67 articles written (the three exemplars plus these six). Five of the six have a diagram (plan 0012); cyclic-sort has none. The "names three of the pattern's problems" test now asks for min(3, number of problems), because cyclic-sort has only two. All C++ in the 9 articles compiled with g++ 16.2 (`-std=c++17 -Wall`) through `pattern-article-code.test.ts`. `pnpm check` passes.
 
 ## Review

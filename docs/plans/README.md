@@ -5,7 +5,7 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 ## Next up
 
-Done so far: 0001-0007, 0009, 0010, 0011 (Claude Code built 0003-0005, 0007, 0009, 0011). **0008** (the other 64 articles) waits for you to read the three exemplars from 0007 and say the depth is right.
+Done so far: 0001-0007, 0009, 0010, 0011 (Claude Code built 0003-0005, 0007, 0009, 0011). **0008** is approved (ready). New and ready: 0012 diagrams, 0013 LLD Java codebases, 0014 system design depth, 0015 core subjects depth. Order: 0012 first, then 0008 and 0013-0015 in batches.
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo
@@ -67,7 +67,11 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0005 | [One focus timer for the whole app, and Simple mode](0005-global-timer-and-simple-mode.md) | implemented (by Claude Code) |
 | 0006 | [Learning pages: one calm reading layout, no summaries inside lessons](0006-learning-pages-declutter.md) | done |
 | 0007 | [Full DSA pattern articles: structure, checks, three exemplars](0007-dsa-pattern-articles.md) | implemented (by Claude Code; C++ not compiled yet) |
-| 0008 | [The remaining 64 DSA pattern articles, one group at a time](0008-dsa-pattern-articles-batches.md) | draft (waits for the 0007 exemplars) |
+| 0008 | [The remaining 64 DSA pattern articles, one group at a time](0008-dsa-pattern-articles-batches.md) | in-progress (batch 1 of 10 done, 9 of 67 articles) |
 | 0009 | [Reading sources for system design, LLD, core CS, and two gap lessons](0009-reading-sources-and-gap-lessons.md) | implemented (by Claude Code) |
 | 0010 | [No emoji, and LeetCode-style simple lists on the DSA pages](0010-no-emoji-leetcode-style-ui.md) | done |
 | 0011 | [Coloured code everywhere, and a real code editor where you write code](0011-code-highlighting-and-editor.md) | implemented (by Claude Code; waiting for your look) |
+| 0012 | [Diagrams (Mermaid) in lessons, designs and articles](0012-diagrams.md) | in-progress (step 4 open) |
+| 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | ready |
+| 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | ready |
+| 0015 | [Core subjects: more explanation, diagrams, Java demos](0015-core-subjects-depth.md) | ready |

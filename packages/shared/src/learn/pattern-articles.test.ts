@@ -58,11 +58,11 @@ describe("pattern articles", () => {
         expect(all).not.toMatch(/TODO|FIXME|lorem ipsum|…/i);
       });
 
-      it("practice order names at least three of this pattern's problems", () => {
+      it("practice order names at least three of this pattern's problems (or all of them when it has fewer)", () => {
         const pattern = ALL_PATTERNS.find((p) => p.id === id)!;
         const practice = article.sections.find((s) => s.title === "Practice order")!.body;
         const named = pattern.problems.map((pid) => PROBLEMS[pid]).filter((p) => p && practice.includes(p.title));
-        expect(named.length, `${id}: problems named in Practice order`).toBeGreaterThanOrEqual(3);
+        expect(named.length, `${id}: problems named in Practice order`).toBeGreaterThanOrEqual(Math.min(3, pattern.problems.length));
       });
     });
   }

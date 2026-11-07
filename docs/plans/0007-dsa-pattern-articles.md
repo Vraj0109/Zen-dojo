@@ -125,6 +125,8 @@ Implemented by Claude Code, 2026-11-07.
 - The pattern page (`/dsa/pattern/[id]`, Learn tab) shows an article when one exists (intro, a contents list, paragraphs, coloured C++), and keeps the short guide for the other 64 patterns. Quick revise is untouched: it still reads `PATTERN_GUIDES[id].recap`.
 - Sizes: prose of 2,131 (hash-map), 2,219 (two-pointers) and 1,962 (sliding-window) words, 10 to 11 sections each, 14 code blocks in total.
 
+**Compiler check: done 2026-11-07.** g++ 16.2 (winget WinLibs, installed by `setup.cmd`) compiled all article code with `-std=c++17 -Wall`: pass. The paragraph below describes the state before that and is kept for the record.
+
 **Not verified by a compiler yet (read this)**
 - The compile check is `apps/web/lib/pattern-article-code.test.ts` (not in `packages/shared`, because that package has no Node types). It runs `g++ -std=c++17 -fsyntax-only` on all the code of each article and is skipped when no `g++` or `clang++` is on PATH. **There is no C++ compiler on the machine this was built on, so the test was skipped and none of the C++ in these articles has been compiled.** I traced the code by hand and walked the examples in the text, but that is not the same. I downloaded a portable GCC (WinLibs, checksum verified) for this, and the tool that runs commands refused to execute a binary taken from the internet. Run `pnpm test` with `g++` on PATH (or let CI do it: both CI runners have a compiler) before trusting the code.
 - Fixed while reading it back: the explanation of why the left side of Trapping Rain Water can be settled by `leftMax` alone was too loose and was rewritten.
