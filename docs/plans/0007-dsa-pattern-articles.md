@@ -106,12 +106,12 @@ judge the depth before plan 0008 writes the other 64.
 
 ## Acceptance criteria
 
-- [ ] `/dsa/pattern/hash-map`, `/two-pointers`, `/sliding-window` show full articles with the eight required sections
+- [x] `/dsa/pattern/hash-map`, `/two-pointers`, `/sliding-window` show full articles with the eight required sections
   and a TOC; no summary box or bullet-only layout.
-- [ ] Other patterns still render (old guide as fallback).
-- [ ] Structure and compile tests exist and pass; the missing-articles report lists the other 64 ids.
-- [ ] The text is original (not copied from any source) and plain-spoken.
-- [ ] `pnpm check` passes.
+- [x] Other patterns still render (old guide as fallback).
+- [ ] Structure and compile tests exist and pass; the missing-articles report lists the other 64 ids. (Structure test passes and the report prints; the compile test exists but has not run: no C++ compiler on this machine. See the notes.)
+- [x] The text is original (not copied from any source) and plain-spoken.
+- [x] `pnpm check` passes.
 
 ## Open questions
 
