@@ -9,12 +9,13 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 MIN_NODE_MAJOR=20
-DOCKER=0 OLLAMA=0 SKIP_EXT=0 SKIP_BUILD=0 START=0 CHECK_ONLY=0
+DOCKER=0 OLLAMA=0 SKIP_COMPILER=0 SKIP_EXT=0 SKIP_BUILD=0 START=0 CHECK_ONLY=0
 FAILED=()
 
 for arg in "$@"; do
   case "$arg" in
     --docker) DOCKER=1 ;; --ollama) OLLAMA=1 ;; --skip-extensions) SKIP_EXT=1 ;;
+    --skip-compiler) SKIP_COMPILER=1 ;;
     --skip-build) SKIP_BUILD=1 ;; --start) START=1 ;; --check-only) CHECK_ONLY=1 ;;
     *) echo "unknown option: $arg"; exit 2 ;;
   esac
@@ -63,6 +64,16 @@ if has pnpm; then ok "pnpm $(pnpm -v)"
 else
   miss pnpm
   if [ "$CHECK_ONLY" = 0 ]; then npm install -g pnpm && ok "pnpm $(pnpm -v) installed" || FAILED+=(pnpm); fi
+fi
+
+# C++ compiler: dev-only (syntax-checks the C++ in the DSA articles; the test is skipped without one).
+if has g++ || has clang++; then ok "C++ compiler"
+else
+  miss "C++ compiler (only used by a dev test)"
+  if [ "$CHECK_ONLY" = 0 ] && [ "$SKIP_COMPILER" = 0 ]; then
+    if [ "$OS" = Darwin ]; then xcode-select --install 2>/dev/null || true; echo "  Finish the Xcode tools dialog, then re-run."
+    else pkg_install g++ g++ || FAILED+=(g++); fi
+  fi
 fi
 
 CODE=""

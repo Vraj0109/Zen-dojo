@@ -14,6 +14,7 @@ param(
   [switch]$Docker,          # install WSL2 + Docker Desktop if missing
   [switch]$Ollama,          # install Ollama (local AI models) if missing
   [switch]$SkipExtensions,  # don't install VS Code extensions
+  [switch]$SkipCompiler,    # don't install a C++ compiler (only used by a dev test)
   [switch]$SkipBuild,       # don't run pnpm install / build
   [switch]$Start,           # start the app after building
   [switch]$CheckOnly,       # report only, change nothing
@@ -173,6 +174,19 @@ try {
     $null = Invoke-Winget 'install' 'Microsoft.VisualStudioCode'
     $code = Find-VSCode
     if ($code) { Add-Result 'VS Code' 'installed' '' } else { Add-Result 'VS Code' 'failed' 'https://code.visualstudio.com/download' }
+  }
+
+  # C++ compiler. Dev-only: the test that syntax-checks the C++ in the DSA articles
+  # (apps/web/lib/pattern-article-code.test.ts) needs g++ or clang++; it is skipped without one.
+  # The app itself never needs a compiler. winget's WinLibs package is a standalone GCC.
+  if ((Test-Command 'g++') -or (Test-Command 'clang++')) {
+    Add-Result 'C++ compiler' 'ok' $(if (Test-Command 'g++') { 'g++' } else { 'clang++' })
+  } elseif ($SkipCompiler) { Add-Result 'C++ compiler' 'skipped' '-SkipCompiler' }
+  elseif ($CheckOnly) { Add-Result 'C++ compiler' 'missing' 'would install: winget install BrechtSanders.WinLibs.POSIX.UCRT' }
+  else {
+    $null = Invoke-Winget 'install' 'BrechtSanders.WinLibs.POSIX.UCRT'
+    if ((Test-Command 'g++') -or (Test-Command 'clang++')) { Add-Result 'C++ compiler' 'installed' 'open a new terminal to use it' }
+    else { Add-Result 'C++ compiler' 'action' 'installed but not on PATH yet (open a new terminal), or skip: the article-code test is optional' }
   }
 
   # Docker (optional)
