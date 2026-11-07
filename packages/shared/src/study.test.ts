@@ -27,7 +27,7 @@ describe("study content", () => {
 
   it("covers the roadmap's system design section", () => {
     const sd = STUDY_AREAS.find((a) => a.id === "sd")!;
-    expect(sd.sections.map((s) => s.concepts.length)).toEqual([8, 10, 12]);
+    expect(sd.sections.map((s) => s.concepts.length)).toEqual([8, 10, 14]);
     expect(sd.exercises!.items).toHaveLength(27);
     expect(sd.exercises!.steps.map((s) => s.minutes).reduce((a, b) => a + b, 0)).toBe(45);
     expect(Object.values(ALL_CONCEPTS).every((c) => c.points.length >= 2 && c.points.every((p) => p.length > 1))).toBe(true);

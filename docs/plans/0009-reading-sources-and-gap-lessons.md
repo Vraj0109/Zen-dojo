@@ -1,8 +1,8 @@
 # 0009: Better reading sources for system design, LLD and core CS, and two missing lessons
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-07
-- **Implemented by:**
+- **Implemented by:** Claude Code
 - **Spec:** SPEC.md 5.3
 - **Depends on:** nothing (data only). Independent of 0006-0008, but if 0006 is merged the reading section is already
   restyled; don't touch the component.
@@ -42,12 +42,12 @@ reading list, plus a short list of free LLD and core CS sources, and fill the tw
 
 ## Steps
 
-- [ ] **1. Verify every URL first.** Write nothing into `reading.ts` until each link below returns HTTP 200 (or a
+- [x] **1. Verify every URL first.** Write nothing into `reading.ts` until each link below returns HTTP 200 (or a
   redirect to the same article) when fetched (`Invoke-WebRequest -Method Head`, or open it). Drop any that fail and
   list them in *Implementation notes*. Use the final URL after redirects, with tracking parameters removed.
   - Done when: the notes list each URL checked and its result.
 
-- [ ] **2. Add system design readings** (kind `article` unless noted; `items` suggestions in brackets, adjust to real
+- [x] **2. Add system design readings** (kind `article` unless noted; `items` suggestions in brackets, adjust to real
   ids in `study.ts`; skip an entry whose id doesn't exist):
   - Gossip Protocol, systemdesign.one: `https://newsletter.systemdesign.one/p/gossip-protocol` (path may differ:
     start from `https://newsletter.systemdesign.one/gossip-protocol/`) [consensus/membership concept, `sdd-kv-store`]
@@ -71,7 +71,7 @@ reading list, plus a short list of free LLD and core CS sources, and fill the tw
   - Done when: entries added, no duplicates of existing ids/URLs (search `reading.ts` first: `dynamo`,
     `consistent-hashing`, `bloom-filter`, `saga`, `stripe-rate-limiters`, `ddia` already exist), tests pass.
 
-- [ ] **3. Add LLD readings.** Candidates (verify each; free only):
+- [x] **3. Add LLD readings.** Candidates (verify each; free only):
   - Design patterns in Java examples: `https://github.com/iluwatar/java-design-patterns` (kind `docs`)
   - Awesome low-level design problems: `https://github.com/ashishps1/awesome-low-level-design` (kind `docs`, attach
     to the LLD practice exercises as extra problems to try; **do not copy its code**)
@@ -79,7 +79,7 @@ reading list, plus a short list of free LLD and core CS sources, and fill the tw
   - Attach to the matching `lld-*` concepts or all `lldp-*` exercises, with a one-line "why" in our own words.
   - Done when: added or each skipped one is explained in the notes.
 
-- [ ] **4. Add core CS readings.** Candidates (verify; free only; skip duplicates of `ostep`, `cmu-db`, `hpbn`,
+- [x] **4. Add core CS readings.** Candidates (verify; free only; skip duplicates of `ostep`, `cmu-db`, `hpbn`,
   `use-the-index`):
   - Beej's Guide to Network Programming: `https://beej.us/guide/bgnet/` [networking sockets/TCP concepts]
   - Kurose and Ross lecture slides and videos: `https://gaia.cs.umass.edu/kurose_ross/lectures.php` [networking
@@ -88,7 +88,7 @@ reading list, plus a short list of free LLD and core CS sources, and fill the tw
   - The Internals of PostgreSQL: `https://www.interdb.jp/pg/` [DB storage, MVCC, WAL concepts]
   - Done when: added or skipped with a reason, ids exist.
 
-- [ ] **5. Two small lessons for the gaps.** Add a concept **"Gossip protocols and failure detection"** and a concept
+- [x] **5. Two small lessons for the gaps.** Add a concept **"Gossip protocols and failure detection"** and a concept
   **"The actor model"** in the system design area (`study.ts`, section with `sd-blocks` or the consensus section,
   whichever fits), each with 4-6 `points`, a `Lesson` (overview, one `explain` per point, 4+ interview `questions`,
   `pitfalls`), `LessonExtra` with `recap` (3-6 lines) and at least 3 `deeper` sections (a worked example, a comparison
@@ -97,22 +97,38 @@ reading list, plus a short list of free LLD and core CS sources, and fill the tw
   - Done when: both pages open under `/study/sd/…`, `pnpm test` passes (coverage tests included), and Quick revise
     lists their recap lines.
 
-- [ ] **6. Tests.** Extend the existing reading test (or add `packages/shared/src/reading.test.ts`) to assert: every
+- [x] **6. Tests.** Extend the existing reading test (or add `packages/shared/src/reading.test.ts`) to assert: every
   `url` starts with `https://` (or `http://` only for a documented exception), contains none of `bit.ly`, `buff.ly`,
   `amzn.to`, `affiliate`, `utm_`, `?r=`, `?via=`; ids are unique; every `items` id exists.
   - Done when: `pnpm test` passes, and fails if you add a `bit.ly` link temporarily.
 
 ## Acceptance criteria
 
-- [ ] New readings appear on the matching concept/design pages (e.g. gossip article on the key-value store design)
+- [x] New readings appear on the matching concept/design pages (e.g. gossip article on the key-value store design)
   and on `/study/reading`.
-- [ ] No paid, affiliate, or shortened links anywhere in `reading.ts`.
-- [ ] `/study/sd/sd-gossip` and `/study/sd/sd-actors` exist with full lessons.
-- [ ] Notes list every URL checked and which were dropped.
-- [ ] `pnpm check` passes.
+- [x] No paid, affiliate, or shortened links anywhere in `reading.ts`.
+- [x] `/study/sd/sd-gossip` and `/study/sd/sd-actors` exist with full lessons.
+- [x] Notes list every URL checked and which were dropped.
+- [x] `pnpm check` passes.
 
 ## Open questions
 
 ## Implementation notes
+
+Implemented by Claude Code, 2026-11-07.
+
+**Step 1: URLs checked** (HTTP status after redirects, with a browser-like user agent):
+- **Added (200):** systemdesign.one posts `/p/actor-model`, `/p/back-of-the-envelope`, `/p/amazon-s3-durability`, `/p/aws-scale`, `/p/what-is-service-discovery`, `/p/leaderboard-system-design`, `/p/live-comment-system-design`; highscalability.com; blog.cloudflare.com; dropbox.tech; discord.com/category/engineering; uber.com/us/en/blog/engineering/ (the repo's `eng.uber.com` redirects there); engineering.atspotify.com; github.com/iluwatar/java-design-patterns; github.com/ashishps1/awesome-low-level-design; martinfowler.com/eaaCatalog/; beej.us/guide/bgnet/; gaia.cs.umass.edu/kurose_ross/lectures.php; pdos.csail.mit.edu/6.S081/ (redirects to the current year's course page, now titled 6.1810); interdb.jp/pg/. Page titles were read from the pages themselves.
+- **Dropped (404):** the gossip protocol, quotient filter, "type a URL into your browser", distributed counter and real-time presence articles from the review repo (the addresses in that README no longer exist and I could not find the new ones), and the old `/xxx/?r=` address style.
+- **Dropped (blocked bots, could not verify):** Netflix Tech Blog (403). Pinterest was not tried.
+- Not checked for "has a post from the last year": the six company blogs are active sites; check again if one goes quiet.
+
+**What was added**
+- 20 reading entries in `packages/shared/src/reading.ts`, all free, direct https links with no tracking parameters: 7 systemdesign.one articles, High Scalability and 5 company blogs, 3 LLD sources, 4 core CS sources. Existing entries for Dynamo and Cassandra also point at the new gossip concept.
+- Two concepts in the system design "Building blocks" section: `sd-gossip` (Gossip protocols and failure detection) and `sd-actors` (The actor model), each with 6 checklist points, a full lesson, 5 deeper sections, a recap, questions and pitfalls, in `packages/shared/src/learn/sd-gaps.ts`, registered in `learn/index.ts`. Written in my own words; the numbers are the standard ones (push gossip needs about log2 N + ln N rounds; SWIM's indirect probes; Cassandra's phi threshold of 8 and 1-second gossip with a SYN/ACK/ACK2 exchange; Merkle-tree repair).
+- Tests: the existing reading test now also fails on shorteners, affiliate and tracking parameters (`bit.ly`, `buff.ly`, `amzn.to`, `affiliate`, `utm_`, `?r=`, `?via=`, `couponCode`); the existing coverage tests check the new lessons (one explanation per point, at least 5 deeper sections, a recap, reading time). `study.test.ts` expects 14 concepts in the building blocks section (was 12).
+- Not done: the plan suggested a separate Pinterest entry and a Netflix entry; both left out for the reason above.
+
+**Checks:** `pnpm check` exits 0 (32 test files, 243 tests).
 
 ## Review

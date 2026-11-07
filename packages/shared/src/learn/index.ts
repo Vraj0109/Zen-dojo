@@ -20,12 +20,13 @@ import { MORE_SD_A } from "./more-sd-a";
 import { MORE_SD_B } from "./more-sd-b";
 import { MORE_SD_C } from "./more-sd-c";
 import { SD_LESSONS } from "./sd";
+import { DEEP_SD_GAPS, SD_GAP_LESSONS } from "./sd-gaps";
 import type { LessonExtra, LldGuide, Lesson, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 export type { LessonExtra, LldExtra, LldGuide, Lesson, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 /** Concept lessons by concept id (system design, LLD, core CS). */
-export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
+export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
 
 /** Reference walkthroughs by system design exercise id. */
 export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESIGNS_B };
@@ -38,7 +39,7 @@ export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, ...DSA_GUIDES_B, ...DSA_GUIDES_C, ...DSA_GUIDES_D };
 
 /** Deeper sections and recap lines per concept id. */
-const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_LLD, ...DEEP_CORE };
+const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_SD_GAPS, ...DEEP_LLD, ...DEEP_CORE };
 const MORE: Record<string, Section[]> = { ...MORE_SD_A, ...MORE_SD_B, ...MORE_SD_C, ...MORE_LLD, ...MORE_OS, ...MORE_DB, ...MORE_NET };
 export const LESSON_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
   Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: [...x.deeper, ...(MORE[id] ?? [])] }]),

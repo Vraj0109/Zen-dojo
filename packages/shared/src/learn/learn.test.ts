@@ -32,6 +32,8 @@ describe("learning content", () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const r of READING) {
       expect(r.url, r.id).toMatch(/^https:\/\//);
+      // free, direct links only: no shorteners and no affiliate or tracking parameters
+      expect(r.url, r.id).not.toMatch(/bit\.ly|buff\.ly|amzn\.to|affiliate|utm_|[?&]r=|[?&]via=|couponCode/);
       for (const item of r.items) expect(item in ALL_CONCEPTS || item in ALL_EXERCISES, `${r.id} → ${item}`).toBe(true);
     }
   });

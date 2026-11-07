@@ -130,6 +130,8 @@ export const SYSTEM_DESIGN: StudyArea = {
         c("sd-rate-limit", "Rate limiting", "Token bucket; Leaky bucket; Fixed and sliding window; Distributed counters in Redis"),
         c("sd-ids", "Unique ID generation", "UUID; Snowflake; ULID; DB sequences with ranges"),
         c("sd-coordination", "Coordination", "ZooKeeper / etcd; Leader election; Distributed locks"),
+        c("sd-gossip", "Gossip protocols and failure detection", "How gossip spreads; Push, pull and push-pull; Heartbeats and SWIM failure detection; Anti-entropy and Merkle trees; Tuning interval, fan-out and timeouts; When to use gossip and when to use consensus"),
+        c("sd-actors", "The actor model", "Actors, state and mailboxes; Message delivery and ordering; Supervision and let it crash; Location transparency and sharding; Backpressure and blocking; When to use actors"),
         c("sd-observability", "Observability", "Metrics, logs, traces; Alerting and dashboards; SLO burn rate; On-call runbooks"),
         c("sd-security", "Security", "AuthN vs AuthZ; OAuth2; JWT vs sessions; API keys and mTLS; Encryption at rest and in transit; Secrets management; PII handling"),
         c("sd-deployment", "Deployment", "Containers and Kubernetes basics; Blue-green and canary; Feature flags and rollbacks; Infrastructure as code; Multi-region and multi-AZ design"),
