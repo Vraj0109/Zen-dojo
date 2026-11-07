@@ -32,7 +32,7 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
 - [x] **1. Arrays and strings** → `dsa-articles-b.ts`: prefix-sums, kadane, intervals, cyclic-sort, string-matching,
   matrix. (`hash-map`, `two-pointers`, `sliding-window` are done in 0007.) String matching must cover KMP
   (prefix function and why it never goes back), Z-function, rolling hash and when each wins.
-- [ ] **2. Searching and sorting** → `dsa-articles-c.ts`: bs-index, bs-answer, quickselect, custom-sort,
+- [x] **2. Searching and sorting** → `dsa-articles-c.ts`: bs-index, bs-answer, quickselect, custom-sort,
   merge-sort-count. Binary search: the invariant, the off-by-one traps, lower/upper bound, searching on the answer
   with a monotonic predicate.
 - [ ] **3. Lists, stacks, heaps** → `dsa-articles-d.ts`: fast-slow, list-reversal, monotonic-stack, monotonic-deque,
@@ -73,5 +73,7 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
 (Record the batch you finished and anything skipped, after each sitting.)
 
 **Batch 1 (arrays and strings), 2026-11-07:** `learn/dsa-articles-b.ts` has prefix-sums, kadane, intervals, cyclic-sort, string-matching, matrix (KMP prefix function, Z-function and Rabin-Karp with the amortised argument and a when-to-use comparison). 9 of 67 articles written (the three exemplars plus these six). Five of the six have a diagram (plan 0012); cyclic-sort has none. The "names three of the pattern's problems" test now asks for min(3, number of problems), because cyclic-sort has only two. All C++ in the 9 articles compiled with g++ 16.2 (`-std=c++17 -Wall`) through `pattern-article-code.test.ts`. `pnpm check` passes.
+
+**Batch 2 (searching and sorting), 2026-11-07:** `learn/dsa-articles-c.ts`: bs-index (invariant and half-open template, lower/upper bound, rotated array, peak, median of two arrays), bs-answer (minimise the maximum, maximise the minimum with the round-up rule, real-valued search), quickselect (Lomuto, three-way, Dutch flag), custom-sort (comparator rules, exchange argument), merge-sort-count (inversions, reverse pairs, smaller-after-self, range-sum reduction). 14 of 67 articles written. Four of the five have a diagram. g++ 16.2 compiles all article code; `pnpm test` passes. Worked examples were traced by hand and three small slips were fixed before committing (a day count, a muddled shipping example, a Sort Colors trace).
 
 ## Review
