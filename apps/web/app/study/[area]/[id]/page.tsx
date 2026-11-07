@@ -3,7 +3,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_CONCEPTS, ALL_EXERCISES, CONFIDENCE_LABELS, COVERED_CONFIDENCE, LESSONS, LLD_GUIDES, STUDY_AREAS, WALKTHROUGHS, getStudyArea } from "@habit/shared";
+import {
+  ALL_CONCEPTS,
+  ALL_EXERCISES,
+  CONFIDENCE_LABELS,
+  COVERED_CONFIDENCE,
+  LESSON_EXTRA,
+  LESSONS,
+  LLD_EXTRA,
+  LLD_GUIDES,
+  STUDY_AREAS,
+  WALKTHROUGH_EXTRA,
+  WALKTHROUGHS,
+  getStudyArea,
+} from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
 import { getReadingFor } from "@/lib/reading";
 import { focusMinutes } from "@/lib/timer";
@@ -13,7 +26,8 @@ import { FocusTimer } from "../../../focus-timer";
 import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
 import { PageMain } from "../../../ui";
-import { DiagramsSection, LessonQuestions, LldGuideView, ReadingSection, WalkthroughView } from "../../learn-ui";
+import { BulletCard, DeeperSections, RecapCard } from "../../../learn-blocks";
+import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
 
 /** Every concept and exercise is known at build time. */
@@ -65,6 +79,7 @@ async function ConceptView({ id }: { id: string }) {
   const [d0, reading, focused] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id)]);
   const d = d0!;
   const lesson = LESSONS[id];
+  const extra = LESSON_EXTRA[id];
   const p = d.progress;
   const checked = new Set(p?.checked ?? []);
   const confidence = p?.confidence ?? 0;
@@ -87,6 +102,7 @@ async function ConceptView({ id }: { id: string }) {
           <p className="leading-relaxed">{lesson.overview}</p>
         </section>
       )}
+      {extra && <RecapCard items={extra.recap} />}
 
       <FocusTimer itemId={id} defaultMinutes={25} presets={[15, 25, 45]} totalMinutes={focused} />
 
@@ -140,6 +156,7 @@ async function ConceptView({ id }: { id: string }) {
         <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>
       </form>
 
+      {extra && <DeeperSections sections={extra.deeper} title="🔬 Go deeper" />}
       {lesson && <LessonQuestions lesson={lesson} />}
       <ReadingSection itemId={id} items={reading} />
     </>
@@ -228,6 +245,21 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
       </form>
 
       {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
+      {isDesign && WALKTHROUGH_EXTRA[id] && (
+        <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+          <RecapCard items={WALKTHROUGH_EXTRA[id].recap} />
+          <FollowUps items={WALKTHROUGH_EXTRA[id].followUps} />
+        </div>
+      )}
+      {!isDesign && LLD_EXTRA[id] && (
+        <>
+          <RecapCard items={LLD_EXTRA[id].recap} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <BulletCard title="🔁 Trace one use case" items={LLD_EXTRA[id].flow} ordered note="Walk the interviewer through this after writing your classes." />
+            <BulletCard title="🧪 Edge cases to name" items={LLD_EXTRA[id].edgeCases} />
+          </div>
+        </>
+      )}
 
       <DiagramsSection itemId={id} diagrams={diagrams} error={diagramError} />
 

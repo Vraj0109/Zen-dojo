@@ -45,6 +45,29 @@ function Block({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+/** Follow-up questions with answers hidden until you've said yours out loud. */
+export function FollowUps({ items }: { items: { q: string; a: string }[] }) {
+  return (
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <h3 className="mb-2 font-semibold">🎯 Follow-ups they&apos;ll ask</h3>
+      <ul className="space-y-2">
+        {items.map((f) => (
+          <li key={f.q}>
+            <details className="group rounded-lg border border-line bg-background/40">
+              <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium">
+                <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+                {f.q}
+              </summary>
+              <p className="border-t border-line px-3 py-2 text-sm leading-relaxed">{f.a}</p>
+            </details>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted">Answer out loud first, then open to compare.</p>
+    </section>
+  );
+}
+
 /** Closed by default: try the design yourself first, then compare. */
 export function WalkthroughView({ w }: { w: Walkthrough }) {
   return (

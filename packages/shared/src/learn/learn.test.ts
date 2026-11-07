@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ALL_PATTERNS } from "../dsa";
 import { READING } from "../reading";
 import { ALL_CONCEPTS, ALL_EXERCISES, STUDY_AREAS } from "../study";
-import { LESSONS, LLD_GUIDES, PATTERN_GUIDES, WALKTHROUGHS } from "./index";
+import { LESSON_EXTRA, LESSONS, LLD_EXTRA, LLD_GUIDES, PATTERN_GUIDES, WALKTHROUGH_EXTRA, WALKTHROUGHS } from "./index";
 
 describe("learning content", () => {
   it("has a lesson for every concept, with one explanation per checklist point", () => {
@@ -45,6 +45,24 @@ describe("learning content", () => {
       expect(g.template.split("\n").length, id).toBeGreaterThanOrEqual(8);
       expect(g.variations.length, id).toBeGreaterThanOrEqual(2);
       expect(g.recap.length, id).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("has deeper material and recap lines for every concept, design and LLD problem", () => {
+    expect(Object.keys(LESSON_EXTRA).sort()).toEqual(Object.keys(ALL_CONCEPTS).sort());
+    for (const [id, x] of Object.entries(LESSON_EXTRA)) {
+      expect(x.recap.length, id).toBeGreaterThanOrEqual(3);
+      expect(x.deeper.length, id).toBeGreaterThanOrEqual(2);
+      for (const s of x.deeper) expect(s.body.length + (s.code?.length ?? 0), `${id}: ${s.title}`).toBeGreaterThan(200);
+    }
+    expect(Object.keys(WALKTHROUGH_EXTRA).sort()).toEqual(Object.keys(WALKTHROUGHS).sort());
+    for (const [id, x] of Object.entries(WALKTHROUGH_EXTRA)) {
+      expect(x.recap.length, id).toBeGreaterThanOrEqual(3);
+      expect(x.followUps.length, id).toBeGreaterThanOrEqual(3);
+    }
+    expect(Object.keys(LLD_EXTRA).sort()).toEqual(Object.keys(LLD_GUIDES).sort());
+    for (const [id, x] of Object.entries(LLD_EXTRA)) {
+      expect(x.recap.length && x.flow.length >= 3 && x.edgeCases.length >= 3, id).toBeTruthy();
     }
   });
 });
