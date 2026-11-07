@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   experimental: desktop ? { isrFlushToDisk: false } : undefined,
   // Shared package ships TypeScript source.
   transpilePackages: ["@habit/shared"],
+  // The cp-algorithms articles are read from disk at request time; make sure the standalone build ships them.
+  outputFileTracingIncludes: { "/dsa/pattern/[id]": ["./content/cp-algorithms/**/*"] },
   cacheComponents: true,
   partialPrefetching: true,
   // Old URLs from before Stats and Settings moved under Profile.

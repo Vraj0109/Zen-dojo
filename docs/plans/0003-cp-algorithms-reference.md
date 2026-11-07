@@ -1,8 +1,8 @@
 # 0003: cp-algorithms articles as a reference tab on DSA pattern guides
 
-- **Status:** in-progress
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-07
-- **Implemented by:** Antigravity
+- **Implemented by:** Antigravity (steps 1-2, partly), Claude Code (finished steps 2-6, 2026-11-07)
 - **Suitable for a smaller model:** yes. Every step is mechanical: a download script, a mapping table given below,
   and one UI tab. Run it with a cheaper model if you like (`agy models` lists them; `agy --model <name> -i "…"`).
 
@@ -56,7 +56,7 @@ This is a **supplement**. Our own full pattern articles (plans 0007 and 0008) ar
   entry.
   - Done when: `pnpm test` passes.
 
-- [ ] **2. Import script.** Create `scripts/import-cp-algorithms.mjs` (Node, no network calls except
+- [x] **2. Import script.** Create `scripts/import-cp-algorithms.mjs` (Node, no network calls except
   `raw.githubusercontent.com` and `api.github.com`) that:
   1. Resolves the pinned commit SHA (argument `--commit <sha>`, else fetch the latest `main` SHA and print it).
   2. Downloads `src/navigation.md` at that commit and collects every linked article path; any mapped path not in it
@@ -79,11 +79,11 @@ This is a **supplement**. Our own full pattern articles (plans 0007 and 0008) ar
   - Done when: running it creates the content folder, and running it again with the same `--commit` produces no
     diff.
 
-- [ ] **3. Run the import and commit the content.** Run the script once; record the commit SHA and the missing list
+- [x] **3. Run the import and commit the content.** Run the script once; record the commit SHA and the missing list
   in *Implementation notes*. Check the total size of `apps/web/content/cp-algorithms/` (expect a few MB; report it).
   - Done when: content files exist for every non-missing mapped path.
 
-- [ ] **4. Loader.** Create `apps/web/lib/cp-algorithms.ts` (server-only) with
+- [x] **4. Loader.** Create `apps/web/lib/cp-algorithms.ts` (server-only) with
   `getCpAlgoArticles(patternId): Promise<{ path, title, html, sourceUrl }[]>` reading the JSON files with `fs`
   (path resolved from the repo root like `lib/db.ts` does, so it also works in the desktop standalone build: also
   add `apps/web/content/**` to `outputFileTracingIncludes` in `apps/web/next.config.ts` for the `/dsa/pattern/[id]`
@@ -91,7 +91,7 @@ This is a **supplement**. Our own full pattern articles (plans 0007 and 0008) ar
   with a pattern that has articles (non-empty, has `html` and `sourceUrl`) and one without (empty array).
   - Done when: tests pass.
 
-- [ ] **5. Reference tab.** On `apps/web/app/dsa/pattern/[id]/page.tsx` add tabs `guide` (default: the current page
+- [x] **5. Reference tab.** On `apps/web/app/dsa/pattern/[id]/page.tsx` add tabs `guide` (default: the current page
   content) and `reference` (label "cp-algorithms (N)", hidden when N = 0). The Reference tab shows, per article: the
   title, a credit line "From [cp-algorithms](sourceUrl) by cp-algorithms contributors, CC BY-SA 4.0
   ([license](https://creativecommons.org/licenses/by-sa/4.0/)). Converted to HTML; text unchanged.", then the HTML
@@ -101,7 +101,7 @@ This is a **supplement**. Our own full pattern articles (plans 0007 and 0008) ar
   - Done when: e.g. `/dsa/pattern/dijkstra?tab=reference` shows the Dijkstra articles with math rendered and the
     credit line; the Guide tab is unchanged.
 
-- [ ] **6. Desktop build check.** Run `pnpm --filter desktop prepare-server` and confirm
+- [x] **6. Desktop build check.** Run `pnpm --filter desktop prepare-server` and confirm
   `apps/desktop/server/apps/web/content/cp-algorithms/` exists (or wherever the loader resolves it). If not, fix the
   tracing include.
   - Done when: noted in Implementation notes.
@@ -143,7 +143,7 @@ Paths come from the cp-algorithms navigation; the script verifies them and repor
 | bitmask-dp-assign | algebra/all-submasks |
 | dp-1d | dynamic_programming/intro-to-dp |
 | knapsack | dynamic_programming/knapsack |
-| lis | sequences/longest_increasing_subsequence |
+| lis | dynamic_programming/longest_increasing_subsequence |
 | interval-dp | dynamic_programming/knuth-optimization |
 | dp-optimizations | dynamic_programming/divide-and-conquer-dp, dynamic_programming/knuth-optimization, geometry/convex_hull_trick |
 | greedy-proof | schedules/schedule_one_machine |
@@ -157,21 +157,24 @@ Paths come from the cp-algorithms navigation; the script verifies them and repor
 
 ## Acceptance criteria
 
-- [ ] `pnpm import:cp-algorithms --commit <sha>` is reproducible and reports missing paths instead of failing.
-- [ ] Pattern guides with mapped articles show a Reference tab with rendered math, code and a credit line on every
+- [x] `pnpm import:cp-algorithms --commit <sha>` is reproducible and reports missing paths instead of failing.
+- [x] Pattern guides with mapped articles show a Reference tab with rendered math, code and a credit line on every
   article; others show no tab.
-- [ ] `apps/web/content/cp-algorithms/` contains `LICENSE` and `NOTICE.md`.
-- [ ] The desktop build includes the content.
-- [ ] `pnpm check` passes.
+- [x] `apps/web/content/cp-algorithms/` contains `LICENSE` and `NOTICE.md`.
+- [x] The desktop build includes the content.
+- [x] `pnpm check` passes.
 
 ## Open questions
 
 ## Implementation notes
 
-### Resume here (Claude Code review of the partial work, 2026-11-07)
-- Step 1 is done and its tests pass (`packages/shared/src/cp-algorithms.ts` + test).
-- Step 2: `scripts/import-cp-algorithms.mjs` is written (marked + katex, pinned commit, missing-path report) and the `import:cp-algorithms` script, `marked` and `katex` dependencies are added, but the script has **never been run** and the step-2 checkbox isn't ticked. Run it first, fix anything it reports, then tick step 2.
-- Steps 3-6 are untouched: nothing exists under `apps/web/content/`, there is no loader, no Reference tab, and no desktop-build check.
-- Plan 0001 is done, so `apps/web/app/tabs.tsx` exists: use it for the Guide | Reference tabs in step 5.
+### Done by Claude Code, 2026-11-07
+- **Import:** `pnpm import:cp-algorithms --commit bbbbb6f04e5c9a665c8477ec68ee4f28b1367dd7` imported **58** articles into `apps/web/content/cp-algorithms/` (5.8 MB, 61 files incl. `index.json`, `LICENSE`, `NOTICE.md`). A second run with the same commit produced no diff. Nothing is missing now.
+- **Fix to the mapping:** `lis` pointed at `sequences/longest_increasing_subsequence`, which doesn't exist. The real path is `dynamic_programming/longest_increasing_subsequence` (updated in `packages/shared/src/cp-algorithms.ts` and the table above). The root `package.json` had no `import:cp-algorithms` script; added it. KaTeX is called with `strict: "ignore"` so imports don't print warnings.
+- **Loader:** `apps/web/lib/cp-algorithms.ts` (`getCpAlgoArticles`, `cpAlgoCount`), with tests in `cp-algorithms.test.ts` (mapped articles load, math rendered, no scripts, empty list for unmapped patterns, a content file for every mapped article). It also replaces the importer's plain `<pre><code>` blocks with the app's coloured code blocks (plan 0011).
+- **Tab:** `apps/web/app/dsa/pattern/[id]/page.tsx` shows "Reference · N" only for patterns that have articles; `?tab=reference` on a pattern without articles falls back to Learn. Each article has the credit line with the source link and the CC BY-SA 4.0 link, inside the `ArticleLayout` with a contents rail. KaTeX CSS is imported on that page; article prose styles are `.cp-prose` in `globals.css`.
+- **Desktop:** `outputFileTracingIncludes` for `/dsa/pattern/[id]` in `next.config.ts`. `pnpm --filter desktop prepare-server` puts the content at `apps/desktop/server/apps/web/content/cp-algorithms`; the standalone server served `/dsa/pattern/segment-tree?tab=reference` with 432 math spans and 33 coloured code blocks.
+- **Browser check:** Dijkstra and segment tree references in light and dark at 1440 px and 390 px: math, headings and code render; no horizontal scroll at 390 px.
+- **Checks:** `pnpm check` exits 0 (29 test files, 218 tests).
 
 ## Review

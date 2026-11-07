@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
+// The first call loads the syntax highlighter (13 grammars); give it room on a busy machine or CI runner.
+vi.setConfig({ testTimeout: 30_000 });
+
 describe("highlight", () => {
   it("colours C++ and escapes angle brackets", async () => {
     const { highlight } = await import("./highlight");

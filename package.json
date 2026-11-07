@@ -14,13 +14,16 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "import:cp-algorithms": "node scripts/import-cp-algorithms.mjs"
   },
   "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
+    "katex": "^0.19.1",
+    "marked": "^18.1.3",
     "vitest": "^5.1.0"
   }
 }

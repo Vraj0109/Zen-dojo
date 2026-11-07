@@ -8,3 +8,4 @@ export * from "./focus";
 export * from "./reading";
 export * from "./learn";
 export * from "./revise";
+export * from "./cp-algorithms";

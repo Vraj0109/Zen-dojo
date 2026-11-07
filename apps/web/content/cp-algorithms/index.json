@@ -1,0 +1,234 @@
+[
+  {
+    "path": "algebra/all-submasks",
+    "title": "Submask Enumeration"
+  },
+  {
+    "path": "algebra/binary-exp",
+    "title": "Binary Exponentiation"
+  },
+  {
+    "path": "algebra/bit-manipulation",
+    "title": "Bit manipulation"
+  },
+  {
+    "path": "algebra/euclid-algorithm",
+    "title": "Euclidean algorithm for computing the greatest common divisor"
+  },
+  {
+    "path": "algebra/gray-code",
+    "title": "Gray code"
+  },
+  {
+    "path": "algebra/module-inverse",
+    "title": "Modular Multiplicative Inverse"
+  },
+  {
+    "path": "algebra/sieve-of-eratosthenes",
+    "title": "Sieve of Eratosthenes"
+  },
+  {
+    "path": "combinatorics/binomial-coefficients",
+    "title": "Binomial Coefficients"
+  },
+  {
+    "path": "combinatorics/bracket_sequences",
+    "title": "Balanced bracket sequences"
+  },
+  {
+    "path": "combinatorics/generating_combinations",
+    "title": "Generating all $K$-combinations"
+  },
+  {
+    "path": "combinatorics/inclusion-exclusion",
+    "title": "The Inclusion-Exclusion Principle"
+  },
+  {
+    "path": "data_structures/disjoint_set_union",
+    "title": "Disjoint Set Union"
+  },
+  {
+    "path": "data_structures/fenwick",
+    "title": "Fenwick Tree"
+  },
+  {
+    "path": "data_structures/segment_tree",
+    "title": "Segment Tree"
+  },
+  {
+    "path": "data_structures/sparse-table",
+    "title": "Sparse Table"
+  },
+  {
+    "path": "data_structures/sqrt_decomposition",
+    "title": "Sqrt Decomposition"
+  },
+  {
+    "path": "data_structures/stack_queue_modification",
+    "title": "Minimum stack / Minimum queue"
+  },
+  {
+    "path": "data_structures/treap",
+    "title": "Treap (Cartesian tree)"
+  },
+  {
+    "path": "dynamic_programming/divide-and-conquer-dp",
+    "title": "Divide and Conquer DP"
+  },
+  {
+    "path": "dynamic_programming/intro-to-dp",
+    "title": "Introduction to Dynamic Programming"
+  },
+  {
+    "path": "dynamic_programming/knapsack",
+    "title": "Knapsack Problem"
+  },
+  {
+    "path": "dynamic_programming/knuth-optimization",
+    "title": "Knuth's Optimization"
+  },
+  {
+    "path": "dynamic_programming/longest_increasing_subsequence",
+    "title": "Longest increasing subsequence"
+  },
+  {
+    "path": "dynamic_programming/profile-dynamics",
+    "title": "Dynamic Programming on Broken Profile. Problem \"Parquet\""
+  },
+  {
+    "path": "geometry/basic-geometry",
+    "title": "Basic Geometry"
+  },
+  {
+    "path": "geometry/convex_hull_trick",
+    "title": "Convex hull trick and Li Chao tree"
+  },
+  {
+    "path": "geometry/convex-hull",
+    "title": "Convex Hull construction"
+  },
+  {
+    "path": "geometry/oriented-triangle-area",
+    "title": "Oriented area of a triangle"
+  },
+  {
+    "path": "graph/01_bfs",
+    "title": "0-1 BFS"
+  },
+  {
+    "path": "graph/all-pair-shortest-path-floyd-warshall",
+    "title": "Floyd-Warshall Algorithm"
+  },
+  {
+    "path": "graph/bellman_ford",
+    "title": "Bellman-Ford Algorithm"
+  },
+  {
+    "path": "graph/bipartite-check",
+    "title": "Check whether a graph is bipartite"
+  },
+  {
+    "path": "graph/breadth-first-search",
+    "title": "Breadth-first search"
+  },
+  {
+    "path": "graph/bridge-searching",
+    "title": "Finding bridges in a graph in $O(N+M)$"
+  },
+  {
+    "path": "graph/cutpoints",
+    "title": "Finding articulation points in a graph in $O(N+M)$"
+  },
+  {
+    "path": "graph/depth-first-search",
+    "title": "Depth First Search"
+  },
+  {
+    "path": "graph/dijkstra",
+    "title": "Dijkstra Algorithm"
+  },
+  {
+    "path": "graph/dijkstra_sparse",
+    "title": "Dijkstra on sparse graphs"
+  },
+  {
+    "path": "graph/euler_path",
+    "title": "Finding the Eulerian path in $O(M)$"
+  },
+  {
+    "path": "graph/lca",
+    "title": "Lowest Common Ancestor - $O(\\sqrt{N})$ and $O(\\log N)$ with $O(N)$ preprocessing"
+  },
+  {
+    "path": "graph/lca_binary_lifting",
+    "title": "Lowest Common Ancestor - Binary Lifting"
+  },
+  {
+    "path": "graph/mst_kruskal",
+    "title": "Minimum spanning tree - Kruskal's algorithm"
+  },
+  {
+    "path": "graph/mst_kruskal_with_dsu",
+    "title": "Minimum spanning tree - Kruskal with Disjoint Set Union"
+  },
+  {
+    "path": "graph/mst_prim",
+    "title": "Minimum spanning tree - Prim's algorithm"
+  },
+  {
+    "path": "graph/search-for-connected-components",
+    "title": "Search for connected components in a graph"
+  },
+  {
+    "path": "graph/strongly-connected-components",
+    "title": "Strongly connected components and the condensation graph"
+  },
+  {
+    "path": "graph/topological-sort",
+    "title": "Topological Sorting"
+  },
+  {
+    "path": "num_methods/binary_search",
+    "title": "Binary search"
+  },
+  {
+    "path": "others/maximum_average_segment",
+    "title": "Search the subarray with the maximum/minimum sum"
+  },
+  {
+    "path": "others/tortoise_and_hare",
+    "title": "Floyd's Linked List Cycle Finding Algorithm"
+  },
+  {
+    "path": "schedules/schedule_one_machine",
+    "title": "Scheduling jobs on one machine"
+  },
+  {
+    "path": "sequences/k-th",
+    "title": "$K$th order statistic in $O(N)$"
+  },
+  {
+    "path": "string/aho_corasick",
+    "title": "Aho-Corasick algorithm"
+  },
+  {
+    "path": "string/expression_parsing",
+    "title": "Expression parsing"
+  },
+  {
+    "path": "string/prefix-function",
+    "title": "Prefix function. Knuth–Morris–Pratt algorithm"
+  },
+  {
+    "path": "string/rabin-karp",
+    "title": "Rabin-Karp Algorithm for string matching"
+  },
+  {
+    "path": "string/string-hashing",
+    "title": "String Hashing"
+  },
+  {
+    "path": "string/z-function",
+    "title": "Z-function and its calculation"
+  }
+]
