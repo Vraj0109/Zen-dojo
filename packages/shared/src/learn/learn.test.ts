@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ALL_PATTERNS } from "../dsa";
 import { READING } from "../reading";
 import { ALL_CONCEPTS, ALL_EXERCISES, STUDY_AREAS } from "../study";
-import { LESSON_EXTRA, LESSONS, LLD_EXTRA, LLD_GUIDES, PATTERN_GUIDES, WALKTHROUGH_EXTRA, WALKTHROUGHS } from "./index";
+import { LESSON_EXTRA, LESSONS, readingMinutes, LLD_EXTRA, LLD_GUIDES, PATTERN_GUIDES, WALKTHROUGH_EXTRA, WALKTHROUGHS } from "./index";
 
 describe("learning content", () => {
   it("has a lesson for every concept, with one explanation per checklist point", () => {
@@ -52,7 +52,9 @@ describe("learning content", () => {
     expect(Object.keys(LESSON_EXTRA).sort()).toEqual(Object.keys(ALL_CONCEPTS).sort());
     for (const [id, x] of Object.entries(LESSON_EXTRA)) {
       expect(x.recap.length, id).toBeGreaterThanOrEqual(3);
-      expect(x.deeper.length, id).toBeGreaterThanOrEqual(2);
+      expect(x.deeper.length, id).toBeGreaterThanOrEqual(5);
+      expect(readingMinutes(id), `${id} reading time`).toBeGreaterThanOrEqual(4);
+      expect(new Set(x.deeper.map((s) => s.title)).size, `${id}: duplicate section titles`).toBe(x.deeper.length);
       for (const s of x.deeper) expect(s.body.length + (s.code?.length ?? 0), `${id}: ${s.title}`).toBeGreaterThan(200);
     }
     expect(Object.keys(WALKTHROUGH_EXTRA).sort()).toEqual(Object.keys(WALKTHROUGHS).sort());

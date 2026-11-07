@@ -12,8 +12,15 @@ import { DSA_GUIDES_C } from "./dsa-c";
 import { DSA_GUIDES_D } from "./dsa-d";
 import { LLD_GUIDES, LLD_LESSONS } from "./lld";
 import { LLD_EXTRA } from "./lld-extra";
+import { MORE_DB } from "./more-db";
+import { MORE_LLD } from "./more-lld";
+import { MORE_NET } from "./more-net";
+import { MORE_OS } from "./more-os";
+import { MORE_SD_A } from "./more-sd-a";
+import { MORE_SD_B } from "./more-sd-b";
+import { MORE_SD_C } from "./more-sd-c";
 import { SD_LESSONS } from "./sd";
-import type { LessonExtra, LldGuide, Lesson, PatternGuide, Walkthrough, WalkthroughExtra } from "./types";
+import type { LessonExtra, LldGuide, Lesson, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 export type { LessonExtra, LldExtra, LldGuide, Lesson, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
@@ -31,7 +38,23 @@ export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, ...DSA_GUIDES_B, ...DSA_GUIDES_C, ...DSA_GUIDES_D };
 
 /** Deeper sections and recap lines per concept id. */
-export const LESSON_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_LLD, ...DEEP_CORE };
+const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_LLD, ...DEEP_CORE };
+const MORE: Record<string, Section[]> = { ...MORE_SD_A, ...MORE_SD_B, ...MORE_SD_C, ...MORE_LLD, ...MORE_OS, ...MORE_DB, ...MORE_NET };
+export const LESSON_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
+  Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: [...x.deeper, ...(MORE[id] ?? [])] }]),
+);
+
+const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
+
+/** Estimated minutes to read a concept's lesson (200 words/min for prose, code counted double). */
+export function readingMinutes(id: string): number {
+  const l = LESSONS[id];
+  const x = LESSON_EXTRA[id];
+  if (!l) return 0;
+  const prose = [l.overview, ...l.explain, ...(x?.recap ?? []), ...(x?.deeper.map((s) => s.body) ?? []), ...l.questions, ...(l.pitfalls ?? [])];
+  const code = x?.deeper.map((s) => s.code ?? "") ?? [];
+  return Math.max(1, Math.round((prose.reduce((a, t) => a + words(t), 0) + code.reduce((a, t) => a + words(t), 0) * 2) / 200));
+}
 
 /** Recap and follow-up Q&A per system design exercise id. */
 export const WALKTHROUGH_EXTRA: Record<string, WalkthroughExtra> = DESIGN_EXTRA;

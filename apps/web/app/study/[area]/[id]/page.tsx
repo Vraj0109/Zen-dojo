@@ -16,6 +16,7 @@ import {
   WALKTHROUGH_EXTRA,
   WALKTHROUGHS,
   getStudyArea,
+  readingMinutes,
 } from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
 import { getReadingFor } from "@/lib/reading";
@@ -80,6 +81,9 @@ async function ConceptView({ id }: { id: string }) {
   const d = d0!;
   const lesson = LESSONS[id];
   const extra = LESSON_EXTRA[id];
+  const readMin = readingMinutes(id);
+  // Read, then answer the interview questions aloud: about twice the reading time, rounded to 5.
+  const studyMinutes = Math.min(60, Math.max(15, Math.ceil((readMin * 2) / 5) * 5));
   const p = d.progress;
   const checked = new Set(p?.checked ?? []);
   const confidence = p?.confidence ?? 0;
@@ -91,6 +95,7 @@ async function ConceptView({ id }: { id: string }) {
         <h2 className="text-2xl font-semibold tracking-tight">{d.concept.title}</h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <Confidence value={confidence} /> {CONFIDENCE_LABELS[confidence]}
+          <span>· ≈ {readMin} min read</span>
           {p?.coveredOn && <span>· covered {fmtDate(p.coveredOn, true)}</span>}
           {p && <span>· updated {fmtDate(p.updatedOn, true)}</span>}
         </p>
@@ -104,7 +109,7 @@ async function ConceptView({ id }: { id: string }) {
       )}
       {extra && <RecapCard items={extra.recap} />}
 
-      <FocusTimer itemId={id} defaultMinutes={25} presets={[15, 25, 45]} totalMinutes={focused} />
+      <FocusTimer itemId={id} defaultMinutes={studyMinutes} presets={[15, 25, 45]} totalMinutes={focused} />
 
       <form action={saveConceptAction} className="space-y-5">
         <input type="hidden" name="conceptId" value={id} />
