@@ -35,7 +35,7 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
 - [x] **2. Searching and sorting** → `dsa-articles-c.ts`: bs-index, bs-answer, quickselect, custom-sort,
   merge-sort-count. Binary search: the invariant, the off-by-one traps, lower/upper bound, searching on the answer
   with a monotonic predicate.
-- [ ] **3. Lists, stacks, heaps** → `dsa-articles-d.ts`: fast-slow, list-reversal, monotonic-stack, monotonic-deque,
+- [x] **3. Lists, stacks, heaps** → `dsa-articles-d.ts` (fast-slow, list-reversal, monotonic-stack, monotonic-deque) and `dsa-articles-d2.ts` (the other four): fast-slow, list-reversal, monotonic-stack, monotonic-deque,
   stack-parsing, heap-top-k, two-heaps, lru-lfu. Include the pointer diagrams as text and the amortised argument for
   monotonic stacks.
 - [ ] **4. Trees** → `dsa-articles-e.ts`: tree-dfs, tree-bfs, tree-construct, bst, tree-dp, binary-lifting, trie.

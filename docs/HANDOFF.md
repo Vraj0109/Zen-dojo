@@ -42,7 +42,7 @@ nothing about the code in the content. CI (`.github/workflows/ci.yml`) has both 
 |---|---|---|
 | 0001-0007, 0009-0011 | DSA focus, study pages, cp-algorithms, nav, timer, declutter, article format, reading list, no-emoji UI, code colouring | done / implemented, v0.3.0 released |
 | 0012 | Mermaid diagrams (`Section.diagram`, `app/diagram.tsx`, parse tests) | implemented. **Open:** step 4, check the packaged desktop build shows a diagram offline (`pnpm --filter desktop prepare-server`, then run it with the network off) |
-| 0008 | the other 64 DSA pattern articles | **in progress: 14 of 67 written** (batches 1-2 of 10) |
+| 0008 | the other 64 DSA pattern articles | **in progress: 22 of 67 written** (batches 1-3 of 10) |
 | 0013 | LLD problems as full Java projects | **in progress: batch A of 5 written** (parking lot, elevator, vending machine); Java uncompiled; user says too simple (L1) |
 | 0014 | system design: diagrams, depth, Java for the key part | ready, **not started** |
 | 0015 | core subjects (OS, DB, networking, Java concurrency) depth | ready, **not started** |
@@ -51,7 +51,7 @@ Written so far, where it lives:
 
 - DSA articles: `packages/shared/src/learn/dsa-articles-a.ts` (hash-map, two-pointers, sliding-window), `-b.ts` (prefix-sums,
   kadane, intervals, cyclic-sort, string-matching, matrix), `-c.ts` (bs-index, bs-answer, quickselect, custom-sort,
-  merge-sort-count). Registered in `learn/index.ts` (`PATTERN_ARTICLES`).
+  merge-sort-count), `-d.ts` (fast-slow, list-reversal, monotonic-stack, monotonic-deque) and `-d2.ts` (stack-parsing, heap-top-k, two-heaps, lru-lfu). Registered in `learn/index.ts` (`PATTERN_ARTICLES`).
 - LLD: `learn/lld-projects-a.ts` (`LLD_PROJECTS_A`, `LLD_DEEP_A`), `learn/lld-diagrams-a.ts` (extra diagrams), merged in
   `learn/index.ts` (`LLD_PROJECTS`, `LLD_DEEP`). Page: `LldProjectView` in `apps/web/app/study/learn-ui.tsx`, used by
   `app/study/[area]/[id]/page.tsx`.
@@ -117,8 +117,7 @@ Apply the richer standard from L1 to every one of them from the start.
 
 ### D. Finish 0008 (DSA batches 3 to 10 + retire the old guide)
 
-Next: **batch 3 lists, stacks, heaps** (`dsa-articles-d.ts`: fast-slow, list-reversal, monotonic-stack, monotonic-deque,
-stack-parsing, heap-top-k, two-heaps, lru-lfu), then batches 4-10 exactly as listed in
+Next: **batch 4 trees** (`dsa-articles-e.ts`), then batches 5-10 exactly as listed in
 `docs/plans/0008-dsa-pattern-articles-batches.md`. One batch per sitting. Final step 11 retires the short guide on the
 page and makes "every pattern has an article" a failing assertion.
 
