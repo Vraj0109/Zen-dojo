@@ -1,64 +1,26 @@
-# HabitManager
+@AGENTS.md
 
-Personal progress tracker for a 16-week SDE2/SWE3 interview-prep roadmap. Local-first: Next.js app +
-SQLite file. Product spec: `SPEC.md` (git-ignored, may be absent). Read it only when planning new features.
+# Claude Code's role: planner and reviewer
 
-## Commands (run from repo root)
+In this repo Claude plans features and reviews implementations; Antigravity (see `GEMINI.md`) implements them.
 
-- `pnpm dev` / `pnpm build` / `pnpm start`: web app on http://localhost:3000
-- `pnpm test`: Vitest, all tests once (~5s). `pnpm check`: lint + typecheck + test + build (what CI runs)
-- `pnpm desktop:build`: Electron installer for the current OS in `apps/desktop/dist/` (~2 min);
-  `pnpm desktop:dev`: Electron window on the dev server
-- Windows: in PowerShell use `pnpm.cmd` / `npm.cmd` (script execution policy may block `pnpm.ps1`)
+## Planning (`/plan <feature>`)
 
-## Layout
+- Understand the request, read the relevant code and `SPEC.md`, and ask the user only questions that change the plan.
+- Write `docs/plans/NNNN-short-name.md` from `docs/plans/TEMPLATE.md` (next free number). Name exact files, functions,
+  migrations and tests; give each step a checkable outcome; list acceptance criteria and what's out of scope.
+  An implementer with no memory of this conversation must be able to follow it.
+- Set the status to `ready` and add it to the index in `docs/plans/README.md`. Don't implement it unless the user
+  explicitly asks Claude to.
 
-- `packages/shared/src/`: pure logic + data, no I/O. `plan.ts` (16 weeks, task templates), `dsa.ts`
-  (67 patterns, 201 problems; LeetCode slugs verified against LeetCode), `dates.ts`, `game.ts` (XP/level/streak),
-  `study.ts` (study areas: concept checklists + practice exercises; system design and LLD from the PDF, core CS written for this app), `stats.ts` (badges, heatmap, best streak), `focus.ts` (per-week patterns/concepts/designs that Today links tasks to), `reading.ts` (reading list), `learn/` (lessons per concept + `deep-*.ts` recap/deeper sections, design walkthroughs + `design-extra.ts` follow-ups, LLD reference answers + `lld-extra.ts`, `dsa-*.ts` pattern guides with C++ templates; tests check every item has its content), `revise.ts` (last-days plan, key numbers, quiz deck, seeded shuffle)
-- `apps/web/lib/`: server-only data layer. `db.ts` (libSQL client + `MIGRATIONS`), `schema.ts` (Drizzle),
-  `tasks.ts`, `dsa.ts`, `progress.ts` (XP/streak from every XP row: tasks, solves, practice sessions, covered concepts), `study.ts`, `stats.ts` (heatmap, balance, badges), `focus.ts` (week focus + task links), `review.ts` (review queue), `revise.ts` (interview date, weak spots), `struggles.ts` (stuck list), `timer.ts` (focus minutes), `boss.ts`, `reading.ts`, `diagrams.ts` (images stored base64; served by `api/diagrams/[id]`), `pattern-notes.ts`, `roadmap.ts`, `leetcode/{client,sync}.ts`
-- `apps/web/app/`: pages `/` (Today), `/review`, `/revise` (Quick revise), `/dsa`, `/dsa/boss`, `/dsa/pattern/[id]`, `/dsa/[id]`, `/study/reading`, `/study/diagrams`, `/study/[area]`, `/study/[area]/[id]`, `/roadmap`, `/profile` (stats), `/profile/settings`; sidebar nav in `nav.tsx`; all mutations in `actions.ts` (server actions);
-  `api/ext/*` route handlers for the extension (pairing-key auth in `lib/leetcode/extension.ts`)
-- `apps/extension/`: MV3 extension, plain JS + `// @ts-check` (typechecked, no build step). `lib/leetcode.js`
-  (queries/parsing) and `lib/sync.js` (backfill/recent/capture, I/O injected) are pure and tested; `content.js`
-  runs on leetcode.com and calls GraphQL with the user's own session; `background.js` is the only part that
-  calls the app
-- `apps/desktop/`: Electron shell, plain JS + `// @ts-check`. `scripts/prepare-server.mjs` builds the web app with
-  `HABIT_STANDALONE=1` (Next `output: "standalone"`) and copies it to `server/` with pnpm's symlinked packages
-  flattened (installers drop symlinks); `scripts/after-pack.cjs` adds `server/node_modules` (extraResources skips it).
-  `main.js` runs the server with `utilityProcess` on 127.0.0.1:3000 (or a free port), `DATABASE_URL` in the OS
-  app-data folder. `lib/setup.js` and `lib/updates.js` are pure and tested. Auto-update via electron-updater from GitHub releases (Windows/AppImage install; macOS only notifies); the DB is copied to backups/ when the app version changes. Installers are built per OS (native libSQL) by
-  `.github/workflows/desktop.yml`. To try a build without touching real data, set `HABIT_DATA_DIR`
-- `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
+## Reviewing (`/review-plan <number>`)
 
-## Conventions
+- Read the plan, `git status`/`git diff` for the change, and run `pnpm check`.
+- Check every step and acceptance criterion; look for bugs, missed edge cases, convention breaks (see `AGENTS.md`)
+  and scope creep. Run the app against a copy of the data when the UI changed.
+- Fill the plan's *Review* section and set the status to `done` or `changes-requested` (with a numbered list of
+  fixes the implementer can act on). Then suggest a commit message.
 
-- **Next.js 16 with `cacheComponents`**: APIs differ from older Next. Check `apps/web/node_modules/next/dist/docs/`
-  before using unfamiliar APIs. Request-time data goes in an async component that calls `await connection()`,
-  wrapped in `<Suspense>`. Server actions call `refresh()` after mutating.
-- Dates are local `YYYY-MM-DD` strings (helpers in `dates.ts`); never use UTC day math.
-- Schema changes: append a new SQL string to `MIGRATIONS` in `db.ts` and update `schema.ts`. Never edit a
-  shipped migration (`PRAGMA user_version` tracks them). New tables must also be added to `BACKUP_TABLES` in `lib/backup.ts`.
-- XP is computed from rows (`tasks.xp` where done, `problem_solves.xp`), not stored as a running total.
-- LeetCode: the app's own sync is anonymous public GraphQL (`leetcode/client.ts`); never give the app
-  LeetCode cookies/credentials. Private data (code, notes) comes only via the extension, which runs in the
-  user's logged-in leetcode.com tab. Both paths record solves through `recordAccepted` in `leetcode/sync.ts`.
-- Tests: `*.test.ts` next to the code. DB tests use `DATABASE_URL=":memory:"`, reset `globalThis.habitDb`,
-  fake only `Date` (`vi.useFakeTimers({ toFake: ["Date"] })`), and stub `fetch` for LeetCode.
-- UI: Tailwind v4 with theme tokens in `app/globals.css` (`bg-surface`, `text-muted`, `border-line`,
-  `bg-accent`…); shared bits in `app/ui.tsx`. Forms post to server actions and work without JS.
+## Git
 
-## Desktop releases and updates
-
-- Release: bump `version` in `apps/desktop/package.json`, commit, `git tag vX.Y.Z` (must match, the workflow checks), push the tag.
-  `.github/workflows/desktop.yml` builds Windows/macOS/Linux installers and publishes a GitHub release with `latest*.yml` + `.blockmap`.
-- Installed apps check that release at start and every 6 h (electron-updater): Windows and AppImage download and install on restart;
-  macOS only notifies (no Developer ID). Never reuse or move a published tag; ship a new version instead.
-- Before a new version first starts, `main.js` copies `habit.db` to `backups/` in the app-data folder (newest 5 kept), so a bad migration
-  can be undone. Schema changes still follow the `MIGRATIONS` rules below.
-
-## Workflow
-
-- Never run `git commit` or `git push`: leave changes uncommitted for the user (they commit themselves, without a Claude co-author line). Suggest a commit message instead.
-- After changes: `pnpm test`, then `pnpm check` before telling the user it's ready to push.
+Claude doesn't commit or push unless the user asks in that conversation, and never adds a Co-Authored-By line.

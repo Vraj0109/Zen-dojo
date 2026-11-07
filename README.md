@@ -197,6 +197,17 @@ and tells you which; set that URL in the extension, or close the other app and r
 
 Run `pnpm check` before pushing to catch what CI would.
 
+## Working with AI agents
+
+Features are planned by Claude Code and implemented by Antigravity, with the plan file as the hand-off:
+
+1. In Claude Code: `/plan <feature>` writes `docs/plans/NNNN-name.md` (status `ready`).
+2. In Antigravity: "Implement docs/plans/NNNN-name.md" (status becomes `implemented`).
+3. In Claude Code: `/review-plan NNNN` checks the change and marks the plan `done` or `changes-requested`.
+
+Shared rules for every agent are in `AGENTS.md`; `CLAUDE.md` and `GEMINI.md` import it and add each tool's role;
+`.agent/rules/` points Antigravity's editor at the same files. The full workflow is in `docs/plans/README.md`.
+
 ## Layout
 
 ```

@@ -1,0 +1,75 @@
+# 0008: Write the remaining 64 DSA pattern articles, one group at a time
+
+- **Status:** draft <!-- becomes `ready` once the user approves the exemplars from plan 0007 -->
+- **Planned by:** Claude Code, 2026-11-07
+- **Implemented by:**
+- **Depends on:** 0007 done **and** the user has read the three exemplars and said the depth is right (adjust the
+  rules in this plan if they ask for more or less).
+
+## Goal
+
+Every pattern in `ALL_PATTERNS` has a full article (format and rules from plan 0007), so the DSA pattern pages are
+complete teaching material and the old summary-style guide is gone from the pages.
+
+## Context
+
+- Read plan 0007 first: article type, the eight required sections, tests, writing and licence rules apply unchanged.
+- Files: one data file per group, `packages/shared/src/learn/dsa-articles-<letter>.ts` exporting
+  `DSA_ARTICLES_<LETTER>`, all merged into `PATTERN_ARTICLES` in `learn/index.ts`.
+- Work **one batch per sitting** (one batch = one row below). After each batch run `pnpm test` and `pnpm check`,
+  tick the batch, and stop. Don't write two batches in one go: quality drops.
+- Patterns that have cp-algorithms articles (plan 0003's mapping table) are good places to check facts and proofs.
+  Still write your own text.
+
+## Out of scope
+
+- The Reference tab (plan 0003), page layout (0006), problem pages, recap lines (stay as they are).
+
+## Steps
+
+Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file if a group changed):
+
+- [ ] **1. Arrays and strings** → `dsa-articles-b.ts`: prefix-sums, kadane, intervals, cyclic-sort, string-matching,
+  matrix. (`hash-map`, `two-pointers`, `sliding-window` are done in 0007.) String matching must cover KMP
+  (prefix function and why it never goes back), Z-function, rolling hash and when each wins.
+- [ ] **2. Searching and sorting** → `dsa-articles-c.ts`: bs-index, bs-answer, quickselect, custom-sort,
+  merge-sort-count. Binary search: the invariant, the off-by-one traps, lower/upper bound, searching on the answer
+  with a monotonic predicate.
+- [ ] **3. Lists, stacks, heaps** → `dsa-articles-d.ts`: fast-slow, list-reversal, monotonic-stack, monotonic-deque,
+  stack-parsing, heap-top-k, two-heaps, lru-lfu. Include the pointer diagrams as text and the amortised argument for
+  monotonic stacks.
+- [ ] **4. Trees** → `dsa-articles-e.ts`: tree-dfs, tree-bfs, tree-construct, bst, tree-dp, binary-lifting, trie.
+- [ ] **5. Graphs, part 1** → `dsa-articles-f.ts`: graph-bfs, graph-dfs, topo-sort, union-find, state-space-bfs,
+  bipartite. Union-find: path compression and union by size with the near-constant bound explained.
+- [ ] **6. Graphs, part 2** → `dsa-articles-g.ts`: dijkstra, bellman-ford, floyd-warshall, mst, tarjan, eulerian.
+  Dijkstra needs the correctness proof (why non-negative weights matter) and the lazy-deletion heap version.
+- [ ] **7. Backtracking and bits** → `dsa-articles-h.ts`: subsets, constraint-backtracking, meet-in-middle,
+  bit-tricks, bitmask-dp-subsets.
+- [ ] **8. Dynamic programming, part 1** → `dsa-articles-i.ts`: dp-1d, knapsack, lis, grid-dp, two-string-dp.
+  For each: state, transition, base case, order of evaluation, space optimisation, reconstruction.
+- [ ] **9. Dynamic programming, part 2** → `dsa-articles-j.ts`: interval-dp, state-machine-dp, digit-dp, tree-dp-2,
+  bitmask-dp-assign, dp-optimizations.
+- [ ] **10. Greedy, math, advanced** → `dsa-articles-k.ts`: greedy-proof, exchange-argument, number-theory,
+  combinatorics, geometry, segment-tree, sparse-table, ordered-set, randomized, design-ds.
+- [ ] **11. Retire the old guide on the page.** When all 67 articles exist: remove the fallback branch from
+  `apps/web/app/dsa/pattern/[id]/page.tsx`; in `learn/types.ts` reduce `PatternGuide` to the fields still read
+  (check `apps/web/lib/revise.ts` and tests; expected: `recap`, possibly `template` if the revise cheat-sheet uses
+  it) and delete the unused fields from `dsa-a.ts`…`dsa-d.ts`. Turn the "missing articles" report from plan 0007 step 2
+  into a failing assertion (every pattern has an article).
+  - Done when: `pnpm check` passes, `/revise` still shows recap lines, no pattern page uses the fallback.
+
+## Acceptance criteria
+
+- [ ] All 67 pattern pages show a full article (eight sections, TOC) and no summary box.
+- [ ] Structure and compile tests pass for all articles; the "every pattern has an article" test fails if one is
+  removed.
+- [ ] `/revise?tab=dsa` unchanged.
+- [ ] `pnpm check` passes.
+
+## Open questions
+
+## Implementation notes
+
+(Record the batch you finished and anything skipped, after each sitting.)
+
+## Review
