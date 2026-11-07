@@ -20,7 +20,7 @@ export default function ReviewPage({ searchParams }: PageProps<"/review">) {
   );
 }
 
-const KIND_ICON: Record<ReviewItem["kind"], string> = { struggle: "🧗", resolve: "🔁", concept: "🧠", exercise: "🏗️" };
+const KIND_LABEL: Record<ReviewItem["kind"], string> = { struggle: "Stuck", resolve: "Re-solve", concept: "Concept", exercise: "Practice" };
 const keyOf = (i: ReviewItem) => `${i.kind}:${i.id}`;
 const itemHref = (i: ReviewItem) => (i.kind === "struggle" ? `${i.href}?tab=stuck#stuck` : i.href);
 
@@ -44,7 +44,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
 
       {!next ? (
         <p className="rounded-xl border border-accent bg-surface p-6 text-center">
-          🎉 Nothing due. Come back tomorrow, or{" "}
+          Nothing due. Come back tomorrow, or{" "}
           <Link href="/" className="font-medium underline">
             pick up today&apos;s plan
           </Link>
@@ -57,7 +57,6 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
               Up next · {REVIEW_KIND_LABELS[next.kind]} · {items.length} left
             </p>
             <h3 className="mt-1 text-xl font-semibold">
-              <span aria-hidden>{KIND_ICON[next.kind]} </span>
               <Link href={itemHref(next)} className="hover:underline">
                 {next.title}
               </Link>
@@ -78,7 +77,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
               <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
                 {rest.map((i) => (
                   <li key={keyOf(i)} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-                    <span aria-hidden>{KIND_ICON[i.kind]}</span>
+                    <span className="text-xs text-muted w-16 shrink-0">{KIND_LABEL[i.kind]}</span>
                     <div className="min-w-0 flex-1">
                       <Link href={itemHref(i)} className="font-medium hover:underline">
                         {i.title}
@@ -124,7 +123,7 @@ function Actions({ item, big = false }: { item: ReviewItem; big?: boolean }) {
         <>
           <form action={clearStruggleAction}>
             <input type="hidden" name="problemId" value={item.id} />
-            <SubmitButton className={primary}>Solved it cold ✓</SubmitButton>
+            <SubmitButton className={primary}>Solved it cold</SubmitButton>
           </form>
           <form action={logStruggleAction}>
             <input type="hidden" name="problemId" value={item.id} />
@@ -139,7 +138,7 @@ function Actions({ item, big = false }: { item: ReviewItem; big?: boolean }) {
         <>
           <form action={markSolvedAction}>
             <input type="hidden" name="problemId" value={item.id} />
-            <SubmitButton className={primary}>Re-solved ✓</SubmitButton>
+            <SubmitButton className={primary}>Re-solved</SubmitButton>
           </form>
           <form action={logStruggleAction}>
             <input type="hidden" name="problemId" value={item.id} />

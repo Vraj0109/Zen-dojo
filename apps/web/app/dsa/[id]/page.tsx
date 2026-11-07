@@ -11,10 +11,11 @@ import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggl
 import { focusMinutes } from "@/lib/timer";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, undoSolveAction } from "../../actions";
 import { FocusTimer } from "../../focus-timer";
+import { Code } from "../../code";
 import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { Tabs, type TabItem } from "../../tabs";
-import { PageMain } from "../../ui";
+import { Difficulty, PageMain, StatusMark } from "../../ui";
 
 export const metadata: Metadata = { title: "Problem" };
 
@@ -86,36 +87,57 @@ async function Problem({
         <h2 className="text-2xl font-semibold tracking-tight">
           {label}
           {p.auto && (
-            <span className="ml-2 text-base" title="Synced from LeetCode">
-              ⚡
+            <span className="ml-2 text-xs font-normal text-muted">
+              synced from LeetCode
             </span>
           )}
         </h2>
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-          {p.difficulty && <span className="capitalize">{p.difficulty}</span>}
-          {p.premium && <span>🔒 Premium</span>}
-        </p>
-      </header>
-
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+          <Difficulty level={p.difficulty} />
+          {p.premium && <span>Premium</span>}
+          {p.patterns.length > 0 && (
+            <span>
+              Pattern:{" "}
+              {p.patterns.map((pat, i) => (
+                <span key={pat.id}>
+                  {i > 0 && ", "}
+                  <Link href={`/dsa/pattern/${pat.id}`} className="text-foreground hover:underline">
+                    {pat.name}
+                  </Link>
+                </span>
+              ))}
+            </span>
+          )}
+          <span>
+            {s.state === "unsolved" && "Not solved"}
+            {p.kind === "extra" && s.state !== "unsolved" && `Solved ${fmt(s.solvedOn)}`}
+            {p.kind === "roadmap" && s.state === "solved" &&
+              `Solved ${fmt(s.solvedOn)}${s.resolveDue ? " (re-solve due)" : ` (re-solve ${fmt(s.resolveOn)})`}`}
+            {p.kind === "roadmap" && s.state === "resolved" && `Solved ${fmt(s.solvedOn)} · re-solved ${fmt(s.resolvedOn)}`}
+          </span>
           {p.url && (
             <a
               href={p.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:opacity-90"
+              className="text-foreground hover:underline"
             >
-              Open on {p.url.includes("leetcode.com") ? "LeetCode" : "the web"} ↗
+              Open on LeetCode ↗
             </a>
           )}
-          <p className="text-sm">
+        </div>
+      </header>
+
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
+        <div className="flex items-center gap-2 text-sm">
+          <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} />
+          <span>
             {s.state === "unsolved" && "Not solved yet."}
             {p.kind === "extra" && s.state !== "unsolved" && `Solved ${fmt(s.solvedOn)} (synced from LeetCode).`}
             {p.kind === "roadmap" && s.state === "solved" &&
               `Solved ${fmt(s.solvedOn)} · ${s.resolveDue ? "re-solve due now" : `re-solve on ${fmt(s.resolveOn)}`}`}
-            {p.kind === "roadmap" && s.state === "resolved" && `Solved ${fmt(s.solvedOn)} · re-solved ${fmt(s.resolvedOn)} ✓✓`}
-          </p>
+            {p.kind === "roadmap" && s.state === "resolved" && `Solved ${fmt(s.solvedOn)} · re-solved ${fmt(s.resolvedOn)}`}
+          </span>
         </div>
         {p.kind === "roadmap" && (
           <div className="flex gap-2">
@@ -165,9 +187,9 @@ async function Problem({
                         {cheats.get(pat.id)?.template && (
                           <details className="mt-1">
                             <summary className="cursor-pointer text-xs font-medium text-muted">Your template</summary>
-                            <pre className="mt-1 max-h-80 overflow-auto rounded-lg border border-line bg-background p-3 font-mono text-xs">
-                              <code>{cheats.get(pat.id)!.template}</code>
-                            </pre>
+                            <div className="mt-1">
+                              <Code code={cheats.get(pat.id)!.template} lang={cheats.get(pat.id)!.language} maxHeight="20rem" />
+                            </div>
                             {cheats.get(pat.id)!.recognize && (
                               <p className="mt-1 whitespace-pre-wrap text-xs">{cheats.get(pat.id)!.recognize}</p>
                             )}
@@ -188,7 +210,7 @@ async function Problem({
 
           {open.length > 0 && (
             <p className="rounded-xl border border-cat-mock bg-surface p-3 text-sm">
-              🧗 On your stuck list since {fmt(open[open.length - 1].loggedOn)}.{" "}
+              On your stuck list since {fmt(open[open.length - 1].loggedOn)}.{" "}
               <Link href={`/dsa/${encodeURIComponent(p.id)}?tab=stuck#stuck`} className="font-medium underline">
                 View stuck log ({open.length}) →
               </Link>
@@ -218,9 +240,9 @@ async function Problem({
                     <span className="inline-block transition-transform group-open:rotate-90">›</span>
                     <span className="font-medium">{when(sub.submittedAt)}</span>
                     <span>{sub.lang}</span>
-                    {sub.runtime && <span className="text-muted">⏱ {sub.runtime}{pct(sub.runtimePct)}</span>}
-                    {sub.memory && <span className="text-muted">💾 {sub.memory}{pct(sub.memoryPct)}</span>}
-                    {sub.notes && <span title="Has LeetCode notes">📝</span>}
+                    {sub.runtime && <span className="text-muted">{sub.runtime}{pct(sub.runtimePct)}</span>}
+                    {sub.memory && <span className="text-muted">{sub.memory}{pct(sub.memoryPct)}</span>}
+                    {sub.notes && <span className="text-xs text-muted">notes</span>}
                     <a
                       href={`https://leetcode.com/submissions/detail/${sub.id}/`}
                       target="_blank"
@@ -232,9 +254,7 @@ async function Problem({
                   </summary>
                   <div className="space-y-3 border-t border-line p-4">
                     {sub.notes && <p className="whitespace-pre-wrap text-sm">{sub.notes}</p>}
-                    <pre className="max-h-[32rem] overflow-auto rounded-lg border border-line bg-background p-3 font-mono text-xs">
-                      <code>{sub.code}</code>
-                    </pre>
+                    <Code code={sub.code} lang={sub.lang} maxHeight="32rem" />
                   </div>
                 </details>
               </li>
@@ -262,7 +282,7 @@ function StuckPanel({ problemId, open, history }: { problemId: string; open: Awa
           </p>
           <form action={clearStruggleAction}>
             <input type="hidden" name="problemId" value={problemId} />
-            <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Solved it cold ✓</SubmitButton>
+            <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Solved it cold</SubmitButton>
           </form>
         </div>
       ) : (

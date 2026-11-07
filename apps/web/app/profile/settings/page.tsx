@@ -131,7 +131,7 @@ async function Status({ searchParams }: { searchParams: PageProps<"/profile/sett
     const copy = one(p.copy);
     return (
       <p role="status" className="rounded-xl border border-accent bg-surface p-4 text-sm">
-        ✓ Restored {Number(restored) || 0} rows.{copy && <> Your previous data was saved to <code className="break-all">{copy.slice(0, 400)}</code>.</>}
+        Restored {Number(restored) || 0} rows.{copy && <> Your previous data was saved to <code className="break-all">{copy.slice(0, 400)}</code>.</>}
       </p>
     );
   }

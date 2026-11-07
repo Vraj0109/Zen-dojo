@@ -27,7 +27,7 @@ async function Gallery() {
   return (
     <div className="space-y-8">
       <header>
-        <h2 className="text-2xl font-semibold tracking-tight">🖼️ Your diagrams</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Your diagrams</h2>
         <p className="mt-1 text-sm text-muted">
           Every diagram you saved from design and LLD practice, for the roadmap&apos;s last week: skim your notes and your own diagrams. Add
           diagrams from each design&apos;s page.

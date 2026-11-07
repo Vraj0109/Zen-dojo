@@ -23,6 +23,53 @@ export function Stat({ label, value, hint, href }: { label: string; value: strin
   );
 }
 
+export function Difficulty({ level }: { level?: string | null }) {
+  if (!level) return null;
+  const key = level.toLowerCase();
+  const color =
+    key === "easy"
+      ? "text-diff-easy"
+      : key === "medium"
+        ? "text-diff-medium"
+        : key === "hard"
+          ? "text-diff-hard"
+          : "text-muted";
+  const label = level.charAt(0).toUpperCase() + level.slice(1);
+  return (
+    <span className={`text-xs font-medium ${color}`} aria-label={`Difficulty: ${label}`}>
+      {label}
+    </span>
+  );
+}
+
+export function StatusMark({ state }: { state: "solved" | "resolve" | "none" }) {
+  if (state === "solved") {
+    return (
+      <svg
+        className="size-4 shrink-0 text-diff-easy"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-label="Solved"
+        role="img"
+      >
+        <path d="m3.5 8.5 3 3 6-7" />
+      </svg>
+    );
+  }
+  if (state === "resolve") {
+    return (
+      <span className="flex size-4 shrink-0 items-center justify-center" aria-label="Needs re-solve" role="img">
+        <span className="size-2 rounded-full bg-diff-medium" />
+      </span>
+    );
+  }
+  return <span className="inline-block size-4 shrink-0" aria-label="Unsolved" />;
+}
+
 export function ProgressBar({ value, max, label }: { value: number; max: number; label: string }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (

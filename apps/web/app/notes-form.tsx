@@ -1,6 +1,7 @@
 import type { ProblemNote } from "@/lib/notes";
 import { LANGUAGES, NOTE_LIMITS } from "@/lib/notes";
 import { saveNoteAction } from "./actions";
+import { EditorField } from "./code-editor";
 import { SubmitButton } from "./submit-button";
 
 /** Notes + saved code for a DSA problem, design or LLD problem (stored in problem_notes). */
@@ -45,6 +46,7 @@ export function NotesForm({
             {codeLabel}
           </label>
           <select
+            id="code-language"
             name="language"
             aria-label="Language"
             defaultValue={note?.language || defaultLanguage}
@@ -55,16 +57,18 @@ export function NotesForm({
             ))}
           </select>
         </div>
-        <textarea
-          id="code"
-          name="code"
-          rows={16}
-          maxLength={NOTE_LIMITS.code}
-          spellCheck={false}
-          defaultValue={note?.code ?? ""}
-          placeholder={codePlaceholder}
-          className={`${field} font-mono text-sm`}
-        />
+        <EditorField languageSelectId="code-language" rows={16}>
+          <textarea
+            id="code"
+            name="code"
+            rows={16}
+            maxLength={NOTE_LIMITS.code}
+            spellCheck={false}
+            defaultValue={note?.code ?? ""}
+            placeholder={codePlaceholder}
+            className={`${field} font-mono text-sm`}
+          />
+        </EditorField>
       </div>
       <div className="flex items-center gap-3">
         <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>

@@ -11,7 +11,7 @@ import { getCountdown } from "@/lib/revise";
 import { getTodayView } from "@/lib/tasks";
 import { addTaskAction, deleteTaskAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
-import { PageMain, ProgressBar } from "./ui";
+import { PageMain, ProgressBar, StatusMark } from "./ui";
 
 export default function Page({ searchParams }: PageProps<"/">) {
   return (
@@ -56,7 +56,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{formatLong(v.today)}</h2>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Chip label="Streak" value={`🔥 ${v.streak} day${v.streak === 1 ? "" : "s"}`} />
+          <Chip label="Streak" value={`${v.streak} day${v.streak === 1 ? "" : "s"}`} />
           <Chip label="Today" value={`+${v.todayXp} XP`} />
           <Link href="/profile" className="rounded-xl border border-line bg-surface px-3 py-2 hover:bg-background">
             <p className="text-xs text-muted">Level</p>
@@ -73,7 +73,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
       {countdown && countdown.daysLeft >= 0 && countdown.daysLeft <= 14 && (
         <Link href="/revise" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">
           <span className="font-semibold">
-            🎯 {countdown.daysLeft === 0 ? "Interview today" : countdown.daysLeft === 1 ? "Interview tomorrow" : `${countdown.daysLeft} days to your interview`}
+            {countdown.daysLeft === 0 ? "Interview today" : countdown.daysLeft === 1 ? "Interview tomorrow" : `${countdown.daysLeft} days to your interview`}
           </span>
           <span className="text-sm text-muted">{countdown.phase ? `${countdown.phase.title}: see the plan` : "Quick revise"} →</span>
         </Link>
@@ -82,7 +82,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
       {reviews.length > 0 && (
         <Link href="/review" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">
           <span className="font-semibold">
-            🔁 {reviews.length} review{reviews.length === 1 ? "" : "s"} due today
+            {reviews.length} review{reviews.length === 1 ? "" : "s"} due today
           </span>
           <span className="text-sm text-muted">
             {Object.entries(
@@ -107,7 +107,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
             </p>
           )}
           {finished && (
-            <p className="rounded-xl border border-line bg-surface p-4">🎉 You finished all {TOTAL_WEEKS} weeks. Good luck in the interviews!</p>
+            <p className="rounded-xl border border-line bg-surface p-4">You finished all {TOTAL_WEEKS} weeks. Good luck in the interviews!</p>
           )}
 
           {!beforeStart && !finished && (
@@ -208,7 +208,11 @@ function TaskList({ tasks, link }: { tasks: Task[]; link: (t: Task) => TaskLink 
                   done ? "border-accent bg-accent text-on-accent" : "border-line hover:border-accent"
                 }`}
               >
-                {done ? "✓" : ""}
+                {done && (
+                  <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m3.5 8.5 3 3 6-7" />
+                  </svg>
+                )}
               </SubmitButton>
             </form>
             <div className="min-w-0 flex-1">
@@ -352,14 +356,7 @@ function FocusGroup(props: {
           {props.items.map((i) => (
             <li key={i.id}>
               <Link href={i.href} prefetch={false} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-background">
-                <span
-                  className={`flex size-4 shrink-0 items-center justify-center rounded-full border text-[10px] ${
-                    i.done ? "border-accent bg-accent text-on-accent" : "border-line"
-                  }`}
-                  aria-hidden
-                >
-                  {i.done ? "✓" : ""}
-                </span>
+                <StatusMark state={i.done ? "solved" : "none"} />
                 <span className={`min-w-0 flex-1 truncate ${i.done ? "text-muted" : ""}`}>{i.title}</span>
                 <span className="shrink-0 text-xs text-muted">{i.detail}</span>
                 <span className="sr-only">{i.done ? "(done)" : ""}</span>

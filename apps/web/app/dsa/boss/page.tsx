@@ -8,7 +8,7 @@ import { BOSS_ITEM, focusMinutes } from "@/lib/timer";
 import { saveBossFightAction } from "../../actions";
 import { FocusTimer } from "../../focus-timer";
 import { SubmitButton } from "../../submit-button";
-import { PageMain } from "../../ui";
+import { Difficulty, PageMain, StatusMark } from "../../ui";
 
 export const metadata: Metadata = { title: "Boss fight" };
 
@@ -30,8 +30,6 @@ const fmt = (d: string) => {
   return new Date(y, m - 1, day).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 };
 
-const DIFF = { easy: "text-cat-dsa", medium: "text-cat-beh", hard: "text-cat-mock" } as const;
-
 async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["searchParams"] }) {
   await connection();
   const params = await searchParams;
@@ -41,7 +39,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-semibold tracking-tight">⚔️ Boss fight</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Boss fight</h2>
         <p className="mt-1 text-sm text-muted">
           Two problems, {BOSS_MINUTES / 60} hours, no hints, like a real onsite. Picked from{" "}
           {v.source === "weak" ? `your weakest patterns up to week ${v.weekNo}` : "all unsolved mediums and hards"}. Solves count as normal solves;
@@ -50,10 +48,13 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
       </header>
 
       {v.foughtToday && (
-        <p role="status" className="rounded-xl border border-accent bg-surface p-4 text-sm">
-          ✓ Fought today:{" "}
-          {v.foughtToday.results.map((r) => `${PROBLEMS[r.problemId]?.title ?? r.problemId} (${BOSS_RESULTS[r.result as keyof typeof BOSS_RESULTS] ?? r.result})`).join(", ")}
-          {v.foughtToday.minutes ? ` in ${v.foughtToday.minutes} min` : ""}. Another round is optional.
+        <p role="status" className="flex items-center gap-2 rounded-xl border border-accent bg-surface p-4 text-sm">
+          <StatusMark state="solved" />
+          <span>
+            Fought today:{" "}
+            {v.foughtToday.results.map((r) => `${PROBLEMS[r.problemId]?.title ?? r.problemId} (${BOSS_RESULTS[r.result as keyof typeof BOSS_RESULTS] ?? r.result})`).join(", ")}
+            {v.foughtToday.minutes ? ` in ${v.foughtToday.minutes} min` : ""}. Another round is optional.
+          </span>
         </p>
       )}
 
@@ -66,7 +67,9 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
               <li key={p.id} className="rounded-xl border border-line bg-surface p-4">
                 <p className="text-xs text-muted">Problem {i + 1} · {pattern}</p>
                 <p className="mt-1 font-semibold">{p.number ? `${p.number}. ` : ""}{p.title}</p>
-                <p className={`text-sm font-medium capitalize ${p.difficulty ? DIFF[p.difficulty] : ""}`}>{p.difficulty}</p>
+                <div className="mt-0.5">
+                  <Difficulty level={p.difficulty} />
+                </div>
                 <div className="mt-3 flex gap-3 text-sm">
                   {p.url && (
                     <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">

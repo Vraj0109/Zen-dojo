@@ -13,6 +13,9 @@
   --cat-beh: #f59e0b;
   --cat-mock: #ef4444;
   --cat-other: #9ca3af;
+  --diff-easy: #059669;
+  --diff-medium: #d97706;
+  --diff-hard: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,6 +27,9 @@
     --muted: #9a9a94;
     --accent: #4fb787;
     --on-accent: #0b1a12;
+    --diff-easy: #10b981;
+    --diff-medium: #fbbf24;
+    --diff-hard: #f87171;
   }
 }
 
@@ -40,6 +46,9 @@
   --color-cat-beh: var(--cat-beh);
   --color-cat-mock: var(--cat-mock);
   --color-cat-other: var(--cat-other);
+  --color-diff-easy: var(--diff-easy);
+  --color-diff-medium: var(--diff-medium);
+  --color-diff-hard: var(--diff-hard);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -48,4 +57,50 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Code colours: used by Shiki (read-only code) and the CodeMirror editor, in light and dark. */
+:root {
+  --shiki-foreground: #24292f;
+  --shiki-background: #ffffff;
+  --shiki-token-keyword: #cf222e;
+  --shiki-token-string: #0a3069;
+  --shiki-token-string-expression: #0a3069;
+  --shiki-token-comment: #6e7781;
+  --shiki-token-function: #8250df;
+  --shiki-token-constant: #0550ae;
+  --shiki-token-parameter: #953800;
+  --shiki-token-punctuation: #57606a;
+  --shiki-token-link: #0550ae;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shiki-foreground: #e6edf3;
+    --shiki-background: #151716;
+    --shiki-token-keyword: #ff7b72;
+    --shiki-token-string: #a5d6ff;
+    --shiki-token-string-expression: #a5d6ff;
+    --shiki-token-comment: #8b949e;
+    --shiki-token-function: #d2a8ff;
+    --shiki-token-constant: #79c0ff;
+    --shiki-token-parameter: #ffa657;
+    --shiki-token-punctuation: #9da7b1;
+    --shiki-token-link: #79c0ff;
+  }
+}
+
+pre.code-block {
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--shiki-background);
+  color: var(--shiki-foreground);
+  padding: 0.75rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  tab-size: 4;
+  max-height: var(--code-max, 36rem);
 }

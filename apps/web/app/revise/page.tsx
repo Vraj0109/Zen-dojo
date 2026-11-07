@@ -28,13 +28,13 @@ import { PrintButton } from "./print-button";
 export const metadata: Metadata = { title: "Quick revise" };
 
 const TABS = [
-  { id: "plan", label: "🎯 Plan & weak spots" },
+  { id: "plan", label: "Plan & weak spots" },
   { id: "dsa", label: "DSA" },
   { id: "sd", label: "System design" },
   { id: "lld", label: "LLD" },
   { id: "core", label: "Core CS" },
   { id: "numbers", label: "Numbers & frameworks" },
-  { id: "quiz", label: "🃏 Quiz" },
+  { id: "quiz", label: "Quiz" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
@@ -203,7 +203,7 @@ async function PlanTab() {
 
       <aside className="space-y-4">
         <section className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 font-semibold">🧗 Stuck list ({weak.stuck.length})</h3>
+          <h3 className="mb-2 font-semibold">Stuck list ({weak.stuck.length})</h3>
           {weak.stuck.length === 0 ? (
             <p className="text-sm text-muted">Nothing on it.</p>
           ) : (
@@ -277,7 +277,7 @@ async function DsaTab({ weak }: { weak: boolean }) {
                     </Link>
                     <span className="shrink-0 text-xs text-muted">
                       {p.solved}/{p.target}
-                      {p.stuck > 0 && ` · 🧗 ${p.stuck}`}
+                      {p.stuck > 0 && ` · ${p.stuck} stuck`}
                     </span>
                   </div>
                   <p className="text-xs text-muted">Spot it: {p.recognize}</p>
@@ -286,7 +286,7 @@ async function DsaTab({ weak }: { weak: boolean }) {
                     <details className="mt-2">
                       <summary className="cursor-pointer text-xs font-medium text-muted">Your template ({p.language || "code"})</summary>
                       <div className="mt-1">
-                        <CodeBlock code={p.template} maxHeight="max-h-64" />
+                        <CodeBlock code={p.template} maxHeight="16rem" />
                       </div>
                     </details>
                   )}
@@ -477,7 +477,7 @@ async function QuizTab({ sp }: { sp: SP }) {
         ))}
         <span className="mx-1 h-4 w-px bg-line" aria-hidden />
         <Link href={`/revise?tab=quiz&area=${area}${weak ? "" : "&weak=1"}`} className={`rounded-lg px-3 py-1 ${weak ? "bg-surface font-medium" : "text-muted hover:text-foreground"}`}>
-          {weak ? "✓ " : ""}Weak concepts only
+          Weak concepts only
         </Link>
         <span className="ml-auto text-xs text-muted">{cards.length} cards</span>
       </div>

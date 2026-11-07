@@ -43,11 +43,11 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         <p className="mt-1 text-sm text-muted">{area.intro}</p>
         <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
           <Link href="/study/reading" className="hover:underline">
-            📚 Reading list
+            Reading list
           </Link>
           {area.exercises && (
             <Link href="/study/diagrams" className="hover:underline">
-              🖼️ Your diagrams
+              Your diagrams
             </Link>
           )}
           <span className="font-normal text-muted">Every concept has a lesson: open it, learn, then rate yourself.</span>
@@ -71,7 +71,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
 
       {(due.exercises.length > 0 || due.concepts.length > 0) && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold">🔁 Due for review</h2>
+          <h2 className="mb-3 text-lg font-semibold">Due for review</h2>
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-accent bg-surface">
             {due.exercises.map((e) => (
               <ExerciseRow key={e.id} e={e} areaId={area.id} />
@@ -141,14 +141,8 @@ function ConceptRow({ c, areaId }: { c: ConceptView; areaId: string }) {
     <li className="flex items-center gap-3 px-3 py-2">
       <div className="min-w-0 flex-1">
         <Link href={`/study/${areaId}/${c.id}`} prefetch={false} className="hover:underline">
-          {c.confidence >= COVERED_CONFIDENCE && <span aria-label="covered">✅ </span>}
           {c.title}
         </Link>
-        {c.hasNotes && (
-          <span className="ml-1.5 text-xs" title="Has notes">
-            📝
-          </span>
-        )}
         <p className="text-xs text-muted">
           {c.checked}/{c.points.length} points
           {c.reviewDue && <span className="font-medium text-foreground"> · review due</span>}
@@ -168,11 +162,6 @@ function ExerciseRow({ e, areaId }: { e: ExerciseView; areaId: string }) {
           {e.title}
         </Link>
         {e.tag && <span className="ml-1.5 rounded bg-background px-1.5 text-xs text-muted">{e.tag}</span>}
-        {e.noted && (
-          <span className="ml-1.5 text-xs" title="Has notes">
-            📝
-          </span>
-        )}
         <p className="text-xs text-muted">
           {e.focus}
           {p.state === "practiced" && (

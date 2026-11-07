@@ -7,11 +7,11 @@ import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsa
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
-import { CheatSheet, DIFFICULTY_STYLE, ProblemRow, ProblemTitle, Topics, fmt } from "./problem-ui";
+import { CheatSheet, ProblemRow, ProblemTitle } from "./problem-ui";
 import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
-import { PageMain, ProgressBar, Stat } from "../ui";
+import { Difficulty, PageMain, ProgressBar, Stat, StatusMark } from "../ui";
 
 export const metadata: Metadata = { title: "DSA" };
 
@@ -73,7 +73,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
           {tab === "patterns" && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Patterns</h2>
-              <FilterBar filters={filters} topics={topics} />
+              <FilterBar filters={filters} topics={topics} totals={totals} />
               {filtering ? (
                 <div>
                   <p className="mb-2 text-sm text-muted" role="status">
@@ -95,35 +95,48 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                   <p className="text-sm text-muted">
                     Learn the template, solve 4–6 problems easy to hard, then re-solve cold two weeks later.
                   </p>
-                  {groups.map((g) => {
-                    const open = g.id === openGroup;
-                    return (
-                      <div key={g.id} id={`g-${g.id}`} className="scroll-mt-32 lg:scroll-mt-4 rounded-xl border border-line bg-surface">
-                        <Link
-                          href={open ? "/dsa?group=none" : `/dsa?group=${g.id}#g-${g.id}`}
-                          scroll={false}
-                          prefetch={false}
-                          aria-expanded={open}
-                          className="flex items-center justify-between gap-3 p-4"
-                        >
-                          <span className="font-semibold">
-                            <span className={`mr-2 inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>
-                            {g.title}
-                          </span>
-                          <span className="text-sm text-muted">
-                            {g.covered}/{g.patterns.length} covered
-                          </span>
-                        </Link>
-                        {open && (
-                          <div className="space-y-4 border-t border-line p-4">
-                            {g.patterns.map((p) => (
-                              <PatternBlock key={p.id} p={p} />
-                            ))}
+                  <div className="space-y-4">
+                    {groups.map((g) => {
+                      const open = g.id === openGroup;
+                      const pct = g.patterns.length > 0 ? Math.min(100, Math.round((g.covered / g.patterns.length) * 100)) : 0;
+                      return (
+                        <div key={g.id} id={`g-${g.id}`} className="scroll-mt-32 lg:scroll-mt-4">
+                          <Link
+                            href={open ? "/dsa?group=none" : `/dsa?group=${g.id}#g-${g.id}`}
+                            scroll={false}
+                            prefetch={false}
+                            aria-expanded={open}
+                            className="flex items-center justify-between gap-3 border-b border-line py-3 hover:text-foreground"
+                          >
+                            <span className="font-semibold">
+                              <span className={`mr-2 inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>
+                              {g.title}
+                            </span>
+                            <span className="text-sm text-muted">
+                              {g.covered}/{g.patterns.length} covered
+                            </span>
+                          </Link>
+                          <div
+                            className="h-0.5 w-full bg-line"
+                            role="progressbar"
+                            aria-label={`${g.title} progress`}
+                            aria-valuenow={g.covered}
+                            aria-valuemin={0}
+                            aria-valuemax={g.patterns.length}
+                          >
+                            <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {open && (
+                            <div className="space-y-6 pt-4 pb-6">
+                              {g.patterns.map((p) => (
+                                <PatternBlock key={p.id} p={p} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </>
               )}
             </section>
@@ -134,9 +147,9 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
               <h2 className="text-lg font-semibold">Re-solve due</h2>
               <p className="text-sm text-muted">Solved 14+ days ago: solve again from scratch, then tick.</p>
               {due.length === 0 ? (
-                <p className="rounded-xl border border-line bg-surface p-6 text-center text-muted">Nothing due. 🎉</p>
+                <p className="rounded-xl border border-line bg-surface p-6 text-center text-muted">Nothing due.</p>
               ) : (
-                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-accent bg-surface">
+                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
                   {due.map((p) => (
                     <ProblemRow key={p.id} p={p} />
                   ))}
@@ -154,24 +167,22 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
               ) : (
                 <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
                   {extras.map((e) => (
-                    <li key={e.problemId} className="flex items-center gap-3 px-3 py-2">
-                      <span className="w-6 text-center" aria-label="Synced from LeetCode">⚡</span>
-                      <div className="min-w-0 flex-1">
+                    <li key={e.problemId} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm hover:bg-surface/80">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <StatusMark state="solved" />
                         <ProblemTitle
                           id={e.problemId}
                           label={`${e.number ? `${e.number}. ` : ""}${e.title}`}
                           url={e.url}
-                          noted={e.noted}
-                          lcNotes={e.lcNotes}
-                          submissions={e.submissions}
                           struggling={e.struggling}
                         />
-                        <p className="text-xs text-muted">
-                          <span className={`font-medium capitalize ${DIFFICULTY_STYLE[e.difficulty]}`}>{e.difficulty}</span> · Solved {fmt(e.solvedOn)}
-                          <Topics topics={e.topics} />
-                        </p>
                       </div>
-                      <span className="text-sm text-muted">+{e.xp} XP</span>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="text-xs text-muted">+{e.xp} XP</span>
+                        <div className="w-14 text-right">
+                          <Difficulty level={e.difficulty} />
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -181,9 +192,8 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
         </div>
 
         <aside className="space-y-6">
-          <Link href="/dsa/boss" className="block rounded-xl border border-accent bg-surface p-4 hover:bg-background">
-            <span className="font-semibold">⚔️ Boss fight</span>
-            <span className="mt-1 block text-sm text-muted">2 unsolved problems from your weakest patterns, against a 2-hour timer.</span>
+          <Link href="/dsa/boss" className="block rounded-lg border border-line bg-surface p-3 text-sm hover:bg-background">
+            <span className="font-semibold text-foreground">Boss fight</span> · <span className="text-muted">2 unsolved problems against a 2-hour timer.</span>
           </Link>
           <SyncStatus leetcode={leetcode} extension={extension} />
         </aside>
@@ -204,7 +214,7 @@ function SyncStatus({
   const imp = extension.last;
   return (
     <section className="rounded-xl border border-line bg-surface p-4 text-sm">
-      <h2 className="font-semibold">⚡ LeetCode sync</h2>
+      <h2 className="font-semibold">LeetCode sync</h2>
       {leetcode.username ? (
         <>
           <p className="mt-1 text-muted">
@@ -219,7 +229,7 @@ function SyncStatus({
         <p className="mt-1 text-muted">Not connected. Add your username to tick solves automatically.</p>
       )}
       <p className="mt-2 text-muted">
-        🧩 Extension: {imp ? `last import ${ago(imp.at)}, ${imp.stored} submission${imp.stored === 1 ? "" : "s"}` : "no imports yet"}
+        Extension: {imp ? `last import ${ago(imp.at)}, ${imp.stored} submission${imp.stored === 1 ? "" : "s"}` : "no imports yet"}
       </p>
       <Link href="/profile/settings#leetcode" className="mt-2 inline-block font-medium hover:underline">
         Manage connections →
@@ -228,24 +238,26 @@ function SyncStatus({
   );
 }
 
-function FilterBar({ filters, topics }: { filters: DsaFilters; topics: string[] }) {
+function FilterBar({
+  filters,
+  topics,
+  totals,
+}: {
+  filters: DsaFilters;
+  topics: string[];
+  totals: { solved: number; problems: number };
+}) {
   const field = "rounded-lg border border-line bg-background px-2 py-1.5 text-sm";
   return (
-    <form action="/dsa" className="flex flex-wrap gap-2" role="search">
+    <form action="/dsa" className="flex flex-wrap items-center gap-2" role="search">
       <input
         name="q"
         type="search"
         defaultValue={filters.q}
         placeholder="Search name or number"
         aria-label="Search problems"
-        className={`${field} min-w-0 flex-1 basis-40`}
+        className={`${field} min-w-0 flex-1 basis-40 sm:max-w-xs`}
       />
-      <select name="difficulty" defaultValue={filters.difficulty} aria-label="Difficulty" className={field}>
-        <option value="">Any difficulty</option>
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-      </select>
       <select name="status" defaultValue={filters.status} aria-label="Status" className={field}>
         <option value="">Any status</option>
         {Object.entries(STATUS_FILTERS).map(([v, label]) => (
@@ -254,13 +266,11 @@ function FilterBar({ filters, topics }: { filters: DsaFilters; topics: string[] 
           </option>
         ))}
       </select>
-      <select name="has" defaultValue={filters.has} aria-label="Notes and solutions" className={field}>
-        <option value="">Notes: any</option>
-        {Object.entries(HAS_FILTERS).map(([v, label]) => (
-          <option key={v} value={v}>
-            {label}
-          </option>
-        ))}
+      <select name="difficulty" defaultValue={filters.difficulty} aria-label="Difficulty" className={field}>
+        <option value="">Any difficulty</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
       </select>
       {topics.length > 0 && (
         <select name="topic" defaultValue={filters.topic} aria-label="LeetCode topic" className={field}>
@@ -270,7 +280,18 @@ function FilterBar({ filters, topics }: { filters: DsaFilters; topics: string[] 
           ))}
         </select>
       )}
+      <select name="has" defaultValue={filters.has} aria-label="Notes and solutions" className={field}>
+        <option value="">Notes: any</option>
+        {Object.entries(HAS_FILTERS).map(([v, label]) => (
+          <option key={v} value={v}>
+            {label}
+          </option>
+        ))}
+      </select>
       <button className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Filter</button>
+      <span className="ml-auto text-sm text-muted whitespace-nowrap">
+        {totals.solved} / {totals.problems} solved
+      </span>
     </form>
   );
 }
@@ -280,7 +301,6 @@ function PatternBlock({ p }: { p: PatternView }) {
     <div id={`p-${p.id}`} className="scroll-mt-32 lg:scroll-mt-4">
       <div className="mb-1 flex items-baseline justify-between gap-3">
         <h3 className="font-medium">
-          {p.covered && <span aria-label="covered">✅ </span>}
           <Link href={`/dsa/pattern/${p.id}`} className="hover:underline">
             {p.name}
           </Link>
@@ -292,7 +312,7 @@ function PatternBlock({ p }: { p: PatternView }) {
       <p className="mb-2 text-xs text-muted">
         Recognize by: {p.recognize} ·{" "}
         <Link href={`/dsa/pattern/${p.id}`} className="font-medium text-foreground hover:underline">
-          📖 Learn the pattern
+          Learn the pattern
         </Link>
       </p>
       <CheatSheet p={p} />

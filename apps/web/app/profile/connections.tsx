@@ -17,7 +17,7 @@ export function LeetCodeCard({ username, last }: Awaited<ReturnType<typeof getLe
   const input = "min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2";
   return (
     <section className="rounded-xl border border-line bg-surface p-4">
-      <h4 className="font-semibold">⚡ LeetCode auto-sync</h4>
+      <h4 className="font-semibold">LeetCode auto-sync</h4>
       {!username ? (
         <>
           <p className="mt-1 mb-3 text-sm text-muted">
@@ -65,7 +65,7 @@ export function LeetCodeCard({ username, last }: Awaited<ReturnType<typeof getLe
 export function ExtensionCard({ token, last }: Awaited<ReturnType<typeof getExtensionStatus>>) {
   return (
     <section className="rounded-xl border border-line bg-surface p-4">
-      <h4 className="font-semibold">🧩 Browser extension</h4>
+      <h4 className="font-semibold">Browser extension</h4>
       <p className="mt-1 text-sm text-muted">
         Imports your own accepted LeetCode submissions (code, language, runtime, memory, time, notes) while you&apos;re logged in on
         leetcode.com, including your full history. Install it from <code className="text-foreground">apps/extension</code> (see README),

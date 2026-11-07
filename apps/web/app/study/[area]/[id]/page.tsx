@@ -27,7 +27,7 @@ import { FocusTimer } from "../../../focus-timer";
 import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
 import { PageMain } from "../../../ui";
-import { BulletCard, DeeperSections, RecapCard } from "../../../learn-blocks";
+import { ArticleLayout, ArticleSection, DeeperSections } from "../../../learn-blocks";
 import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
 
@@ -88,6 +88,16 @@ async function ConceptView({ id }: { id: string }) {
   const checked = new Set(p?.checked ?? []);
   const confidence = p?.confidence ?? 0;
 
+  const toc = [
+    ...(lesson?.overview ? [{ id: "overview", title: "Overview" }] : []),
+    { id: "what-to-know", title: "What to know" },
+    ...(extra && extra.deeper && extra.deeper.length > 0 ? [{ id: "deeper", title: "Go deeper" }] : []),
+    ...(lesson && lesson.questions.length > 0 ? [{ id: "interview-questions", title: "Interview questions" }] : []),
+    ...(lesson && lesson.pitfalls && lesson.pitfalls.length > 0 ? [{ id: "common-mistakes", title: "Common mistakes" }] : []),
+    { id: "your-turn", title: "Your turn" },
+    ...(reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
+  ];
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -101,93 +111,90 @@ async function ConceptView({ id }: { id: string }) {
         </p>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="order-2 min-w-0 space-y-6 xl:order-1">
-          {lesson && (
-            <section className="rounded-xl border border-line bg-surface p-4">
-              <h3 className="mb-1 font-semibold">📖 Overview</h3>
-              <p className="leading-relaxed">{lesson.overview}</p>
-            </section>
-          )}
+      <ArticleLayout
+        toc={toc}
+        rail={<FocusTimer itemId={id} defaultMinutes={studyMinutes} presets={[15, 25, 45]} totalMinutes={focused} />}
+      >
+        {lesson?.overview && (
+          <ArticleSection id="overview" title="Overview">
+            <p className="leading-7">{lesson.overview}</p>
+          </ArticleSection>
+        )}
 
-          {extra && <RecapCard items={extra.recap} />}
-
-          <section className="rounded-xl border border-line bg-surface p-4">
-            <h3 className="mb-3 font-semibold">What to know</h3>
-            <ol className="space-y-4">
-              {d.concept.points.map((point, i) => (
-                <li key={i}>
-                  <label className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      name="point"
-                      value={i}
-                      form="concept-form"
-                      defaultChecked={checked.has(i)}
-                      className="mt-1 size-4 shrink-0 accent-[var(--color-accent)]"
-                    />
-                    <span className="font-medium">{point}</span>
-                  </label>
-                  {lesson?.explain[i] && <p className="mt-1 pl-6 text-sm leading-relaxed text-muted">{lesson.explain[i]}</p>}
-                </li>
-              ))}
-            </ol>
-            <p className="mt-4 text-xs text-muted">
-              Read the explanation, then close it in your head: tick a point once you can explain it out loud with an example and its trade-offs.
-            </p>
-          </section>
-
-          {extra && <DeeperSections sections={extra.deeper} title="🔬 Go deeper" />}
-          {lesson && <LessonQuestions lesson={lesson} />}
-
-          <section className="space-y-4">
-            <h3 className="text-lg font-semibold">Your turn</h3>
-            <form id="concept-form" action={saveConceptAction} className="space-y-5">
-              <input type="hidden" name="conceptId" value={id} />
-
-              <fieldset>
-                <legend className="mb-2 font-semibold">How confident are you?</legend>
-                <div className="flex flex-wrap gap-2">
-                  {CONFIDENCE_LABELS.map((label, value) => (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-on-accent"
-                    >
-                      <input type="radio" name="confidence" value={value} defaultChecked={value === confidence} className="sr-only" />
-                      {value} · {label}
-                    </label>
-                  ))}
-                </div>
-                <p className="mt-2 text-xs text-muted">
-                  {COVERED_CONFIDENCE}+ counts as covered (+XP the first time). Anything from 1 to {COVERED_CONFIDENCE - 1} comes back for review a week later.
-                </p>
-              </fieldset>
-
-              <div>
-                <label htmlFor="notes" className="mb-1 block font-semibold">
-                  Your notes
+        <ArticleSection id="what-to-know" title="What to know">
+          <ol className="space-y-4">
+            {d.concept.points.map((point, i) => (
+              <li key={i}>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    name="point"
+                    value={i}
+                    form="concept-form"
+                    defaultChecked={checked.has(i)}
+                    className="mt-1 size-4 shrink-0 accent-[var(--color-accent)]"
+                  />
+                  <span className="font-medium">{point}</span>
                 </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  rows={10}
-                  maxLength={20000}
-                  defaultValue={p?.notes ?? ""}
-                  placeholder={"Key ideas in your own words, a diagram link, numbers to remember, where it showed up in a design…"}
-                  className={field}
-                />
+                {lesson?.explain[i] && <p className="mt-1 pl-6 text-sm leading-relaxed text-muted">{lesson.explain[i]}</p>}
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-xs text-muted">
+            Read the explanation, then close it in your head: tick a point once you can explain it out loud with an example and its trade-offs.
+          </p>
+        </ArticleSection>
+
+        {extra && extra.deeper && extra.deeper.length > 0 && (
+          <ArticleSection id="deeper" title="Go deeper">
+            <DeeperSections sections={extra.deeper} />
+          </ArticleSection>
+        )}
+
+        {lesson && <LessonQuestions lesson={lesson} />}
+
+        <ArticleSection id="your-turn" title="Your turn">
+          <form id="concept-form" action={saveConceptAction} className="space-y-5">
+            <input type="hidden" name="conceptId" value={id} />
+
+            <fieldset>
+              <legend className="mb-2 font-semibold">How confident are you?</legend>
+              <div className="flex flex-wrap gap-2">
+                {CONFIDENCE_LABELS.map((label, value) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-on-accent"
+                  >
+                    <input type="radio" name="confidence" value={value} defaultChecked={value === confidence} className="sr-only" />
+                    {value} · {label}
+                  </label>
+                ))}
               </div>
-              <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>
-            </form>
-          </section>
+              <p className="mt-2 text-xs text-muted">
+                {COVERED_CONFIDENCE}+ counts as covered (+XP the first time). Anything from 1 to {COVERED_CONFIDENCE - 1} comes back for review a week later.
+              </p>
+            </fieldset>
 
-          <ReadingSection itemId={id} items={reading} />
-        </div>
+            <div>
+              <label htmlFor="notes" className="mb-1 block font-semibold">
+                Your notes
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={10}
+                maxLength={20000}
+                defaultValue={p?.notes ?? ""}
+                placeholder={"Key ideas in your own words, a diagram link, numbers to remember, where it showed up in a design…"}
+                className={field}
+              />
+            </div>
+            <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>
+          </form>
+        </ArticleSection>
 
-        <aside className="order-1 xl:order-2 xl:sticky xl:top-6 self-start">
-          <FocusTimer itemId={id} defaultMinutes={studyMinutes} presets={[15, 25, 45]} totalMinutes={focused} />
-        </aside>
-      </div>
+        <ReadingSection itemId={id} items={reading} />
+      </ArticleLayout>
     </div>
   );
 }
@@ -198,6 +205,23 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
   const { exercise, area, sessions, practice } = d;
   const steps = area.exercises.steps;
   const isDesign = area.id === "sd";
+
+  const hasWalkthrough = isDesign && !!WALKTHROUGHS[id];
+  const hasLldGuide = !isDesign && !!LLD_GUIDES[id];
+  const hasFollowUps = isDesign && !!WALKTHROUGH_EXTRA[id]?.followUps?.length;
+  const hasFlow = !isDesign && !!LLD_EXTRA[id]?.flow?.length;
+  const hasEdgeCases = !isDesign && !!LLD_EXTRA[id]?.edgeCases?.length;
+
+  const toc = [
+    ...(hasWalkthrough ? [{ id: "reference", title: "Reference walkthrough" }] : []),
+    ...(hasLldGuide ? [{ id: "reference", title: "Reference answer" }] : []),
+    ...(hasFollowUps ? [{ id: "follow-ups", title: "Follow-ups they'll ask" }] : []),
+    ...(hasFlow ? [{ id: "trace", title: "Trace one use case" }] : []),
+    ...(hasEdgeCases ? [{ id: "edge-cases", title: "Edge cases to name" }] : []),
+    { id: "your-turn", title: "Your turn" },
+    { id: "diagrams", title: "Your diagrams" },
+    ...(reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
+  ];
 
   return (
     <div className="space-y-6">
@@ -223,34 +247,46 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
         )}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="order-2 min-w-0 space-y-6 xl:order-1">
-          <p className="text-sm text-muted">
-            {isDesign ? "Attempt it first (timer on), then compare with the reference." : "Write your classes first, then compare."}
-          </p>
+      <ArticleLayout
+        toc={toc}
+        rail={<FocusTimer itemId={id} defaultMinutes={steps.reduce((a, s) => a + s.minutes, 0)} presets={[30, 45, 60]} totalMinutes={focused} />}
+      >
+        <p className="text-sm text-muted">
+          {isDesign ? "Attempt it first (timer on), then compare with the reference." : "Write your classes first, then compare."}
+        </p>
 
-          {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
+        {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
 
-          {isDesign && WALKTHROUGH_EXTRA[id] && (
-            <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-              <RecapCard items={WALKTHROUGH_EXTRA[id].recap} />
-              <FollowUps items={WALKTHROUGH_EXTRA[id].followUps} />
-            </div>
-          )}
+        {isDesign && WALKTHROUGH_EXTRA[id]?.followUps && (
+          <FollowUps items={WALKTHROUGH_EXTRA[id].followUps} />
+        )}
 
-          {!isDesign && LLD_EXTRA[id] && (
-            <>
-              <RecapCard items={LLD_EXTRA[id].recap} />
-              <div className="grid gap-4 lg:grid-cols-2">
-                <BulletCard title="🔁 Trace one use case" items={LLD_EXTRA[id].flow} ordered note="Walk the interviewer through this after writing your classes." />
-                <BulletCard title="🧪 Edge cases to name" items={LLD_EXTRA[id].edgeCases} />
-              </div>
-            </>
-          )}
+        {!isDesign && LLD_EXTRA[id] && (
+          <>
+            {LLD_EXTRA[id].flow && LLD_EXTRA[id].flow.length > 0 && (
+              <ArticleSection id="trace" title="Trace one use case">
+                <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-7">
+                  {LLD_EXTRA[id].flow.map((i) => (
+                    <li key={i}>{i}</li>
+                  ))}
+                </ol>
+                <p className="mt-2 text-xs text-muted">Walk the interviewer through this after writing your classes.</p>
+              </ArticleSection>
+            )}
+            {LLD_EXTRA[id].edgeCases && LLD_EXTRA[id].edgeCases.length > 0 && (
+              <ArticleSection id="edge-cases" title="Edge cases to name">
+                <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
+                  {LLD_EXTRA[id].edgeCases.map((i) => (
+                    <li key={i}>{i}</li>
+                  ))}
+                </ul>
+              </ArticleSection>
+            )}
+          </>
+        )}
 
-          <section className="space-y-6">
-            <h3 className="text-lg font-semibold">Your turn</h3>
-
+        <ArticleSection id="your-turn" title="Your turn">
+          <div className="space-y-6">
             <form action={logPracticeAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
               <input type="hidden" name="itemId" value={id} />
               <h4 className="font-semibold">Log a practice (+{area.exercises.xp} XP, once a day)</h4>
@@ -347,17 +383,13 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
               codeLabel={isDesign ? "Schema, API or pseudo-code" : "Your classes"}
               codePlaceholder={isDesign ? "Optional: table schemas, API signatures, key algorithms." : "The class design you wrote. Re-write it from scratch when you practice again, then compare."}
             />
+          </div>
+        </ArticleSection>
 
-            <DiagramsSection itemId={id} diagrams={diagrams} error={diagramError} />
+        <DiagramsSection itemId={id} diagrams={diagrams} error={diagramError} />
 
-            <ReadingSection itemId={id} items={reading} />
-          </section>
-        </div>
-
-        <aside className="order-1 xl:order-2 xl:sticky xl:top-6 self-start">
-          <FocusTimer itemId={id} defaultMinutes={steps.reduce((a, s) => a + s.minutes, 0)} presets={[30, 45, 60]} totalMinutes={focused} />
-        </aside>
-      </div>
+        <ReadingSection itemId={id} items={reading} />
+      </ArticleLayout>
     </div>
   );
 }

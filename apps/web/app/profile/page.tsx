@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { TOTAL_WEEKS, planWeekNumber, type Category, type HeatCell } from "@habit/shared";
 import { BALANCE_DAYS, getStats } from "@/lib/stats";
 import { getPlanStart } from "@/lib/tasks";
-import { PageMain, ProgressBar, Stat } from "../ui";
+import { PageMain, ProgressBar, Stat, StatusMark } from "../ui";
 import { ProfileTabs } from "./profile-ui";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -94,7 +94,7 @@ async function Stats() {
                   </div>
                 )}
               </div>
-              {b.earned && <span className="text-sm text-accent" aria-hidden>✓</span>}
+              {b.earned && <StatusMark state="solved" />}
             </li>
           ))}
         </ul>

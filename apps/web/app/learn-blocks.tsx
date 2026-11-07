@@ -1,16 +1,11 @@
 import type { Section } from "@habit/shared";
+import { Code } from "./code";
 
 // Presentational blocks for learning content: DSA guides, concept lessons, design and LLD extras.
 
-export function CodeBlock({ code, label, maxHeight = "max-h-[36rem]" }: { code: string; label?: string; maxHeight?: string }) {
-  return (
-    <div>
-      {label && <p className="mb-1 text-xs font-medium text-muted">{label}</p>}
-      <pre className={`${maxHeight} overflow-auto rounded-lg border border-line bg-background p-3 font-mono text-xs leading-relaxed`}>
-        <code>{code}</code>
-      </pre>
-    </div>
-  );
+/** Coloured code. `lang` is optional (guessed from the code); `maxHeight` is a CSS length. */
+export function CodeBlock({ code, lang, label, maxHeight }: { code: string; lang?: string; label?: string; maxHeight?: string }) {
+  return <Code code={code} lang={lang} label={label} maxHeight={maxHeight} />;
 }
 
 export function BulletCard({ title, items, ordered = false, note }: { title: string; items: string[]; ordered?: boolean; note?: string }) {
@@ -28,44 +23,96 @@ export function BulletCard({ title, items, ordered = false, note }: { title: str
   );
 }
 
-/** The few lines to remember; the same lines appear on Quick revise. */
-export function RecapCard({ items, title = "⚡ Remember" }: { items: string[]; title?: string }) {
+export function Prose({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`space-y-4 leading-7 ${className}`}>{children}</div>;
+}
+
+export function ArticleSection({
+  id,
+  title,
+  children,
+  className = "",
+}: {
+  id?: string;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <section className="rounded-xl border border-accent bg-surface p-4">
-      <h3 className="mb-2 font-semibold">{title}</h3>
-      <ul className="space-y-1 text-sm">
-        {items.map((i) => (
-          <li key={i} className="flex gap-2">
-            <span aria-hidden className="text-accent">▸</span>
-            <span>{i}</span>
-          </li>
-        ))}
-      </ul>
+    <section id={id} className={`scroll-mt-6 border-t border-line pt-6 first:border-t-0 first:pt-0 ${className}`}>
+      <h2 className="mb-4 text-xl font-semibold tracking-tight">{title}</h2>
+      {children}
     </section>
   );
 }
 
-/** Deeper sections, each collapsible so the page stays scannable. The first one starts open. */
-export function DeeperSections({ sections, title = "🔬 Deeper" }: { sections: Section[]; title?: string }) {
+export function ArticleLayout({
+  toc,
+  rail,
+  children,
+}: {
+  toc: { id: string; title: string }[];
+  rail?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const hasAside = toc.length > 0 || !!rail;
   return (
-    <section className="space-y-2">
-      <h3 className="font-semibold">{title}</h3>
-      {sections.map((s, i) => (
-        <details key={s.title} open={i === 0} className="group rounded-xl border border-line bg-surface">
-          <summary className="cursor-pointer list-none p-4 font-medium">
-            <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
-            {s.title}
-          </summary>
-          <div className="space-y-3 border-t border-line p-4">
+    <div className={`grid gap-6 ${hasAside ? "xl:grid-cols-[minmax(0,1fr)_16rem]" : ""}`}>
+      {hasAside && (
+        <aside className="order-1 space-y-4 xl:order-2 xl:sticky xl:top-6 xl:self-start">
+          {toc.length > 0 && (
+            <>
+              <details className="rounded-xl border border-line bg-surface p-3 text-sm xl:hidden">
+                <summary className="cursor-pointer font-medium text-muted hover:text-foreground">
+                  On this page
+                </summary>
+                <nav aria-label="Table of contents" className="mt-2 space-y-1.5 border-t border-line pt-2">
+                  {toc.map((item) => (
+                    <a key={item.id} href={`#${item.id}`} className="block text-muted hover:text-foreground">
+                      {item.title}
+                    </a>
+                  ))}
+                </nav>
+              </details>
+              <nav aria-label="Table of contents" className="hidden space-y-2 text-sm xl:block">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted">On this page</p>
+                <ul className="space-y-1.5 border-l border-line pl-3">
+                  {toc.map((item) => (
+                    <li key={item.id}>
+                      <a href={`#${item.id}`} className="text-muted hover:text-foreground">
+                        {item.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </>
+          )}
+          {rail}
+        </aside>
+      )}
+      <div className={`min-w-0 space-y-8 ${hasAside ? "order-2 xl:order-1" : ""}`}>{children}</div>
+    </div>
+  );
+}
+
+/** Deeper sections rendered open as plain subsections. */
+export function DeeperSections({ sections }: { sections: Section[] }) {
+  return (
+    <div className="space-y-6">
+      {sections.map((s) => (
+        <div key={s.title} className="space-y-2">
+          <h3 className="text-base font-semibold">{s.title}</h3>
+          <div className="space-y-3 text-sm leading-7">
             {s.body.split("\n\n").map((para, j) => (
-              <p key={j} className="text-sm leading-relaxed whitespace-pre-line">
+              <p key={j} className="whitespace-pre-line">
                 {para}
               </p>
             ))}
-            {s.code && <CodeBlock code={s.code} />}
           </div>
-        </details>
+          {s.code && <CodeBlock code={s.code} lang={s.lang} />}
+        </div>
       ))}
-    </section>
+    </div>
   );
 }

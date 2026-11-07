@@ -46,7 +46,7 @@ async function Reading() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">📚 Reading list</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Reading list</h2>
           <p className="mt-1 max-w-3xl text-sm text-muted">
             Papers, books and engineering posts behind the system design, LLD and core CS concepts. Each one also appears on the concept or design
             pages it explains. Start with DDIA and the Dynamo, Kafka and Raft material.
@@ -73,7 +73,11 @@ async function Reading() {
                       aria-label={r.done ? `Mark "${r.title}" unread` : `Mark "${r.title}" read`}
                       className={`flex size-5 items-center justify-center rounded border text-xs ${r.done ? "border-accent bg-accent text-on-accent" : "border-line"}`}
                     >
-                      {r.done ? "✓" : ""}
+                      {r.done && (
+                        <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="m3.5 8.5 3 3 6-7" />
+                        </svg>
+                      )}
                     </SubmitButton>
                   </form>
                   <div className="min-w-0 flex-1 text-sm">

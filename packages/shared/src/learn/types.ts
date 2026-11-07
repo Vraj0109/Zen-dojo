@@ -37,6 +37,8 @@ export interface Section {
   title: string;
   body: string;
   code?: string;
+  /** Language of `code` (C++, Java, SQL...). Optional: guessed from the code when missing. */
+  lang?: string;
 }
 
 /** Extra depth for a concept lesson, kept apart from the base lesson (learn/deep-*.ts). */

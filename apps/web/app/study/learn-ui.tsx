@@ -2,33 +2,35 @@ import { READING_KINDS, type Lesson, type LldGuide, type Walkthrough } from "@ha
 import type { DiagramView } from "@/lib/diagrams";
 import type { ReadingView } from "@/lib/reading";
 import { addReadingAction, deleteDiagramAction, deleteReadingAction, toggleReadingAction } from "../actions";
+import { Code } from "../code";
+import { ArticleSection } from "../learn-blocks";
 import { SubmitButton } from "../submit-button";
 
 // Learning content and per-item resources (reading list, diagrams) for study pages.
 
 export function LessonQuestions({ lesson }: { lesson: Lesson }) {
   return (
-    <section className="grid gap-4 sm:grid-cols-2">
-      <div className="rounded-xl border border-line bg-surface p-4">
-        <h3 className="mb-2 font-semibold">🎤 Interview questions</h3>
-        <ul className="list-disc space-y-1.5 pl-5 text-sm">
-          {lesson.questions.map((q) => (
-            <li key={q}>{q}</li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-muted">Answer each one out loud in under 2 minutes before rating yourself.</p>
-      </div>
+    <>
+      {lesson.questions.length > 0 && (
+        <ArticleSection id="interview-questions" title="Interview questions">
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
+            {lesson.questions.map((q) => (
+              <li key={q}>{q}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted">Answer each one out loud in under 2 minutes before rating yourself.</p>
+        </ArticleSection>
+      )}
       {lesson.pitfalls && lesson.pitfalls.length > 0 && (
-        <div className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 font-semibold">⚠️ Common mistakes</h3>
-          <ul className="list-disc space-y-1.5 pl-5 text-sm">
+        <ArticleSection id="common-mistakes" title="Common mistakes">
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
             {lesson.pitfalls.map((p) => (
               <li key={p}>{p}</li>
             ))}
           </ul>
-        </div>
+        </ArticleSection>
       )}
-    </section>
+    </>
   );
 }
 
@@ -48,12 +50,11 @@ function Block({ title, items }: { title: string; items: string[] }) {
 /** Follow-up questions with answers hidden until you've said yours out loud. */
 export function FollowUps({ items }: { items: { q: string; a: string }[] }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
-      <h3 className="mb-2 font-semibold">🎯 Follow-ups they&apos;ll ask</h3>
+    <ArticleSection id="follow-ups" title="Follow-ups they'll ask">
       <ul className="space-y-2">
         {items.map((f) => (
           <li key={f.q}>
-            <details className="group rounded-lg border border-line bg-background/40">
+            <details className="group rounded-lg border border-line bg-surface">
               <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium">
                 <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
                 {f.q}
@@ -64,72 +65,74 @@ export function FollowUps({ items }: { items: { q: string; a: string }[] }) {
         ))}
       </ul>
       <p className="mt-2 text-xs text-muted">Answer out loud first, then open to compare.</p>
-    </section>
+    </ArticleSection>
   );
 }
 
 /** Closed by default: try the design yourself first, then compare. */
 export function WalkthroughView({ w }: { w: Walkthrough }) {
   return (
-    <details className="group rounded-xl border border-line bg-surface">
-      <summary className="cursor-pointer list-none p-4">
-        <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
-        <span className="font-semibold">📘 Reference walkthrough</span>
-        <span className="block pl-5 text-xs text-muted">Do your own attempt first, then open this and compare: what did you miss?</span>
-      </summary>
-      <div className="space-y-4 border-t border-line p-4">
-        <Block title="1. Requirements" items={w.requirements} />
-        <Block title="2. Estimates" items={w.estimates} />
-        <Block title="3. API" items={w.api} />
-        <Block title="4. Data model" items={w.data} />
-        <Block title="5. High-level design" items={w.design} />
-        <div>
-          <h4 className="mb-1 text-sm font-semibold">6. Deep dives</h4>
-          <div className="space-y-2">
-            {w.deepDives.map((d) => (
-              <div key={d.title} className="rounded-lg border border-line bg-background/40 p-3 text-sm">
-                <p className="font-medium">{d.title}</p>
-                <p className="mt-0.5">{d.body}</p>
-              </div>
-            ))}
+    <ArticleSection id="reference" title="Reference walkthrough">
+      <details className="group rounded-xl border border-line bg-surface">
+        <summary className="cursor-pointer list-none p-4">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+          <span className="font-semibold">Reveal reference walkthrough</span>
+          <span className="block pl-5 text-xs text-muted">Do your own attempt first, then open this and compare: what did you miss?</span>
+        </summary>
+        <div className="space-y-4 border-t border-line p-4">
+          <Block title="1. Requirements" items={w.requirements} />
+          <Block title="2. Estimates" items={w.estimates} />
+          <Block title="3. API" items={w.api} />
+          <Block title="4. Data model" items={w.data} />
+          <Block title="5. High-level design" items={w.design} />
+          <div>
+            <h4 className="mb-1 text-sm font-semibold">6. Deep dives</h4>
+            <div className="space-y-2">
+              {w.deepDives.map((d) => (
+                <div key={d.title} className="rounded-lg border border-line bg-background/40 p-3 text-sm">
+                  <p className="font-medium">{d.title}</p>
+                  <p className="mt-0.5">{d.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
+          <Block title="7. Trade-offs to mention" items={w.tradeoffs} />
         </div>
-        <Block title="7. Trade-offs to mention" items={w.tradeoffs} />
-      </div>
-    </details>
+      </details>
+    </ArticleSection>
   );
 }
 
 export function LldGuideView({ g }: { g: LldGuide }) {
   return (
-    <details className="group rounded-xl border border-line bg-surface">
-      <summary className="cursor-pointer list-none p-4">
-        <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
-        <span className="font-semibold">📘 Reference answer</span>
-        <span className="block pl-5 text-xs text-muted">Write your own classes first (45 minutes), then compare.</span>
-      </summary>
-      <div className="space-y-4 border-t border-line p-4">
-        <Block title="Requirements to clarify" items={g.requirements} />
-        <Block title="Entities" items={g.entities} />
-        <Block title="Patterns" items={g.patterns} />
-        <div>
-          <h4 className="mb-1 text-sm font-semibold">Core classes (Java sketch)</h4>
-          <pre className="max-h-[36rem] overflow-auto rounded-lg border border-line bg-background p-3 font-mono text-xs leading-relaxed">
-            <code>{g.code}</code>
-          </pre>
+    <ArticleSection id="reference" title="Reference answer">
+      <details className="group rounded-xl border border-line bg-surface">
+        <summary className="cursor-pointer list-none p-4">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+          <span className="font-semibold">Reveal reference answer</span>
+          <span className="block pl-5 text-xs text-muted">Write your own classes first (45 minutes), then compare.</span>
+        </summary>
+        <div className="space-y-4 border-t border-line p-4">
+          <Block title="Requirements to clarify" items={g.requirements} />
+          <Block title="Entities" items={g.entities} />
+          <Block title="Patterns" items={g.patterns} />
+          <div>
+            <h4 className="mb-1 text-sm font-semibold">Core classes (Java sketch)</h4>
+  <Code code={g.code} lang="java" />
+          </div>
+          <Block title="Follow-ups and extensions" items={g.extensions} />
         </div>
-        <Block title="Follow-ups and extensions" items={g.extensions} />
-      </div>
-    </details>
+      </details>
+    </ArticleSection>
   );
 }
 
 export function ReadingSection({ itemId, items }: { itemId: string; items: ReadingView[] }) {
   const done = items.filter((r) => r.done).length;
   return (
-    <section className="rounded-xl border border-line bg-surface p-4" id="reading">
+    <ArticleSection id="reading" title="Reading">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className="font-semibold">📚 Reading</h3>
+        <p className="text-sm text-muted">Articles and documentation.</p>
         {items.length > 0 && (
           <span className="text-xs text-muted">
             {done}/{items.length} read
@@ -147,7 +150,11 @@ export function ReadingSection({ itemId, items }: { itemId: string; items: Readi
                 aria-label={r.done ? `Mark "${r.title}" unread` : `Mark "${r.title}" read`}
                 className={`flex size-5 items-center justify-center rounded border text-xs ${r.done ? "border-accent bg-accent text-on-accent" : "border-line"}`}
               >
-                {r.done ? "✓" : ""}
+                {r.done && (
+                  <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m3.5 8.5 3 3 6-7" />
+                  </svg>
+                )}
               </SubmitButton>
             </form>
             <div className="min-w-0 flex-1">
@@ -176,14 +183,13 @@ export function ReadingSection({ itemId, items }: { itemId: string; items: Readi
         <input name="title" maxLength={200} placeholder="Title (optional)" aria-label="Title" className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-1.5 text-sm" />
         <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">Add link</SubmitButton>
       </form>
-    </section>
+    </ArticleSection>
   );
 }
 
 export function DiagramsSection({ itemId, diagrams, error }: { itemId: string; diagrams: DiagramView[]; error?: string }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-4" id="diagrams">
-      <h3 className="font-semibold">🖼️ Your diagrams</h3>
+    <ArticleSection id="diagrams" title="Your diagrams">
       <p className="mt-0.5 mb-3 text-xs text-muted">Save the diagram from each practice (a screenshot or an Excalidraw/draw.io link). Week 16 is for skimming these.</p>
       {error && (
         <p role="alert" className="mb-3 rounded-lg border border-cat-mock p-2 text-sm">
@@ -231,6 +237,6 @@ export function DiagramsSection({ itemId, diagrams, error }: { itemId: string; d
         />
         <button className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">Save diagram</button>
       </form>
-    </section>
+    </ArticleSection>
   );
 }
