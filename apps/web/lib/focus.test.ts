@@ -53,7 +53,7 @@ describe("taskLink", () => {
     const f = await getWeekFocus(6);
     const none = { resolve: 0 };
     expect(taskLink({ templateKey: "dsa-warmup", category: "dsa" }, f, none)?.href).toBe(f.dsa.next!.href);
-    expect(taskLink({ templateKey: "dsa-warmup", category: "dsa" }, f, { resolve: 2 })).toEqual({ href: "/dsa?status=due", label: "2 re-solves due" });
+    expect(taskLink({ templateKey: "dsa-warmup", category: "dsa" }, f, { resolve: 2 })).toEqual({ href: "/dsa?tab=resolve", label: "2 re-solves due" });
     expect(taskLink({ templateKey: "deep-block", category: "sd" }, f, none)?.href).toBe("/study/sd/sd-caching");
     expect(taskLink({ templateKey: "week-other", category: "beh_lld" }, f, none)?.href).toBe("/study/lld/lldp-parking-lot");
     expect(taskLink({ templateKey: "review", category: "other" }, f, { resolve: 0, reviews: 3 })).toEqual({ href: "/review", label: "3 reviews due" });

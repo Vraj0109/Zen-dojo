@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { getDsaView, type PatternView } from "@/lib/dsa";
-import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, type DsaFilters } from "@/lib/dsa-filters";
+import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, parseDsaTab, type DsaFilters } from "@/lib/dsa-filters";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
 import { CheatSheet, DIFFICULTY_STYLE, ProblemRow, ProblemTitle, Topics, fmt } from "./problem-ui";
 import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
+import { Tabs } from "../tabs";
 import { PageMain, ProgressBar, Stat } from "../ui";
 
 export const metadata: Metadata = { title: "DSA" };
@@ -24,135 +25,168 @@ export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
   );
 }
 
+function dsaTabHref(id: string, params: Record<string, string | string[] | undefined>): string {
+  if (id === "patterns") {
+    const sp = new URLSearchParams();
+    for (const key of ["q", "difficulty", "status", "has", "topic", "group"] as const) {
+      const v = Array.isArray(params[key]) ? params[key][0] : params[key];
+      if (typeof v === "string" && v.trim()) sp.set(key, v.trim());
+    }
+    const qs = sp.toString();
+    return qs ? `/dsa?${qs}` : "/dsa";
+  }
+  return `/dsa?tab=${id}`;
+}
+
 async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchParams"] }) {
   const params = await searchParams;
   await connection();
   after(syncLeetCodeIfStale);
   const [{ groups, due, extras, topics, totals }, leetcode, extension] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus()]);
 
+  const tab = parseDsaTab(params);
   const filters = parseDsaFilters(params);
   const filtering = hasActiveFilters(filters);
   const results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
   // Only the open group's problems are rendered (keeps the page small); ?group=none closes all.
   const openGroup = typeof params.group === "string" ? params.group : groups[0]?.id;
 
+  const tabs = [
+    { id: "patterns", label: "Patterns" },
+    { id: "resolve", label: "Re-solve due", count: due.length },
+    { id: "other", label: "Other solves", count: extras.length },
+  ] as const;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Patterns" value={`${totals.patternsCovered} / ${totals.patterns}`} hint="covered (4+ solved)" />
         <Stat label="Roadmap solved" value={`${totals.solved} / ${totals.problems}`} hint={`${totals.resolved} re-solved`} />
         <Stat label="All solved" value={String(totals.allSolved)} hint="goal: 150+" />
-        <Stat label="Re-solves due" value={String(due.length)} hint={`${totals.xp} DSA XP`} />
+        <Stat label="Re-solves due" value={String(due.length)} hint={`${totals.xp} DSA XP`} href="?tab=resolve" />
       </section>
+
+      <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="DSA sections" />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="min-w-0 space-y-8">
-      {due.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">🔁 Re-solve today</h2>
-          <p className="mb-3 text-sm text-muted">Solve these cold, without looking at your old code.</p>
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-accent bg-surface">
-            {due.map((p) => (
-              <ProblemRow key={p.id} p={p} />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Patterns</h2>
-        <FilterBar filters={filters} topics={topics} />
-        {filtering ? (
-          <div>
-            <p className="mb-2 text-sm text-muted" role="status">
-              {results.length} problem{results.length === 1 ? "" : "s"} match.{" "}
-              <Link href="/dsa" className="font-medium text-foreground hover:underline">
-                Clear filters
-              </Link>
-            </p>
-            {results.length > 0 && (
-              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-                {results.map(({ problem, patterns }) => (
-                  <ProblemRow key={problem.id} p={problem} patterns={patterns} />
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : (
-          <>
-            <p className="text-sm text-muted">
-              Learn the template, solve 4–6 problems easy to hard, then re-solve cold two weeks later.
-            </p>
-            {groups.map((g) => {
-              const open = g.id === openGroup;
-              return (
-                <div key={g.id} id={`g-${g.id}`} className="scroll-mt-32 lg:scroll-mt-4 rounded-xl border border-line bg-surface">
-                  <Link
-                    href={open ? "/dsa?group=none" : `/dsa?group=${g.id}#g-${g.id}`}
-                    scroll={false}
-                    prefetch={false}
-                    aria-expanded={open}
-                    className="flex items-center justify-between gap-3 p-4"
-                  >
-                    <span className="font-semibold">
-                      <span className={`mr-2 inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>
-                      {g.title}
-                    </span>
-                    <span className="text-sm text-muted">
-                      {g.covered}/{g.patterns.length} covered
-                    </span>
-                  </Link>
-                  {open && (
-                    <div className="space-y-4 border-t border-line p-4">
-                      {g.patterns.map((p) => (
-                        <PatternBlock key={p.id} p={p} />
+        <div className="min-w-0 space-y-8">
+          {tab === "patterns" && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Patterns</h2>
+              <FilterBar filters={filters} topics={topics} />
+              {filtering ? (
+                <div>
+                  <p className="mb-2 text-sm text-muted" role="status">
+                    {results.length} problem{results.length === 1 ? "" : "s"} match.{" "}
+                    <Link href="/dsa" className="font-medium text-foreground hover:underline">
+                      Clear filters
+                    </Link>
+                  </p>
+                  {results.length > 0 && (
+                    <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                      {results.map(({ problem, patterns }) => (
+                        <ProblemRow key={problem.id} p={problem} patterns={patterns} />
                       ))}
-                    </div>
+                    </ul>
                   )}
                 </div>
-              );
-            })}
-          </>
-        )}
-      </section>
-      </div>
-
-      <aside className="space-y-6">
-      <Link href="/dsa/boss" className="block rounded-xl border border-accent bg-surface p-4 hover:bg-background">
-        <span className="font-semibold">⚔️ Boss fight</span>
-        <span className="mt-1 block text-sm text-muted">2 unsolved problems from your weakest patterns, against a 2-hour timer.</span>
-      </Link>
-      <SyncStatus leetcode={leetcode} extension={extension} />
-      {extras.length > 0 && (
-        <section>
-          <h2 className="mb-1 text-lg font-semibold">Other LeetCode solves</h2>
-          <p className="mb-3 text-sm text-muted">Synced problems outside the roadmap list. They count toward XP, streak and the 150+ goal.</p>
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-            {extras.map((e) => (
-              <li key={e.problemId} className="flex items-center gap-3 px-3 py-2">
-                <span className="w-6 text-center" aria-label="Synced from LeetCode">⚡</span>
-                <div className="min-w-0 flex-1">
-                  <ProblemTitle
-                    id={e.problemId}
-                    label={`${e.number ? `${e.number}. ` : ""}${e.title}`}
-                    url={e.url}
-                    noted={e.noted}
-                    lcNotes={e.lcNotes}
-                    submissions={e.submissions}
-                    struggling={e.struggling}
-                  />
-                  <p className="text-xs text-muted">
-                    <span className={`font-medium capitalize ${DIFFICULTY_STYLE[e.difficulty]}`}>{e.difficulty}</span> · Solved {fmt(e.solvedOn)}
-                    <Topics topics={e.topics} />
+              ) : (
+                <>
+                  <p className="text-sm text-muted">
+                    Learn the template, solve 4–6 problems easy to hard, then re-solve cold two weeks later.
                   </p>
-                </div>
-                <span className="text-sm text-muted">+{e.xp} XP</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      </aside>
+                  {groups.map((g) => {
+                    const open = g.id === openGroup;
+                    return (
+                      <div key={g.id} id={`g-${g.id}`} className="scroll-mt-32 lg:scroll-mt-4 rounded-xl border border-line bg-surface">
+                        <Link
+                          href={open ? "/dsa?group=none" : `/dsa?group=${g.id}#g-${g.id}`}
+                          scroll={false}
+                          prefetch={false}
+                          aria-expanded={open}
+                          className="flex items-center justify-between gap-3 p-4"
+                        >
+                          <span className="font-semibold">
+                            <span className={`mr-2 inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>
+                            {g.title}
+                          </span>
+                          <span className="text-sm text-muted">
+                            {g.covered}/{g.patterns.length} covered
+                          </span>
+                        </Link>
+                        {open && (
+                          <div className="space-y-4 border-t border-line p-4">
+                            {g.patterns.map((p) => (
+                              <PatternBlock key={p.id} p={p} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </section>
+          )}
+
+          {tab === "resolve" && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Re-solve due</h2>
+              <p className="text-sm text-muted">Solved 14+ days ago: solve again from scratch, then tick.</p>
+              {due.length === 0 ? (
+                <p className="rounded-xl border border-line bg-surface p-6 text-center text-muted">Nothing due. 🎉</p>
+              ) : (
+                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-accent bg-surface">
+                  {due.map((p) => (
+                    <ProblemRow key={p.id} p={p} />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {tab === "other" && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Other LeetCode solves</h2>
+              <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward XP, streak and the 150+ goal.</p>
+              {extras.length === 0 ? (
+                <p className="rounded-xl border border-line bg-surface p-6 text-center text-muted">No synced solves outside the roadmap yet.</p>
+              ) : (
+                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                  {extras.map((e) => (
+                    <li key={e.problemId} className="flex items-center gap-3 px-3 py-2">
+                      <span className="w-6 text-center" aria-label="Synced from LeetCode">⚡</span>
+                      <div className="min-w-0 flex-1">
+                        <ProblemTitle
+                          id={e.problemId}
+                          label={`${e.number ? `${e.number}. ` : ""}${e.title}`}
+                          url={e.url}
+                          noted={e.noted}
+                          lcNotes={e.lcNotes}
+                          submissions={e.submissions}
+                          struggling={e.struggling}
+                        />
+                        <p className="text-xs text-muted">
+                          <span className={`font-medium capitalize ${DIFFICULTY_STYLE[e.difficulty]}`}>{e.difficulty}</span> · Solved {fmt(e.solvedOn)}
+                          <Topics topics={e.topics} />
+                        </p>
+                      </div>
+                      <span className="text-sm text-muted">+{e.xp} XP</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
+
+        <aside className="space-y-6">
+          <Link href="/dsa/boss" className="block rounded-xl border border-accent bg-surface p-4 hover:bg-background">
+            <span className="font-semibold">⚔️ Boss fight</span>
+            <span className="mt-1 block text-sm text-muted">2 unsolved problems from your weakest patterns, against a 2-hour timer.</span>
+          </Link>
+          <SyncStatus leetcode={leetcode} extension={extension} />
+        </aside>
       </div>
     </div>
   );

@@ -18,6 +18,12 @@ export const HAS_FILTERS = {
   none: "No notes yet",
 } as const;
 
+export const DSA_TABS = ["patterns", "resolve", "other"] as const;
+export type DsaTab = (typeof DSA_TABS)[number];
+
+export const PROBLEM_TABS = ["solve", "notes", "submissions", "stuck"] as const;
+export type ProblemTab = (typeof PROBLEM_TABS)[number];
+
 export interface DsaFilters {
   q: string;
   topic: string;
@@ -39,6 +45,17 @@ export function parseDsaFilters(params: Params): DsaFilters {
     status: pick(one(params.status), Object.keys(STATUS_FILTERS) as (keyof typeof STATUS_FILTERS)[]),
     has: pick(one(params.has), Object.keys(HAS_FILTERS) as (keyof typeof HAS_FILTERS)[]),
   };
+}
+
+export function parseDsaTab(params: Params): DsaTab {
+  const t = one(params.tab);
+  return (DSA_TABS as readonly string[]).includes(t) ? (t as DsaTab) : "patterns";
+}
+
+export function parseProblemTab(params: Params, hasSubmissions = true): ProblemTab {
+  const t = one(params.tab);
+  if (t === "submissions" && !hasSubmissions) return "solve";
+  return (PROBLEM_TABS as readonly string[]).includes(t) ? (t as ProblemTab) : "solve";
 }
 
 export const hasActiveFilters = (f: DsaFilters) => Boolean(f.q || f.topic || f.difficulty || f.status || f.has);

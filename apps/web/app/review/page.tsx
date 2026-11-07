@@ -22,6 +22,7 @@ export default function ReviewPage({ searchParams }: PageProps<"/review">) {
 
 const KIND_ICON: Record<ReviewItem["kind"], string> = { struggle: "🧗", resolve: "🔁", concept: "🧠", exercise: "🏗️" };
 const keyOf = (i: ReviewItem) => `${i.kind}:${i.id}`;
+const itemHref = (i: ReviewItem) => (i.kind === "struggle" ? `${i.href}?tab=stuck#stuck` : i.href);
 
 async function Review({ searchParams }: { searchParams: PageProps<"/review">["searchParams"] }) {
   await connection();
@@ -57,7 +58,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
             </p>
             <h3 className="mt-1 text-xl font-semibold">
               <span aria-hidden>{KIND_ICON[next.kind]} </span>
-              <Link href={next.href} className="hover:underline">
+              <Link href={itemHref(next)} className="hover:underline">
                 {next.title}
               </Link>
             </h3>
@@ -79,7 +80,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
                   <li key={keyOf(i)} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
                     <span aria-hidden>{KIND_ICON[i.kind]}</span>
                     <div className="min-w-0 flex-1">
-                      <Link href={i.href} className="font-medium hover:underline">
+                      <Link href={itemHref(i)} className="font-medium hover:underline">
                         {i.title}
                       </Link>
                       <p className="truncate text-xs text-muted">

@@ -21,6 +21,7 @@ import { setInterviewDateAction } from "../actions";
 import { CodeBlock } from "../learn-blocks";
 import { Confidence } from "../study/study-ui";
 import { SubmitButton } from "../submit-button";
+import { Tabs } from "../tabs";
 import { PageMain } from "../ui";
 import { PrintButton } from "./print-button";
 
@@ -65,20 +66,12 @@ async function Revise({ searchParams }: { searchParams: Promise<SP> }) {
 
   return (
     <div className="space-y-6">
-      <nav aria-label="Revise sections" className="-mx-1 flex gap-1 overflow-x-auto px-1 print:hidden">
-        {TABS.map((t) => (
-          <Link
-            key={t.id}
-            href={`/revise?tab=${t.id}${weak && t.id !== "plan" ? "&weak=1" : ""}`}
-            aria-current={tab === t.id ? "page" : undefined}
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap ${
-              tab === t.id ? "bg-accent text-on-accent" : "border border-line text-muted hover:text-foreground"
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        tabs={TABS}
+        active={tab}
+        hrefFor={(id) => `/revise?tab=${id}${weak && id !== "plan" ? "&weak=1" : ""}`}
+        label="Revise sections"
+      />
 
       {tab === "plan" && <PlanTab />}
       {tab === "dsa" && <DsaTab weak={weak} />}
@@ -217,7 +210,7 @@ async function PlanTab() {
             <ul className="space-y-1.5 text-sm">
               {weak.stuck.slice(0, 15).map((s) => (
                 <li key={s.id}>
-                  <Link href={`/dsa/${encodeURIComponent(s.id)}`} className="font-medium hover:underline">
+                  <Link href={`/dsa/${encodeURIComponent(s.id)}?tab=stuck#stuck`} className="font-medium hover:underline">
                     {s.title}
                   </Link>
                   {s.count > 1 && <span className="text-xs text-muted"> · {s.count}×</span>}

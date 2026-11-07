@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDsaView, markSolved } from "./dsa";
-import { filterProblems, hasActiveFilters, parseDsaFilters } from "./dsa-filters";
+import { filterProblems, hasActiveFilters, parseDsaFilters, parseDsaTab, parseProblemTab } from "./dsa-filters";
 import { importFromExtension } from "./leetcode/extension";
 import { saveNote } from "./notes";
 
@@ -34,6 +34,42 @@ describe("parseDsaFilters", () => {
     expect(junk).toEqual({ q: "", topic: "", difficulty: "", status: "solved", has: "" });
     expect(hasActiveFilters(parseDsaFilters({}))).toBe(false);
     expect(hasActiveFilters(junk)).toBe(true);
+  });
+});
+
+describe("parseDsaTab", () => {
+  it("defaults to patterns when missing or unknown", () => {
+    expect(parseDsaTab({})).toBe("patterns");
+    expect(parseDsaTab({ tab: "" })).toBe("patterns");
+    expect(parseDsaTab({ tab: "unknown" })).toBe("patterns");
+    expect(parseDsaTab({ tab: ["invalid"] })).toBe("patterns");
+  });
+
+  it("passes through valid tab ids", () => {
+    expect(parseDsaTab({ tab: "patterns" })).toBe("patterns");
+    expect(parseDsaTab({ tab: "resolve" })).toBe("resolve");
+    expect(parseDsaTab({ tab: "other" })).toBe("other");
+    expect(parseDsaTab({ tab: ["resolve", "other"] })).toBe("resolve");
+  });
+});
+
+describe("parseProblemTab", () => {
+  it("defaults to solve when missing or unknown", () => {
+    expect(parseProblemTab({})).toBe("solve");
+    expect(parseProblemTab({ tab: "" })).toBe("solve");
+    expect(parseProblemTab({ tab: "unknown" })).toBe("solve");
+  });
+
+  it("passes through valid tab ids", () => {
+    expect(parseProblemTab({ tab: "solve" })).toBe("solve");
+    expect(parseProblemTab({ tab: "notes" })).toBe("notes");
+    expect(parseProblemTab({ tab: "submissions" })).toBe("submissions");
+    expect(parseProblemTab({ tab: "stuck" })).toBe("stuck");
+  });
+
+  it("falls back to solve if submissions tab is requested but there are none", () => {
+    expect(parseProblemTab({ tab: "submissions" }, false)).toBe("solve");
+    expect(parseProblemTab({ tab: "submissions" }, true)).toBe("submissions");
   });
 });
 

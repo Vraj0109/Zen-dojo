@@ -126,7 +126,7 @@ export function taskLink(
   };
   switch (task.templateKey) {
     case "dsa-warmup":
-      return due.resolve > 0 ? { href: "/dsa?status=due", label: `${due.resolve} re-solve${due.resolve === 1 ? "" : "s"} due` } : dsaNext;
+      return due.resolve > 0 ? { href: "/dsa?tab=resolve", label: `${due.resolve} re-solve${due.resolve === 1 ? "" : "s"} due` } : dsaNext;
     case "timed-set":
       return { href: "/dsa/boss", label: "Start boss fight" };
     case "deep-block":
