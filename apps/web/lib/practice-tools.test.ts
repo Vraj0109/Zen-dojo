@@ -10,7 +10,7 @@ import { getStats } from "./stats";
 import { clearStruggles, logStruggle, openStruggles } from "./struggles";
 import { getConceptDetail, logPractice, rateConcept, saveConcept } from "./study";
 import { getTodayView } from "./tasks";
-import { focusMinutes, logFocus } from "./timer";
+import { focusMinutes, logFocus, patternTimerId } from "./timer";
 
 const setDay = (d: number) => vi.setSystemTime(new Date(2026, 10, d, 12));
 
@@ -85,6 +85,12 @@ describe("focus timer", () => {
     expect(await logFocus("boss", 9999)).toBe(true); // capped at 600
     expect(await focusMinutes("sd-caching")).toBe(50);
     expect((await getStats()).totals.hours).toBe(Math.round(((25 + 50 + 600) / 60) * 10) / 10);
+  });
+
+  it("accepts DSA pattern guides, but only real patterns", async () => {
+    expect(await logFocus(patternTimerId("sliding-window"), 20)).toBe(true);
+    expect(await logFocus(patternTimerId("not-a-pattern"), 20)).toBe(false);
+    expect(await focusMinutes(patternTimerId("sliding-window"))).toBe(20);
   });
 });
 

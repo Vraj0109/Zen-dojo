@@ -32,4 +32,50 @@ export interface LldGuide {
   extensions: string[];
 }
 
-export const lesson = (overview: string, explain: string[], questions: string[], pitfalls?: string[]): Lesson => ({ overview, explain, questions, pitfalls });
+/** A deeper section: a worked example, a comparison, a mechanism step by step. `code` is shown as a block. */
+export interface Section {
+  title: string;
+  body: string;
+  code?: string;
+}
+
+/** Extra depth for a concept lesson, kept apart from the base lesson (learn/deep-*.ts). */
+export interface LessonExtra {
+  /** 3-6 lines worth remembering the night before; shown on Quick revise */
+  recap: string[];
+  deeper: Section[];
+}
+
+/** Extra depth for a design walkthrough (learn/design-extra.ts). */
+export interface WalkthroughExtra {
+  /** Key numbers and decisions to remember */
+  recap: string[];
+  /** Follow-up questions interviewers ask, each with a short answer */
+  followUps: { q: string; a: string }[];
+}
+
+/** Extra depth for an LLD reference answer (learn/lld-extra.ts). */
+export interface LldExtra {
+  recap: string[];
+  /** One main use case traced through the classes, step by step */
+  flow: string[];
+  /** Edge cases and tests worth naming */
+  edgeCases: string[];
+}
+
+/** A DSA pattern guide (learn/dsa-*.ts). Templates are C++. */
+export interface PatternGuide {
+  idea: string;
+  /** Signals in the problem statement or constraints */
+  signals: string[];
+  steps: string[];
+  template: string;
+  complexity: string;
+  /** Twists on the pattern, often naming a problem from the list */
+  variations: string[];
+  pitfalls: string[];
+  /** 2-4 lines for Quick revise */
+  recap: string[];
+}
+
+export const lesson =(overview: string, explain: string[], questions: string[], pitfalls?: string[]): Lesson => ({ overview, explain, questions, pitfalls });

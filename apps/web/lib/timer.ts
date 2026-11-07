@@ -1,17 +1,22 @@
 import "server-only";
 import { eq, sql } from "drizzle-orm";
-import { ALL_CONCEPTS, ALL_EXERCISES, toLocalDate } from "@habit/shared";
+import { ALL_CONCEPTS, ALL_EXERCISES, ALL_PATTERNS, toLocalDate } from "@habit/shared";
 import { getDb } from "./db";
 import { focusSessions } from "./schema";
 import { isProblemId } from "./struggles";
 
-// Focus timer: minutes spent on one problem, concept, design or boss fight. Counts toward
+// Focus timer: minutes spent on one problem, concept, design, DSA pattern guide or boss fight. Counts toward
 // hours studied (Profile), not XP: XP comes from finishing things.
 
 export const FOCUS_MAX_MINUTES = 600;
 export const BOSS_ITEM = "boss";
 
-export const isTimerItem = (id: string) => isProblemId(id) || id in ALL_CONCEPTS || id in ALL_EXERCISES || id === BOSS_ITEM;
+/** Timer id for studying a DSA pattern guide (/dsa/pattern/[id]). */
+export const patternTimerId = (patternId: string) => `pattern:${patternId}`;
+const patternTimerIds = new Set(ALL_PATTERNS.map((p) => patternTimerId(p.id)));
+
+export const isTimerItem = (id: string) =>
+  isProblemId(id) || id in ALL_CONCEPTS || id in ALL_EXERCISES || id === BOSS_ITEM || patternTimerIds.has(id);
 
 export async function logFocus(itemId: string, minutes: number): Promise<boolean> {
   if (!isTimerItem(itemId) || !Number.isFinite(minutes)) return false;

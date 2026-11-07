@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { ALL_PATTERNS } from "../dsa";
 import { READING } from "../reading";
 import { ALL_CONCEPTS, ALL_EXERCISES, STUDY_AREAS } from "../study";
-import { LESSONS, LLD_GUIDES, WALKTHROUGHS } from "./index";
+import { LESSONS, LLD_GUIDES, PATTERN_GUIDES, WALKTHROUGHS } from "./index";
 
 describe("learning content", () => {
   it("has a lesson for every concept, with one explanation per checklist point", () => {
@@ -32,6 +33,18 @@ describe("learning content", () => {
     for (const r of READING) {
       expect(r.url, r.id).toMatch(/^https:\/\//);
       for (const item of r.items) expect(item in ALL_CONCEPTS || item in ALL_EXERCISES, `${r.id} → ${item}`).toBe(true);
+    }
+  });
+
+  it("has a complete guide for every DSA pattern", () => {
+    expect(Object.keys(PATTERN_GUIDES).sort()).toEqual(ALL_PATTERNS.map((p) => p.id).sort());
+    for (const [id, g] of Object.entries(PATTERN_GUIDES)) {
+      expect(g.idea.length, id).toBeGreaterThan(80);
+      expect(g.signals.length, id).toBeGreaterThanOrEqual(2);
+      expect(g.steps.length, id).toBeGreaterThanOrEqual(2);
+      expect(g.template.split("\n").length, id).toBeGreaterThanOrEqual(8);
+      expect(g.variations.length, id).toBeGreaterThanOrEqual(2);
+      expect(g.recap.length, id).toBeGreaterThanOrEqual(2);
     }
   });
 });
