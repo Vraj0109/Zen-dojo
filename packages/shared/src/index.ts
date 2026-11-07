@@ -5,3 +5,5 @@ export * from "./dsa";
 export * from "./study";
 export * from "./stats";
 export * from "./focus";
+export * from "./reading";
+export * from "./learn";

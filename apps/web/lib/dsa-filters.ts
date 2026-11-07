@@ -9,6 +9,7 @@ export const STATUS_FILTERS = {
   solved: "Solved",
   due: "Re-solve due",
   resolved: "Re-solved",
+  stuck: "On my stuck list",
 } as const;
 
 export const HAS_FILTERS = {
@@ -56,6 +57,7 @@ function matches(p: ProblemView, f: DsaFilters): boolean {
   if (f.status === "solved" && s.state === "unsolved") return false;
   if (f.status === "due" && !(s.state === "solved" && s.resolveDue)) return false;
   if (f.status === "resolved" && s.state !== "resolved") return false;
+  if (f.status === "stuck" && !p.struggling) return false;
   const noted = p.noted || p.lcNotes;
   if (f.has === "notes" && !noted) return false;
   if (f.has === "code" && p.submissions === 0) return false;

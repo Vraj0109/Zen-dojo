@@ -16,7 +16,9 @@ import {
 } from "@habit/shared";
 import { getDb } from "./db";
 import { getNote, getNotedIds, type ProblemNote } from "./notes";
+import { getPatternNotes, type PatternNote } from "./pattern-notes";
 import { leetcodeProblems, leetcodeTopics, leetcodeUserSubmissions, problemSolves } from "./schema";
+import { openStruggles } from "./struggles";
 
 /** Solve history for roadmap problems (ids in PROBLEMS). Other LeetCode solves are handled separately. */
 async function solveIndex() {
@@ -48,6 +50,8 @@ export interface ProblemView extends Problem {
   lcNotes: boolean;
   /** LeetCode topic tags (known once the extension has seen the problem) */
   topics: string[];
+  /** On the stuck list (an open entry) */
+  struggling: boolean;
 }
 
 /** Per LeetCode slug: saved submission count, whether any has notes, and topic tags. */
@@ -96,6 +100,8 @@ async function getExtraSolves() {
 
 export interface PatternView extends Pattern {
   items: ProblemView[];
+  /** Your cheat sheet */
+  note: PatternNote | null;
   solved: number;
   target: number;
   covered: boolean;
@@ -103,13 +109,21 @@ export interface PatternView extends Pattern {
 
 export async function getDsaView() {
   const today = toLocalDate();
-  const [{ rows, first, resolved, auto }, extraRows, noted, lc] = await Promise.all([solveIndex(), getExtraSolves(), getNotedIds(), leetcodeIndex()]);
-  const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), ...lc(e.slug) }));
+  const [{ rows, first, resolved, auto }, extraRows, noted, lc, struggles, patternNotes] = await Promise.all([
+    solveIndex(),
+    getExtraSolves(),
+    getNotedIds(),
+    leetcodeIndex(),
+    openStruggles(today),
+    getPatternNotes(),
+  ]);
+  const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), struggling: struggles.has(e.problemId), ...lc(e.slug) }));
   const view = (id: string): ProblemView => ({
     ...PROBLEMS[id],
     status: solveState(first.get(id), resolved.get(id), today),
     auto: auto.has(id),
     noted: noted.has(id),
+    struggling: struggles.has(id),
     ...lc(PROBLEMS[id].slug),
   });
 
@@ -118,7 +132,7 @@ export async function getDsaView() {
       const items = p.problems.map(view);
       const solved = items.filter((i) => i.status.state !== "unsolved").length;
       const target = patternTarget(p);
-      return { ...p, items, solved, target, covered: solved >= target };
+      return { ...p, items, solved, target, covered: solved >= target, note: patternNotes.get(p.id) ?? null };
     });
     return { ...g, patterns, covered: patterns.filter((p) => p.covered).length };
   });

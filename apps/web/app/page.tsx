@@ -6,7 +6,7 @@ import { getResolveDueCount } from "@/lib/dsa";
 import { getWeekFocus, taskLink, type FocusItem, type TaskLink, type WeekFocusView } from "@/lib/focus";
 import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import type { Task } from "@/lib/schema";
-import { getStudyDue } from "@/lib/study";
+import { REVIEW_KIND_LABELS, getReviewQueue } from "@/lib/review";
 import { getTodayView } from "@/lib/tasks";
 import { addTaskAction, deleteTaskAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
@@ -27,7 +27,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
   await connection();
   after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
   const params = await searchParams;
-  const [v, resolveDue, studyDue] = await Promise.all([getTodayView(), getResolveDueCount(), getStudyDue()]);
+  const [v, resolveDue, reviews] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue()]);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;
   const currentWeek = Math.min(Math.max(v.weekNo, 1), TOTAL_WEEKS);
@@ -39,7 +39,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
     shownWeek === currentWeek ? null : getWeekFocus(shownWeek),
   ]);
 
-  const due = { resolve: resolveDue, studyArea: studyDue[0]?.area.id };
+  const due = { resolve: resolveDue, reviews: reviews.length };
   const link = (t: Task) => taskLink(t, focus, due);
   const doneToday = v.dayTasks.filter((t) => t.status === "done").length;
   const dayXp = v.dayTasks.reduce((a, t) => a + t.xp, 0);
@@ -69,19 +69,20 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
         </div>
       </header>
 
-      {(resolveDue > 0 || studyDue.length > 0) && (
-        <div className="flex flex-wrap gap-2">
-          {resolveDue > 0 && (
-            <Link href="/dsa?status=due" className="rounded-full border border-accent bg-surface px-3 py-1.5 text-sm font-medium hover:bg-background">
-              🔁 {resolveDue} re-solve{resolveDue === 1 ? "" : "s"} due →
-            </Link>
-          )}
-          {studyDue.map(({ area, count }) => (
-            <Link key={area.id} href={`/study/${area.id}`} className="rounded-full border border-accent bg-surface px-3 py-1.5 text-sm font-medium hover:bg-background">
-              🧠 {area.title}: {count} to review →
-            </Link>
-          ))}
-        </div>
+      {reviews.length > 0 && (
+        <Link href="/review" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">
+          <span className="font-semibold">
+            🔁 {reviews.length} review{reviews.length === 1 ? "" : "s"} due today
+          </span>
+          <span className="text-sm text-muted">
+            {Object.entries(
+              reviews.reduce<Record<string, number>>((acc, r) => ({ ...acc, [REVIEW_KIND_LABELS[r.kind]]: (acc[REVIEW_KIND_LABELS[r.kind]] ?? 0) + 1 }), {}),
+            )
+              .map(([label, n]) => `${n} ${label.toLowerCase()}`)
+              .join(" · ")}{" "}
+            →
+          </span>
+        </Link>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">

@@ -133,6 +133,62 @@ CREATE TABLE practice_sessions (
 CREATE INDEX practice_sessions_item ON practice_sessions (item_id, practiced_on);
 CREATE INDEX practice_sessions_on ON practice_sessions (practiced_on);
 `,
+  // 7: focus timer, stuck list, boss fights, reading list, diagrams, pattern cheat sheets
+  `
+CREATE TABLE focus_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id TEXT NOT NULL,
+  focused_on TEXT NOT NULL,
+  minutes INTEGER NOT NULL
+);
+CREATE INDEX focus_sessions_item ON focus_sessions (item_id);
+CREATE INDEX focus_sessions_on ON focus_sessions (focused_on);
+CREATE TABLE problem_struggles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  problem_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  logged_on TEXT NOT NULL,
+  cleared_on TEXT
+);
+CREATE INDEX problem_struggles_problem ON problem_struggles (problem_id);
+CREATE TABLE boss_fights (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  fought_on TEXT NOT NULL,
+  results TEXT NOT NULL,
+  minutes INTEGER,
+  notes TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE reading_progress (
+  reading_id TEXT PRIMARY KEY,
+  done_on TEXT,
+  notes TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE reading_custom (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  added_on TEXT NOT NULL
+);
+CREATE TABLE diagrams (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  url TEXT,
+  mime TEXT,
+  image TEXT,
+  created_on TEXT NOT NULL
+);
+CREATE INDEX diagrams_item ON diagrams (item_id);
+CREATE TABLE pattern_notes (
+  pattern_id TEXT PRIMARY KEY,
+  template TEXT NOT NULL DEFAULT '',
+  language TEXT NOT NULL DEFAULT '',
+  recognize TEXT NOT NULL DEFAULT '',
+  updated_on TEXT NOT NULL
+);
+`,
 ];
 
 async function migrate(client: Client) {

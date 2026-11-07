@@ -17,6 +17,7 @@ import {
   type StudyAreaId,
 } from "@habit/shared";
 import { getDb } from "./db";
+import { focusByDay } from "./timer";
 import { getDsaView } from "./dsa";
 import { conceptProgress, leetcodeProblems, practiceSessions, problemSolves, tasks } from "./schema";
 
@@ -52,7 +53,7 @@ async function events(): Promise<Event[]> {
 export async function getStats() {
   const today = toLocalDate();
   const db = await getDb();
-  const [ev, dsa, solves, extras, practice, covered, allTasks] = await Promise.all([
+  const [ev, dsa, solves, extras, practice, covered, allTasks, focus] = await Promise.all([
     events(),
     getDsaView(),
     db.select({ problemId: problemSolves.problemId, kind: problemSolves.kind }).from(problemSolves),
@@ -60,6 +61,7 @@ export async function getStats() {
     db.selectDistinct({ itemId: practiceSessions.itemId }).from(practiceSessions),
     db.select({ id: conceptProgress.conceptId }).from(conceptProgress).where(isNotNull(conceptProgress.coveredOn)),
     db.select({ date: tasks.date, scope: tasks.scope, status: tasks.status }).from(tasks),
+    focusByDay(),
   ]);
 
   const xpByDay = new Map<string, number>();
@@ -105,7 +107,7 @@ export async function getStats() {
       streak: currentStreak(activeDays, today),
       bestStreak: bestStreak(activeDays),
       activeDays: activeDays.filter((d) => d <= today).length,
-      hours: Math.round((ev.reduce((a, e) => a + e.minutes, 0) / 60) * 10) / 10,
+      hours: Math.round(((ev.reduce((a, e) => a + e.minutes, 0) + focus.reduce((a, f) => a + f.minutes, 0)) / 60) * 10) / 10,
     },
     heatmap: heatmap(xpByDay, today, 16),
     balance,

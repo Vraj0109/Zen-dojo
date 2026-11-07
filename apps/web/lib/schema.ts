@@ -114,6 +114,71 @@ export const practiceSessions = sqliteTable("practice_sessions", {
   xp: integer("xp").notNull(),
 });
 
+/** Minutes spent with the focus timer on a problem, concept, design or boss fight. */
+export const focusSessions = sqliteTable("focus_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  itemId: text("item_id").notNull(),
+  focusedOn: text("focused_on").notNull(),
+  minutes: integer("minutes").notNull(),
+});
+
+/** A problem you needed a hint for, couldn't solve, or solved too slowly. Open until cleared by a cold solve. */
+export const problemStruggles = sqliteTable("problem_struggles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  problemId: text("problem_id").notNull(),
+  /** "hint" | "failed" | "slow" */
+  kind: text("kind").notNull(),
+  reason: text("reason").notNull().default(""),
+  loggedOn: text("logged_on").notNull(),
+  clearedOn: text("cleared_on"),
+});
+
+/** A timed 2-problem session. results: [{ problemId, result: "solved" | "hint" | "failed" }] */
+export const bossFights = sqliteTable("boss_fights", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  foughtOn: text("fought_on").notNull(),
+  results: text("results", { mode: "json" }).$type<{ problemId: string; result: string }[]>().notNull(),
+  minutes: integer("minutes"),
+  notes: text("notes").notNull().default(""),
+});
+
+/** Read state for built-in reading-list entries (by id) and custom ones ("custom-<id>"). */
+export const readingProgress = sqliteTable("reading_progress", {
+  readingId: text("reading_id").primaryKey(),
+  doneOn: text("done_on"),
+  notes: text("notes").notNull().default(""),
+});
+
+/** Your own reading links attached to a concept or design. */
+export const readingCustom = sqliteTable("reading_custom", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  itemId: text("item_id").notNull(),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  addedOn: text("added_on").notNull(),
+});
+
+/** A diagram for a design or LLD problem: a link (Excalidraw, draw.io…) and/or an uploaded image (base64). */
+export const diagrams = sqliteTable("diagrams", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  itemId: text("item_id").notNull(),
+  title: text("title").notNull().default(""),
+  url: text("url"),
+  mime: text("mime"),
+  /** Base64 image bytes */
+  image: text("image"),
+  createdOn: text("created_on").notNull(),
+});
+
+/** Your cheat sheet for a DSA pattern: template code and how you recognize it. */
+export const patternNotes = sqliteTable("pattern_notes", {
+  patternId: text("pattern_id").primaryKey(),
+  template: text("template").notNull().default(""),
+  language: text("language").notNull().default(""),
+  recognize: text("recognize").notNull().default(""),
+  updatedOn: text("updated_on").notNull(),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),

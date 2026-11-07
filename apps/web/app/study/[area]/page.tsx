@@ -41,6 +41,17 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
       <header>
         <h2 className="text-2xl font-semibold tracking-tight">{area.title}</h2>
         <p className="mt-1 text-sm text-muted">{area.intro}</p>
+        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
+          <Link href="/study/reading" className="hover:underline">
+            📚 Reading list
+          </Link>
+          {area.exercises && (
+            <Link href="/study/diagrams" className="hover:underline">
+              🖼️ Your diagrams
+            </Link>
+          )}
+          <span className="font-normal text-muted">Every concept has a lesson: open it, learn, then rate yourself.</span>
+        </p>
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,13 +1,19 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { ALL_EXERCISES, CATEGORIES, type Category } from "@habit/shared";
+import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
 import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
 import { saveNote } from "@/lib/notes";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
 import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
-import { deletePractice, logPractice, saveConcept } from "@/lib/study";
+import { deletePractice, logPractice, rateConcept, saveConcept } from "@/lib/study";
+import { saveBossFight } from "@/lib/boss";
+import { deleteDiagram } from "@/lib/diagrams";
+import { savePatternNote } from "@/lib/pattern-notes";
+import { addCustomReading, deleteCustomReading, setReadingDone } from "@/lib/reading";
+import { clearStruggles, logStruggle } from "@/lib/struggles";
+import { logFocus } from "@/lib/timer";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
 // beyond localhost (see SPEC.md "Hosted mode").
@@ -117,5 +123,84 @@ export async function logPracticeAction(formData: FormData) {
 export async function deletePracticeAction(formData: FormData) {
   const id = idFrom(formData);
   if (id) await deletePractice(id);
+  refresh();
+}
+
+// Focus timer (called from the timer component)
+
+export async function logFocusAction(formData: FormData) {
+  await logFocus(String(formData.get("itemId") ?? ""), Number(formData.get("minutes")));
+  refresh();
+}
+
+// Stuck list
+
+export async function logStruggleAction(formData: FormData) {
+  const problemId = String(formData.get("problemId") ?? "");
+  if (!(await getProblemDetail(problemId))) return;
+  await logStruggle(problemId, String(formData.get("kind") ?? ""), String(formData.get("reason") ?? ""));
+  refresh();
+}
+
+/** Solved it cold: clears the stuck-list entries, and records the first solve if there wasn't one. */
+export async function clearStruggleAction(formData: FormData) {
+  const problemId = String(formData.get("problemId") ?? "");
+  const p = await getProblemDetail(problemId);
+  if (!p) return;
+  await clearStruggles(problemId);
+  if (problemId in PROBLEMS && p.status.state === "unsolved") await markSolved(problemId);
+  refresh();
+}
+
+// Review queue
+
+export async function rateConceptAction(formData: FormData) {
+  await rateConcept(String(formData.get("conceptId") ?? ""), Number(formData.get("confidence")));
+  refresh();
+}
+
+// Boss fight: fields problemId (repeated), result:<problemId>, minutes, notes
+
+export async function saveBossFightAction(formData: FormData) {
+  const results = formData.getAll("problemId").map((id) => ({ problemId: String(id), result: String(formData.get(`result:${id}`) ?? "") }));
+  const minutes = String(formData.get("minutes") ?? "").trim();
+  await saveBossFight({ results, minutes: minutes ? Number(minutes) : null, notes: String(formData.get("notes") ?? "") });
+  refresh();
+}
+
+// Reading list
+
+export async function toggleReadingAction(formData: FormData) {
+  await setReadingDone(String(formData.get("readingId") ?? ""), formData.get("done") === "1");
+  refresh();
+}
+
+export async function addReadingAction(formData: FormData) {
+  await addCustomReading(String(formData.get("itemId") ?? ""), String(formData.get("title") ?? ""), String(formData.get("url") ?? ""));
+  refresh();
+}
+
+export async function deleteReadingAction(formData: FormData) {
+  const id = idFrom(formData);
+  if (id) await deleteCustomReading(id);
+  refresh();
+}
+
+// Diagrams (adding goes through /api/diagrams because of image size)
+
+export async function deleteDiagramAction(formData: FormData) {
+  const id = idFrom(formData);
+  if (id) await deleteDiagram(id);
+  refresh();
+}
+
+// DSA pattern cheat sheets
+
+export async function savePatternNoteAction(formData: FormData) {
+  await savePatternNote(String(formData.get("patternId") ?? ""), {
+    template: String(formData.get("template") ?? ""),
+    recognize: String(formData.get("recognize") ?? ""),
+    language: String(formData.get("language") ?? ""),
+  });
   refresh();
 }

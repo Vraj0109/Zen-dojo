@@ -56,7 +56,8 @@ describe("taskLink", () => {
     expect(taskLink({ templateKey: "dsa-warmup", category: "dsa" }, f, { resolve: 2 })).toEqual({ href: "/dsa?status=due", label: "2 re-solves due" });
     expect(taskLink({ templateKey: "deep-block", category: "sd" }, f, none)?.href).toBe("/study/sd/sd-caching");
     expect(taskLink({ templateKey: "week-other", category: "beh_lld" }, f, none)?.href).toBe("/study/lld/lldp-parking-lot");
-    expect(taskLink({ templateKey: "review", category: "other" }, f, { resolve: 0, studyArea: "core" })?.href).toBe("/study/core");
+    expect(taskLink({ templateKey: "review", category: "other" }, f, { resolve: 0, reviews: 3 })).toEqual({ href: "/review", label: "3 reviews due" });
+    expect(taskLink({ templateKey: "timed-set", category: "dsa" }, f, none)?.href).toBe("/dsa/boss");
     expect(taskLink({ templateKey: "behavioral", category: "beh_lld" }, f, none)).toBeNull();
     expect(taskLink({ templateKey: null, category: "sd" }, f, none)?.href).toBe("/study/sd");
     expect(taskLink({ templateKey: null, category: "mock_app" }, f, none)).toBeNull();

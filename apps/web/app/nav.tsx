@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 // Icons: 24x24 stroke paths (lucide-style), drawn in currentColor.
 const ICONS = {
   today: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 16l2 2 4-4",
+  review: "M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5",
   dsa: "m16 18 6-6-6-6M8 6l-6 6 6 6",
   sd: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM6.5 10v4a2 2 0 0 0 2 2H14",
   lld: "M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5M3 18l9 5 9-5",
@@ -18,6 +19,7 @@ type NavLink = { href: string; label: string; icon: keyof typeof ICONS };
 
 const MAIN: NavLink[] = [
   { href: "/", label: "Today", icon: "today" },
+  { href: "/review", label: "Review", icon: "review" },
   { href: "/dsa", label: "DSA", icon: "dsa" },
   { href: "/study/sd", label: "System design", icon: "sd" },
   { href: "/study/lld", label: "LLD", icon: "lld" },

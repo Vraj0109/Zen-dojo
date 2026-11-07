@@ -149,6 +149,14 @@ export async function saveConcept(id: string, input: { confidence: number; check
   await db.insert(conceptProgress).values({ conceptId: id, ...row }).onConflictDoUpdate({ target: conceptProgress.conceptId, set: row });
 }
 
+/** Change only the confidence (from the review queue), keeping ticked points and notes. */
+export async function rateConcept(id: string, confidence: number) {
+  if (!ALL_CONCEPTS[id]) return;
+  const db = await getDb();
+  const existing = await db.query.conceptProgress.findFirst({ where: eq(conceptProgress.conceptId, id) });
+  await saveConcept(id, { confidence, checked: existing?.checked ?? [], notes: existing?.notes ?? "" });
+}
+
 export async function getExerciseDetail(id: string) {
   const exercise = ALL_EXERCISES[id];
   if (!exercise) return null;

@@ -21,6 +21,13 @@ export const BACKUP_TABLES = [
   "leetcode_topics",
   "concept_progress",
   "practice_sessions",
+  "focus_sessions",
+  "problem_struggles",
+  "boss_fights",
+  "reading_progress",
+  "reading_custom",
+  "diagrams",
+  "pattern_notes",
 ] as const;
 
 /** Never exported or overwritten: the extension pairing key stays with this install. */

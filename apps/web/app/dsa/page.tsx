@@ -7,7 +7,7 @@ import { getDsaView, type PatternView, type ProblemView } from "@/lib/dsa";
 import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, type DsaFilters } from "@/lib/dsa-filters";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
-import { markSolvedAction, syncLeetCodeAction, undoSolveAction } from "../actions";
+import { markSolvedAction, savePatternNoteAction, syncLeetCodeAction, undoSolveAction } from "../actions";
 import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
 import { PageMain, ProgressBar, Stat } from "../ui";
@@ -123,6 +123,10 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
       </div>
 
       <aside className="space-y-6">
+      <Link href="/dsa/boss" className="block rounded-xl border border-accent bg-surface p-4 hover:bg-background">
+        <span className="font-semibold">⚔️ Boss fight</span>
+        <span className="mt-1 block text-sm text-muted">2 unsolved problems from your weakest patterns, against a 2-hour timer.</span>
+      </Link>
       <SyncStatus leetcode={leetcode} extension={extension} />
       {extras.length > 0 && (
         <section>
@@ -140,6 +144,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                     noted={e.noted}
                     lcNotes={e.lcNotes}
                     submissions={e.submissions}
+                    struggling={e.struggling}
                   />
                   <p className="text-xs text-muted">
                     <span className={`font-medium capitalize ${DIFFICULTY_STYLE[e.difficulty]}`}>{e.difficulty}</span> · Solved {fmt(e.solvedOn)}
@@ -168,6 +173,7 @@ function ProblemTitle(props: {
   submissions?: number;
   auto?: boolean;
   premium?: boolean;
+  struggling?: boolean;
 }) {
   const notesTitle = [props.noted && "your notes / saved code", props.lcNotes && "LeetCode notes"].filter(Boolean).join(" + ");
   return (
@@ -197,6 +203,11 @@ function ProblemTitle(props: {
           title={`${props.submissions} accepted solution${props.submissions === 1 ? "" : "s"} saved from LeetCode`}
         >
           💻{props.submissions > 1 ? ` ${props.submissions}` : ""}
+        </span>
+      )}
+      {props.struggling && (
+        <span className="ml-1.5 text-xs" title="On your stuck list" aria-label="On your stuck list">
+          🧗
         </span>
       )}
       {props.auto && (
@@ -315,6 +326,7 @@ function PatternBlock({ p }: { p: PatternView }) {
         </span>
       </div>
       <p className="mb-2 text-xs text-muted">Recognize by: {p.recognize}</p>
+      <CheatSheet p={p} />
       <ProgressBar value={p.solved} max={p.target} label={`${p.name} progress`} />
       <ul className="mt-2 divide-y divide-line overflow-hidden rounded-lg border border-line">
         {p.items.map((item) => (
@@ -364,6 +376,7 @@ function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[] }) {
           submissions={p.submissions}
           auto={p.auto}
           premium={p.premium}
+          struggling={p.struggling}
         />
         <p className="text-xs text-muted">
           {p.difficulty && <span className={`font-medium capitalize ${DIFFICULTY_STYLE[p.difficulty]}`}>{p.difficulty}</span>}
@@ -391,5 +404,52 @@ function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[] }) {
         </form>
       )}
     </li>
+  );
+}
+
+/** Your template code and recognition notes for a pattern; collapsed, with an edit form. */
+function CheatSheet({ p }: { p: PatternView }) {
+  const n = p.note;
+  const field = "w-full rounded-lg border border-line bg-background px-3 py-2";
+  return (
+    <details className="mb-2 rounded-lg border border-line bg-background/40 text-sm">
+      <summary className="cursor-pointer px-3 py-1.5 text-xs font-medium text-muted">
+        📄 Cheat sheet{n?.template ? ` · ${n.language || "template"} saved` : " · add your template"}
+      </summary>
+      <div className="space-y-3 border-t border-line p-3">
+        {n?.template && (
+          <pre className="max-h-80 overflow-auto rounded-lg border border-line bg-background p-3 font-mono text-xs">
+            <code>{n.template}</code>
+          </pre>
+        )}
+        {n?.recognize && <p className="whitespace-pre-wrap">{n.recognize}</p>}
+        <form action={savePatternNoteAction} className="space-y-2">
+          <input type="hidden" name="patternId" value={p.id} />
+          <textarea
+            name="recognize"
+            rows={3}
+            maxLength={5000}
+            defaultValue={n?.recognize ?? ""}
+            placeholder={`How I spot "${p.name}": signals in the problem statement, constraints, the brute force it replaces…`}
+            aria-label={`${p.name}: how to recognize it`}
+            className={field}
+          />
+          <textarea
+            name="template"
+            rows={8}
+            maxLength={20000}
+            defaultValue={n?.template ?? ""}
+            placeholder="Your template code: the skeleton you'd write from memory."
+            aria-label={`${p.name}: template code`}
+            className={`${field} font-mono text-xs`}
+            spellCheck={false}
+          />
+          <div className="flex gap-2">
+            <input name="language" defaultValue={n?.language || "Java"} maxLength={30} aria-label="Language" className="w-32 rounded-lg border border-line bg-background px-3 py-1.5" />
+            <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 font-medium text-on-accent">Save cheat sheet</SubmitButton>
+          </div>
+        </form>
+      </div>
+    </details>
   );
 }

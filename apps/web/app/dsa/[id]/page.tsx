@@ -5,7 +5,11 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { RESOLVE_XP, solveXp } from "@habit/shared";
 import { getProblemDetail } from "@/lib/dsa";
-import { markSolvedAction, undoSolveAction } from "../../actions";
+import { getPatternNotes } from "@/lib/pattern-notes";
+import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggles";
+import { focusMinutes } from "@/lib/timer";
+import { clearStruggleAction, logStruggleAction, markSolvedAction, undoSolveAction } from "../../actions";
+import { FocusTimer } from "../../focus-timer";
 import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { PageMain } from "../../ui";
@@ -45,6 +49,8 @@ async function Problem({ params }: { params: PageProps<"/dsa/[id]">["params"] })
   await connection(); // reads today's date and the database
   const p = await getProblemDetail(decodeURIComponent(id));
   if (!p) notFound();
+  const [struggles, focused, cheats] = await Promise.all([getStruggles(p.id), focusMinutes(p.id), getPatternNotes()]);
+  const open = struggles.filter((x) => !x.clearedOn);
 
   const s = p.status;
   const label = p.number ? `${p.number}. ${p.title}` : p.title;
@@ -80,6 +86,15 @@ async function Problem({ params }: { params: PageProps<"/dsa/[id]">["params"] })
               <li key={pat.id}>
                 <span className="font-medium">{pat.name}</span>
                 <span className="text-muted"> · recognize by: {pat.recognize}</span>
+                {cheats.get(pat.id)?.template && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-xs font-medium text-muted">Your template</summary>
+                    <pre className="mt-1 max-h-80 overflow-auto rounded-lg border border-line bg-background p-3 font-mono text-xs">
+                      <code>{cheats.get(pat.id)!.template}</code>
+                    </pre>
+                    {cheats.get(pat.id)!.recognize && <p className="mt-1 whitespace-pre-wrap text-xs">{cheats.get(pat.id)!.recognize}</p>}
+                  </details>
+                )}
               </li>
             ))}
           </ul>
@@ -113,6 +128,10 @@ async function Problem({ params }: { params: PageProps<"/dsa/[id]">["params"] })
           </div>
         )}
       </section>
+
+      <FocusTimer itemId={p.id} defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25} presets={[15, 25, 45]} totalMinutes={focused} />
+
+      <StuckPanel problemId={p.id} open={open} history={struggles} />
 
       {p.submissions.length > 0 && (
         <section>
@@ -158,5 +177,58 @@ async function Problem({ params }: { params: PageProps<"/dsa/[id]">["params"] })
         codePlaceholder="Paste the code you submitted. When you re-solve, write it fresh first, then compare."
       />
     </article>
+  );
+}
+
+function StuckPanel({ problemId, open, history }: { problemId: string; open: Awaited<ReturnType<typeof getStruggles>>; history: Awaited<ReturnType<typeof getStruggles>> }) {
+  return (
+    <section id="stuck" className={`rounded-xl border bg-surface p-4 ${open.length ? "border-cat-mock" : "border-line"}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-semibold">Stuck list</h3>
+        {open.length > 0 && <span className="text-sm text-muted">On your list since {fmt(open[open.length - 1].loggedOn)}</span>}
+      </div>
+      {open.length > 0 ? (
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm">
+            Comes back for review {STRUGGLE_RETRY_DAYS} days after each attempt until you solve it cold, without looking at notes.
+          </p>
+          <form action={clearStruggleAction}>
+            <input type="hidden" name="problemId" value={problemId} />
+            <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Solved it cold ✓</SubmitButton>
+          </form>
+        </div>
+      ) : (
+        <p className="mt-1 text-sm text-muted">Needed a hint, couldn&apos;t solve it, or took too long? Log it so it comes back in {STRUGGLE_RETRY_DAYS} days.</p>
+      )}
+      <form action={logStruggleAction} className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input type="hidden" name="problemId" value={problemId} />
+        <select name="kind" aria-label="What happened" className="rounded-lg border border-line bg-background px-2 py-2 text-sm" defaultValue="hint">
+          {Object.entries(STRUGGLE_KINDS).map(([k, label]) => (
+            <option key={k} value={k}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          name="reason"
+          maxLength={500}
+          placeholder="What tripped you up? e.g. didn't see it was a monotonic stack"
+          aria-label="Reason"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2 text-sm"
+        />
+        <SubmitButton className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-background">Log it</SubmitButton>
+      </form>
+      {history.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {history.map((h) => (
+            <li key={h.id} className={h.clearedOn ? "text-muted" : ""}>
+              {fmt(h.loggedOn)} · {STRUGGLE_KINDS[h.kind as keyof typeof STRUGGLE_KINDS] ?? h.kind}
+              {h.reason && `: ${h.reason}`}
+              {h.clearedOn && ` · cleared ${fmt(h.clearedOn)}`}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

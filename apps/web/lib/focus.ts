@@ -117,7 +117,7 @@ export interface TaskLink {
 export function taskLink(
   task: Pick<Task, "templateKey" | "category">,
   focus: WeekFocusView,
-  due: { resolve: number; studyArea?: string },
+  due: { resolve: number; reviews?: number },
 ): TaskLink | null {
   const dsaNext: TaskLink = focus.dsa.next ? { href: focus.dsa.next.href, label: `Next: ${focus.dsa.next.title}` } : { href: focus.dsa.href, label: "Open problems" };
   const sdNext = (prefer?: FocusItem["kind"]): TaskLink => {
@@ -128,14 +128,13 @@ export function taskLink(
     case "dsa-warmup":
       return due.resolve > 0 ? { href: "/dsa?status=due", label: `${due.resolve} re-solve${due.resolve === 1 ? "" : "s"} due` } : dsaNext;
     case "timed-set":
-      return { href: focus.dsa.href, label: "This week's problems" };
+      return { href: "/dsa/boss", label: "Start boss fight" };
     case "deep-block":
       return sdNext();
     case "design-session":
       return sdNext("exercise");
     case "review":
-      if (due.resolve > 0) return { href: "/dsa?status=due", label: "Re-solves due" };
-      if (due.studyArea) return { href: `/study/${due.studyArea}`, label: "Reviews due" };
+      if (due.reviews) return { href: "/review", label: `${due.reviews} review${due.reviews === 1 ? "" : "s"} due` };
       return { href: "/dsa?has=notes", label: "Your notes" };
     case "week-dsa":
       return { href: focus.dsa.href, label: "Patterns" };

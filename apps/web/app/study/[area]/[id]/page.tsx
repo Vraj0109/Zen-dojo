@@ -3,12 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_CONCEPTS, ALL_EXERCISES, CONFIDENCE_LABELS, COVERED_CONFIDENCE, STUDY_AREAS, getStudyArea } from "@habit/shared";
+import { ALL_CONCEPTS, ALL_EXERCISES, CONFIDENCE_LABELS, COVERED_CONFIDENCE, LESSONS, LLD_GUIDES, STUDY_AREAS, WALKTHROUGHS, getStudyArea } from "@habit/shared";
+import { getDiagrams } from "@/lib/diagrams";
+import { getReadingFor } from "@/lib/reading";
+import { focusMinutes } from "@/lib/timer";
 import { PRACTICE_LIMITS, getConceptDetail, getExerciseDetail } from "@/lib/study";
 import { deletePracticeAction, logPracticeAction, saveConceptAction } from "../../../actions";
+import { FocusTimer } from "../../../focus-timer";
 import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
 import { PageMain } from "../../../ui";
+import { DiagramsSection, LessonQuestions, LldGuideView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
 
 /** Every concept and exercise is known at build time. */
@@ -24,11 +29,11 @@ export async function generateMetadata({ params }: PageProps<"/study/[area]/[id]
   return { title: ALL_CONCEPTS[id]?.title ?? ALL_EXERCISES[id]?.title ?? "Study" };
 }
 
-export default function StudyItemPage({ params }: PageProps<"/study/[area]/[id]">) {
+export default function StudyItemPage({ params, searchParams }: PageProps<"/study/[area]/[id]">) {
   return (
     <PageMain title="Study" narrow>
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
-        <Item params={params} />
+        <Item params={params} searchParams={searchParams} />
       </Suspense>
     </PageMain>
   );
@@ -36,8 +41,10 @@ export default function StudyItemPage({ params }: PageProps<"/study/[area]/[id]"
 
 const field = "w-full rounded-lg border border-line bg-background px-3 py-2";
 
-async function Item({ params }: { params: PageProps<"/study/[area]/[id]">["params"] }) {
+async function Item({ params, searchParams }: { params: PageProps<"/study/[area]/[id]">["params"]; searchParams: PageProps<"/study/[area]/[id]">["searchParams"] }) {
   const { area: areaId, id } = await params;
+  const sp = await searchParams;
+  const diagramError = typeof sp.diagramError === "string" ? sp.diagramError : undefined;
   await connection();
   const area = getStudyArea(areaId);
   const concept = ALL_CONCEPTS[id];
@@ -49,13 +56,15 @@ async function Item({ params }: { params: PageProps<"/study/[area]/[id]">["param
       <Link href={`/study/${area.id}`} className="inline-block text-sm text-muted hover:text-foreground">
         ← {area.title}
       </Link>
-      {concept ? <ConceptView id={id} /> : <ExerciseView id={id} />}
+      {concept ? <ConceptView id={id} /> : <ExerciseView id={id} diagramError={diagramError} />}
     </article>
   );
 }
 
 async function ConceptView({ id }: { id: string }) {
-  const d = (await getConceptDetail(id))!;
+  const [d0, reading, focused] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id)]);
+  const d = d0!;
+  const lesson = LESSONS[id];
   const p = d.progress;
   const checked = new Set(p?.checked ?? []);
   const confidence = p?.confidence ?? 0;
@@ -72,21 +81,31 @@ async function ConceptView({ id }: { id: string }) {
         </p>
       </header>
 
+      {lesson && (
+        <section className="rounded-xl border border-line bg-surface p-4">
+          <h3 className="mb-1 font-semibold">📖 Overview</h3>
+          <p className="leading-relaxed">{lesson.overview}</p>
+        </section>
+      )}
+
+      <FocusTimer itemId={id} defaultMinutes={25} presets={[15, 25, 45]} totalMinutes={focused} />
+
       <form action={saveConceptAction} className="space-y-5">
         <input type="hidden" name="conceptId" value={id} />
         <fieldset className="rounded-xl border border-line bg-surface p-4">
           <legend className="px-1 font-semibold">What to know</legend>
-          <ul className="space-y-2">
+          <ol className="space-y-4">
             {d.concept.points.map((point, i) => (
               <li key={i}>
                 <label className="flex items-start gap-2">
-                  <input type="checkbox" name="point" value={i} defaultChecked={checked.has(i)} className="mt-1 size-4 accent-[var(--color-accent)]" />
-                  <span>{point}</span>
+                  <input type="checkbox" name="point" value={i} defaultChecked={checked.has(i)} className="mt-1 size-4 shrink-0 accent-[var(--color-accent)]" />
+                  <span className="font-medium">{point}</span>
                 </label>
+                {lesson?.explain[i] && <p className="mt-1 pl-6 text-sm leading-relaxed text-muted">{lesson.explain[i]}</p>}
               </li>
             ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted">Tick a point when you can explain it out loud with an example and its trade-offs.</p>
+          </ol>
+          <p className="mt-4 text-xs text-muted">Read the explanation, then close it in your head: tick a point once you can explain it out loud with an example and its trade-offs.</p>
         </fieldset>
 
         <fieldset>
@@ -120,12 +139,16 @@ async function ConceptView({ id }: { id: string }) {
         </div>
         <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>
       </form>
+
+      {lesson && <LessonQuestions lesson={lesson} />}
+      <ReadingSection itemId={id} items={reading} />
     </>
   );
 }
 
-async function ExerciseView({ id }: { id: string }) {
-  const d = (await getExerciseDetail(id))!;
+async function ExerciseView({ id, diagramError }: { id: string; diagramError?: string }) {
+  const [d0, reading, focused, diagrams] = await Promise.all([getExerciseDetail(id), getReadingFor(id), focusMinutes(id), getDiagrams(id)]);
+  const d = d0!;
   const { exercise, area, sessions, practice } = d;
   const steps = area.exercises.steps;
   const isDesign = area.id === "sd";
@@ -153,6 +176,8 @@ async function ExerciseView({ id }: { id: string }) {
           </p>
         )}
       </section>
+
+      <FocusTimer itemId={id} defaultMinutes={steps.reduce((a, s) => a + s.minutes, 0)} presets={[30, 45, 60]} totalMinutes={focused} />
 
       <form action={logPracticeAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
         <input type="hidden" name="itemId" value={id} />
@@ -202,6 +227,10 @@ async function ExerciseView({ id }: { id: string }) {
         </div>
       </form>
 
+      {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
+
+      <DiagramsSection itemId={id} diagrams={diagrams} error={diagramError} />
+
       {sessions.length > 0 && (
         <section>
           <h3 className="mb-2 font-semibold">History</h3>
@@ -237,6 +266,8 @@ async function ExerciseView({ id }: { id: string }) {
           </ul>
         </section>
       )}
+
+      <ReadingSection itemId={id} items={reading} />
 
       <NotesForm
         id={id}
