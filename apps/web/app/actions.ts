@@ -14,6 +14,7 @@ import { savePatternNote } from "@/lib/pattern-notes";
 import { addCustomReading, deleteCustomReading, setReadingDone } from "@/lib/reading";
 import { clearStruggles, logStruggle } from "@/lib/struggles";
 import { logFocus } from "@/lib/timer";
+import { setInterviewDate } from "@/lib/revise";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
 // beyond localhost (see SPEC.md "Hosted mode").
@@ -91,6 +92,13 @@ export async function setPlanStartAction(formData: FormData) {
   const date = String(formData.get("planStart") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   await setPlanStart(date);
+  refresh();
+}
+
+/** Interview date for Quick revise; an empty value clears it. */
+export async function setInterviewDateAction(formData: FormData) {
+  const clear = formData.get("clear") === "1";
+  await setInterviewDate(clear ? "" : String(formData.get("interviewDate") ?? ""));
   refresh();
 }
 

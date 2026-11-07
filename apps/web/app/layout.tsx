@@ -25,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full lg:flex">
         {/* Sidebar on wide screens, a scrolling top bar on phones */}
-        <aside className="sticky top-0 z-10 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
+        <aside className="sticky top-0 z-10 print:hidden border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
           <Link href="/" className="mb-2 block px-1 lg:mb-6 lg:px-3">
             <span className="block text-xs font-medium text-muted">SDE2 / SWE3 prep</span>
             <span className="block text-lg font-semibold tracking-tight">HabitManager</span>

@@ -7,6 +7,7 @@ import { getWeekFocus, taskLink, type FocusItem, type TaskLink, type WeekFocusVi
 import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import type { Task } from "@/lib/schema";
 import { REVIEW_KIND_LABELS, getReviewQueue } from "@/lib/review";
+import { getCountdown } from "@/lib/revise";
 import { getTodayView } from "@/lib/tasks";
 import { addTaskAction, deleteTaskAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
@@ -27,7 +28,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
   await connection();
   after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
   const params = await searchParams;
-  const [v, resolveDue, reviews] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue()]);
+  const [v, resolveDue, reviews, countdown] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue(), getCountdown()]);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;
   const currentWeek = Math.min(Math.max(v.weekNo, 1), TOTAL_WEEKS);
@@ -68,6 +69,15 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
           </Link>
         </div>
       </header>
+
+      {countdown && countdown.daysLeft >= 0 && countdown.daysLeft <= 14 && (
+        <Link href="/revise" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">
+          <span className="font-semibold">
+            🎯 {countdown.daysLeft === 0 ? "Interview today" : countdown.daysLeft === 1 ? "Interview tomorrow" : `${countdown.daysLeft} days to your interview`}
+          </span>
+          <span className="text-sm text-muted">{countdown.phase ? `${countdown.phase.title}: see the plan` : "Quick revise"} →</span>
+        </Link>
+      )}
 
       {reviews.length > 0 && (
         <Link href="/review" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent bg-surface px-4 py-3 hover:bg-background">

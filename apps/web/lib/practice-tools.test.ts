@@ -6,6 +6,7 @@ import { filterProblems, parseDsaFilters } from "./dsa-filters";
 import { getPatternNotes, savePatternNote } from "./pattern-notes";
 import { addCustomReading, getReadingFor, getReadingList, setReadingDone } from "./reading";
 import { applySkips, getReviewQueue } from "./review";
+import { getCountdown, getInterviewDate, getWeakSpots, setInterviewDate, weakConceptIds } from "./revise";
 import { getStats } from "./stats";
 import { clearStruggles, logStruggle, openStruggles } from "./struggles";
 import { getConceptDetail, logPractice, rateConcept, saveConcept } from "./study";
@@ -196,5 +197,30 @@ describe("diagram upload route", () => {
     expect(ok.status).toBe(303);
     expect(ok.headers.get("location")).toBe("http://localhost:3000/study/sd/sdd-chat#diagrams");
     expect(await getDiagrams("sdd-chat")).toHaveLength(1);
+  });
+});
+
+describe("quick revise", () => {
+  it("stores, validates and clears the interview date, with a countdown", async () => {
+    expect(await getCountdown()).toBeNull();
+    expect(await setInterviewDate("not-a-date")).toBe(false);
+    expect(await setInterviewDate("2026-11-10")).toBe(true);
+    expect(await getCountdown()).toMatchObject({ date: "2026-11-10", daysLeft: 3, phase: { id: "final" } });
+    expect(await setInterviewDate("")).toBe(true);
+    expect(await getInterviewDate()).toBeNull();
+  });
+
+  it("lists weak spots: low confidence first, unpractised designs, uncovered patterns, the stuck list", async () => {
+    await rateConcept("sd-caching", 2);
+    await rateConcept("sd-apis", 5);
+    await logStruggle("lc-1", "failed", "forgot the map");
+    const w = await getWeakSpots();
+    expect(w.concepts[0].confidence).toBe(0);
+    expect(w.concepts.some((c) => c.id === "sd-caching")).toBe(true);
+    expect(w.concepts.some((c) => c.id === "sd-apis")).toBe(false);
+    expect(w.exercises.length).toBeGreaterThan(0);
+    expect(w.patterns[0]).toMatchObject({ id: "hash-map", stuck: 1 });
+    expect(w.stuck).toEqual([{ id: "lc-1", title: "Two Sum", reason: "forgot the map", count: 1 }]);
+    expect((await weakConceptIds()).has("sd-apis")).toBe(false);
   });
 });
