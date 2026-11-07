@@ -6,6 +6,7 @@ import { DEEP_LLD } from "./deep-lld";
 import { DEEP_SD_A } from "./deep-sd-a";
 import { DEEP_SD_B } from "./deep-sd-b";
 import { DESIGN_EXTRA } from "./design-extra";
+import { DSA_ARTICLES_A } from "./dsa-articles-a";
 import { DSA_GUIDES_A } from "./dsa-a";
 import { DSA_GUIDES_B } from "./dsa-b";
 import { DSA_GUIDES_C } from "./dsa-c";
@@ -21,9 +22,9 @@ import { MORE_SD_B } from "./more-sd-b";
 import { MORE_SD_C } from "./more-sd-c";
 import { SD_LESSONS } from "./sd";
 import { DEEP_SD_GAPS, SD_GAP_LESSONS } from "./sd-gaps";
-import type { LessonExtra, LldGuide, Lesson, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
+import type { LessonExtra, LldGuide, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
-export type { LessonExtra, LldExtra, LldGuide, Lesson, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
+export type { LessonExtra, LldExtra, LldGuide, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 /** Concept lessons by concept id (system design, LLD, core CS). */
 export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
@@ -37,6 +38,9 @@ export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 
 /** DSA pattern guides by pattern id (dsa.ts). Templates are C++. */
 export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, ...DSA_GUIDES_B, ...DSA_GUIDES_C, ...DSA_GUIDES_D };
+
+/** Full articles by pattern id. Patterns without one still show the short guide above. */
+export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A };
 
 /** Deeper sections and recap lines per concept id. */
 const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_SD_GAPS, ...DEEP_LLD, ...DEEP_CORE };

@@ -3,13 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_PATTERNS, DSA_GROUPS, PATTERN_GUIDES } from "@habit/shared";
+import { ALL_PATTERNS, DSA_GROUPS, PATTERN_ARTICLES, PATTERN_GUIDES, type PatternArticle } from "@habit/shared";
 import "katex/dist/katex.min.css";
 import { cpAlgoCount, getCpAlgoArticles } from "@/lib/cp-algorithms";
 import { getDsaView } from "@/lib/dsa";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { focusMinutes, patternTimerId } from "@/lib/timer";
 import { StartTimer } from "../../../start-timer";
+import { Code } from "../../../code";
 import { ArticleLayout, ArticleSection, CodeBlock } from "../../../learn-blocks";
 import { Tabs } from "../../../tabs";
 import { PageMain, ProgressBar, SimpleHint } from "../../../ui";
@@ -64,6 +65,7 @@ async function PatternView({
   const pattern = ALL_PATTERNS.find((p) => p.id === id);
   const guide = PATTERN_GUIDES[id];
   if (!pattern || !guide) notFound();
+  const article = PATTERN_ARTICLES[id];
   const group = DSA_GROUPS.find((g) => g.patterns.some((p) => p.id === id))!;
   const idx = ALL_PATTERNS.indexOf(pattern);
   const prev = ALL_PATTERNS[idx - 1];
@@ -100,8 +102,10 @@ async function PatternView({
         label="Pattern sections"
       />
 
-      {currentTab === "learn" && (
-        /* Plan 0007 will replace the guide body below */
+      {currentTab === "learn" && article && <ArticleView article={article} />}
+
+      {/* Patterns without a full article yet (plan 0008) keep the short guide. */}
+      {currentTab === "learn" && !article && (
         <ArticleLayout toc={toc}>
           <ArticleSection id="idea" title="The idea">
             <p className="leading-7">{guide.idea}</p>
@@ -178,6 +182,30 @@ async function PatternView({
         )}
       </nav>
     </article>
+  );
+}
+
+const slug = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** A full pattern article: intro, then each section with its paragraphs and code. */
+function ArticleView({ article }: { article: PatternArticle }) {
+  const toc = article.sections.map((s) => ({ id: slug(s.title), title: s.title }));
+  return (
+    <ArticleLayout toc={toc}>
+      <p className="text-lg leading-8">{article.intro}</p>
+      {article.sections.map((s) => (
+        <ArticleSection key={s.title} id={slug(s.title)} title={s.title}>
+          <div className="space-y-4">
+            {s.body.split("\n\n").map((para, i) => (
+              <p key={i} className="leading-7 whitespace-pre-line">
+                {para}
+              </p>
+            ))}
+            {s.code && <Code code={s.code} lang="C++" />}
+          </div>
+        </ArticleSection>
+      ))}
+    </ArticleLayout>
   );
 }
 

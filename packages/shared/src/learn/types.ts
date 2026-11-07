@@ -65,6 +65,18 @@ export interface LldExtra {
   edgeCases: string[];
 }
 
+/**
+ * A full DSA pattern article (learn/dsa-articles-*.ts). It replaces the short guide on the pattern page.
+ * Sections follow a fixed outline, checked by pattern-articles.test.ts: The intuition, Why it works, A worked example,
+ * Implementation, Variants, Complexity, Pitfalls and edge cases, Practice order (extra "Implementation: ..." and
+ * "Variants: ..." sections may follow their parent). Code is C++17 and self-contained.
+ */
+export interface PatternArticle {
+  /** 2-4 sentences: what the pattern solves and when you reach for it. */
+  intro: string;
+  sections: Section[];
+}
+
 /** A DSA pattern guide (learn/dsa-*.ts). Templates are C++. */
 export interface PatternGuide {
   idea: string;

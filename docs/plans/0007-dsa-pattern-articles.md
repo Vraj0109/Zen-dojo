@@ -1,8 +1,8 @@
 # 0007: Full DSA pattern articles: structure, checks, and three exemplars
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-07
-- **Implemented by:**
+- **Implemented by:** Claude Code
 - **Depends on:** 0006 (pattern page has Learn/Practice tabs and `ArticleLayout`)
 - **Suitable for a smaller model:** the infrastructure steps yes; the three articles need the strongest model you have.
 
@@ -39,7 +39,7 @@ judge the depth before plan 0008 writes the other 64.
 
 ## Steps
 
-- [ ] **1. Article type and data file.** In `learn/types.ts` add
+- [x] **1. Article type and data file.** In `learn/types.ts` add
   ```ts
   /** A full pattern article (learn/dsa-article-*.ts). Replaces the short guide on the pattern page. */
   export interface PatternArticle {
@@ -52,7 +52,7 @@ judge the depth before plan 0008 writes the other 64.
   `learn/index.ts` export `PATTERN_ARTICLES` (merge of all article files) and the `PatternArticle` type.
   - Done when: `pnpm --filter @habit/shared` typecheck passes (or `pnpm check` typecheck step).
 
-- [ ] **2. Required structure, enforced by tests.** Add `learn/pattern-articles.test.ts`. For **every** id in
+- [x] **2. Required structure, enforced by tests.** Add `learn/pattern-articles.test.ts`. For **every** id in
   `PATTERN_ARTICLES`:
   - section titles, in this order, are exactly: `The intuition`, `Why it works`, `A worked example`,
     `Implementation`, `Variants`, `Complexity`, `Pitfalls and edge cases`, `Practice order`. (`Implementation` and
@@ -66,14 +66,14 @@ judge the depth before plan 0008 writes the other 64.
   `console.info` the missing ids. Plan 0008 turns this into a failing check at its last step.
   - Done when: the test passes with zero articles, and fails if you temporarily add a malformed one.
 
-- [ ] **3. Compile check for the C++.** Add `learn/pattern-article-code.test.ts`: if `g++` (or `clang++`) is on `PATH`
+- [x] **3. Compile check for the C++.** Add `learn/pattern-article-code.test.ts`: if `g++` (or `clang++`) is on `PATH`
   (use `spawnSync("g++", ["--version"])`), write each `code` block to a temp dir (use `os.tmpdir()`, not the repo), prefixed with
   `#include <bits/stdc++.h>\nusing namespace std;\n`, and run `g++ -std=c++17 -fsyntax-only` on each; fail with the
   compiler output. Use `describe.skipIf(!hasCompiler)`. Group blocks per pattern so one pattern is one compile.
   Blocks inside one article may depend on earlier blocks of the same article (concatenate them in order).
   - Done when: the test runs (or is skipped with a clear reason) and passes with the exemplars from step 5.
 
-- [ ] **4. Render articles on the pattern page.** In `apps/web/app/dsa/pattern/[id]/page.tsx` (Learn tab, after
+- [x] **4. Render articles on the pattern page.** In `apps/web/app/dsa/pattern/[id]/page.tsx` (Learn tab, after
   plan 0006): if `PATTERN_ARTICLES[id]` exists render the intro, then each section as an `ArticleSection`
   (`id` = slug of the title; paragraphs split on blank lines as in `DeeperSections`; `code` rendered with
   `CodeBlock`). The TOC lists the sections. If there is no article, render the old guide as today (fallback).
@@ -81,7 +81,7 @@ judge the depth before plan 0008 writes the other 64.
   - Done when: `/dsa/pattern/hash-map` (after step 5) shows the article with a TOC and the old guide no longer
     appears; a pattern without an article still shows the old guide.
 
-- [ ] **5. Write three exemplar articles** in `dsa-articles-a.ts`: `hash-map`, `two-pointers`, `sliding-window`.
+- [x] **5. Write three exemplar articles** in `dsa-articles-a.ts`: `hash-map`, `two-pointers`, `sliding-window`.
   Each must contain, under the required titles:
   - **The intuition:** the problem it removes (the brute force and why it is slow), the one idea, a picture in words.
   - **Why it works:** the invariant or exchange argument that makes it correct; for two pointers/sliding window,
@@ -100,7 +100,7 @@ judge the depth before plan 0008 writes the other 64.
   and add what is missing.
   - Done when: tests from steps 2-3 pass and the three pages read like a chapter, not a list.
 
-- [ ] **6. Quick revise unchanged.** Confirm `/revise` still shows recap lines for all 67 patterns (the old
+- [x] **6. Quick revise unchanged.** Confirm `/revise` still shows recap lines for all 67 patterns (the old
   `PatternGuide.recap` data is untouched).
   - Done when: `/revise?tab=dsa` shows the same recap lines as before.
 
@@ -116,5 +116,19 @@ judge the depth before plan 0008 writes the other 64.
 ## Open questions
 
 ## Implementation notes
+
+Implemented by Claude Code, 2026-11-07.
+
+**What exists**
+- `PatternArticle` in `learn/types.ts`; the three articles in `learn/dsa-articles-a.ts` (`hash-map`, `two-pointers`, `sliding-window`); `PATTERN_ARTICLES` exported from `learn/index.ts`.
+- `learn/pattern-articles.test.ts`: for every article, the eight required sections in order (extra "Implementation: ..." and "Variants: ..." sections are allowed after their parent), at least 900 words of prose, at least two code blocks, no placeholders, and at least three of the pattern's own problems named in "Practice order". It also prints how many of the 67 patterns have an article (3 of 67).
+- The pattern page (`/dsa/pattern/[id]`, Learn tab) shows an article when one exists (intro, a contents list, paragraphs, coloured C++), and keeps the short guide for the other 64 patterns. Quick revise is untouched: it still reads `PATTERN_GUIDES[id].recap`.
+- Sizes: prose of 2,131 (hash-map), 2,219 (two-pointers) and 1,962 (sliding-window) words, 10 to 11 sections each, 14 code blocks in total.
+
+**Not verified by a compiler yet (read this)**
+- The compile check is `apps/web/lib/pattern-article-code.test.ts` (not in `packages/shared`, because that package has no Node types). It runs `g++ -std=c++17 -fsyntax-only` on all the code of each article and is skipped when no `g++` or `clang++` is on PATH. **There is no C++ compiler on the machine this was built on, so the test was skipped and none of the C++ in these articles has been compiled.** I traced the code by hand and walked the examples in the text, but that is not the same. I downloaded a portable GCC (WinLibs, checksum verified) for this, and the tool that runs commands refused to execute a binary taken from the internet. Run `pnpm test` with `g++` on PATH (or let CI do it: both CI runners have a compiler) before trusting the code.
+- Fixed while reading it back: the explanation of why the left side of Trapping Rain Water can be settled by `leftMax` alone was too loose and was rewritten.
+
+**Checks:** `pnpm check` exits 0 (33 test files passed, 1 skipped = the compile test). Looked at the pages in a browser against a copy of the database: article layout, contents list and coloured code in light and dark at 1440 px, no horizontal scroll at 390 px; `/dsa/pattern/kadane` (no article yet) still shows the old guide.
 
 ## Review

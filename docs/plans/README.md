@@ -5,7 +5,7 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 ## Next up
 
-Done so far: 0001, 0002, 0006, 0010. From 2026-11-07 Claude Code implements plans too (the user asked); 0011 is built and waits for your look; next is **0007**.
+Done so far: 0001-0007, 0009, 0010, 0011 (Claude Code built 0003-0005, 0007, 0009, 0011). **0008** (the other 64 articles) waits for you to read the three exemplars from 0007 and say the depth is right.
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo
@@ -66,7 +66,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0004 | [Five-item navigation and a short "Up next" Today](0004-nav-and-today.md) | implemented (by Claude Code) |
 | 0005 | [One focus timer for the whole app, and Simple mode](0005-global-timer-and-simple-mode.md) | implemented (by Claude Code) |
 | 0006 | [Learning pages: one calm reading layout, no summaries inside lessons](0006-learning-pages-declutter.md) | done |
-| 0007 | [Full DSA pattern articles: structure, checks, three exemplars](0007-dsa-pattern-articles.md) | ready |
+| 0007 | [Full DSA pattern articles: structure, checks, three exemplars](0007-dsa-pattern-articles.md) | implemented (by Claude Code; C++ not compiled yet) |
 | 0008 | [The remaining 64 DSA pattern articles, one group at a time](0008-dsa-pattern-articles-batches.md) | draft (waits for the 0007 exemplars) |
 | 0009 | [Reading sources for system design, LLD, core CS, and two gap lessons](0009-reading-sources-and-gap-lessons.md) | implemented (by Claude Code) |
 | 0010 | [No emoji, and LeetCode-style simple lists on the DSA pages](0010-no-emoji-leetcode-style-ui.md) | done |
