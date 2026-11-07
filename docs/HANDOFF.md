@@ -86,7 +86,7 @@ workspace package: kill the dev server and start it again.
 
 ### L1. Make the LLD solutions richer and diagram-heavy (user feedback, do this first)
 
-**Status 2026-11-08: the parking lot is done** (31 Java files, EV chargers, reservations, payment, lost tickets, report, garage, 47 passing checks, compiled with JDK 17; see plan 0013 notes). **Elevator and vending machine / ATM are still open.** The parking-lot list below is kept as the model for how rich the other two should become.
+**Status 2026-11-08: the parking lot is done** (31 Java files, EV chargers, reservations, payment, lost tickets, report, garage, 47 passing checks, compiled with JDK 17; see plan 0013 notes). **The elevator is done too** (17 files: direction-aware hall calls, hand-back when out of service, express cars, fire recall, events and stats, 28 checks). **Only the vending machine / ATM is still open** (the ATM as code is the biggest piece). The parking-lot list below is kept as the model for how rich the other two should become.
 
 The user said the three finished LLD solutions are too simple and that LLD needs more diagrams. Diagrams were extended on
 2026-11-08 (each problem now has 7-8 extra diagrams in `lld-diagrams-a.ts`: decision flows, exit/race/overload sequences,

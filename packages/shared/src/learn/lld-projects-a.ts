@@ -1260,84 +1260,34 @@ public class Tests {
 `,
       },
       {
-        name: "HallCall.java",
-        code: `// A press of the up or down button on a floor.
-record HallCall(int floor, Direction direction) { }
+        name: "Want.java",
+        code: `// Why a car has to stop at a floor. INSIDE: a passenger in the car pressed this floor, so the car stops whichever way it
+// is going. UP or DOWN: someone on the floor pressed that hall button, so the car should stop only when it is going
+// that way (or when it has nothing left ahead and is about to turn round anyway).
+enum Want {
+    INSIDE, UP, DOWN;
+
+    static Want of(Direction direction) {
+        if (direction == Direction.IDLE) throw new IllegalArgumentException("A hall call needs UP or DOWN");
+        return direction == Direction.UP ? UP : DOWN;
+    }
+
+    Direction asDirection() {
+        return switch (this) {
+            case UP -> Direction.UP;
+            case DOWN -> Direction.DOWN;
+            case INSIDE -> Direction.IDLE;
+        };
+    }
+}
 `,
       },
       {
-        name: "ElevatorCar.java",
-        code: `import java.util.TreeSet;
-import java.util.function.Consumer;
-
-// One car. It keeps a sorted set of floors to stop at and moves one floor per tick (LOOK / SCAN style): keep
-// going in the current direction while there is a stop ahead, reverse only when nothing is left ahead.
-// Not thread safe on its own: ElevatorSystem serialises every call.
-final class ElevatorCar {
-    private final String id;
-    private final int capacityKg;
-    private final Consumer<String> log;
-    private final TreeSet<Integer> stops = new TreeSet<>();
-    private int floor;
-    private Direction direction = Direction.IDLE;
-    private CarState state = CarState.IDLE;
-    private int loadKg;
-    private boolean outOfService;
-
-    ElevatorCar(String id, int startFloor, int capacityKg, Consumer<String> log) {
-        this.id = id;
-        this.floor = startFloor;
-        this.capacityKg = capacityKg;
-        this.log = log;
-    }
-
-    String id() { return id; }
-    int floor() { return floor; }
-    Direction direction() { return direction; }
-    CarState state() { return state; }
-    int pendingStops() { return stops.size(); }
-    boolean outOfService() { return outOfService; }
-    boolean isIdle() { return state == CarState.IDLE && stops.isEmpty(); }
-
-    void addStop(int target) { stops.add(target); }
-    void setLoad(int kg) { loadKg = kg; }
-    void setOutOfService(boolean value) { outOfService = value; }
-
-    // One tick of simulated time.
-    void step() {
-        if (state == CarState.DOORS_OPEN) {
-            if (loadKg > capacityKg) {
-                log.accept("Car " + id + ": overloaded (" + loadKg + " kg > " + capacityKg + " kg), doors stay open");
-                return;
-            }
-            state = CarState.IDLE; // doors close
-            return;
-        }
-        if (stops.remove(floor)) { // we are at a requested floor
-            state = CarState.DOORS_OPEN;
-            log.accept("Car " + id + ": doors open at floor " + floor);
-            return;
-        }
-        direction = nextDirection();
-        if (direction == Direction.IDLE) {
-            state = CarState.IDLE;
-            return;
-        }
-        floor += direction == Direction.UP ? 1 : -1;
-        state = CarState.MOVING;
-    }
-
-    private Direction nextDirection() {
-        Integer above = stops.higher(floor);
-        Integer below = stops.lower(floor);
-        if (direction == Direction.UP && above != null) return Direction.UP;
-        if (direction == Direction.DOWN && below != null) return Direction.DOWN;
-        if (above != null && below == null) return Direction.UP;
-        if (below != null && above == null) return Direction.DOWN;
-        if (above != null) { // both sides have stops and we have no direction to keep: go to the nearer one
-            return (above - floor) <= (floor - below) ? Direction.UP : Direction.DOWN;
-        }
-        return Direction.IDLE;
+        name: "HallCall.java",
+        code: `// A press of the up or down button on a floor. A call must have a direction: IDLE is not a button.
+record HallCall(int floor, Direction direction) {
+    HallCall {
+        if (direction == Direction.IDLE) throw new IllegalArgumentException("A hall call needs UP or DOWN");
     }
 }
 `,
@@ -1356,17 +1306,23 @@ interface DispatchStrategy {
         name: "NearestCarStrategy.java",
         code: `import java.util.List;
 
-// Cost = distance to the call + a penalty per stop the car already has + a penalty for a car that is currently
-// heading the other way. Lowest cost wins; ties go to the first car in the list.
+// Cost = distance to the call + 2 per stop the car already has + 4 when the car is heading the other way + 4 more when
+// it has already passed the floor. Cars out of service, and cars that do not stop at that floor, are skipped.
+// Lowest cost wins; ties go to the first car in the list. Returns null when no car can answer.
 final class NearestCarStrategy implements DispatchStrategy {
     @Override
     public ElevatorCar choose(List<ElevatorCar> cars, HallCall call) {
         ElevatorCar best = null;
         int bestCost = Integer.MAX_VALUE;
         for (ElevatorCar car : cars) {
-            if (car.outOfService()) continue;
+            if (car.outOfService() || !car.servesFloor(call.floor())) continue;
             int cost = Math.abs(car.floor() - call.floor()) + 2 * car.pendingStops();
-            if (car.direction() != Direction.IDLE && car.direction() != call.direction()) cost += 4;
+            if (car.direction() != Direction.IDLE) {
+                if (car.direction() != call.direction()) cost += 4;
+                boolean alreadyPassed = (car.direction() == Direction.UP && call.floor() < car.floor())
+                        || (car.direction() == Direction.DOWN && call.floor() > car.floor());
+                if (alreadyPassed) cost += 4;
+            }
             if (cost < bestCost) {
                 best = car;
                 bestCost = cost;
@@ -1378,39 +1334,328 @@ final class NearestCarStrategy implements DispatchStrategy {
 `,
       },
       {
-        name: "ElevatorSystem.java",
+        name: "EventType.java",
+        code: `enum EventType {
+    DOORS_OPEN, DOORS_CLOSE, OVERLOAD,
+    CALL_ASSIGNED, CALL_REASSIGNED, CALL_UNASSIGNED,
+    CAR_OUT_OF_SERVICE, CAR_IN_SERVICE,
+    FIRE_RECALL, FIRE_PARKED, FIRE_RESET,
+    REJECTED
+}
+`,
+      },
+      {
+        name: "ElevatorEvent.java",
+        code: `// One thing that happened, with the tick it happened on. source is a car id, or "-" for the controller itself.
+record ElevatorEvent(long tick, String source, EventType type, int floor, String message) { }
+`,
+      },
+      {
+        name: "ElevatorListener.java",
+        code: `// Observer: anything that wants to hear what the elevators do (a console, an event log, a dashboard, an alarm panel).
+// The cars and the controller only know this interface. Listeners are called while the controller holds its lock,
+// so they must be quick and must not call back into the system.
+interface ElevatorListener {
+    void onEvent(ElevatorEvent event);
+}
+`,
+      },
+      {
+        name: "EventLog.java",
         code: `import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+// Keeps every event, in order. Tests ask it what happened instead of parsing printed text.
+final class EventLog implements ElevatorListener {
+    private final List<ElevatorEvent> events = new CopyOnWriteArrayList<>();
+
+    @Override
+    public void onEvent(ElevatorEvent event) { events.add(event); }
+
+    List<ElevatorEvent> events() { return List.copyOf(events); }
+
+    long count(EventType type) {
+        return events.stream().filter(e -> e.type() == type).count();
+    }
+
+    // The floors of all events of one type from one source, in the order they happened.
+    List<Integer> floorsOf(EventType type, String source) {
+        return events.stream()
+                .filter(e -> e.type() == type && e.source().equals(source))
+                .map(ElevatorEvent::floor)
+                .toList();
+    }
+}
+`,
+      },
+      {
+        name: "ConsoleListener.java",
+        code: `import java.util.EnumSet;
+import java.util.Set;
+import java.util.function.Consumer;
+
+// Prints the message of the event types it was asked to show. Everything else is ignored.
+final class ConsoleListener implements ElevatorListener {
+    private final Set<EventType> show;
+    private final Consumer<String> out;
+
+    ConsoleListener(Set<EventType> show, Consumer<String> out) {
+        this.show = EnumSet.copyOf(show);
+        this.out = out;
+    }
+
+    @Override
+    public void onEvent(ElevatorEvent event) {
+        if (show.contains(event.type())) out.accept(event.message());
+    }
+}
+`,
+      },
+      {
+        name: "CompositeListener.java",
+        code: `import java.util.List;
+
+// Several listeners behind one. The cars and the controller still see a single ElevatorListener.
+final class CompositeListener implements ElevatorListener {
+    private final List<ElevatorListener> listeners;
+
+    CompositeListener(ElevatorListener... listeners) {
+        this.listeners = List.of(listeners);
+    }
+
+    @Override
+    public void onEvent(ElevatorEvent event) {
+        for (ElevatorListener listener : listeners) listener.onEvent(event);
+    }
+}
+`,
+      },
+      {
+        name: "CarStats.java",
+        code: `// A read-only snapshot of one car, for the operator.
+record CarStats(String carId, int floor, int floorsTravelled, int doorOpenings, int pendingStops, boolean outOfService) { }
+`,
+      },
+      {
+        name: "ElevatorCar.java",
+        code: `import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
+// One car. It keeps its stops in a sorted map (floor to the reasons for stopping there) and moves one floor per tick,
+// LOOK style: keep going in the current direction while there is a stop ahead, reverse only when nothing is left
+// ahead. A hall call is only served when the car is going the way the caller wants, or when the car has nothing
+// further ahead and is about to turn round anyway. A passenger's own button is served either way.
+// Not thread safe on its own: ElevatorSystem serialises every call.
+final class ElevatorCar {
+    private final String id;
+    private final int capacityKg;
+    private final ElevatorListener listener;
+    private final Set<Integer> allowedFloors; // null means the car stops at every floor
+    private final TreeMap<Integer, EnumSet<Want>> stops = new TreeMap<>();
+    private int floor;
+    private Direction direction = Direction.IDLE;
+    private CarState state = CarState.IDLE;
+    private int loadKg;
+    private boolean outOfService;
+    private boolean recalled; // fire service: go to recallFloor, open the doors and stay there
+    private int recallFloor;
+    private long now;         // the tick of the most recent step, stamped on events
+    private int floorsTravelled;
+    private int doorOpenings;
+
+    ElevatorCar(String id, int startFloor, int capacityKg, ElevatorListener listener) {
+        this(id, startFloor, capacityKg, listener, null);
+    }
+
+    // An express car stops only at the floors in allowedFloors (it may still pass the others).
+    ElevatorCar(String id, int startFloor, int capacityKg, ElevatorListener listener, Set<Integer> allowedFloors) {
+        this.id = id;
+        this.floor = startFloor;
+        this.capacityKg = capacityKg;
+        this.listener = listener;
+        this.allowedFloors = allowedFloors == null ? null : Set.copyOf(allowedFloors);
+    }
+
+    String id() { return id; }
+    int floor() { return floor; }
+    Direction direction() { return direction; }
+    CarState state() { return state; }
+    int pendingStops() { return stops.size(); }
+    boolean outOfService() { return outOfService; }
+    boolean servesFloor(int target) { return allowedFloors == null || allowedFloors.contains(target); }
+
+    // Nothing left to do: idle with no stops, or parked with the doors open at the fire recall floor.
+    boolean isIdle() {
+        return (state == CarState.IDLE && stops.isEmpty()) || (recalled && state == CarState.DOORS_OPEN && floor == recallFloor);
+    }
+
+    CarStats stats() {
+        return new CarStats(id, floor, floorsTravelled, doorOpenings, stops.size(), outOfService);
+    }
+
+    void addStop(int target, Want want) {
+        if (!servesFloor(target)) throw new IllegalArgumentException("Car " + id + " does not stop at floor " + target);
+        stops.computeIfAbsent(target, k -> EnumSet.noneOf(Want.class)).add(want);
+    }
+
+    void setLoad(int kg) { loadKg = kg; }
+    void setOutOfService(boolean value) { outOfService = value; }
+
+    // Takes the hall calls off this car so the controller can give them to other cars. The passengers' own stops stay:
+    // the people inside still get out where they asked.
+    List<HallCall> drainHallCalls() {
+        List<HallCall> handedBack = new ArrayList<>();
+        var entries = stops.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry<Integer, EnumSet<Want>> entry = entries.next();
+            for (Want want : EnumSet.of(Want.UP, Want.DOWN)) {
+                if (entry.getValue().remove(want)) handedBack.add(new HallCall(entry.getKey(), want.asDirection()));
+            }
+            if (entry.getValue().isEmpty()) entries.remove();
+        }
+        return handedBack;
+    }
+
+    // Fire service: forget everything, go to the recall floor and wait there with the doors open.
+    void recall(int targetFloor) {
+        recalled = true;
+        recallFloor = targetFloor;
+        stops.clear();
+        stops.put(targetFloor, EnumSet.of(Want.INSIDE));
+    }
+
+    void clearRecall() { recalled = false; }
+
+    // One tick of simulated time.
+    void step(long tick) {
+        now = tick;
+        if (state == CarState.DOORS_OPEN) {
+            if (recalled && floor == recallFloor) return; // parked with the doors open until the alarm is reset
+            if (!recalled && loadKg > capacityKg) {
+                emit(EventType.OVERLOAD, "Car " + id + ": overloaded (" + loadKg + " kg > " + capacityKg + " kg), doors stay open");
+                return;
+            }
+            state = CarState.IDLE; // doors close
+            emit(EventType.DOORS_CLOSE, "Car " + id + ": doors close at floor " + floor);
+            return;
+        }
+        if (recalled && floor == recallFloor) {
+            stops.clear();
+            state = CarState.DOORS_OPEN;
+            doorOpenings++;
+            emit(EventType.FIRE_PARKED, "Car " + id + ": parked at floor " + floor + " with doors open (fire service)");
+            return;
+        }
+        if (serveStopsHere()) {
+            state = CarState.DOORS_OPEN;
+            doorOpenings++;
+            emit(EventType.DOORS_OPEN, "Car " + id + ": doors open at floor " + floor);
+            return;
+        }
+        direction = nextDirection();
+        if (direction == Direction.IDLE) {
+            state = CarState.IDLE;
+            return;
+        }
+        floor += direction == Direction.UP ? 1 : -1;
+        floorsTravelled++;
+        state = CarState.MOVING;
+    }
+
+    // Removes the reasons that this car should serve at its current floor. Returns true when it should open the doors.
+    private boolean serveStopsHere() {
+        EnumSet<Want> wants = stops.get(floor);
+        if (wants == null) return false;
+        boolean serveEverything = direction == Direction.IDLE || !hasStopsAhead();
+        boolean served = wants.remove(Want.INSIDE);
+        if (serveEverything) {
+            served |= !wants.isEmpty();
+            wants.clear();
+        } else {
+            served |= wants.remove(direction == Direction.UP ? Want.UP : Want.DOWN);
+        }
+        if (wants.isEmpty()) stops.remove(floor);
+        return served;
+    }
+
+    private boolean hasStopsAhead() {
+        return switch (direction) {
+            case UP -> stops.higherKey(floor) != null;
+            case DOWN -> stops.lowerKey(floor) != null;
+            case IDLE -> false;
+        };
+    }
+
+    private Direction nextDirection() {
+        Integer above = stops.higherKey(floor);
+        Integer below = stops.lowerKey(floor);
+        if (direction == Direction.UP && above != null) return Direction.UP;
+        if (direction == Direction.DOWN && below != null) return Direction.DOWN;
+        if (above != null && below == null) return Direction.UP;
+        if (below != null && above == null) return Direction.DOWN;
+        if (above != null) { // both sides have stops and we have no direction to keep: go to the nearer one
+            return (above - floor) <= (floor - below) ? Direction.UP : Direction.DOWN;
+        }
+        return Direction.IDLE;
+    }
+
+    private void emit(EventType type, String message) {
+        listener.onEvent(new ElevatorEvent(now, id, type, floor, message));
+    }
+}
+`,
+      },
+      {
+        name: "ElevatorSystem.java",
+        code: `import java.util.ArrayList;
+import java.util.List;
 
 // The controller. Every public method is synchronized, so button presses from many threads and the clock thread
 // that calls tick() never see a half-updated car. One lock is fine: the work inside is tiny.
+// It also owns the rules that involve more than one car: dispatching hall calls, handing calls back when a car is
+// taken out of service, and the building-wide fire recall.
 final class ElevatorSystem {
     private final int floors;
     private final List<ElevatorCar> cars;
     private final DispatchStrategy strategy;
+    private final ElevatorListener listener;
+    private final List<HallCall> unassigned = new ArrayList<>(); // handed back with no car left to take them
+    private long tick;
+    private boolean fire;
 
-    ElevatorSystem(int floors, List<ElevatorCar> cars, DispatchStrategy strategy) {
+    ElevatorSystem(int floors, List<ElevatorCar> cars, DispatchStrategy strategy, ElevatorListener listener) {
         this.floors = floors;
         this.cars = List.copyOf(cars);
         this.strategy = strategy;
+        this.listener = listener;
     }
 
     // Returns the id of the car that will come.
     synchronized String requestHall(HallCall call) {
+        requireNoFire();
         checkFloor(call.floor());
-        ElevatorCar car = strategy.choose(cars, call);
-        if (car == null) throw new IllegalStateException("No car in service");
-        car.addStop(call.floor());
-        return car.id();
+        String carId = dispatch(call, false);
+        if (carId == null) {
+            emit(EventType.REJECTED, "-", call.floor(), "No car can serve floor " + call.floor());
+            throw new IllegalStateException("No car can serve floor " + call.floor());
+        }
+        return carId;
     }
 
     // A passenger inside a car presses a floor button.
     synchronized void selectFloor(String carId, int floor) {
+        requireNoFire();
         checkFloor(floor);
-        find(carId).addStop(floor);
+        find(carId).addStop(floor, Want.INSIDE);
     }
 
     synchronized void tick() {
-        for (ElevatorCar car : cars) car.step();
+        tick++;
+        for (ElevatorCar car : cars) car.step(tick);
     }
 
     synchronized boolean allIdle() {
@@ -1422,11 +1667,78 @@ final class ElevatorSystem {
 
     synchronized void setLoad(String carId, int kg) { find(carId).setLoad(kg); }
 
-    synchronized void setOutOfService(String carId, boolean value) { find(carId).setOutOfService(value); }
+    // Taking a car out of service hands its hall calls to the other cars. The passengers inside are still delivered.
+    // Bringing it back retries any call that had nowhere to go.
+    synchronized void setOutOfService(String carId, boolean value) {
+        ElevatorCar car = find(carId);
+        car.setOutOfService(value);
+        if (!value) {
+            emit(EventType.CAR_IN_SERVICE, carId, car.floor(), "Car " + carId + " is back in service");
+            List<HallCall> waiting = new ArrayList<>(unassigned);
+            unassigned.clear();
+            for (HallCall call : waiting) {
+                if (dispatch(call, true) == null) unassigned.add(call);
+            }
+            return;
+        }
+        List<HallCall> handedBack = car.drainHallCalls();
+        emit(EventType.CAR_OUT_OF_SERVICE, carId, car.floor(),
+                "Car " + carId + " out of service: handing back " + handedBack.size() + " hall call(s)");
+        for (HallCall call : handedBack) {
+            if (dispatch(call, true) == null) {
+                unassigned.add(call);
+                emit(EventType.CALL_UNASSIGNED, "-", call.floor(),
+                        "Hall call " + call.floor() + " " + call.direction() + " is waiting for a car");
+            }
+        }
+    }
+
+    // Fire alarm: every car forgets its stops, goes to the recall floor and parks there with the doors open.
+    // Calls are ignored until resetFire().
+    synchronized void fireAlarm(int recallFloor) {
+        checkFloor(recallFloor);
+        fire = true;
+        unassigned.clear();
+        for (ElevatorCar car : cars) car.recall(recallFloor);
+        emit(EventType.FIRE_RECALL, "-", recallFloor, "Fire alarm: all cars recalled to floor " + recallFloor);
+    }
+
+    synchronized void resetFire() {
+        fire = false;
+        for (ElevatorCar car : cars) car.clearRecall();
+        emit(EventType.FIRE_RESET, "-", 0, "Fire alarm reset: cars return to normal service");
+    }
 
     synchronized String describe(String carId) {
         ElevatorCar car = find(carId);
         return "Car " + car.id() + " at floor " + car.floor() + " is " + car.state();
+    }
+
+    synchronized List<CarStats> stats() {
+        List<CarStats> all = new ArrayList<>();
+        for (ElevatorCar car : cars) all.add(car.stats());
+        return all;
+    }
+
+    // Returns the id of the car that took the call, or null when no car can.
+    private String dispatch(HallCall call, boolean reassigned) {
+        ElevatorCar car = strategy.choose(cars, call);
+        if (car == null) return null;
+        car.addStop(call.floor(), Want.of(call.direction()));
+        emit(reassigned ? EventType.CALL_REASSIGNED : EventType.CALL_ASSIGNED, car.id(), call.floor(),
+                "Hall call " + call.floor() + " " + call.direction() + (reassigned ? " reassigned to Car " : " assigned to Car ") + car.id());
+        return car.id();
+    }
+
+    private void requireNoFire() {
+        if (fire) {
+            emit(EventType.REJECTED, "-", 0, "Fire service: calls are ignored");
+            throw new IllegalStateException("Fire service: calls are ignored");
+        }
+    }
+
+    private void emit(EventType type, String source, int floor, String message) {
+        listener.onEvent(new ElevatorEvent(tick, source, type, floor, message));
     }
 
     private ElevatorCar find(String carId) {
@@ -1444,15 +1756,29 @@ final class ElevatorSystem {
       },
       {
         name: "Main.java",
-        code: `import java.util.List;
-import java.util.function.Consumer;
+        code: `import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
+    private static ElevatorListener listener(EventLog log, EventType... shown) {
+        return new CompositeListener(log, new ConsoleListener(EnumSet.copyOf(List.of(shown)), System.out::println));
+    }
+
+    private static void runUntilIdle(ElevatorSystem system) {
+        int guard = 0;
+        while (!system.allIdle() && guard++ < 200) system.tick();
+    }
+
     public static void main(String[] args) {
-        Consumer<String> log = System.out::println;
+        // ---- Part 1: two cars, hall calls, passenger buttons and an overload -------------------------------
+        EventLog log = new EventLog();
+        ElevatorListener both = listener(log, EventType.DOORS_OPEN, EventType.OVERLOAD);
         ElevatorSystem system = new ElevatorSystem(10,
-                List.of(new ElevatorCar("A", 0, 600, log), new ElevatorCar("B", 9, 600, log)),
-                new NearestCarStrategy());
+                List.of(new ElevatorCar("A", 0, 600, both), new ElevatorCar("B", 9, 600, both)),
+                new NearestCarStrategy(), both);
 
         System.out.println("Hall call 3 UP -> Car " + system.requestHall(new HallCall(3, Direction.UP)));
         System.out.println("Hall call 8 DOWN -> Car " + system.requestHall(new HallCall(8, Direction.DOWN)));
@@ -1473,6 +1799,62 @@ public class Main {
         system.setLoad("A", 300);
         system.tick(); // doors close
         System.out.println(system.describe("A"));
+        for (CarStats s : system.stats()) {
+            System.out.println("Stats " + s.carId() + ": travelled " + s.floorsTravelled() + " floors, opened doors " + s.doorOpenings() + " times");
+        }
+
+        // ---- Part 2: a hall call only stops a car that is going the right way ---------------------------------
+        System.out.println("-- Direction-aware hall calls");
+        EventLog log2 = new EventLog();
+        ElevatorListener l2 = listener(log2, EventType.DOORS_OPEN);
+        ElevatorSystem s2 = new ElevatorSystem(10, List.of(new ElevatorCar("C", 0, 600, l2)), new NearestCarStrategy(), l2);
+        s2.selectFloor("C", 6);
+        s2.requestHall(new HallCall(3, Direction.DOWN)); // car C will pass floor 3 on its way up and must not stop
+        runUntilIdle(s2);
+        System.out.println("Car C opened its doors at floors " + log2.floorsOf(EventType.DOORS_OPEN, "C"));
+
+        // ---- Part 3: a car is taken out of service on its way to a call ---------------------------------------
+        System.out.println("-- A car taken out of service");
+        EventLog log3 = new EventLog();
+        ElevatorListener l3 = listener(log3, EventType.CAR_OUT_OF_SERVICE, EventType.CALL_REASSIGNED, EventType.DOORS_OPEN);
+        ElevatorSystem s3 = new ElevatorSystem(10,
+                List.of(new ElevatorCar("A", 2, 600, l3), new ElevatorCar("B", 8, 600, l3)), new NearestCarStrategy(), l3);
+        s3.requestHall(new HallCall(4, Direction.UP)); // A is nearer
+        s3.selectFloor("A", 6);                         // and a passenger is already inside A
+        s3.tick();
+        s3.setOutOfService("A", true);                  // the call goes to B, the passenger is still delivered
+        runUntilIdle(s3);
+        System.out.println("Car A served floors " + log3.floorsOf(EventType.DOORS_OPEN, "A")
+                + " and car B served floors " + log3.floorsOf(EventType.DOORS_OPEN, "B"));
+
+        // ---- Part 4: an express car and the fire recall ---------------------------------------------------------
+        System.out.println("-- Express car and fire service");
+        EventLog log4 = new EventLog();
+        ElevatorListener l4 = listener(log4, EventType.FIRE_RECALL, EventType.FIRE_PARKED, EventType.FIRE_RESET);
+        // L is a low-rise car (floors 0 to 9). X is an express car that only stops at 0, 10 and 20.
+        Set<Integer> lowRise = IntStream.rangeClosed(0, 9).boxed().collect(Collectors.toSet());
+        ElevatorCar local = new ElevatorCar("L", 5, 600, l4, lowRise);
+        ElevatorCar express = new ElevatorCar("X", 0, 600, l4, Set.of(0, 10, 20));
+        ElevatorSystem s4 = new ElevatorSystem(21, List.of(local, express), new NearestCarStrategy(), l4);
+        System.out.println("Hall call 20 DOWN -> Car " + s4.requestHall(new HallCall(20, Direction.DOWN)));
+        System.out.println("Hall call 7 UP -> Car " + s4.requestHall(new HallCall(7, Direction.UP)));
+        try {
+            s4.selectFloor("X", 7);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Rejected: " + e.getMessage());
+        }
+        s4.tick();
+        s4.tick();
+        s4.fireAlarm(0);
+        runUntilIdle(s4);
+        try {
+            s4.requestHall(new HallCall(3, Direction.UP));
+        } catch (IllegalStateException e) {
+            System.out.println("Rejected: " + e.getMessage());
+        }
+        s4.resetFire();
+        s4.tick();
+        System.out.println(s4.describe("L") + ", " + s4.describe("X"));
     }
 }
 `,
@@ -1483,7 +1865,12 @@ public class Main {
         name: "Tests.java",
         code: `import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Tests {
     private static int failures = 0;
@@ -1493,64 +1880,71 @@ public class Tests {
         if (!ok) failures++;
     }
 
-    private static ElevatorSystem system(Consumer<String> log, int... startFloors) {
+    private static ElevatorSystem system(EventLog log, int... startFloors) {
         List<ElevatorCar> cars = new ArrayList<>();
         for (int i = 0; i < startFloors.length; i++) {
             cars.add(new ElevatorCar(String.valueOf((char) ('A' + i)), startFloors[i], 600, log));
         }
-        return new ElevatorSystem(10, cars, new NearestCarStrategy());
+        return new ElevatorSystem(10, cars, new NearestCarStrategy(), log);
     }
 
     private static void runUntilIdle(ElevatorSystem system) {
         int guard = 0;
-        while (!system.allIdle() && guard++ < 200) system.tick();
+        while (!system.allIdle() && guard++ < 500) system.tick();
     }
 
-    public static void main(String[] args) {
+    private static List<Integer> opened(EventLog log, String car) { return log.floorsOf(EventType.DOORS_OPEN, car); }
+
+    public static void main(String[] args) throws Exception {
         nearestIdleCarGetsTheCall();
         stopsAreServedInSweepOrder();
         carServesTheNearerSideFirstThenReverses();
         carOutOfServiceIsSkipped();
         invalidFloorIsRejected();
         overloadKeepsTheDoorsOpen();
+        callInTheCarsDirectionIsServedOnTheWay();
+        callInTheOppositeDirectionWaitsForTheReturn();
+        callAtTheEndOfTheSweepIsServedAtOnce();
+        outOfServiceCarHandsItsCallsBack();
+        callWithNoCarLeftWaitsUntilACarReturns();
+        expressCarOnlyStopsAtItsFloors();
+        fireRecallParksEveryCarAndIgnoresCalls();
+        statsCountMovesAndDoorOpenings();
+        concurrentButtonsAndTicksNeverLoseACall();
         if (failures > 0) System.exit(1);
     }
 
     private static void nearestIdleCarGetsTheCall() {
-        ElevatorSystem s = system(msg -> { }, 0, 9);
+        ElevatorSystem s = system(new EventLog(), 0, 9);
         check(s.requestHall(new HallCall(8, Direction.DOWN)).equals("B"), "the idle car on floor 9 answers a call from floor 8");
     }
 
     private static void stopsAreServedInSweepOrder() {
-        List<String> events = new ArrayList<>();
-        ElevatorSystem s = system(events::add, 0);
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0);
         s.selectFloor("A", 7);
         s.selectFloor("A", 3);
         runUntilIdle(s);
-        int at3 = events.indexOf("Car A: doors open at floor 3");
-        int at7 = events.indexOf("Car A: doors open at floor 7");
-        check(at3 >= 0 && at7 > at3, "floors 3 then 7 are served in the order the car passes them");
+        check(opened(log, "A").equals(List.of(3, 7)), "floors 3 then 7 are served in the order the car passes them");
     }
 
     private static void carServesTheNearerSideFirstThenReverses() {
-        List<String> events = new ArrayList<>();
-        ElevatorSystem s = system(events::add, 5);
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 5);
         s.selectFloor("A", 2);
         s.selectFloor("A", 8);
         runUntilIdle(s);
-        int at8 = events.indexOf("Car A: doors open at floor 8");
-        int at2 = events.indexOf("Car A: doors open at floor 2");
-        check(at8 >= 0 && at2 > at8, "from floor 5 with stops at 8 and 2 (tie) it goes up first, then reverses");
+        check(opened(log, "A").equals(List.of(8, 2)), "from floor 5 with stops at 8 and 2 (tie) it goes up first, then reverses");
     }
 
     private static void carOutOfServiceIsSkipped() {
-        ElevatorSystem s = system(msg -> { }, 0, 9);
+        ElevatorSystem s = system(new EventLog(), 0, 9);
         s.setOutOfService("A", true);
         check(s.requestHall(new HallCall(1, Direction.UP)).equals("B"), "a car out of service never gets a call");
     }
 
     private static void invalidFloorIsRejected() {
-        ElevatorSystem s = system(msg -> { }, 0);
+        ElevatorSystem s = system(new EventLog(), 0);
         boolean rejected = false;
         try {
             s.selectFloor("A", 99);
@@ -1558,20 +1952,161 @@ public class Tests {
             rejected = true;
         }
         check(rejected, "a floor that does not exist is rejected");
+        boolean noButton = false;
+        try {
+            new HallCall(3, Direction.IDLE);
+        } catch (IllegalArgumentException e) {
+            noButton = true;
+        }
+        check(noButton, "a hall call without a direction is rejected");
     }
 
     private static void overloadKeepsTheDoorsOpen() {
-        List<String> events = new ArrayList<>();
-        ElevatorSystem s = system(events::add, 4);
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 4);
         s.setLoad("A", 900);
         s.selectFloor("A", 4);
         s.tick();
         s.tick();
-        boolean complained = events.stream().anyMatch(e -> e.contains("overloaded"));
-        check(complained && s.describe("A").contains("DOORS_OPEN"), "an overloaded car keeps its doors open");
+        check(log.count(EventType.OVERLOAD) >= 1 && s.describe("A").contains("DOORS_OPEN"), "an overloaded car keeps its doors open");
         s.setLoad("A", 100);
         s.tick();
         check(s.describe("A").contains("IDLE"), "the doors close once the load is back under the limit");
+    }
+
+    // ---- direction-aware hall calls ----------------------------------------------------------------------
+
+    private static void callInTheCarsDirectionIsServedOnTheWay() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0);
+        s.selectFloor("A", 6);
+        s.requestHall(new HallCall(3, Direction.UP));
+        runUntilIdle(s);
+        check(opened(log, "A").equals(List.of(3, 6)), "an UP call at floor 3 is served by a car going up past it");
+    }
+
+    private static void callInTheOppositeDirectionWaitsForTheReturn() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0);
+        s.selectFloor("A", 6);
+        s.requestHall(new HallCall(3, Direction.DOWN));
+        runUntilIdle(s);
+        check(opened(log, "A").equals(List.of(6, 3)), "a DOWN call at floor 3 is not served by a car going up: it waits for the way back");
+    }
+
+    private static void callAtTheEndOfTheSweepIsServedAtOnce() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0);
+        s.requestHall(new HallCall(5, Direction.DOWN));
+        runUntilIdle(s);
+        check(opened(log, "A").equals(List.of(5)), "with nothing further ahead the car serves the DOWN call where it turns round");
+    }
+
+    // ---- out of service ----------------------------------------------------------------------------------
+
+    private static void outOfServiceCarHandsItsCallsBack() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0, 9);
+        check(s.requestHall(new HallCall(2, Direction.UP)).equals("A"), "car A is nearer to the call at floor 2");
+        s.selectFloor("A", 6);
+        s.tick();
+        s.setOutOfService("A", true);
+        runUntilIdle(s);
+        check(log.count(EventType.CALL_REASSIGNED) == 1, "the hall call was handed to another car");
+        check(opened(log, "B").equals(List.of(2)), "car B came for the call");
+        check(opened(log, "A").equals(List.of(6)), "car A still delivered its passenger");
+    }
+
+    private static void callWithNoCarLeftWaitsUntilACarReturns() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0);
+        s.requestHall(new HallCall(3, Direction.UP));
+        s.setOutOfService("A", true);
+        check(log.count(EventType.CALL_UNASSIGNED) == 1, "with no other car the call is kept, not lost");
+        s.setOutOfService("A", false);
+        runUntilIdle(s);
+        check(opened(log, "A").equals(List.of(3)), "the kept call is served once the car is back");
+    }
+
+    // ---- express and fire --------------------------------------------------------------------------------
+
+    private static void expressCarOnlyStopsAtItsFloors() {
+        EventLog log = new EventLog();
+        Set<Integer> lowRise = IntStream.rangeClosed(0, 9).boxed().collect(Collectors.toSet());
+        ElevatorCar local = new ElevatorCar("L", 5, 600, log, lowRise);
+        ElevatorCar express = new ElevatorCar("X", 0, 600, log, Set.of(0, 10, 20));
+        ElevatorSystem s = new ElevatorSystem(21, List.of(local, express), new NearestCarStrategy(), log);
+        check(s.requestHall(new HallCall(20, Direction.DOWN)).equals("X"), "only the express car can answer a call from floor 20");
+        check(s.requestHall(new HallCall(7, Direction.UP)).equals("L"), "the express car is never sent to floor 7");
+        boolean rejected = false;
+        try {
+            s.selectFloor("X", 7);
+        } catch (IllegalArgumentException e) {
+            rejected = true;
+        }
+        check(rejected, "a passenger cannot select a floor the express car does not stop at");
+    }
+
+    private static void fireRecallParksEveryCarAndIgnoresCalls() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 5, 8);
+        s.selectFloor("A", 9);
+        s.requestHall(new HallCall(2, Direction.UP));
+        s.tick();
+        s.fireAlarm(0);
+        runUntilIdle(s);
+        check(log.count(EventType.FIRE_PARKED) == 2, "both cars end up parked at the recall floor");
+        check(s.describe("A").contains("floor 0") && s.describe("B").contains("floor 0")
+                && s.describe("A").contains("DOORS_OPEN"), "they wait there with the doors open");
+        boolean ignored = false;
+        try {
+            s.requestHall(new HallCall(3, Direction.UP));
+        } catch (IllegalStateException e) {
+            ignored = true;
+        }
+        check(ignored, "calls are refused during a fire alarm");
+        s.resetFire();
+        s.tick();
+        check(s.describe("A").contains("IDLE"), "after the reset the doors close");
+        check(s.requestHall(new HallCall(3, Direction.UP)) != null, "calls work again after the reset");
+    }
+
+    // ---- stats and threads -------------------------------------------------------------------------------
+
+    private static void statsCountMovesAndDoorOpenings() {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0);
+        s.selectFloor("A", 4);
+        runUntilIdle(s);
+        CarStats stats = s.stats().get(0);
+        check(stats.floorsTravelled() == 4 && stats.doorOpenings() == 1 && stats.floor() == 4 && stats.pendingStops() == 0,
+                "stats: 4 floors travelled, doors opened once, no stops left");
+    }
+
+    private static void concurrentButtonsAndTicksNeverLoseACall() throws Exception {
+        EventLog log = new EventLog();
+        ElevatorSystem s = system(log, 0, 4, 9);
+        ExecutorService pool = Executors.newFixedThreadPool(8);
+        List<Future<?>> futures = new ArrayList<>();
+        for (int t = 0; t < 6; t++) {
+            final int offset = t;
+            futures.add(pool.submit(() -> {
+                for (int i = 0; i < 40; i++) {
+                    int floor = (i * 7 + offset) % 10;
+                    s.requestHall(new HallCall(floor, floor % 2 == 0 ? Direction.UP : Direction.DOWN));
+                }
+            }));
+        }
+        futures.add(pool.submit(() -> {
+            for (int i = 0; i < 200; i++) s.tick();
+        }));
+        for (Future<?> f : futures) f.get();
+        pool.shutdown();
+        runUntilIdle(s);
+        int pending = 0;
+        for (CarStats c : s.stats()) pending += c.pendingStops();
+        check(s.allIdle() && pending == 0, "240 calls and 200 ticks from 7 threads: every car ends idle with nothing pending");
+        check(log.count(EventType.CALL_ASSIGNED) == 240, "every one of the 240 calls was assigned to a car");
     }
 }
 `,
@@ -1584,8 +2119,31 @@ public class Tests {
       "Car A: doors open at floor 3",
       "Car A: doors open at floor 7",
       "All cars idle after 11 ticks",
+      "Car A: doors open at floor 7",
       "Car A: overloaded (800 kg > 600 kg), doors stay open",
       "Car A at floor 7 is IDLE",
+      "Stats A: travelled 7 floors, opened doors 3 times",
+      "Stats B: travelled 1 floors, opened doors 1 times",
+      "-- Direction-aware hall calls",
+      "Car C: doors open at floor 6",
+      "Car C: doors open at floor 3",
+      "Car C opened its doors at floors [6, 3]",
+      "-- A car taken out of service",
+      "Car A out of service: handing back 1 hall call(s)",
+      "Hall call 4 UP reassigned to Car B",
+      "Car A: doors open at floor 6",
+      "Car B: doors open at floor 4",
+      "Car A served floors [6] and car B served floors [4]",
+      "-- Express car and fire service",
+      "Hall call 20 DOWN -> Car X",
+      "Hall call 7 UP -> Car L",
+      "Rejected: Car X does not stop at floor 7",
+      "Fire alarm: all cars recalled to floor 0",
+      "Car X: parked at floor 0 with doors open (fire service)",
+      "Car L: parked at floor 0 with doors open (fire service)",
+      "Rejected: Fire service: calls are ignored",
+      "Fire alarm reset: cars return to normal service",
+      "Car L at floor 0 is IDLE, Car X at floor 0 is IDLE",
     ],
   },
 
@@ -2211,59 +2769,99 @@ Why LongAdder for revenue? Many gates add and rarely anyone reads. LongAdder spr
         title: "What to clarify first",
         body: `An elevator is not one problem, it is three: how a single car decides where to go next, how a building with several cars decides which car answers a call, and how all of that behaves when requests arrive from different threads. Clarify which of them the interviewer cares about, and fix the scope in writing.
 
-Ask: how many floors and cars? Are there two buttons per floor (up and down) or one? Is there a button panel inside the car? Do we care about weight limits, doors, emergency stop and maintenance mode? Is this a simulation or real control software? The answer to the last one matters most. We build a simulation with a clock: time advances in ticks, and each tick every car does one thing, either moving one floor or handling its doors. That keeps the design testable and deterministic.
+Ask: how many floors and cars? Are there two buttons per floor (up and down) or one? Is there a button panel inside the car? Do we care about weight limits, doors, emergency stop and maintenance mode? Do some cars skip floors? What happens in a fire? Is this a simulation or real control software? The answer to the last one matters most. We build a simulation with a clock: time advances in ticks, and each tick every car does one thing, either moving one floor or handling its doors. That keeps the design testable and deterministic.
 
-State your assumptions as requirements: ten floors numbered 0 to 9, two cars, a hall call carries a floor and a direction, passengers inside press floor buttons, a car has a weight limit, and a car can be taken out of service.`,
+State your assumptions as requirements: floors numbered from 0, several cars, a hall call carries a floor and a direction, passengers inside press floor buttons, a car has a weight limit, a car can be taken out of service, a car may be an express car that stops only at some floors, and a fire alarm sends every car to one floor. Then build in layers. First one car and its sweep, then dispatch across cars, then the follow-ups one at a time. The code in this project is built in that order, and each layer is a separate section below.`,
       },
       {
         title: "Responsibilities: who knows what",
-        body: `ElevatorCar owns everything about one car: its floor, its direction, its door state, its load and its set of stops. It knows nothing about other cars or about how requests were chosen. That separation is the whole design, so it is worth stating: the car decides how to serve its stops, and someone else decides which stops it gets.
+        body: `ElevatorCar owns everything about one car: its floor, its direction, its door state, its load, the floors it may stop at and its map of stops. It knows nothing about other cars or about how requests were chosen. That separation is the whole design, so it is worth stating: the car decides how to serve its stops, and someone else decides which stops it gets.
 
-ElevatorSystem is the controller and the only public entry point. It accepts hall calls and floor selections, asks the strategy which car should take a call, drives the clock with tick(), and validates floors.
+ElevatorSystem is the controller and the only public entry point. It accepts hall calls and floor selections, asks the strategy which car should take a call, drives the clock with tick(), validates floors, and owns the rules that involve more than one car: handing calls back when a car leaves service, and the building-wide fire recall.
 
 DispatchStrategy answers one question: given the cars and a call, which car? It is an interface because this is the part every real building tunes, and because it is easy to swap in an interview extension.
 
-HallCall is a record of a floor and a direction. Direction and CarState are enums. Notice what is missing: no Floor class, no Button class, no Door class. Buttons are method calls, doors are a state, and a floor is an int. A reader should be able to see the shape of the whole system in a minute.`,
+Want is a small enum that records why a car has to stop at a floor: a passenger inside pressed it (INSIDE), or someone on the floor pressed UP or DOWN. It is the reason a stop is a map entry and not just a number. HallCall is a record of a floor and a direction, and it refuses IDLE because a button with no direction does not exist.
+
+ElevatorListener is the observer. The cars and the controller report what they do as ElevatorEvent records, and anything may listen: ConsoleListener prints the event types it is asked to show, EventLog keeps everything for tests, CompositeListener fans one event out to several listeners. CarStats is the read-only snapshot for an operator.
+
+Notice what is missing: no Floor class, no Button class, no Door class. Buttons are method calls, doors are a state, and a floor is an int. A reader should be able to see the shape of the whole system in a minute.`,
       },
       {
         title: "How one car decides where to go",
         body: `The simplest policy, first come first served, is also the worst: a car at floor 1 asked for 9, then 2, then 8 would run up and down for no reason. Real elevators use the sweep idea known as SCAN or LOOK: keep moving in the current direction while there are stops ahead, serve them in the order you pass them, and reverse only when nothing is left ahead.
 
-The car keeps its stops in a TreeSet, which is sorted. nextDirection asks two cheap questions: is there a stop above (higher) and is there a stop below (lower)? If it was going up and there is still a stop above, it keeps going up. If it was going down and there is one below, it keeps going down. If only one side has stops, it goes that way. If both sides have stops and it has no direction to keep, it chooses the nearer side.
+The car keeps its stops in a TreeMap from floor to the set of reasons for stopping there, which is sorted by floor. nextDirection asks two cheap questions: is there a stop above (higherKey) and is there a stop below (lowerKey)? If it was going up and there is still a stop above, it keeps going up. If it was going down and there is one below, it keeps going down. If only one side has stops, it goes that way. If both sides have stops and it has no direction to keep, it chooses the nearer side.
 
-Trace it. A car at floor 0 holds stops 3 and 7. Ticks 1 to 3: it moves to 1, 2, 3. Tick 4: floor 3 is a stop, so it opens its doors and removes the stop. Tick 5: the doors close. Ticks 6 to 9: it moves to 4, 5, 6, 7. Tick 10: it opens at 7. Tick 11: the doors close, no stops are left, the car is idle. A TreeSet makes each decision O(log n) and removes the need for separate up and down lists.
+Trace it. A car at floor 0 holds stops 3 and 7. Ticks 1 to 3: it moves to 1, 2, 3. Tick 4: floor 3 is a stop, so it opens its doors and removes the stop. Tick 5: the doors close. Ticks 6 to 9: it moves to 4, 5, 6, 7. Tick 10: it opens at 7. Tick 11: the doors close, no stops are left, the car is idle. A sorted map makes each decision O(log n) and removes the need for separate up and down lists.
 
 LOOK can starve a request in theory if people keep adding stops ahead, but with a bounded number of floors a stop behind the car is reached after at most one sweep, so waiting is bounded. That is the property to quote.`,
       },
       {
-        title: "How a building picks a car",
-        body: `NearestCarStrategy assigns each call a cost and picks the lowest. The cost is the distance from the car to the call, plus two for each stop the car already has (a busy car is slower than it looks), plus four if the car is currently heading the opposite way to the call. Cars out of service are skipped. Ties go to the first car in the list, which keeps behaviour deterministic.
+        title: "Direction-aware hall calls",
+        body: `The first version of this design treated every stop alike, and that has a visible bug. A person on floor 3 presses DOWN. A car heading up from floor 0 to floor 6 passes floor 3, sees a stop there, and opens its doors. The person steps in, and the car carries them up to 6, away from where they wanted to go. A stop must remember why it exists.
 
-Example from Main: cars A at floor 0 and B at floor 9. A hall call at floor 3 going up costs 3 for A and 6 for B, so A takes it. A second call at floor 8 going down costs 8 + 2 (A already has a stop) = 10 for A and 1 for B, so B takes it. The numbers are arbitrary, and you should say so: what matters is that distance, load and direction all enter the cost and that the weights are in one place that can be tuned.
+That is what Want is for. A passenger's own button is INSIDE: the car stops whichever way it is going, because the person is already aboard. A hall button is UP or DOWN, and the car should stop for it only when it is going that way. When a car arrives at a floor with stops, serveStopsHere decides what to serve. It always serves INSIDE. It serves a hall call whose direction matches the car's direction. And it serves everything when the car has nothing further ahead, or when the car is idle, because a car that is about to turn round at this floor is about to go the caller's way anyway.
+
+The scenario in Main shows all three branches. Car C starts at floor 0 with a passenger going to 6 and a DOWN call at 3. It rises through 3 without stopping, because a DOWN call does not fit a car going up and there is a stop (6) still ahead. It opens at 6, reverses, and opens at 3 on the way down, where the stop is served because the car is now going down. Had there been a UP call at 3, the car would have stopped on the way up. And a lone DOWN call at 5 with nothing else pending is served on arrival, because nothing lies ahead and the car is about to turn.
+
+The rule has a cost in the dispatch strategy too. A car that is already moving away from the call, or moving the other way, will reach it late, so NearestCarStrategy adds a penalty for both. The two classes agree on what "on the way" means, and a good answer in an interview says so: the sweep rule is local to the car, the cost rule predicts it from outside.`,
+      },
+      {
+        title: "How a building picks a car",
+        body: `NearestCarStrategy assigns each call a cost and picks the lowest. The cost is the distance from the car to the call, plus two for each stop the car already has (a busy car is slower than it looks), plus four if the car is currently heading the opposite way to the call, plus four more if it has already passed the floor. Cars out of service are skipped, and so are cars that do not stop at the call's floor. Ties go to the first car in the list, which keeps behaviour deterministic. If no car qualifies the strategy returns null and the controller rejects the call.
+
+Example from Main: cars A at floor 0 and B at floor 9. A hall call at floor 3 going up costs 3 for A and 6 for B, so A takes it. A second call at floor 8 going down costs 8 + 2 (A already has a stop) = 10 for A and 1 for B, so B takes it. The numbers are arbitrary, and you should say so: what matters is that distance, load, direction and floor access all enter the cost and that the weights are in one place that can be tuned.
 
 Be ready to name the alternatives. Zoning assigns cars to floor ranges and is simple and predictable. Destination dispatch, used in tall buildings, asks passengers for their destination floor before they board and groups people going to the same place, which raises throughput a lot at the price of a keypad in every lobby. A scoring function like ours is the middle path.
 
 The strategy is a pure function of the cars' state, which means you can unit-test it without a clock: build cars at known floors, make a call, and check the answer.`,
       },
       {
-        title: "State, ticks and doors",
-        body: `A car has three states: IDLE, MOVING and DOORS_OPEN. Each tick does exactly one thing. If the doors are open, close them, unless the car is overloaded, in which case log a warning and keep them open. Otherwise, if the car is at a floor it was asked to stop at, open the doors. Otherwise decide a direction and move one floor, or stay idle if there is nothing to do.
+        title: "Out of service, express cars and fire recall",
+        body: `Out of service. Taking a car out of service in the middle of a trip raises a question: what happens to the people who pressed buttons? The design answers it in two parts. The hall calls the car had accepted are handed back: the car's drainHallCalls removes every UP and DOWN reason from its map and returns them, and the controller dispatches each one again through the strategy, which now skips that car. The passengers inside are still delivered: their INSIDE stops stay, so the car finishes its trip and then stays where it is. If no other car can take a handed-back call, the controller keeps it in a waiting list, reports CALL_UNASSIGNED, and tries again when a car comes back into service. A call is never silently lost, and the test for it is one of the more useful ones.
 
-Why a tick-driven design instead of timers and threads inside each car? Because it is deterministic. A test that calls tick() eleven times and asserts the log is exact, while a test that sleeps is slow and flaky. In production the same code would be driven by a scheduler: one tick every second.
+Express cars. A car may be given a set of floors it stops at. servesFloor answers whether it does, addStop refuses a floor outside the set (so a passenger cannot press a button the express car does not stop at), and the dispatch strategy skips the car for calls at other floors. This is a small change, but it is a good illustration of putting a rule where the data lives: the car knows its floors, so the car enforces them, and the strategy only asks. In Main the low-rise car stops at floors 0 to 9 and the express car only at 0, 10 and 20, so a call from floor 20 can only go to the express car and a call from 7 can only go to the low-rise car.
+
+Fire recall. A fire alarm overrides everything. fireAlarm(floor) tells every car to recall: the car forgets all its stops, gets one stop at the recall floor, and the controller starts refusing all calls with a clear message. When a recalled car arrives it opens its doors and stays open, reporting FIRE_PARKED, and it counts as idle so a loop that waits for the building to settle can end. A car that has its doors open elsewhere closes them (ignoring the overload rule) and goes. resetFire clears the recall, and the next tick closes the doors. Two details are worth saying out loud. The recall is a car-level mode and not a new CarState, because the car still moves and opens doors in the usual way; the mode only changes what it is allowed to want. And the real standard (recall, then firefighter-controlled service) has more phases than this, which we leave out and say so.`,
+      },
+      {
+        title: "State, ticks, doors and events",
+        body: `A car has three states: IDLE, MOVING and DOORS_OPEN. Each tick does exactly one thing. If the doors are open, close them, unless the car is overloaded, in which case report a warning and keep them open. Otherwise, if the car is at a floor it was asked to stop at (and the direction rule says to serve it), open the doors. Otherwise decide a direction and move one floor, or stay idle if there is nothing to do.
+
+Why a tick-driven design instead of timers and threads inside each car? Because it is deterministic. A test that calls tick() eleven times and asserts what happened is exact, while a test that sleeps is slow and flaky. In production the same code would be driven by a scheduler: one tick every second.
 
 The overload rule shows how a new requirement lands in the design: it is a single check at the door-closing step. The car stays in DOORS_OPEN until the load falls under the capacity. No new state was needed, because "doors open" already means "not leaving yet".
 
-Run Main to see the whole thing: both hall calls are assigned, the cars sweep to their stops, everything is idle after 11 ticks, and then car A, overloaded at floor 7, keeps its doors open until the load is reduced.`,
+Everything the system does is also an event: doors opening and closing, an overload, a call assigned or reassigned, a car leaving or rejoining service, the fire recall. Cars and the controller send events to an ElevatorListener and know nothing about who is listening. The tests listen with EventLog and ask questions such as "at which floors did car C open its doors, in order?", which is much more robust than comparing printed strings. Main listens with ConsoleListener and chooses which event types to print, so the same run can be quiet or chatty. Events carry the tick they happened on, which also makes a replayable audit trail.
+
+Run Main to see the whole thing. Part 1: both hall calls are assigned, the cars sweep to their stops, everything is idle after 11 ticks, and car A, overloaded at floor 7, keeps its doors open until the load is reduced; the stats show car A travelled 7 floors and opened its doors 3 times. Part 2: the DOWN call waits for the way back. Part 3: car A leaves service and its call goes to car B. Part 4: the express car takes the call from floor 20, a button it does not serve is refused, a fire alarm parks both cars at floor 0 and refuses calls, and a reset brings them back.`,
       },
       {
-        title: "Concurrency, testing and extensions",
-        body: `Button presses come from many threads and the clock comes from another. The design uses one lock: every public method of ElevatorSystem is synchronized. That is correct and fast enough, because each call does a handful of operations on small collections. Cars are not thread safe by themselves, and the comment says so; they are only ever touched while holding the controller's lock.
+        title: "Concurrency and testing",
+        body: `Button presses come from many threads and the clock comes from another. The design uses one lock: every public method of ElevatorSystem is synchronized. That is correct and fast enough, because each call does a handful of operations on small collections. Cars are not thread safe by themselves, and the comment says so; they are only ever touched while holding the controller's lock. Listeners are called under that lock too, so a listener must be quick, and the contract says it must not call back into the system.
 
 A different answer, which many people prefer, is to have all requests go through a queue consumed by a single control thread, so the cars need no locks at all. State both options, and note the trade: the lock is simpler, the queue scales better and makes ordering explicit.
 
-Tests cover: the nearest idle car gets the call; stops are served in sweep order; a car with stops on both sides picks the nearer first and then reverses; an out-of-service car never gets a call; an invalid floor is rejected; an overloaded car keeps its doors open and closes them once the load is fixed.
+The tests (28 checks, no JUnit) cover the sweep: the nearest idle car gets the call; stops are served in sweep order; a car with stops on both sides picks the nearer first and then reverses; an out-of-service car never gets a call; an invalid floor and a hall call without a direction are rejected; an overloaded car keeps its doors open and closes them once the load is fixed. They cover the direction rule: an UP call is served on the way up, a DOWN call waits for the return, and a call at the end of the sweep is served at once. They cover the follow-ups: an out-of-service car hands its calls to another car and still delivers its passenger; a call with no car left waits until a car returns; an express car only stops at its floors and a passenger cannot select another; a fire alarm parks every car with its doors open, refuses calls, and a reset restores service; the stats count floors and door openings. The last test sends 240 hall calls from six threads while a seventh thread ticks the clock, and then checks that every call was assigned and every car ends idle with nothing pending.
 
-Extensions: a car taken out of service mid-trip should hand its pending stops back to the controller, which reassigns them; add this by draining the stop set and calling the strategy again. Express elevators and skipped floors become a per-car set of allowed floors. VIP or fire-service mode becomes a new strategy plus a car state. Energy saving can park idle cars at the busiest floor by a strategy that runs when the system is idle. Each of these leaves the sweep logic inside the car untouched.`,
+Two of these are worth showing off. The DOWN-call test fails against the first version of the car, where every stop was served the same way, so it documents the bug the direction rule fixes. And the concurrency test exists to catch a missing lock: without synchronized on the controller, a car's stop map could be changed by one thread while another is stepping the car, which is a data race that shows up as an exception or a lost call.`,
+      },
+      {
+        title: "Extensions and short answers",
+        body: `Built here, so you can point at the code: a car taken out of service hands its calls back (ElevatorSystem.setOutOfService and ElevatorCar.drainHallCalls), express cars (the allowed floors on the car), fire service (recall and resetFire), direction-aware hall calls (Want), an event trail (ElevatorListener, EventLog) and per-car stats (CarStats).
+
+Still open and worth naming. Energy saving: park idle cars at the busiest floor with a strategy that runs when the system is idle. Door obstruction and the door-open button: a new input to the DOORS_OPEN state that restarts the dwell time. A dwell time: right now doors close after one tick, and a real car holds them for a few. Priority modes such as VIP or service lifts: a strategy or a car mode, like fire recall. Persistence: events are already the natural thing to store, and a car's state can be rebuilt by replaying them.
+
+How would you test the dispatch strategy without a clock? Build cars at known floors and call choose. It is a function of the cars' state.
+
+What if two calls arrive in the same tick for the same floor? The second adds the same reason to the same set, which changes nothing. A stop is a set of reasons, so repeated presses are free.
+
+Why is Want a set per floor and not a list of requests? Because what the car needs to know is which reasons exist for stopping at a floor, not how many people pressed. It keeps the map small and the sweep logic simple.
+
+What stops a call from being starved? The sweep. A call behind the car is reached after at most one pass over the building, and the dispatch cost keeps assigning calls to the cars that are closest and least busy.
+
+What would you change for a real controller? Replace ticks with a scheduler, make the dwell time configurable, put the control loop on one thread with a queue, persist the event stream, and make the dispatch strategy aware of load (passengers per car) and not only of stops.`,
       },
     ],
     classDiagram: `classDiagram
@@ -2274,23 +2872,61 @@ Extensions: a car taken out of service mid-trip should hand its pending stops ba
         +allIdle() boolean
         +setLoad(carId, kg)
         +setOutOfService(carId, value)
+        +fireAlarm(floor)
+        +resetFire()
+        +stats() List
     }
     class ElevatorCar {
-        -stops TreeSet
+        -stops TreeMap
         -floor int
         -direction Direction
         -state CarState
-        +addStop(floor)
-        +step()
+        -allowedFloors Set
+        +addStop(floor, want)
+        +drainHallCalls() List
+        +recall(floor)
+        +servesFloor(floor) boolean
+        +step(tick)
     }
     class DispatchStrategy {
         <<interface>>
         +choose(cars, call) ElevatorCar
     }
+    class ElevatorListener {
+        <<interface>>
+        +onEvent(event)
+    }
     class HallCall {
         <<record>>
         floor
         direction
+    }
+    class ElevatorEvent {
+        <<record>>
+        tick
+        source
+        type
+        floor
+        message
+    }
+    class CarStats {
+        <<record>>
+        carId
+        floorsTravelled
+        doorOpenings
+    }
+    class Want {
+        <<enumeration>>
+        INSIDE
+        UP
+        DOWN
+    }
+    class EventType {
+        <<enumeration>>
+        DOORS_OPEN
+        OVERLOAD
+        CALL_REASSIGNED
+        FIRE_RECALL
     }
     class Direction {
         <<enumeration>>
@@ -2306,39 +2942,56 @@ Extensions: a car taken out of service mid-trip should hand its pending stops ba
     }
     ElevatorSystem o-- ElevatorCar
     ElevatorSystem --> DispatchStrategy
+    ElevatorSystem --> ElevatorListener
+    ElevatorCar --> ElevatorListener
     DispatchStrategy <|.. NearestCarStrategy
+    ElevatorListener <|.. ConsoleListener
+    ElevatorListener <|.. EventLog
+    ElevatorListener <|.. CompositeListener
+    CompositeListener o-- ElevatorListener
     ElevatorSystem ..> HallCall
+    ElevatorSystem ..> CarStats
+    ElevatorCar ..> ElevatorEvent : emits
+    ElevatorCar --> Want
     ElevatorCar --> Direction
-    ElevatorCar --> CarState`,
+    ElevatorCar --> CarState
+    ElevatorEvent --> EventType`,
     sequenceDiagram: `sequenceDiagram
     actor Passenger
     participant Sys as ElevatorSystem
     participant Strat as DispatchStrategy
     participant Car as ElevatorCar
+    participant L as ElevatorListener
     participant Clock
     Passenger->>Sys: requestHall(floor 3, UP)
     Sys->>Strat: choose(cars, call)
     Strat-->>Sys: Car A
-    Sys->>Car: addStop(3)
+    Sys->>Car: addStop(3, UP)
+    Sys->>L: onEvent(CALL_ASSIGNED)
     Sys-->>Passenger: Car A is coming
     loop every tick
         Clock->>Sys: tick()
-        Sys->>Car: step()
-        Car->>Car: move one floor or open the doors
+        Sys->>Car: step(tick)
+        Car->>Car: serve the stop here or move one floor
+        Car->>L: onEvent(DOORS_OPEN) when it opens
     end`,
     stateDiagram: `stateDiagram-v2
     [*] --> Idle
     Idle --> Moving: a stop exists on another floor
     Idle --> DoorsOpen: a stop exists on this floor
-    Moving --> Moving: next floor is not a stop
-    Moving --> DoorsOpen: arrived at a stop
+    Moving --> Moving: next floor is not served here
+    Moving --> DoorsOpen: arrived at a stop it serves
     DoorsOpen --> DoorsOpen: overloaded
-    DoorsOpen --> Idle: doors close`,
+    DoorsOpen --> Idle: doors close
+    DoorsOpen --> DoorsOpen: parked at the fire recall floor
+    DoorsOpen --> Idle: fire alarm reset`,
     concurrency: [
       "All public methods of ElevatorSystem are synchronized, so requests from many threads and the clock thread never interleave inside a car. Cars are only touched while the controller's lock is held.",
       "Alternative to mention: route every request through a queue read by one control thread. Cars then need no locking at all, and the order of events is explicit and replayable.",
       "tick() steps every car under the same lock, so a hall call can never observe two cars half-updated, and the dispatch cost is computed on a consistent view.",
-      "Never call out to listeners or logging that might block while holding the lock in a real system. Here the log is a Consumer; a slow consumer would stall the whole building, so in production hand events to a queue.",
+      "Handing calls back when a car leaves service happens inside one synchronized method: the car's calls are drained and re-dispatched before any other thread can add a stop, so a call is never in two cars or in none.",
+      "Listeners run while the lock is held. A slow listener would stall the whole building, so in production an event listener should only put the event on a queue. The EventLog here uses a copy-on-write list, so reading it from a test thread never blocks.",
+      "The fire alarm sets one flag under the lock. Every later call sees it and is refused, so there is no window where a call sneaks in half-way through the recall.",
     ],
   },
 

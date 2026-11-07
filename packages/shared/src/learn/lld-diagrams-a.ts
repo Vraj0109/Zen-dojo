@@ -326,16 +326,33 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
       title: "What one tick does to a car",
       caption: "ElevatorCar.step as a decision flow. Each tick takes exactly one branch.",
       source: `flowchart TD
-    S["step() called on a car"] --> D{"Doors open?"}
-    D -- yes --> O{"Overloaded?"}
-    O -- yes --> W["Log a warning, doors stay open"]
+    S["step(tick) called on a car"] --> D{"Doors open?"}
+    D -- yes --> FP{"Fire recall and at the recall floor?"}
+    FP -- yes --> PK["Stay parked with the doors open"]
+    FP -- no --> O{"Overloaded and not in fire recall?"}
+    O -- yes --> W["Report OVERLOAD, doors stay open"]
     O -- no --> C["Close the doors, state IDLE"]
-    D -- no --> A{"Stop on this floor?"}
-    A -- yes --> P["Remove the stop, open the doors, log"]
+    D -- no --> FR{"Fire recall and at the recall floor?"}
+    FR -- yes --> FK["Open the doors and report FIRE_PARKED"]
+    FR -- no --> A{"Does this car serve a stop here now?"}
+    A -- yes --> P["Remove what it served, open the doors, report DOORS_OPEN"]
     A -- no --> N["nextDirection()"]
     N --> M{"Direction is IDLE?"}
     M -- yes --> I["Stay idle"]
     M -- no --> G["Move one floor, state MOVING"]`,
+    },
+    {
+      title: "Which stops does a car serve when it arrives?",
+      caption: "ElevatorCar.serveStopsHere. A passenger's button is always served. A hall call is served only when the car is going that way or has nothing left ahead.",
+      source: `flowchart TD
+    A["Car is at a floor that has stops"] --> B["Serve INSIDE stops: a passenger is aboard"]
+    B --> C{"Direction is IDLE, or no stops ahead?"}
+    C -- yes --> D["Serve every remaining reason: the car turns round here"]
+    C -- no --> E["Serve only the hall call that matches the car's direction"]
+    D --> F{"Anything was served?"}
+    E --> F
+    F -- yes --> G["Open the doors"]
+    F -- no --> H["Keep moving, the other calls stay in the map"]`,
     },
     {
       title: "How the car chooses a direction",
@@ -352,8 +369,29 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     X -- "none" --> ID["Stay IDLE"]`,
     },
     {
+      title: "A DOWN call on a car that is going up",
+      caption: "The trace behind Part 2 of Main: car C holds a DOWN call at floor 3 and a passenger going to floor 6.",
+      source: `sequenceDiagram
+    participant Clock
+    participant C as Car C with stops 3 DOWN and 6 INSIDE
+    Clock->>C: ticks 1 to 3
+    C-->>C: moves from floor 0 to 3
+    Clock->>C: tick 4
+    C-->>C: at floor 3 going up with a stop ahead, DOWN not served, moves to 4
+    Clock->>C: ticks 5 and 6
+    C-->>C: moves to floor 6
+    Clock->>C: tick 7
+    C-->>C: doors open at floor 6
+    Clock->>C: tick 8
+    C-->>C: doors close
+    Clock->>C: ticks 9 to 11
+    C-->>C: moves down to floor 3
+    Clock->>C: tick 12
+    C-->>C: nothing ahead, DOWN served, doors open at floor 3`,
+    },
+    {
       title: "Dispatch: scoring two cars for one call",
-      caption: "The numbers from Main. The cost is distance plus two per pending stop plus four when heading the wrong way.",
+      caption: "The numbers from Main. The cost is distance plus two per pending stop, plus four when heading the wrong way, plus four more when already past the floor.",
       source: `sequenceDiagram
     actor Passenger
     participant Sys as ElevatorSystem
@@ -367,8 +405,31 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     Strat->>B: floor, pendingStops, direction
     B-->>Strat: cost 1
     Strat-->>Sys: Car B
-    Sys->>B: addStop(8)
+    Sys->>B: addStop(8, DOWN)
     Sys-->>Passenger: Car B is coming`,
+    },
+    {
+      title: "Dispatch filters before it scores",
+      caption: "A car that cannot take the call is never scored. If every car is filtered out, the controller rejects the call.",
+      source: `flowchart TD
+    A["For each car in the list"] --> B{"Out of service?"}
+    B -- yes --> SKIP["Skip this car"]
+    B -- no --> C{"Does it stop at the call floor?"}
+    C -- no --> SKIP
+    C -- yes --> D["cost = distance + 2 per pending stop"]
+    D --> E{"Moving the other way?"}
+    E -- yes --> F["cost + 4"]
+    E -- no --> G{"Already past the floor?"}
+    F --> G
+    G -- yes --> H["cost + 4"]
+    G -- no --> I["Keep the cost"]
+    H --> J{"Lowest so far?"}
+    I --> J
+    J -- yes --> K["Remember this car"]
+    SKIP --> L{"Any car left?"}
+    K --> L
+    L -- yes --> A
+    L -- no --> M["Return the best, or null when none qualified"]`,
     },
     {
       title: "Eleven ticks of Car A",
@@ -398,32 +459,19 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     participant Car as Car A
     Sys->>Car: setLoad(800 kg), capacity is 600
     Clock->>Sys: tick()
-    Sys->>Car: step()
+    Sys->>Car: step(tick)
     Car-->>Car: doors open at floor 7
     Clock->>Sys: tick()
-    Sys->>Car: step()
+    Sys->>Car: step(tick)
     Car-->>Car: overloaded, doors stay open
     Sys->>Car: setLoad(300 kg)
     Clock->>Sys: tick()
-    Sys->>Car: step()
+    Sys->>Car: step(tick)
     Car-->>Car: doors close`,
     },
     {
-      title: "Component view",
-      caption: "Buttons are method calls. The clock is the only thing that makes time pass.",
-      source: `flowchart LR
-    H["Hall buttons"] --> S["ElevatorSystem"]
-    C["Cab buttons"] --> S
-    K["Clock thread"] --> S
-    S --> D["DispatchStrategy"]
-    S --> A["Car A"]
-    S --> B["Car B"]
-    D -.-> A
-    D -.-> B`,
-    },
-    {
       title: "Car taken out of service mid-trip",
-      caption: "The extension from the walkthrough: hand the pending stops back to the controller and dispatch them again.",
+      caption: "Hall calls go back to the controller and are dispatched again. The passenger inside is still delivered. Part 3 of Main.",
       source: `sequenceDiagram
     participant Op as Operator
     participant Sys as ElevatorSystem
@@ -431,13 +479,153 @@ export const LLD_EXTRA_DIAGRAMS_A: Record<string, DiagramBlock[]> = {
     participant Strat as DispatchStrategy
     participant Other as Car B
     Op->>Sys: setOutOfService(A, true)
-    Sys->>Car: drainStops()
-    Car-->>Sys: stops 5 and 9
-    loop for each drained stop
-        Sys->>Strat: choose(cars, call for that floor)
-        Strat-->>Sys: Car B
-        Sys->>Other: addStop(floor)
-    end`,
+    Sys->>Car: drainHallCalls()
+    Car-->>Sys: hall call 4 UP, the INSIDE stop at 6 stays
+    Sys->>Sys: report CAR_OUT_OF_SERVICE
+    loop for each hall call handed back
+        Sys->>Strat: choose(cars, call)
+        alt another car can take it
+            Strat-->>Sys: Car B
+            Sys->>Other: addStop(4, UP)
+            Sys->>Sys: report CALL_REASSIGNED
+        else no car can take it
+            Strat-->>Sys: null
+            Sys->>Sys: keep it in the waiting list, report CALL_UNASSIGNED
+        end
+    end
+    Op->>Sys: setOutOfService(A, false)
+    Sys->>Sys: dispatch the waiting calls again`,
+    },
+    {
+      title: "Fire recall",
+      caption: "One flag in the controller and one recall stop per car. Calls are refused until the reset.",
+      source: `sequenceDiagram
+    actor Alarm as Fire panel
+    participant Sys as ElevatorSystem
+    participant A as Car A
+    participant B as Car B
+    actor Passenger
+    Alarm->>Sys: fireAlarm(0)
+    Sys->>A: recall(0)
+    Sys->>B: recall(0)
+    Sys->>Sys: report FIRE_RECALL
+    loop until both cars are parked
+        Sys->>A: step(tick)
+        Sys->>B: step(tick)
+    end
+    A-->>Sys: parked at floor 0, doors open
+    B-->>Sys: parked at floor 0, doors open
+    Passenger->>Sys: requestHall(3, UP)
+    Sys-->>Passenger: refused, fire service
+    Alarm->>Sys: resetFire()
+    Sys->>A: clearRecall()
+    Sys->>B: clearRecall()
+    Sys->>Sys: next tick closes the doors`,
+    },
+    {
+      title: "Life of a car",
+      caption: "The three states and the two fire exits. Fire recall is a mode on the car, not a fourth state.",
+      source: `stateDiagram-v2
+    [*] --> Idle
+    Idle --> Moving: a stop exists on another floor
+    Idle --> DoorsOpen: a stop here is served
+    Moving --> Moving: nothing served at this floor
+    Moving --> DoorsOpen: a stop here is served
+    DoorsOpen --> DoorsOpen: overloaded
+    DoorsOpen --> Idle: doors close
+    DoorsOpen --> Parked: recalled and at the recall floor
+    Parked --> Idle: alarm reset and the doors close
+    Idle --> Moving: recalled, go to the recall floor`,
+    },
+    {
+      title: "Who listens",
+      caption: "Cars and the controller only know ElevatorListener. What happens to an event is decided in Main or in a test.",
+      source: `flowchart LR
+    CAR["ElevatorCar"] --> EV["ElevatorEvent with tick, source, type, floor, message"]
+    SYS["ElevatorSystem"] --> EV
+    EV --> CO["CompositeListener"]
+    CO --> LOG["EventLog: keeps everything for tests"]
+    CO --> CON["ConsoleListener: prints chosen types"]
+    CO --> FUT["A dashboard or an alarm panel later"]`,
+    },
+    {
+      title: "Component view",
+      caption: "Buttons are method calls. The clock is the only thing that makes time pass. Listeners watch from the side.",
+      source: `flowchart LR
+    H["Hall buttons"] --> S["ElevatorSystem"]
+    C["Cab buttons"] --> S
+    K["Clock thread"] --> S
+    FP["Fire panel"] --> S
+    OP["Operator"] --> S
+    S --> D["DispatchStrategy"]
+    S --> A["Car A"]
+    S --> B["Car B"]
+    S --> X["Express car"]
+    D -.-> A
+    D -.-> B
+    D -.-> X
+    S --> L["ElevatorListener"]
+    A --> L
+    B --> L
+    X --> L`,
+    },
+    {
+      title: "Package view",
+      caption: "Which file depends on which. Arrows point at what is used.",
+      source: `flowchart LR
+    subgraph Domain
+        DR["Direction, CarState, Want"]
+        HC["HallCall"]
+        CR["ElevatorCar"]
+    end
+    subgraph Policies
+        DS["DispatchStrategy, NearestCarStrategy"]
+    end
+    subgraph Controller
+        ES["ElevatorSystem"]
+    end
+    subgraph Observation
+        EE["ElevatorEvent, EventType"]
+        LS["ElevatorListener, EventLog, ConsoleListener, CompositeListener"]
+        CS["CarStats"]
+    end
+    ES --> CR
+    ES --> DS
+    ES --> LS
+    ES --> CS
+    CR --> DR
+    CR --> EE
+    CR --> LS
+    DS --> CR
+    DS --> HC`,
+    },
+    {
+      title: "The stop map at tick 3 of the DOWN-call scenario",
+      caption: "What ElevatorCar.stops holds when car C reaches floor 3. The DOWN reason is still there, so floor 3 is not forgotten.",
+      source: `flowchart LR
+    subgraph Car["Car C at floor 3, direction UP"]
+        M3["stops key 3: set of DOWN"]
+        M6["stops key 6: set of INSIDE"]
+    end
+    Q["higherKey of 3 is 6, so there is a stop ahead"] --> M6
+    R["DOWN does not match UP, so floor 3 is skipped"] --> M3`,
+    },
+    {
+      title: "Extension map",
+      caption: "Where each follow-up landed in this code, and the ones that are still open.",
+      source: `flowchart TD
+    X["Follow-up request"] --> W["Hall calls and direction"]
+    X --> O["Car out of service"]
+    X --> E["Express cars"]
+    X --> F["Fire service"]
+    X --> L["Logging and metrics"]
+    X --> P["Still open"]
+    W --> W1["Done: Want, serveStopsHere, penalties in NearestCarStrategy"]
+    O --> O1["Done: drainHallCalls, re-dispatch, waiting list"]
+    E --> E1["Done: allowedFloors on the car, filter in the strategy"]
+    F --> F1["Done: recall, parked doors, refused calls, resetFire"]
+    L --> L1["Done: ElevatorListener, EventLog, CarStats"]
+    P --> P1["Dwell time, door obstruction, energy saving parking, VIP and service modes"]`,
     },
   ],
 
