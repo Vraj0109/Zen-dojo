@@ -1,3 +1,4 @@
+import { LLD_EXTRA_DIAGRAMS_A } from "./lld-diagrams-a";
 import type { LldDeep, LldProject } from "./types";
 
 // Full Java projects for LLD problems (plan 0013, batch A): parking lot, elevator, vending machine / ATM.
@@ -1248,7 +1249,7 @@ public class Tests {
   },
 };
 
-export const LLD_DEEP_A: Record<string, LldDeep> = {
+const LLD_DEEP_A_BASE: Record<string, LldDeep> = {
   "lldp-parking-lot": {
     walkthrough: [
       {
@@ -1676,3 +1677,7 @@ Probes, with short answers. Why not one big switch on the status? Every new stat
     ],
   },
 };
+
+export const LLD_DEEP_A: Record<string, LldDeep> = Object.fromEntries(
+  Object.entries(LLD_DEEP_A_BASE).map(([id, d]) => [id, { ...d, extraDiagrams: LLD_EXTRA_DIAGRAMS_A[id] ?? [] }]),
+);

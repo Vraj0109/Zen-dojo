@@ -87,6 +87,7 @@ parking lot, URL shortener, elevator.
 - Page: `LldProjectView` in `study/learn-ui.tsx` shows Full design walkthrough, Diagrams, The full code (one block per file) and Concurrency after the old collapsed reference answer. Looked at it in a real window (dark theme).
 - `apps/web/lib/lld-projects.test.ts` compiles with `javac -Xlint:all`, runs `Main`, checks every `expectedOutput` line and runs `Tests`. CI installs JDK 17 (`actions/setup-java`). `setup.ps1` / `setup.sh` install a JDK like they install g++.
 - **Not verified:** there is no JDK on this machine, so the test is skipped and **none of the Java has been compiled or run**. I traced Main and Tests by hand (ticket numbers, tick counts, change-making cases), but that is not a compile. Run `winget install EclipseAdoptium.Temurin.17.JDK` (or `setup.cmd`), open a new terminal and run `pnpm test`; fix anything it reports before releasing.
+- **2026-11-08, user feedback:** the solutions are too simple and LLD needs more diagrams. Added `extraDiagrams` (`learn/lld-diagrams-a.ts`): 8 for the parking lot, 7 for the elevator, 7 for the vending machine / ATM (decision flows, exit/race/overload/refund sequences, component views, state machines, extension maps, the ATM design). The code is still the simple version; making it richer, and implementing the ATM as code, is item L1 in `docs/HANDOFF.md` and applies to every remaining batch.
 - Remaining: batches B to E, the four new problems (url-shortener, library, hotel, meeting-rooms) and registering them in `study.ts`.
 
 ## Review

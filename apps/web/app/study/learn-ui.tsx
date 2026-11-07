@@ -143,6 +143,12 @@ export function LldProjectView({ project, deep }: { project?: LldProject; deep?:
             <Diagram source={deep.classDiagram} caption="Class diagram" />
             <Diagram source={deep.sequenceDiagram} caption="Sequence diagram: the main flow" />
             {deep.stateDiagram && <Diagram source={deep.stateDiagram} caption="State diagram" />}
+            {(deep.extraDiagrams ?? []).map((d) => (
+              <div key={d.title} className="pt-4">
+                <h3 className="text-base font-semibold">{d.title}</h3>
+                <Diagram source={d.source} caption={d.caption} />
+              </div>
+            ))}
           </div>
         </ArticleSection>
       )}

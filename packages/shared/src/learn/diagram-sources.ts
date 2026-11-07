@@ -11,6 +11,7 @@ export function allDiagrams(): { where: string; source: string }[] {
   for (const [id, a] of Object.entries(PATTERN_ARTICLES)) fromSections(`pattern ${id}`, a.sections);
   for (const [id, d] of Object.entries(LLD_DEEP)) {
     out.push({ where: `lld ${id}/class`, source: d.classDiagram }, { where: `lld ${id}/sequence`, source: d.sequenceDiagram });
+    for (const x of d.extraDiagrams ?? []) out.push({ where: `lld ${id}/${x.title}`, source: x.source });
     if (d.stateDiagram) out.push({ where: `lld ${id}/state`, source: d.stateDiagram });
     fromSections(`lld ${id}`, d.walkthrough);
   }

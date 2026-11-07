@@ -83,6 +83,8 @@ export interface LldDeep {
   classDiagram: string;
   sequenceDiagram: string;
   stateDiagram?: string;
+  /** More diagrams: decision flows, extra sequences, state machines, component views, extension maps. */
+  extraDiagrams?: DiagramBlock[];
   concurrency: string[];
 }
 

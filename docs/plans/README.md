@@ -5,6 +5,8 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 ## Next up
 
+**Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
+
 Done so far: 0001-0007, 0009, 0010, 0011 (Claude Code built 0003-0005, 0007, 0009, 0011). **0008** is approved (ready). New and ready: 0012 diagrams, 0013 LLD Java codebases, 0014 system design depth, 0015 core subjects depth. Order: 0012 first, then 0008 and 0013-0015 in batches.
 
 ```powershell
