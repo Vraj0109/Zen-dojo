@@ -122,6 +122,13 @@ export function parseFont(value: unknown): FontId {
 /** "on" only for the exact text "on"; anything else (including nothing saved) is off. */
 export const parseFlag = (value: unknown): boolean => value === "on";
 
+/** Focus reading strength. "on" (saved by an earlier version) means Subtle. */
+export type BionicSetting = "off" | "subtle" | "strong";
+export function parseBionic(value: unknown): BionicSetting {
+  if (value === "strong") return "strong";
+  return value === "subtle" || value === "on" ? "subtle" : "off";
+}
+
 export function parseStyle(value: unknown): StyleId {
   return STYLES.find((s) => s.id === value)?.id ?? DEFAULT_STYLE;
 }
@@ -151,7 +158,8 @@ if(styles.indexOf(s)>0)d.setAttribute("data-style",s);else d.removeAttribute("da
 var f=read(${JSON.stringify(FONT_KEY)});
 if(fonts.indexOf(f)>0)d.setAttribute("data-font",f);else d.removeAttribute("data-font");
 if(read(${JSON.stringify(GAMIFY_KEY)})==="on")d.setAttribute("data-gamify","on");else d.removeAttribute("data-gamify");
-if(read(${JSON.stringify(BIONIC_KEY)})==="on")d.setAttribute("data-bionic","on");else d.removeAttribute("data-bionic");
+var b=read(${JSON.stringify(BIONIC_KEY)});if(b==="on")b="subtle";
+if(b==="subtle"||b==="strong")d.setAttribute("data-bionic",b);else d.removeAttribute("data-bionic");
 }
 apply();
 if(mq.addEventListener)mq.addEventListener("change",function(){if(d.getAttribute("data-mode")==="system")apply()});
@@ -164,8 +172,8 @@ export interface Appearance {
   font: FontId;
   /** Show XP, levels, streaks and badges */
   gamify: boolean;
-  /** Bold the first letters of words in reading areas */
-  bionic: boolean;
+  /** Bold the first letters of words in reading areas: off, subtle or strong */
+  bionic: BionicSetting;
 }
 
 /** Browser only: saves the choice and applies it right away. */
@@ -177,7 +185,7 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic }: Appear
     localStorage.setItem(STYLE_KEY, style);
     localStorage.setItem(FONT_KEY, font);
     localStorage.setItem(GAMIFY_KEY, gamify ? "on" : "off");
-    localStorage.setItem(BIONIC_KEY, bionic ? "on" : "off");
+    localStorage.setItem(BIONIC_KEY, bionic);
   } catch {
     // Storage can be blocked; the choice then lasts until reload.
   }
@@ -192,7 +200,7 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic }: Appear
   else root.setAttribute("data-font", font);
   if (gamify) root.setAttribute("data-gamify", "on");
   else root.removeAttribute("data-gamify");
-  if (bionic) root.setAttribute("data-bionic", "on");
-  else root.removeAttribute("data-bionic");
+  if (bionic === "off") root.removeAttribute("data-bionic");
+  else root.setAttribute("data-bionic", bionic);
   window.dispatchEvent(new Event(THEME_EVENT));
 }

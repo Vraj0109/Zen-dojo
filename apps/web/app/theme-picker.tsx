@@ -9,11 +9,13 @@ import {
   THEME_MODES,
   applyTheme,
   parseAccent,
+  parseBionic,
   parseFont,
   parseMode,
   parseStyle,
   type AccentId,
   type Appearance,
+  type BionicSetting,
   type FontId,
   type StyleId,
   type ThemeMode,
@@ -41,7 +43,7 @@ const readStyle = () => parseStyle(attr("data-style"));
 const readFont = () => parseFont(attr("data-font"));
 const readScheme = () => (attr("data-theme") === "dark" ? "dark" : "light");
 const readGamify = () => attr("data-gamify") === "on";
-const readBionic = () => attr("data-bionic") === "on";
+const readBionic = () => parseBionic(attr("data-bionic"));
 
 /** Appearance and reading settings. Needs JavaScript; saved in this browser or app window, not in backups. */
 export function ThemePicker() {
@@ -51,7 +53,7 @@ export function ThemePicker() {
   const font = useSyncExternalStore(subscribe, readFont, () => "default" as FontId);
   const scheme = useSyncExternalStore(subscribe, readScheme, () => "light" as const);
   const gamify = useSyncExternalStore(subscribe, readGamify, () => false);
-  const bionic = useSyncExternalStore(subscribe, readBionic, () => false);
+  const bionic = useSyncExternalStore(subscribe, readBionic, () => "off" as BionicSetting);
   const current: Appearance = { mode, accent, style, font, gamify, bionic };
   const accentColor = ACCENTS.find((a) => a.id === accent)!.color;
 
@@ -156,12 +158,23 @@ export function ThemePicker() {
         </div>
       </div>
 
-      <Toggle
-        label="Focus reading"
-        on={bionic}
-        onChange={(v) => applyTheme({ ...current, bionic: v })}
-        text="Bolds the first letters of each word in lessons, pattern articles and problem statements, so your eye has an anchor in every word. Some people find it helps them keep their place; studies have not found that it makes reading faster or better for everyone, so try it and keep it only if it feels good. Code is left alone."
-      />
+      <div>
+        <p id="theme-bionic-label" className="mb-2 text-sm font-medium">
+          Focus reading
+        </p>
+        <div role="radiogroup" aria-labelledby="theme-bionic-label" className="flex flex-wrap gap-2">
+          {(["off", "subtle", "strong"] as const).map((level) => (
+            <button key={level} type="button" role="radio" aria-checked={bionic === level} onClick={() => applyTheme({ ...current, bionic: level })} className={pill(bionic === level)}>
+              {level === "off" ? "Off" : level === "subtle" ? "Subtle" : "Strong"}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          Bolds the start of words in lessons, articles and problem statements. Subtle leaves short words alone and uses a semi-bold; Strong bolds about
+          half of every word. Headings, code and buttons are never changed. Studies have not found that it speeds up reading for everyone, so keep it only
+          if it feels good.
+        </p>
+      </div>
 
       <Toggle
         label="Game features"

@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { splitText } from "@/lib/bionic";
+import { splitText, type BionicLevel } from "@/lib/bionic";
 
-// Focus reading: when switched on in Settings (<html data-bionic="on">), the first letters of each word inside
+// Focus reading: when switched on in Settings (<html data-bionic="subtle"> or "strong"), the first letters of each word inside
 // elements marked data-focus-reading are wrapped in a bold span. Code, formulas, buttons and form fields are skipped.
 // Turning it off puts the original text nodes back. Server-rendered text only: marked areas hold no live client state.
 
-const SKIP = "pre, code, kbd, samp, svg, textarea, input, select, button, script, style, .katex, [contenteditable], [data-no-bionic], .bionic-lead";
+// Headings, labels, links' buttons and emphasis stay plain: only running text gets the bold starts, which keeps the page calm.
+const SKIP =
+  "pre, code, kbd, samp, svg, textarea, input, select, button, script, style, .katex, [contenteditable], [data-no-bionic], .bionic-lead, " +
+  "h1, h2, h3, h4, h5, h6, strong, b, th, summary, nav, figcaption, label, dt";
 const WRAP = "bionic-wrap";
 
-function apply(root: Element) {
+function apply(root: Element, level: BionicLevel) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       const parent = node.parentElement;
@@ -23,7 +26,7 @@ function apply(root: Element) {
   for (const node of nodes) {
     const wrap = document.createElement("span");
     wrap.className = WRAP;
-    for (const piece of splitText(node.nodeValue ?? "")) {
+    for (const piece of splitText(node.nodeValue ?? "", level)) {
       if (piece.bold) {
         const b = document.createElement("span");
         b.className = "bionic-lead";
@@ -45,14 +48,18 @@ export function FocusReading() {
   useEffect(() => {
     const html = document.documentElement;
     let scheduled = 0;
+    let applied: string | null = null; // the strength currently drawn
 
     const run = () => {
       scheduled = 0;
       observer.disconnect(); // do not react to our own changes
-      if (html.getAttribute("data-bionic") === "on") {
-        for (const area of document.querySelectorAll("[data-focus-reading]")) apply(area);
-      } else {
-        remove();
+      const setting = html.getAttribute("data-bionic");
+      if (setting !== applied) {
+        remove(); // strength changed: start again from plain text
+        applied = setting;
+      }
+      if (setting === "subtle" || setting === "strong") {
+        for (const area of document.querySelectorAll("[data-focus-reading]")) apply(area, setting);
       }
       watch();
     };

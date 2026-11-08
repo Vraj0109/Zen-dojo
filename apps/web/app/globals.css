@@ -88,7 +88,7 @@ body {
 }
 
 /* Reading font (Settings). The font files are loaded in layout.tsx. Headings and body follow it; code stays monospace. */
-:root[data-font="lexend"] body { font-family: var(--font-lexend), system-ui, sans-serif; letter-spacing: 0.01em; }
+:root[data-font="lexend"] body { font-family: var(--font-lexend), system-ui, sans-serif; }
 :root[data-font="atkinson"] body { font-family: var(--font-atkinson), system-ui, sans-serif; }
 :root[data-font="serif"] body { font-family: Georgia, "Times New Roman", serif; }
 
@@ -96,7 +96,8 @@ body {
 :root:not([data-gamify="on"]) .gamify-only { display: none !important; }
 
 /* Focus reading: the first letters of each word in reading areas are bold (done by app/focus-reading.tsx). */
-.bionic-lead { font-weight: 700; }
+:root[data-bionic="subtle"] .bionic-lead { font-weight: 600; }
+:root[data-bionic="strong"] .bionic-lead { font-weight: 700; }
 
 /* Code colours: used by Shiki (read-only code) and the CodeMirror editor, in light and dark. */
 :root {

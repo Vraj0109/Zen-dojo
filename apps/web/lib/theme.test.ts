@@ -164,7 +164,11 @@ describe("fonts and switches", () => {
     expect(runInit({}, false).attrs.has("data-bionic")).toBe(false);
     expect(runInit({ [GAMIFY_KEY]: "on" }, false).attrs.get("data-gamify")).toBe("on");
     expect(runInit({ [GAMIFY_KEY]: "off" }, false).attrs.has("data-gamify")).toBe(false);
-    expect(runInit({ [BIONIC_KEY]: "on" }, false).attrs.get("data-bionic")).toBe("on");
+    expect(runInit({ [BIONIC_KEY]: "on" }, false).attrs.get("data-bionic")).toBe("subtle"); // an older saved value
+    expect(runInit({ [BIONIC_KEY]: "subtle" }, false).attrs.get("data-bionic")).toBe("subtle");
+    expect(runInit({ [BIONIC_KEY]: "strong" }, false).attrs.get("data-bionic")).toBe("strong");
+    expect(runInit({ [BIONIC_KEY]: "off" }, false).attrs.has("data-bionic")).toBe(false);
+    expect(runInit({ [BIONIC_KEY]: "loud" }, false).attrs.has("data-bionic")).toBe(false);
   });
 
   it("the stylesheet hides game features unless data-gamify is on, and defines every font", () => {

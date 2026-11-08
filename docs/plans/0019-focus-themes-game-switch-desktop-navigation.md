@@ -19,8 +19,11 @@
   level), secondary text at least 4.5:1, and for the three soft styles body text between 10:1 and 15:1 (strong but not the
   harsh black-on-white extreme). Accent colours are one colour each in light and dark (white text on each is at least 4.5:1).
 - **Reading font:** Default (Geist), Lexend, Atkinson Hyperlegible, Serif. Loaded with `next/font/google` in `layout.tsx`.
-- **Focus reading** (`lib/bionic.ts`, `app/focus-reading.tsx`): bolds the first letters of each word inside elements marked
-  `data-focus-reading` (lesson and article bodies, problem statements). Code, formulas and form fields are skipped. Off by default.
+- **Focus reading** (`lib/bionic.ts`, `app/focus-reading.tsx`): bolds the first letters of words inside elements marked
+  `data-focus-reading` (lesson and article bodies, problem statements). Off by default, with two strengths. **Subtle** leaves words
+  of up to three letters alone, bolds under a third of longer words and uses a semi-bold (600). **Strong** bolds about half of
+  every word (700). Headings, labels, emphasis, code, formulas and form fields are never changed. (First version, which bolded
+  half of every word everywhere, was reported as too distracting.) Lexend lost its extra letter spacing for the same reason.
 - **Game switch:** `<html data-gamify="on">` set by the same inline script from `localStorage`; XP, level, streak, freeze,
   badges, balance and XP numbers carry the class `gamify-only` and are hidden by one CSS rule unless it is on. Progress is
   still tracked underneath. Setting lives in Profile > Settings > Appearance and reading.
