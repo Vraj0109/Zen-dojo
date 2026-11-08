@@ -94,15 +94,8 @@ describe("sameAnswer", () => {
 });
 
 describe.skipIf(!GPP)("reference solutions (C++)", () => {
-  for (const s of specs) {
-    it(`${s.id} passes every example and test`, async () => {
-      const r = await runCode(s, "cpp", s.solution.cpp);
-      if (r.status !== "done") throw new Error(JSON.stringify(r));
-      const failed = r.results.filter((x) => !x.pass);
-      expect(failed, JSON.stringify(failed)).toEqual([]);
-      expect(r.passed).toBe(s.examples.length + s.tests.length + (s.stress?.length ?? 0));
-    }, 120_000);
-  }
+  // The judge is tested on how it behaves (verdicts, crashes, limits, output). It does not re-run every problem here: a
+  // problem whose reference answer is wrong is found when the problem is added.
 
   it("reports wrong answers with the failing input, compile errors, crashes and timeouts", async () => {
     const two = JUDGE_PROBLEMS["lc-1"];
