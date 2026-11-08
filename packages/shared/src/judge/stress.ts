@@ -265,4 +265,147 @@ export const STRESS: Record<string, StressCase[]> = {
       return [gas, cost];
     }),
   ],
+  // ---------------- batch 5
+  "lc-1094": [
+    S("1000 random trips, roomy car", () => {
+      const r = rng(501);
+      return [Array.from({ length: 1000 }, () => { const a = between(r, 0, 999); return [between(r, 1, 100), a, between(r, a + 1, 1000)]; }), 100000];
+    }),
+    S("1000 trips that all overlap, too small a car", () => [Array.from({ length: 1000 }, () => [100, 0, 1000]), 99999]),
+  ],
+  "lc-1109": [
+    S("20000 random bookings on 20000 flights", () => {
+      const r = rng(502);
+      return [Array.from({ length: 20000 }, () => { const a = between(r, 1, 20000); return [a, between(r, a, 20000), between(r, 1, 10000)]; }), 20000];
+    }),
+    S("20000 bookings that each cover every flight", () => [Array.from({ length: 20000 }, () => [1, 20000, 10000]), 20000]),
+  ],
+  "lc-239": [
+    S("100000 random numbers, window 50000", () => [ints(100000, -10000, 10000, 503), 50000]),
+    S("100000 rising numbers, window 1000", () => [range(100000).map((i) => (i % 20001) - 10000), 1000]),
+    S("100000 falling numbers, window 99999", () => [range(100000).map((i) => 10000 - (i % 20001)), 99999]),
+    S("100000 equal numbers, window 3", () => [fill(100000, 5), 3]),
+  ],
+  "lc-918": [
+    S("30000 random numbers", () => [ints(30000, -30000, 30000, 504)]),
+    S("30000 negative numbers", () => [ints(30000, -30000, -1, 505)]),
+    S("30000 positive numbers", () => [ints(30000, 1, 30000, 506)]),
+  ],
+  "lc-57": [
+    S("10000 intervals, the new one swallows most of them", () => [range(10000).map((i) => [i * 10, i * 10 + 5]), [5, 99990]]),
+    S("10000 intervals, the new one fits in a gap", () => [range(10000).map((i) => [i * 10, i * 10 + 5]), [6, 8]]),
+  ],
+  "lc-435": [
+    S("100000 random intervals", () => {
+      const r = rng(507);
+      return [Array.from({ length: 100000 }, () => { const a = between(r, -50000, 49999); return [a, between(r, a + 1, Math.min(50000, a + 500))]; })];
+    }),
+    S("100000 identical intervals", () => [fill(100000, [0, 1])]),
+    S("100000 intervals that do not overlap", () => [range(100000).map((i) => [i - 50000, i - 49999])]),
+  ],
+  "lc-442": [
+    S("100000 numbers with many duplicates", () => {
+      const a = shuffled(range(100000, 1), 508);
+      for (let i = 0; i < 25000; i++) a[i] = a[i + 50000];
+      return [a];
+    }),
+    S("100000 numbers, no duplicates", () => [shuffled(range(100000, 1), 509)]),
+  ],
+  "lc-1392": [
+    S("100000 letters, all the same", () => ["a".repeat(100000)]),
+    S("100000 letters, ab repeated", () => ["ab".repeat(50000)]),
+    S("100000 random letters from a, b", () => [letters(100000, "ab", 510)]),
+    S("a long string with no happy prefix", () => ["a" + "b".repeat(99999)]),
+  ],
+  "lc-1011": [
+    S("50000 random weights, 100 days", () => [ints(50000, 1, 500, 511), 100]),
+    S("50000 random weights, 1 day", () => [ints(50000, 1, 500, 512), 1]),
+    S("50000 random weights, 50000 days", () => [ints(50000, 1, 500, 513), 50000]),
+  ],
+  "lc-410": [
+    S("1000 random numbers, 50 parts", () => [ints(1000, 0, 1_000_000, 514), 50]),
+    S("1000 numbers of 10^6, 1 part (sum is 10^9)", () => [fill(1000, 1_000_000), 1]),
+    S("1000 numbers of 10^6, 7 parts", () => [fill(1000, 1_000_000), 7]),
+  ],
+  "lc-179": [
+    S("100 random numbers", () => [ints(100, 0, 1_000_000_000, 515)]),
+    S("100 numbers made of 9s, tricky ties", () => [range(100).map((i) => (i % 2 ? 999999999 : 99999999))]),
+    S("100 zeros", () => [fill(100, 0)]),
+  ],
+  "lc-315": [
+    S("100000 random numbers", () => [ints(100000, -10000, 10000, 516)]),
+    S("100000 falling numbers", () => [range(100000).map((i) => 10000 - (i % 20001))]),
+    S("100000 equal numbers", () => [fill(100000, 7)]),
+  ],
+  "lc-907": [
+    S("30000 random numbers", () => [ints(30000, 1, 30000, 517)]),
+    S("30000 rising numbers (answer needs the modulo)", () => [range(30000).map((i) => i + 1)]),
+    S("30000 equal numbers", () => [fill(30000, 30000)]),
+  ],
+  "lc-227": [
+    S("a 300000-character expression of all four operators", () => ["7+3*2-8/4+".repeat(29999) + "1"]),
+    S("a long chain of multiplications by one", () => ["1" + "*1".repeat(149999)]),
+    S("spaces everywhere", () => [" 1 + 2 * 3 " + " ".repeat(200000) + "+ 4"]),
+  ],
+  "lc-394": [S("99[99[9[a]]] (88209 letters)", () => ["99[99[9[a]]]"]), S("300[abc]", () => ["300[abc]"]), S("deeply nested", () => ["2[2[2[2[2[2[2[2[2[2[2[a]]]]]]]]]]]"])],
+  "lc-621": [
+    S("100000 random tasks, n = 100", () => [Array.from(letters(100000, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 518)), 100]),
+    S("100000 identical tasks, n = 100", () => [fill(100000, "A"), 100]),
+    S("100000 tasks, 26 letters evenly, n = 25", () => [range(100000).map((i) => String.fromCharCode(65 + (i % 26))), 25]),
+  ],
+  "lc-494": [
+    S("20 numbers of 50, target 0", () => [fill(20, 50), 0]),
+    S("20 zeros, target 0 (2^20 ways)", () => [fill(20, 0), 0]),
+    S("20 numbers summing to 1000, target 100", () => [fill(20, 50), 100]),
+  ],
+  "lc-221": [
+    S("300 x 300 all ones", () => [Array.from({ length: 300 }, () => fill(300, 1))]),
+    S("300 x 300 random", () => {
+      const r = rng(519);
+      return [Array.from({ length: 300 }, () => Array.from({ length: 300 }, () => (r() < 0.8 ? 1 : 0)))];
+    }),
+    S("300 x 300 all zeros", () => [Array.from({ length: 300 }, () => fill(300, 0))]),
+  ],
+  "lc-309": [
+    S("5000 random prices", () => [ints(5000, 0, 1000, 520)]),
+    S("5000 rising prices", () => [range(5000).map((i) => i % 1001)]),
+    S("5000 falling prices", () => [range(5000).map((i) => 1000 - (i % 1001))]),
+  ],
+  "lc-763": [
+    S("500 random letters", () => [letters(500, "abcdefghijklmnopqrstuvwxyz", 521)]),
+    S("250 a then 250 b", () => ["a".repeat(250) + "b".repeat(250)]),
+    S("the alphabet repeated (one piece)", () => ["abcdefghijklmnopqrstuvwxyz".repeat(19).slice(0, 500)]),
+  ],
+  "lc-452": [
+    S("100000 random balloons over the whole 32-bit range", () => {
+      const r = rng(522);
+      return [Array.from({ length: 100000 }, () => { const a = between(r, -2147483648, 2147483000); return [a, Math.min(2147483647, a + between(r, 1, 1_000_000_000))]; })];
+    }),
+    S("100000 identical balloons", () => [fill(100000, [-2147483648, 2147483647])]),
+    S("100000 balloons that touch only at ends", () => [range(100000).map((i) => [i * 2, i * 2 + 2])]),
+  ],
+  "lc-136": [S("30000 numbers (14999 pairs and one)", () => [shuffled([...range(14999, 1), ...range(14999, 1), 20000], 523)])],
+  "lc-338": [S("n = 100000", () => [100000]), S("n = 65535 (all bits set at the end)", () => [65535])],
+  "lc-260": [S("30000 numbers, singles at the extremes of 32-bit", () => [shuffled([...range(14999, 1), ...range(14999, 1), 2147483647, -2147483648], 524)])],
+  "lc-474": [
+    S("600 random strings of up to 100 characters, m = n = 100", () => {
+      const r = rng(525);
+      return [Array.from({ length: 600 }, () => letters(between(r, 1, 100), "01", between(r, 1, 1_000_000_000))), 100, 100];
+    }),
+    S("600 single characters", () => [Array.from({ length: 600 }, (_, i) => (i % 2 ? "1" : "0")), 100, 100]),
+  ],
+  "lc-354": [
+    S("100000 random envelopes", () => {
+      const r = rng(526);
+      return [Array.from({ length: 100000 }, () => [between(r, 1, 100000), between(r, 1, 100000)])];
+    }),
+    S("100000 envelopes of the same width", () => [range(100000).map((i) => [7, i + 1])]),
+    S("100000 envelopes nested in a chain", () => [range(100000).map((i) => [i + 1, i + 1])]),
+  ],
+  "lc-673": [
+    S("2000 random numbers", () => [ints(2000, -1_000_000, 1_000_000, 527)]),
+    S("2000 equal numbers", () => [fill(2000, 3)]),
+    S("2000 rising numbers", () => [range(2000)]),
+  ],
+  "lc-312": [S("300 random balloons", () => [ints(300, 0, 100, 528)]), S("300 balloons of 100", () => [fill(300, 100)], 3000)],
 };
