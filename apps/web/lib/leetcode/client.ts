@@ -30,7 +30,7 @@ async function gql(query: string, variables: Record<string, unknown>): Promise<R
   try {
     res = await fetch(ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Referer: "https://leetcode.com", "User-Agent": "Zen Forge" },
+      headers: { "Content-Type": "application/json", Referer: "https://leetcode.com", "User-Agent": "Zen Dojo" },
       body: JSON.stringify({ query, variables }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

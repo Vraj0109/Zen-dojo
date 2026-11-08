@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
 const CONTENT_DIR = path.join(REPO_ROOT, "apps", "web", "content", "cp-algorithms");
 
-const USER_AGENT = "Zen Forge-importer";
+const USER_AGENT = "Zen Dojo-importer";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -1,6 +1,6 @@
 # Installers: pnpm desktop:build (builds for the OS you run it on). CI: .github/workflows/desktop.yml
 appId: dev.habitmanager.app
-productName: Zen Forge
+productName: Zen Dojo
 directories:
   output: dist
   buildResources: build
@@ -31,7 +31,7 @@ mac:
 linux:
   target: AppImage  # updates itself; a .deb would not
   category: Education
-artifactName: ZenForge-${version}-${os}-${arch}.${ext}
+artifactName: ZenDojo-${version}-${os}-${arch}.${ext}
 # Auto-update: installed apps read latest*.yml from the newest GitHub release (see main.js → setupUpdates).
 publish:
   provider: github

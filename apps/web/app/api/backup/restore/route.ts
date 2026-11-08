@@ -12,13 +12,13 @@ const back = (request: Request, params: Record<string, string>) =>
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(request.url).origin) {
-    return Response.json({ error: "Restore is only allowed from the Zen Forge settings page." }, { status: 403 });
+    return Response.json({ error: "Restore is only allowed from the Zen Dojo settings page." }, { status: 403 });
   }
   const form = await request.formData();
   if (form.get("confirm") !== "yes") return back(request, { error: "Tick the box to confirm replacing your data." });
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) return back(request, { error: "Choose a backup file first." });
-  if (file.size > MAX_BACKUP_BYTES) return back(request, { error: "That file is too large to be a Zen Forge backup." });
+  if (file.size > MAX_BACKUP_BYTES) return back(request, { error: "That file is too large to be a Zen Dojo backup." });
 
   let json: unknown;
   try {

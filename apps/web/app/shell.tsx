@@ -75,7 +75,7 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
         <Link href={pathname?.startsWith("/study/") ? "/study" : "/dsa"} className="ml-1 text-sm text-muted hover:text-foreground">
           {pathname?.startsWith("/study/") ? "← Learn" : "← Practice"}
         </Link>
-        <span className="ml-auto text-xs text-muted">Zen Forge</span>
+        <span className="ml-auto text-xs text-muted">Zen Dojo</span>
       </div>
       <div
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}

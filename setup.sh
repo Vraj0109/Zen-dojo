@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Zen Forge setup for macOS / Linux.
+# Zen Dojo setup for macOS / Linux.
 # Installs missing prerequisites (only if not installed), VS Code extensions, then builds.
 #
 #   ./setup.sh                 # required tools + build

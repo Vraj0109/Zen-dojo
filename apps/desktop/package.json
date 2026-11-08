@@ -1,9 +1,9 @@
 {
   "name": "desktop",
-  "productName": "Zen Forge",
+  "productName": "Zen Dojo",
   "version": "0.3.0",
   "private": true,
-  "description": "Zen Forge desktop app (Windows, macOS, Linux)",
+  "description": "Zen Dojo desktop app (Windows, macOS, Linux)",
   "author": "Vraj Limbachiya",
   "type": "module",
   "main": "main.js",

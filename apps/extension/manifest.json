@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Zen Forge LeetCode Sync",
+  "name": "Zen Dojo LeetCode Sync",
   "version": "0.2.0",
-  "description": "Imports your own accepted LeetCode submissions (code, runtime, notes) into your local Zen Forge app.",
+  "description": "Imports your own accepted LeetCode submissions (code, runtime, notes) into your local Zen Dojo app.",
   "permissions": [
     "storage"
   ],
@@ -39,7 +39,7 @@
     }
   ],
   "action": {
-    "default_title": "Zen Forge",
+    "default_title": "Zen Dojo",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

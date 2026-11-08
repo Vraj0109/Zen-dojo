@@ -116,7 +116,7 @@ export async function fetchPackText(url: string): Promise<{ ok: true; text: stri
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return { ok: false, error: "Only http and https addresses work." };
   try {
-    const res = await fetch(u, { redirect: "follow", signal: AbortSignal.timeout(15_000), headers: { Accept: "application/json, text/plain", "User-Agent": "Zen Forge" } });
+    const res = await fetch(u, { redirect: "follow", signal: AbortSignal.timeout(15_000), headers: { Accept: "application/json, text/plain", "User-Agent": "Zen Dojo" } });
     if (!res.ok) return { ok: false, error: `The server answered ${res.status}.` };
     const length = Number(res.headers.get("content-length") ?? 0);
     if (length > PACK_LIMITS.bytes) return { ok: false, error: "That file is over 2 MB." };
