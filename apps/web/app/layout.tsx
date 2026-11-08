@@ -26,7 +26,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Prepwise", template: "%s · Prepwise" },
-  description: "Daily progress tracker for the SDE2/SWE3 prep roadmap",
+  description: "Offline, open-source engineering course: DSA, system design, low-level design and core CS",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -49,9 +49,12 @@ const asideNode = (
         {/* Sidebar on wide screens, a scrolling top bar on phones */}
         <aside className="sticky top-0 z-10 print:hidden border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
           <div className="mb-2 flex items-center justify-between gap-2 px-1 lg:mb-6 lg:px-3">
-            <Link href="/" className="block">
-              <span className="block text-xs font-medium text-muted">SDE2 / SWE3 prep</span>
-              <span className="block text-lg font-semibold tracking-tight">Prepwise</span>
+            <Link href="/" className="flex items-center gap-2.5">
+              <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-sm font-bold text-on-accent">P</span>
+              <span className="block leading-tight">
+                <span className="block text-base font-semibold tracking-tight">Prepwise</span>
+                <span className="block whitespace-nowrap text-[11px] text-muted">Offline learning</span>
+              </span>
             </Link>
             <HistoryButtons />
           </div>

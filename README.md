@@ -1,6 +1,6 @@
 # Prepwise
 
-Daily progress tracker for the SDE2 (Amazon) / SWE3 (Google) 16-week prep roadmap.
+Offline, open-source engineering course and practice tool: DSA with a built-in judge, system design, low-level design and core CS.
 Data is stored locally in `data/habit.db` (SQLite).
 
 | Page | What it does |
