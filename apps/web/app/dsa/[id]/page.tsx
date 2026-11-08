@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { RESOLVE_XP, solveXp } from "@habit/shared";
+import { JUDGE_PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
 import { getProblemDetail } from "@/lib/dsa";
 import { parseProblemTab } from "@/lib/dsa-filters";
 import { getPatternNotes } from "@/lib/pattern-notes";
 import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggles";
+import { ProblemWorkspace } from "../../problem-workspace";
+import { siteMinutesForSlug } from "@/lib/site-time";
 import { focusMinutes } from "@/lib/timer";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, undoSolveAction } from "../../actions";
 import { StartTimer } from "../../start-timer";
@@ -67,7 +69,14 @@ async function Problem({
   await connection(); // reads today's date and the database
   const p = await getProblemDetail(decodeURIComponent(id));
   if (!p) notFound();
-  const [struggles, focused, cheats, simple] = await Promise.all([getStruggles(p.id), focusMinutes(p.id), getPatternNotes(), getSimpleMode()]);
+  const slug = p.url ? /\/problems\/([a-z0-9-]+)/.exec(p.url)?.[1] : undefined;
+  const [struggles, focused, cheats, simple, onSite] = await Promise.all([
+    getStruggles(p.id),
+    focusMinutes(p.id),
+    getPatternNotes(),
+    getSimpleMode(),
+    slug ? siteMinutesForSlug(slug) : 0,
+  ]);
   const open = struggles.filter((x) => !x.clearedOn);
 
   const s = p.status;
@@ -146,7 +155,8 @@ async function Problem({
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
-                  {s.state === "unsolved" ? `Mark solved (+${solveXp(p)} XP)` : `Mark re-solved (+${RESOLVE_XP} XP)`}
+                  {s.state === "unsolved" ? "Mark solved" : "Mark re-solved"}
+                  <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
                 </SubmitButton>
               </form>
             )}
@@ -167,11 +177,13 @@ async function Problem({
         defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25}
         totalMinutes={focused}
       />
+      {onSite > 0 && <p className="-mt-3 text-xs text-muted">{onSite} min on this problem&apos;s LeetCode page (from the extension)</p>}
 
       <Tabs tabs={tabs} active={tab} hrefFor={(tId) => problemTabHref(p.id, tId)} label="Problem sections" />
 
       {tab === "solve" && (
         <div className="space-y-4">
+          {JUDGE_PROBLEMS[p.id] && <ProblemWorkspace spec={JUDGE_PROBLEMS[p.id]} />}
           {(p.patterns.length > 0 || p.topics.length > 0) && (
             <details className="rounded-xl border border-line bg-surface p-4">
               <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-foreground">

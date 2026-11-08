@@ -64,10 +64,17 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
         <Stat label="Patterns" value={`${totals.patternsCovered} / ${totals.patterns}`} hint="covered (4+ solved)" />
         <Stat label="Roadmap solved" value={`${totals.solved} / ${totals.problems}`} hint={`${totals.resolved} re-solved`} />
         <Stat label="All solved" value={String(totals.allSolved)} hint="goal: 150+" />
-        <Stat label="Re-solves due" value={String(due.length)} hint={`${totals.xp} DSA XP`} href="?tab=resolve" />
+        <Stat label="Re-solves due" value={String(due.length)} hint="due now" href="?tab=resolve" />
       </section>
 
       <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="DSA sections" />
+      <p className="-mt-3 text-sm text-muted">
+        More to practise:{" "}
+        <Link href="/dsa/cses" className="font-medium text-foreground underline">
+          CSES problems
+        </Link>{" "}
+        (starter code, Run, hints and solutions in the app). Some roadmap problems have the same panel on their Solve tab.
+      </p>
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-8">
@@ -162,7 +169,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
           {tab === "other" && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Other LeetCode solves</h2>
-              <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward XP, streak and the 150+ goal.</p>
+              <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward the 150+ goal (and XP and streak if game features are on).</p>
               {extras.length === 0 ? (
                 <p className="rounded-xl border border-line bg-surface p-6 text-center text-muted">No synced solves outside the roadmap yet.</p>
               ) : (
@@ -179,7 +186,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                         />
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
-                        <span className="text-xs text-muted">+{e.xp} XP</span>
+                        <span className="gamify-only text-xs text-muted">+{e.xp} XP</span>
                         <div className="w-14 text-right">
                           <Difficulty level={e.difficulty} />
                         </div>
