@@ -187,9 +187,9 @@ async function PlanTab() {
           ) : (
             <ul className="grid gap-2 lg:grid-cols-2">
               {weak.concepts.slice(0, 24).map((c) => (
-                <li key={c.id} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+                <li key={c.id} className="hit hit-card flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
                   <Confidence value={c.confidence} />
-                  <Link href={`/study/${c.area}/${c.id}`} className="min-w-0 flex-1 truncate hover:underline">
+                  <Link href={`/study/${c.area}/${c.id}`} className="hit-link min-w-0 flex-1 truncate">
                     {c.title}
                   </Link>
                   <span className="shrink-0 text-xs text-muted">{CONFIDENCE_LABELS[c.confidence]}</span>

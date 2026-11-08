@@ -25,7 +25,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "HabitManager", template: "%s · HabitManager" },
+  title: { default: "Prepwise", template: "%s · Prepwise" },
   description: "Daily progress tracker for the SDE2/SWE3 prep roadmap",
 };
 
@@ -51,7 +51,7 @@ const asideNode = (
           <div className="mb-2 flex items-center justify-between gap-2 px-1 lg:mb-6 lg:px-3">
             <Link href="/" className="block">
               <span className="block text-xs font-medium text-muted">SDE2 / SWE3 prep</span>
-              <span className="block text-lg font-semibold tracking-tight">HabitManager</span>
+              <span className="block text-lg font-semibold tracking-tight">Prepwise</span>
             </Link>
             <HistoryButtons />
           </div>

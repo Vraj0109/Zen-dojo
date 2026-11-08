@@ -78,10 +78,10 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
               <h3 className="mb-2 font-semibold">Also due</h3>
               <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
                 {rest.map((i) => (
-                  <li key={keyOf(i)} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                  <li key={keyOf(i)} className="hit flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
                     <span className="text-xs text-muted w-16 shrink-0">{KIND_LABEL[i.kind]}</span>
                     <div className="min-w-0 flex-1">
-                      <Link href={itemHref(i)} className="font-medium hover:underline">
+                      <Link href={itemHref(i)} className="hit-link font-medium">
                         {i.title}
                       </Link>
                       <p className="truncate text-xs text-muted">

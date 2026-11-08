@@ -96,10 +96,10 @@ async function Hub() {
 function CourseCard({ course: c }: { course: CourseView }) {
   const finished = c.total > 0 && c.left === 0;
   return (
-    <article className="anim-lift flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+    <article className="hit hit-card anim-lift flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
       <header className="flex items-start justify-between gap-3">
         <h4 className="text-lg font-semibold leading-snug">
-          <Link href={c.href} className="hover:underline">
+          <Link href={c.href} className="hit-link">
             {c.title}
           </Link>
         </h4>

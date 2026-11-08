@@ -1,9 +1,9 @@
 {
   "name": "desktop",
-  "productName": "HabitManager",
+  "productName": "Prepwise",
   "version": "0.3.0",
   "private": true,
-  "description": "HabitManager desktop app (Windows, macOS, Linux)",
+  "description": "Prepwise desktop app (Windows, macOS, Linux)",
   "author": "Vraj Limbachiya",
   "type": "module",
   "main": "main.js",

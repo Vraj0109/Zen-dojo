@@ -265,7 +265,7 @@ const CATEGORY_STYLES: Record<Category, string> = {
 function UpNextItem({ row, link }: { row: UpNextRow; link: (t: Task) => TaskLink | null }) {
   if (row.kind === "task") return <TaskRow t={row.task} link={link} />;
   return (
-    <li className="flex items-center gap-3 p-4">
+    <li className="hit flex items-center gap-3 p-4">
       <span aria-hidden className="size-6 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="font-medium">{row.title}</p>
@@ -274,7 +274,7 @@ function UpNextItem({ row, link }: { row: UpNextRow; link: (t: Task) => TaskLink
           <span>· {row.detail}</span>
         </p>
       </div>
-      <Link href={row.href} prefetch={false} className="shrink-0 rounded-lg border border-accent px-3 py-1.5 text-sm font-medium hover:bg-background">
+      <Link href={row.href} prefetch={false} className="hit-link shrink-0 rounded-lg border border-accent px-3 py-1.5 text-sm font-medium hover:bg-background">
         Open <span aria-hidden>→</span>
       </Link>
     </li>
@@ -297,7 +297,7 @@ function TaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
   const cat = (t.category in CATEGORIES ? t.category : "other") as Category;
   const go = link(t);
   return (
-    <li className="flex items-start gap-3 p-4">
+    <li className={`${go ? "hit " : ""}flex items-start gap-3 p-4`}>
       <form action={toggleTaskAction} className="pt-0.5">
         <input type="hidden" name="id" value={t.id} />
         <SubmitButton
@@ -327,7 +327,7 @@ function TaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
           href={go.href}
           prefetch={false}
           title={go.label}
-          className={`hidden max-w-60 shrink-0 items-center gap-1 truncate rounded-lg border px-3 py-1.5 text-sm font-medium sm:inline-flex ${
+          className={`hit-link hidden max-w-60 shrink-0 items-center gap-1 truncate rounded-lg border px-3 py-1.5 text-sm font-medium sm:inline-flex ${
             done ? "border-line text-muted hover:text-foreground" : "border-accent text-foreground hover:bg-background"
           }`}
         >

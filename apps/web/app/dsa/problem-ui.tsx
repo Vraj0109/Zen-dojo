@@ -31,7 +31,7 @@ export function ProblemTitle(props: {
 
   return (
     <span className="min-w-0 truncate">
-      <Link href={`/dsa/${encodeURIComponent(props.id)}`} prefetch={false} className="hover:underline">
+      <Link href={`/dsa/${encodeURIComponent(props.id)}`} prefetch={false} className="hit-link hover:underline">
         {props.label}
       </Link>
       {props.url && (
@@ -66,7 +66,7 @@ export function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[
   const statusState = s.state === "resolved" ? "solved" : s.state === "solved" ? (due ? "resolve" : "solved") : "none";
 
   return (
-    <li className="group flex items-center justify-between gap-3 px-3 py-2.5 text-sm hover:bg-surface/80">
+    <li className="hit group flex items-center justify-between gap-3 px-3 py-2.5 text-sm hover:bg-surface/80">
       <div className="flex min-w-0 items-center gap-3">
         <StatusMark state={statusState} />
         <ProblemTitle

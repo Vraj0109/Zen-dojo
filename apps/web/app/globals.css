@@ -204,3 +204,23 @@ html { scroll-behavior: smooth; scroll-padding-top: 1.25rem; }
 .drawer-panel > aside nav ul { flex-direction: column; }
 .drawer-panel > aside ul.hidden { display: flex; }
 .drawer-panel > aside li.lg\:hidden { display: none; }
+
+/* Pointer: everything you can press says so. (Tailwind's reset makes buttons look like plain text.) */
+button:not(:disabled), [role="button"], a[href], summary, select, label[for], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], input[type="submit"] { cursor: pointer; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
+/* Clickable card or row: put `hit` on the container and `hit-link` on its main link. The whole surface opens that link
+ * (it hovers, shows a pointer, has one focus ring); other buttons and links inside stay separately clickable. */
+.hit { position: relative; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+.hit:hover { background-color: color-mix(in oklab, var(--foreground) 4%, var(--surface)); }
+.hit-card:hover { border-color: color-mix(in oklab, var(--accent) 55%, var(--line)); box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.22); }
+.hit a.hit-link { position: static; }
+.hit a.hit-link::after { content: ""; position: absolute; inset: 0; z-index: 0; }
+.hit a:not(.hit-link), .hit button, .hit form, .hit select, .hit input, .hit summary, .hit details { position: relative; z-index: 1; }
+.hit:hover a.hit-link { text-decoration: underline; }
+.hit:has(a.hit-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hit a.hit-link:focus-visible { outline: none; }
+:root[data-motion="off"] .hit { transition: none; }
+
+/* Keyboard focus: one visible ring everywhere (mouse clicks don't show it). */
+:where(a, button, select, summary, input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

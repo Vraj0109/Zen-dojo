@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  HabitManager one-shot setup for Windows.
+  Prepwise one-shot setup for Windows.
   Installs missing prerequisites (only if not already installed), VS Code extensions,
   then installs dependencies and builds the project. Prints a summary of everything it
   checked/installed, writes a log to .\logs\, and waits for Enter before closing.
@@ -96,7 +96,7 @@ try {
   # Windows opened before an install keep a stale PATH; reload it from the registry so tools
   # installed by a previous run are detected instead of being "installed" again.
   Update-SessionPath
-  Write-Host "HabitManager setup  -  $(Get-Date -Format 'yyyy-MM-dd HH:mm')" -ForegroundColor White
+  Write-Host "Prepwise setup  -  $(Get-Date -Format 'yyyy-MM-dd HH:mm')" -ForegroundColor White
   if ($CheckOnly) { Write-Host '(check-only mode: nothing will be installed or changed)' -ForegroundColor Yellow }
 
   # -------------------------------------------------------------- prerequisites

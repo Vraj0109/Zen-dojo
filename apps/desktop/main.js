@@ -19,6 +19,9 @@ const { autoUpdater } = updaterPkg;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const devMode = process.argv.includes("--dev");
 // For trying a build without touching your real data: HABIT_DATA_DIR=/some/folder
+// The app was called HabitManager before it became Prepwise. Electron derives the data folder from the app name, so it
+// is pinned to the old name: renaming must never make an existing install look empty.
+app.setPath("userData", path.join(app.getPath("appData"), "HabitManager"));
 if (process.env.HABIT_DATA_DIR) app.setPath("userData", path.resolve(process.env.HABIT_DATA_DIR));
 
 // Two-finger swipe on a touchpad = back/forward (Chrome has it; Electron needs the feature switched on).
@@ -38,7 +41,7 @@ if (!app.requestSingleInstanceLock()) {
     if (win.isMinimized()) win.restore();
     win.focus();
   });
-  app.whenReady().then(start).catch((err) => fail("HabitManager couldn't start", String(err?.stack ?? err)));
+  app.whenReady().then(start).catch((err) => fail("Prepwise couldn't start", String(err?.stack ?? err)));
 }
 
 app.on("window-all-closed", () => app.quit());
@@ -85,7 +88,7 @@ async function start() {
   server = utilityProcess.fork(serverJs, [], {
     cwd: path.dirname(serverJs),
     stdio: "pipe",
-    serviceName: "HabitManager server",
+    serviceName: "Prepwise server",
     env: {
       ...process.env,
       NODE_ENV: "production",
@@ -101,21 +104,21 @@ async function start() {
   server.on("exit", (code) => {
     exited = true;
     server = null;
-    if (!quitting) fail("HabitManager stopped", `The app's server exited (code ${code}).\n\nLog: ${logFile}`);
+    if (!quitting) fail("Prepwise stopped", `The app's server exited (code ${code}).\n\nLog: ${logFile}`);
   });
 
   const up = await waitForServer(() => ping(origin), { stopped: () => exited });
-  if (!up) return fail("HabitManager couldn't start", `The server didn't respond in time.\n\nLog: ${logFile}`);
+  if (!up) return fail("Prepwise couldn't start", `The server didn't respond in time.\n\nLog: ${logFile}`);
 
   openWindow(origin);
   setupUpdates();
   if (fallback) {
     dialog.showMessageBox({
       type: "info",
-      message: `Port ${preferred} is busy, so HabitManager is running on port ${port}.`,
+      message: `Port ${preferred} is busy, so Prepwise is running on port ${port}.`,
       detail:
         `Something else is using ${preferred} (maybe \`pnpm start\` or \`pnpm dev\`). ` +
-        `If you use the browser extension, set its app URL to ${origin}, or close the other app and restart HabitManager.`,
+        `If you use the browser extension, set its app URL to ${origin}, or close the other app and restart Prepwise.`,
     });
   }
 }
@@ -130,7 +133,7 @@ async function firstRun(dbFile) {
     buttons: ["Import habit.db…", "Start fresh"],
     defaultId: 0,
     cancelId: 1,
-    message: "Welcome to HabitManager",
+    message: "Welcome to Prepwise",
     detail:
       "Already used the web version? Import your data/habit.db file (it is copied, the original isn't changed). " +
       "Stop `pnpm start` / `pnpm dev` first so the copy has your latest changes.\n\n" +
@@ -140,7 +143,7 @@ async function firstRun(dbFile) {
   const picked = await dialog.showOpenDialog({
     title: "Choose your habit.db",
     properties: ["openFile"],
-    filters: [{ name: "HabitManager database", extensions: ["db"] }],
+    filters: [{ name: "Prepwise database", extensions: ["db"] }],
   });
   const source = picked.filePaths[0];
   if (picked.canceled || !source) return;
@@ -159,7 +162,7 @@ function openWindow(url) {
     height: 900,
     minWidth: 420,
     minHeight: 500,
-    title: "HabitManager",
+    title: "Prepwise",
     autoHideMenuBar: true,
     show: false,
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
@@ -222,11 +225,11 @@ function buildMenu() {
         { label: "Release notes", click: () => shell.openExternal(`https://github.com/${RELEASES_REPO}/releases`) },
         { type: "separator" },
         {
-          label: "About HabitManager",
+          label: "About Prepwise",
           click: () =>
             dialog.showMessageBox({
               type: "info",
-              message: `HabitManager ${app.getVersion()}`,
+              message: `Prepwise ${app.getVersion()}`,
               detail: `Electron ${process.versions.electron} · Node ${process.versions.node}
 Data: ${dataDir()}`,
             }),
@@ -316,7 +319,7 @@ function backupIfVersionChanged(dbFile) {
     } catch (err) {
       dialog.showErrorBox("Backup before update failed", `${err}
 
-HabitManager will start anyway; your data is unchanged so far.`);
+Prepwise will start anyway; your data is unchanged so far.`);
     }
   }
   writeFileSync(marker, current);
@@ -345,7 +348,7 @@ function setupUpdates() {
       buttons: ["Restart now", "Later"],
       defaultId: 0,
       cancelId: 1,
-      message: `HabitManager ${info.version} is ready`,
+      message: `Prepwise ${info.version} is ready`,
       detail: "Restart to update. Your data is backed up first. Choosing Later installs it the next time you quit.",
     });
     if (response === 0) autoUpdater.quitAndInstall();
@@ -378,9 +381,9 @@ async function checkForUpdates(manual) {
     const latest = result?.updateInfo.version;
     if (!manual) return;
     if (latest && isNewer(latest, app.getVersion())) {
-      dialog.showMessageBox({ type: "info", message: `Downloading HabitManager ${latest}…`, detail: "You'll be asked to restart when it's ready." });
+      dialog.showMessageBox({ type: "info", message: `Downloading Prepwise ${latest}…`, detail: "You'll be asked to restart when it's ready." });
     } else {
-      dialog.showMessageBox({ type: "info", message: "You're up to date", detail: `HabitManager ${app.getVersion()} is the latest version.` });
+      dialog.showMessageBox({ type: "info", message: "You're up to date", detail: `Prepwise ${app.getVersion()} is the latest version.` });
     }
   } catch (err) {
     if (manual) dialog.showMessageBox({ type: "warning", message: "Couldn't check for updates", detail: String(err) });
@@ -390,7 +393,7 @@ async function checkForUpdates(manual) {
 /** @param {boolean} manual */
 async function notifyMacRelease(manual) {
   const res = await fetch(`https://api.github.com/repos/${RELEASES_REPO}/releases/latest`, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "HabitManager-desktop" },
+    headers: { Accept: "application/vnd.github+json", "User-Agent": "Prepwise-desktop" },
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
@@ -401,11 +404,11 @@ async function notifyMacRelease(manual) {
       buttons: ["Download", "Later"],
       defaultId: 0,
       cancelId: 1,
-      message: `HabitManager ${release.tag_name.replace(/^v/, "")} is available`,
+      message: `Prepwise ${release.tag_name.replace(/^v/, "")} is available`,
       detail: `You have ${app.getVersion()}. Download the new .dmg and drag it to Applications; your data stays where it is.`,
     });
     if (response === 0) shell.openExternal(release.html_url);
   } else if (manual) {
-    dialog.showMessageBox({ type: "info", message: "You're up to date", detail: `HabitManager ${app.getVersion()} is the latest version.` });
+    dialog.showMessageBox({ type: "info", message: "You're up to date", detail: `Prepwise ${app.getVersion()} is the latest version.` });
   }
 }

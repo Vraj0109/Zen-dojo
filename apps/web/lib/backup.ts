@@ -86,10 +86,10 @@ export type RestoreResult = { ok: true; rows: number; safetyCopy: string | null 
 export async function restoreBackup(raw: unknown): Promise<RestoreResult> {
   const b = raw as Partial<Backup> | null;
   if (!b || typeof b !== "object" || b.format !== BACKUP_FORMAT || !b.tables || typeof b.tables !== "object") {
-    return { ok: false, error: "That isn't a HabitManager backup file." };
+    return { ok: false, error: "That isn't a Prepwise backup file." };
   }
   if (!Number.isInteger(b.schemaVersion) || b.schemaVersion! > MIGRATIONS.length) {
-    return { ok: false, error: "This backup was made by a newer version of HabitManager. Update the app first." };
+    return { ok: false, error: "This backup was made by a newer version of Prepwise. Update the app first." };
   }
 
   const c = await client();

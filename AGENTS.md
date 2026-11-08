@@ -1,4 +1,4 @@
-# HabitManager: rules for every coding agent
+# Prepwise: rules for every coding agent
 
 Shared rules for any AI agent working in this repo (Claude Code, Antigravity, others). Tool-specific roles live in
 `CLAUDE.md` (planner/reviewer) and `GEMINI.md` (implementer); both import this file.

@@ -8,7 +8,7 @@ import { DIAGRAM_LIMITS, addDiagram } from "@/lib/diagrams";
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(request.url).origin) {
-    return Response.json({ error: "Diagrams can only be added from HabitManager's own pages." }, { status: 403 });
+    return Response.json({ error: "Diagrams can only be added from Prepwise's own pages." }, { status: 403 });
   }
   const len = Number(request.headers.get("content-length") ?? 0);
   if (len > DIAGRAM_LIMITS.bytes + 100_000) return Response.json({ error: "Too large" }, { status: 413 });

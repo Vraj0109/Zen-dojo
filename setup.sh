@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HabitManager setup for macOS / Linux.
+# Prepwise setup for macOS / Linux.
 # Installs missing prerequisites (only if not installed), VS Code extensions, then builds.
 #
 #   ./setup.sh                 # required tools + build
