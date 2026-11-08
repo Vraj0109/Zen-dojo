@@ -74,7 +74,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0010 | [No emoji, and LeetCode-style simple lists on the DSA pages](0010-no-emoji-leetcode-style-ui.md) | done |
 | 0011 | [Coloured code everywhere, and a real code editor where you write code](0011-code-highlighting-and-editor.md) | implemented (by Claude Code; waiting for your look) |
 | 0012 | [Diagrams (Mermaid) in lessons, designs and articles](0012-diagrams.md) | in-progress (step 4 open) |
-| 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | in-progress (batch A of 5 written; parking lot and elevator enriched and compiled, vending/ATM still simple; batch B: LRU + rate limiter and URL shortener done and compiled, logger/notifications open) |
+| 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | in-progress (batch A of 5 written; parking lot and elevator enriched and compiled, vending/ATM still simple; batch B complete: LRU + rate limiter, URL shortener, logger + notifications, all compiled; vending/ATM richer code and batches C-E open) |
 | 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | ready |
 | 0015 | [Core subjects: more explanation, diagrams, Java demos](0015-core-subjects-depth.md) | ready |
 | 0016 | [Themes: Light, Dark, System and accent colours](0016-themes.md) | implemented (by Claude Code) |
