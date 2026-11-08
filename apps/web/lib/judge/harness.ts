@@ -78,11 +78,17 @@ export function cppProgram(spec: ProblemSpec, userCode: string): string {
     cppNodeIo(spec) +
     `
 int main() {
+    // Anything your code prints goes to the console section. The judge's own answers go to a file, so the two never mix.
+    // Output is unbuffered so nothing is lost if your code crashes, and cout / printf / cerr keep their order.
+    std::cout << std::unitbuf;
+    setvbuf(stdout, nullptr, _IONBF, 0);
     std::string line;
     std::getline(std::cin, line);
     int n = std::stoi(line);
+    std::ofstream results("results.txt");
     for (int t = 0; t < n; t++) {
         std::getline(std::cin, line);
+        std::cout << char(1) << "CASE " << t << char(2) << std::endl; // tells the judge which case prints from here on
         try {
             HabitReader r{line};
             r.expect('[');
@@ -91,9 +97,11 @@ ${reads}
             auto result = ${call};
             auto t1 = std::chrono::steady_clock::now();
             std::ostringstream o; habitWrite(o, result);
-            std::cout << "OK\\t" << o.str() << "\\t" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << std::endl;
+            results << "OK\\t" << o.str() << "\\t" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << std::endl;
         } catch (std::exception& e) {
-            std::cout << "ERR\\t" << e.what() << std::endl;
+            results << "ERR\\t" << e.what() << std::endl;
+        } catch (...) {
+            results << "ERR\\tyour code threw something that is not a standard exception" << std::endl;
         }
     }
     return 0;
@@ -163,21 +171,26 @@ export function javaProgram(spec: ProblemSpec): string {
     JAVA_MAIN.replace("/*NODE_HELPERS*/", () => javaNodeHelpers(spec)).replace("/*NODE_WRITER*/", () => javaNodeWriter(spec)) +
     `
     public static void main(String[] argv) throws Exception {
+        // Anything your code prints goes to the console section. The judge's own answers go to a file.
         Scanner in = new Scanner(System.in);
         int n = Integer.parseInt(in.nextLine().trim());
+        java.io.PrintWriter results = new java.io.PrintWriter(new java.io.FileWriter("results.txt"), true);
         for (int t = 0; t < n; t++) {
             s = in.nextLine(); i = 0;
+            System.out.print((char) 1 + "CASE " + t + (char) 2 + "\\n"); // tells the judge which case prints from here on
+            System.out.flush();
             try {
                 List<?> a = (List<?>) val();
                 long t0 = System.nanoTime();
                 Object result = new Solution().${name}(${args});
                 long us = (System.nanoTime() - t0) / 1000;
                 StringBuilder b = new StringBuilder(); wr(b, result);
-                System.out.println("OK\\t" + b + "\\t" + us);
+                results.println("OK\\t" + b + "\\t" + us);
             } catch (Throwable e) {
-                System.out.println("ERR\\t" + e.toString().replace('\\n', ' '));
+                results.println("ERR\\t" + e.toString().replace('\\n', ' '));
             }
             System.out.flush();
+            System.err.flush();
         }
     }
 }
@@ -188,15 +201,24 @@ export function javaProgram(spec: ProblemSpec): string {
 export function javascriptProgram(spec: ProblemSpec, userCode: string): string {
   const call = `${spec.fn.name}(${spec.fn.params.map((p, k) => jsArg(p.type, `args[${k}]`)).join(", ")})`;
   return (
+    String.raw`
+// ---- added by HabitManager: console output is written straight to the console section, in order ----
+const __fs = require("fs");
+const __fmt = require("util").format;
+console.log = console.info = console.debug = (...a) => __fs.writeSync(1, __fmt(...a) + "\n");
+console.error = console.warn = (...a) => __fs.writeSync(2, __fmt(...a) + "\n");
+process.stdout.write = (s) => { __fs.writeSync(1, String(s)); return true; };
+process.stderr.write = (s) => { __fs.writeSync(2, String(s)); return true; };
+` +
     jsNodePrelude(spec) +
     userCode +
     String.raw`
 
 // ---- test harness (added by HabitManager) ----
-const __lines = require("fs").readFileSync(0, "utf8").split("\n");
+const __lines = __fs.readFileSync(0, "utf8").split("\n");
 const __n = parseInt(__lines[0], 10);
-let __out = "";
 for (let t = 1; t <= __n; t++) {
+    __fs.writeSync(1, "\u0001CASE " + (t - 1) + "\u0002\n"); // tells the judge which case prints from here on
     try {
         const args = JSON.parse(__lines[t]);
         const t0 = process.hrtime.bigint();
@@ -207,12 +229,11 @@ for (let t = 1; t <= __n; t++) {
         const shown = ` +
     jsResult(spec.fn.returns, "result") +
     String.raw`;
-        __out += "OK\t" + JSON.stringify(shown === undefined ? null : shown) + "\t" + us + "\n";
+        __fs.appendFileSync("results.txt", "OK\t" + JSON.stringify(shown === undefined ? null : shown) + "\t" + us + "\n");
     } catch (e) {
-        __out += "ERR\t" + String((e && e.message) || e).split("\n")[0] + "\n";
+        __fs.appendFileSync("results.txt", "ERR\t" + String((e && e.message) || e).split("\n")[0] + "\n");
     }
 }
-require("fs").writeSync(1, __out);
 `
   );
 }

@@ -81,10 +81,93 @@ describe.skipIf(!GPP)("reference solutions (C++)", () => {
     expect(bad.status).toBe("compile_error");
 
     const empty = await runCode(two, "cpp", templateFor(two, "cpp")); // body empty: falls off the end
-    expect(["done", "timeout"]).toContain(empty.status);
+    expect(empty.status).toBe("done");
 
+    // A hang is reported per case; the run still finishes and stays within the total time budget.
     const loop = await runCode(two, "cpp", templateFor(two, "cpp").replace("// Write your code here", "while (true) {}"));
-    expect(loop.status).toBe("timeout");
+    expect(loop.status).toBe("done");
+    if (loop.status === "done") {
+      expect(loop.passed).toBe(0);
+      expect(loop.results[0]).toMatchObject({ pass: false, problem: "timeout" });
+      expect(loop.results.length).toBe(two.examples.length + two.tests.length);
+      expect(loop.results.some((r) => r.problem === "not-run")).toBe(true); // the 15 s budget ran out
+    }
+  }, 90_000);
+
+  it("explains the out-of-range bug in the Missing Number code from the bug report, and still runs every case", async () => {
+    const spec = JUDGE_PROBLEMS["cses-missing-number"];
+    // The list has n - 1 numbers, but this loop reads n of them: one past the end.
+    const buggy = `#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int missingNumber(int n, vector<int>& arr) {
+        int ans = 0;
+        for(int i = 0;i<n;i++){
+            ans ^= (arr[i] ^ (i+1));
+        }
+        return ans;
+    }
+};
+`;
+    const r = await runCode(spec, "cpp", buggy);
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      expect(r.results.length).toBe(spec.examples.length + spec.tests.length);
+      expect(r.results.every((x) => x.problem !== "not-run")).toBe(true); // every case got its own verdict
+      const crashed = r.results.filter((x) => x.problem === "crash");
+      expect(crashed.length).toBeGreaterThan(0);
+      expect(crashed[0].error).toMatch(/aborted|memory/);
+      expect(crashed[0].output ?? "").toContain("size()"); // the library's own message about the bad index is shown
+    }
+
+    const fixed = buggy.replace("i<n;", "i<n-1;").replace("return ans;", "return ans ^ n;");
+    const ok = await runCode(spec, "cpp", fixed);
+    expect(ok).toMatchObject({ status: "done" });
+    if (ok.status === "done") expect(ok.passed).toBe(ok.total);
+  }, 90_000);
+
+  it("keeps what your code prints apart from the answers, per case, in the right order", async () => {
+    const two = JUDGE_PROBLEMS["lc-70"];
+    const code = `#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int climbStairs(int n) {
+        printf("printf %d|", n);
+        cout << "cout " << n << "|";
+        cerr << "cerr " << n << endl;
+        int a = 1, b = 1;
+        for (int i = 2; i <= n; i++) { int c = a + b; a = b; b = c; }
+        return b;
+    }
+};
+`;
+    const r = await runCode(two, "cpp", code);
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      expect(r.passed).toBe(r.total); // printing does not disturb the answers
+      expect(r.results[0].output).toContain("printf 2|cout 2|cerr 2"); // example 1 is n = 2, and the three calls stay in order
+      expect(r.results[1].output).toContain("printf 3|");
+      expect(r.beforeTests).toBeUndefined();
+    }
+    const quiet = await runCode(two, "cpp", JUDGE_PROBLEMS["lc-70"].solution.cpp);
+    expect(quiet.status === "done" && quiet.results.every((x) => x.output === undefined)).toBe(true); // no output, no section
+  }, 60_000);
+
+  it("isolates a crash on one case: the others still run and pass", async () => {
+    const two = JUDGE_PROBLEMS["lc-70"];
+    const code = JUDGE_PROBLEMS["lc-70"].solution.cpp.replace("int a = 1, b = 1;", "if (n == 4) abort();\n        int a = 1, b = 1;");
+    const r = await runCode(two, "cpp", code);
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      const crashed = r.results.filter((x) => x.problem === "crash");
+      expect(crashed.length).toBe(1);
+      expect(crashed[0].input).toBe("[4]");
+      expect(r.passed).toBe(r.total - 1);
+    }
   }, 60_000);
 });
 
@@ -347,4 +430,75 @@ describe("linked lists and trees in JavaScript", () => {
     expect(tree).toMatchObject({ status: "done" });
     if (tree.status === "done") expect(tree.passed).toBe(tree.total);
   }, 60_000);
+});
+
+describe.skipIf(!JAVA)("printing in Java", () => {
+  it("shows System.out output per case and keeps the answers separate", async () => {
+    const r = await runCode(
+      JUDGE_PROBLEMS["lc-70"],
+      "java",
+      `class Solution {
+    public int climbStairs(int n) {
+        System.out.println("n is " + n);
+        int a = 1, b = 1;
+        for (int i = 2; i <= n; i++) { int c = a + b; a = b; b = c; }
+        return b;
+    }
+}`,
+    );
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      expect(r.passed).toBe(r.total);
+      expect(r.results[0].output).toContain("n is 2");
+      expect(r.results[1].output).toContain("n is 3");
+    }
+  }, 60_000);
+});
+
+describe("printing in JavaScript", () => {
+  it("shows console.log output per case, keeps the answers separate, and isolates a thrown error", async () => {
+    const r = await runCode(
+      JUDGE_PROBLEMS["lc-70"],
+      "javascript",
+      `function climbStairs(n) {
+    console.log("n is", n);
+    if (n === 4) throw new Error("boom");
+    let a = 1, b = 1;
+    for (let i = 2; i <= n; i++) { const c = a + b; a = b; b = c; }
+    return b;
+}`,
+    );
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      expect(r.results[0].output).toContain("n is 2");
+      expect(r.results.filter((x) => x.problem === "exception").map((x) => x.error)).toEqual(["boom"]);
+      expect(r.passed).toBe(r.total - 1);
+    }
+  }, 60_000);
+});
+
+describe.skipIf(!GPP)("runaway output", () => {
+  it("stops a program that prints without end, and still finishes", async () => {
+    const two = JUDGE_PROBLEMS["lc-70"];
+    const code = `#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int climbStairs(int n) {
+        while (true) puts("spam spam spam spam spam spam spam spam spam spam");
+        return n;
+    }
+};
+`;
+    const started = Date.now();
+    const r = await runCode(two, "cpp", code);
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      expect(r.passed).toBe(0);
+      expect(r.results[0]).toMatchObject({ problem: "crash", error: expect.stringContaining("too much output") });
+      expect(r.results[0].output!.length).toBeLessThanOrEqual(20_100); // shown output is cut off
+    }
+    expect(Date.now() - started).toBeLessThan(40_000);
+  }, 90_000);
 });

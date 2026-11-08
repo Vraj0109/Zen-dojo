@@ -67,7 +67,7 @@ public:
     statement: [
       "You are given n and a list of n - 1 distinct numbers, each between 1 and n. Exactly one number from 1 to n is missing. Return it.",
     ],
-    constraints: ["2 <= n <= 200000", "nums has n - 1 distinct values in 1..n"],
+    constraints: ["2 <= n <= 200000", "nums has n - 1 distinct values in 1..n, so nums.size() is n - 1 (one less than n): loop over nums.size(), not n"],
     fn: { name: "missingNumber", params: [{ name: "n", type: "int" }, { name: "nums", type: "int[]" }], returns: "int" },
     examples: [{ input: [5, [2, 3, 1, 5]], output: 4 }],
     tests: [
@@ -81,6 +81,7 @@ public:
       { input: [7, [7, 6, 5, 3, 2, 1]], output: 4 },
     ],
     hints: [
+      "Careful: the list holds n - 1 numbers, so valid indexes are 0 to n - 2. Looping to n reads one past the end.",
       "If you add up 1 through n, what do you get? And what would the list add up to without the missing number?",
       "The difference between the two sums is the missing number.",
       "Sum of 1..n is n * (n + 1) / 2. Use a 64-bit type: for n = 200000 it is about 2 * 10^10.",

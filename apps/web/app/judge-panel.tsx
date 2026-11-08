@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore } from "react";
-import type { RunResult } from "@/lib/judge/run";
+import type { CaseResult, RunResult } from "@/lib/judge/run";
 import { EditorField } from "./code-editor";
 
 type Lang = "cpp" | "java" | "javascript";
@@ -147,6 +147,8 @@ export function JudgePanel({ id, templates }: { id: string; templates: Record<La
   );
 }
 
+const label = (r: CaseResult) => (r.kind === "example" ? `Example ${r.index + 1}` : `Test ${r.index + 1}`);
+
 function Results({ result }: { result: RunResult }) {
   if (result.status === "unavailable") {
     return <p className="rounded-xl border border-cat-beh bg-surface p-3 text-sm">{result.message}</p>;
@@ -160,58 +162,91 @@ function Results({ result }: { result: RunResult }) {
     );
   }
   const results = result.results;
-  const failed = results.filter((r) => !r.pass);
-  const first = failed[0];
-  const accepted = result.status === "done" && !result.message && failed.length === 0 && result.passed === result.total;
+  const first = results.find((r) => !r.pass);
+  const accepted = !first;
+  const printed = results.filter((r) => r.output);
+  const headline = accepted
+    ? "Accepted"
+    : first.problem === "timeout"
+      ? "Time limit exceeded"
+      : first.problem === "crash" || first.problem === "exception"
+        ? "Runtime error"
+        : first.problem === "not-run"
+          ? "Stopped early"
+          : "Wrong answer";
 
   return (
     <div className="space-y-3">
       <div className={`rounded-xl border bg-surface p-3 ${accepted ? "border-diff-easy" : "border-cat-mock"}`}>
         <p className={`font-semibold ${accepted ? "text-diff-easy" : "text-diff-hard"}`}>
-          {accepted
-            ? "Accepted"
-            : result.status === "timeout"
-              ? "Time limit exceeded"
-              : first?.error
-                ? "Runtime error"
-                : first
-                  ? "Wrong answer"
-                  : "Stopped early"}
-          {result.status === "done" && <span className="ml-2 font-normal text-muted">{result.passed} of {result.total} cases passed</span>}
+          {headline}
+          <span className="ml-2 font-normal text-muted">
+            {result.passed} of {result.total} cases passed
+          </span>
         </p>
-        {result.message && <pre className="mt-2 overflow-x-auto text-xs whitespace-pre-wrap">{result.message}</pre>}
         {first && (
-          <dl className="mt-2 space-y-1 text-sm">
-            <Row label={`Failed on ${first.kind === "example" ? `example ${first.index + 1}` : "a hidden test"}`} value={first.input ?? ""} />
-            <Row label="Expected" value={first.expected ?? ""} />
-            <Row label={first.error ? "Error" : "Your output"} value={first.error ?? first.actual ?? "(nothing)"} />
-          </dl>
+          <p className="mt-1 text-xs text-muted">
+            First failure: {label(first)}. Open any case below to see its input, the expected answer and what your code returned.
+          </p>
         )}
       </div>
 
-      <ul className="grid gap-1 text-sm sm:grid-cols-2">
+      <ul className="space-y-1 text-sm">
         {results.map((r) => (
-          <li key={r.index} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-1.5">
-            <span>
-              {r.kind === "example" ? `Example ${r.index + 1}` : `Test ${r.index + 1}`}
-              {r.kind === "example" && r.input && <span className="ml-2 font-mono text-xs text-muted">{r.input.length > 40 ? r.input.slice(0, 40) + "…" : r.input}</span>}
-            </span>
-            <span className={r.pass ? "text-diff-easy" : "text-diff-hard"}>
-              {r.pass ? "Passed" : "Failed"}
-              {r.micros !== undefined && <span className="ml-2 text-xs text-muted">{r.micros < 1000 ? `${r.micros} µs` : `${Math.round(r.micros / 1000)} ms`}</span>}
-            </span>
+          <li key={r.index}>
+            <details className="rounded-lg border border-line bg-surface" open={r === first}>
+              <summary className="flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5">
+                <span>
+                  {label(r)}
+                  <span className="ml-2 font-mono text-xs text-muted">{r.input.length > 44 ? r.input.slice(0, 44) + "…" : r.input}</span>
+                </span>
+                <span className={r.pass ? "text-diff-easy" : "text-diff-hard"}>
+                  {r.pass ? "Passed" : r.problem === "timeout" ? "Too slow" : r.problem === "crash" || r.problem === "exception" ? "Error" : r.problem === "not-run" ? "Not run" : "Failed"}
+                  {r.micros !== undefined && <span className="ml-2 text-xs text-muted">{r.micros < 1000 ? `${r.micros} µs` : `${Math.round(r.micros / 1000)} ms`}</span>}
+                </span>
+              </summary>
+              <dl className="space-y-1 border-t border-line px-3 py-2">
+                <Row label="Input" value={r.input} />
+                <Row label="Expected" value={r.expected} />
+                <Row label={r.error ? "What happened" : "Your output"} value={r.error ?? r.actual ?? "(nothing)"} />
+                {r.output && <Row label="Printed by your code" value={r.output} block />}
+              </dl>
+            </details>
           </li>
         ))}
       </ul>
+
+      {(printed.length > 0 || result.beforeTests) && (
+        <section aria-label="Console output" className="rounded-xl border border-line bg-surface p-3">
+          <h4 className="text-sm font-semibold">Console output</h4>
+          <p className="mb-2 text-xs text-muted">Everything your code printed, case by case (cout, printf, cerr, System.out, console.log ...).</p>
+          <div className="space-y-2">
+            {result.beforeTests && (
+              <div>
+                <p className="text-xs font-medium text-muted">Before the first case</p>
+                <pre className="overflow-x-auto rounded bg-background p-2 text-xs whitespace-pre-wrap">{result.beforeTests}</pre>
+              </div>
+            )}
+            {printed.map((r) => (
+              <div key={r.index}>
+                <p className="text-xs font-medium text-muted">
+                  {label(r)} <span className="font-mono">{r.input.length > 40 ? r.input.slice(0, 40) + "…" : r.input}</span>
+                </p>
+                <pre className="overflow-x-auto rounded bg-background p-2 text-xs whitespace-pre-wrap">{r.output}</pre>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, block = false }: { label: string; value: string; block?: boolean }) {
   return (
     <div>
       <dt className="text-xs font-medium text-muted">{label}</dt>
-      <dd className="font-mono text-xs break-all">{value}</dd>
+      <dd className={block ? "font-mono text-xs break-all whitespace-pre-wrap" : "font-mono text-xs break-all"}>{value}</dd>
     </div>
   );
 }

@@ -80,6 +80,8 @@ None.
 - Not checked in a browser: the editor panel look, language switching, saved code, the Run button flow in the page.
 - **Found but not changed:** `pnpm check` takes about 2 minutes longer because the judge tests compile 11 C++ programs.
 
+- **2026-11-08, run fixes (user report: a correct-looking Missing Number solution failed, and cout could not be used).** The user's loop ran to n over a list of n - 1 numbers (an out-of-range read), which the old runner turned into a confusing failure. Changes: (1) the answers now go to `results.txt` and standard output belongs to the user's code, with a marker per case, so `cout`, `printf`, `cerr`, `System.out` and `console.log` all work and are shown per case in a **Console output** section that appears only when something was printed; (2) C++ is compiled with `-D_GLIBCXX_ASSERTIONS` so an out-of-range vector index stops with the library's message instead of reading garbage; (3) a crash, hang or exit in one case is marked on that case and the remaining cases are run again, so every case gets a verdict; (4) every case now shows its input, expected answer, your output and anything it printed (the cases are not secret); (5) output is capped (1 MB per run, 20 KB per case) and a program that prints forever is stopped; (6) the Missing Number statement and first hint now warn that the list has n - 1 numbers. Tests added for each.
+
 ## Review
 
 (pending: run `/review-plan 0018`)
