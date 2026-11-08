@@ -12,11 +12,13 @@ import {
   heatmap,
   levelInfo,
   perfectWeeks,
+  streakDays,
   toLocalDate,
   type Category,
   type StudyAreaId,
 } from "@habit/shared";
 import { getDb } from "./db";
+import { frozenDays } from "./progress";
 import { focusByDay } from "./timer";
 import { getDsaView } from "./dsa";
 import { conceptProgress, leetcodeProblems, practiceSessions, problemSolves, tasks } from "./schema";
@@ -67,6 +69,8 @@ export async function getStats() {
   const xpByDay = new Map<string, number>();
   for (const e of ev) xpByDay.set(e.on, (xpByDay.get(e.on) ?? 0) + e.xp);
   const activeDays = [...new Set(ev.map((e) => e.on))];
+  // Frozen days keep the streak alive but are not "active" (no XP): they feed the streak numbers only.
+  const streakList = streakDays(activeDays, await frozenDays());
   const totalXp = ev.reduce((a, e) => a + e.xp, 0);
   const level = levelInfo(totalXp);
 
@@ -90,7 +94,7 @@ export async function getStats() {
     solved: firstSolves.size,
     hardSolved,
     resolved: solves.filter((s) => s.kind === "resolve").length,
-    bestStreak: bestStreak(activeDays),
+    bestStreak: bestStreak(streakList),
     groupsCovered: dsa.groups.filter((g) => g.covered === g.patterns.length).length,
     designsPracticed: practicedIn("sd"),
     lldPracticed: practicedIn("lld"),
@@ -104,8 +108,8 @@ export async function getStats() {
     totals: {
       totalXp,
       level,
-      streak: currentStreak(activeDays, today),
-      bestStreak: bestStreak(activeDays),
+      streak: currentStreak(streakList, today),
+      bestStreak: bestStreak(streakList),
       activeDays: activeDays.filter((d) => d <= today).length,
       hours: Math.round(((ev.reduce((a, e) => a + e.minutes, 0) + focus.reduce((a, f) => a + f.minutes, 0)) / 60) * 10) / 10,
     },

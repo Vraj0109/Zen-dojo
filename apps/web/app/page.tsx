@@ -9,7 +9,7 @@ import type { Task } from "@/lib/schema";
 import { REVIEW_KIND_LABELS, getReviewQueue } from "@/lib/review";
 import { getCountdown } from "@/lib/revise";
 import { getTodayView } from "@/lib/tasks";
-import { addTaskAction, deleteTaskAction, toggleTaskAction } from "./actions";
+import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
 import { PageMain, ProgressBar, StatusMark } from "./ui";
 
@@ -91,9 +91,9 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{formatLong(v.today)}</h2>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Chip label="Streak" value={`${v.streak} day${v.streak === 1 ? "" : "s"}`} />
-          <Chip label="Today" value={`+${v.todayXp} XP`} />
-          <Link href="/profile" className="rounded-xl border border-line bg-surface px-3 py-2 hover:bg-background">
+          <Chip label="Streak" value={`${v.streak} day${v.streak === 1 ? "" : "s"}`} className="gamify-only" />
+          <Chip label="Today" value={`+${v.todayXp} XP`} className="gamify-only" />
+          <Link href="/profile" className="gamify-only rounded-xl border border-line bg-surface px-3 py-2 hover:bg-background">
             <p className="text-xs text-muted">Level</p>
             <div className="flex items-center gap-2 font-semibold">
               {lvl.level} · {lvl.tier}
@@ -104,6 +104,16 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
           </Link>
         </div>
       </header>
+
+      {v.freezeOffer.length > 0 && (
+        <form action={freezeDayAction} className="gamify-only flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
+          <input type="hidden" name="day" value={v.freezeOffer[0]} />
+          <p className="text-sm">
+            You missed <strong>{formatLong(v.freezeOffer[0])}</strong>. Use this week&apos;s streak freeze to keep your streak? The day gives no XP.
+          </p>
+          <SubmitButton className="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background">Freeze that day</SubmitButton>
+        </form>
+      )}
 
       {beforeStart && (
         <p className="rounded-xl border border-line bg-surface p-4">
@@ -222,9 +232,9 @@ function Fold({ title, open, children }: { title: string; open?: boolean; childr
   );
 }
 
-function Chip({ label, value }: { label: string; value: string }) {
+function Chip({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-surface px-3 py-2">
+    <div className={`rounded-xl border border-line bg-surface px-3 py-2 ${className}`}>
       <p className="text-xs text-muted">{label}</p>
       <p className="font-semibold">{value}</p>
     </div>
@@ -296,7 +306,7 @@ function TaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
           <span className={`inline-block size-2 rounded-full ${CATEGORY_STYLES[cat]}`} />
           {CATEGORIES[cat].label}
           {t.minutes ? <span>· {t.minutes} min</span> : null}
-          <span className={done ? "" : "font-medium text-accent"}>· +{t.xp} XP</span>
+          <span className={`gamify-only ${done ? "" : "font-medium text-accent"}`}>· +{t.xp} XP</span>
         </p>
       </div>
       {go && (

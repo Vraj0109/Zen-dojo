@@ -88,6 +88,44 @@
   }
   maybeSyncRecent();
 
+  // --- Time on problem pages: only the problem's slug and seconds are sent, and only while you are really on the page ---
+  const time = await import(chrome.runtime.getURL("lib/time.js"));
+  const ledger = new time.Ledger();
+  let lastInput = Date.now();
+  let lastTick = Date.now();
+  for (const ev of ["pointermove", "pointerdown", "keydown", "scroll", "wheel"]) {
+    addEventListener(ev, () => (lastInput = Date.now()), { passive: true, capture: true });
+  }
+
+  async function trackingOn() {
+    const { trackTime = true } = await chrome.storage.local.get("trackTime");
+    return trackTime !== false;
+  }
+
+  async function flushTime() {
+    const entries = ledger.drain();
+    if (entries.length === 0) return;
+    try {
+      if (!(await configured())) throw new Error("not paired");
+      await callApp("POST", "/api/ext/time", { entries });
+    } catch {
+      ledger.restore(entries); // try again at the next flush
+    }
+  }
+
+  setInterval(async () => {
+    const now = Date.now();
+    const slug = time.slugFromPath(location.pathname);
+    const active = slug !== null && time.isActive({ visible: document.visibilityState === "visible", focused: document.hasFocus(), lastInput, now });
+    const credit = time.creditSeconds(lastTick, now, active);
+    lastTick = now;
+    if (slug && credit > 0 && (await trackingOn())) ledger.add(time.localDay(new Date(now)), slug, credit);
+  }, time.TICK_MS);
+  setInterval(flushTime, time.FLUSH_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushTime();
+  });
+
   // --- Full history import, started from the popup ---
   let backfilling = false;
   /** @param {boolean} full */

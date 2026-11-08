@@ -46,19 +46,21 @@ export function LearnTabs({ active }: { active: string }) {
   );
 }
 
-export type ReviewTab = "review" | "revise";
+export type ReviewTab = "review" | "revise" | "weekly";
 
-/** "Due today" and "Quick revise". `due` is the number of items in today's queue, when the page knows it. */
+/** "Due today", "Quick revise" and "Weekly review". `due` is the number of items in today's queue, when the page knows it. */
 export function ReviewTabs({ active, due }: { active: ReviewTab; due?: number }) {
   const tabs = [
     { id: "review", label: "Due today", count: due },
     { id: "revise", label: "Quick revise" },
+    { id: "weekly", label: "Weekly review" },
   ];
+  const href: Record<ReviewTab, string> = { review: "/review", revise: "/revise", weekly: "/review/week" };
   return (
     <Tabs
       tabs={tabs}
       active={active}
-      hrefFor={(id) => (id === "review" ? "/review" : "/revise")}
+      hrefFor={(id) => href[id as ReviewTab]}
       label="Review sections"
       className="mb-6 flex gap-6 overflow-x-auto border-b border-line print:hidden"
     />

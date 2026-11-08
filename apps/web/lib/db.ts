@@ -189,6 +189,26 @@ CREATE TABLE pattern_notes (
   updated_on TEXT NOT NULL
 );
 `,
+  // Streak freezes, weekly review reflections, time spent on LeetCode problems (browser extension).
+  `
+CREATE TABLE streak_freezes (
+  day TEXT PRIMARY KEY,
+  created_on TEXT NOT NULL
+);
+CREATE TABLE weekly_reviews (
+  week TEXT PRIMARY KEY,
+  wins TEXT NOT NULL DEFAULT '',
+  struggles TEXT NOT NULL DEFAULT '',
+  next_focus TEXT NOT NULL DEFAULT '',
+  updated_on TEXT NOT NULL
+);
+CREATE TABLE site_time (
+  day TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  seconds INTEGER NOT NULL,
+  PRIMARY KEY (day, slug)
+);
+`,
 ];
 
 async function migrate(client: Client) {

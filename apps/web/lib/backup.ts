@@ -28,6 +28,9 @@ export const BACKUP_TABLES = [
   "reading_custom",
   "diagrams",
   "pattern_notes",
+  "streak_freezes",
+  "weekly_reviews",
+  "site_time",
 ] as const;
 
 /** Never exported or overwritten: the extension pairing key stays with this install. */

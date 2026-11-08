@@ -4,6 +4,8 @@ import { refresh } from "next/cache";
 import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
 import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
 import { saveNote } from "@/lib/notes";
+import { applyFreeze } from "@/lib/progress";
+import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
 import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
@@ -93,6 +95,20 @@ export async function setPlanStartAction(formData: FormData) {
   const date = String(formData.get("planStart") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   await setPlanStart(date);
+  refresh();
+}
+
+/** Cover one missed day with this week's streak freeze (Today). Ignored unless the day is eligible. */
+export async function freezeDayAction(formData: FormData) {
+  const day = String(formData.get("day") ?? "");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(day)) await applyFreeze(day);
+  refresh();
+}
+
+/** Save the reflection for one week of the weekly review. */
+export async function saveReflectionAction(formData: FormData) {
+  const field = (name: string) => String(formData.get(name) ?? "");
+  await saveReflection(weekOf(field("week")), { wins: field("wins"), struggles: field("struggles"), nextFocus: field("nextFocus") });
   refresh();
 }
 

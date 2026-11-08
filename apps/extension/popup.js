@@ -67,8 +67,12 @@ function render(s) {
   show($("last"), parts.join(" ") || "Nothing captured yet.");
 }
 
+const trackTime = /** @type {HTMLInputElement} */ ($("trackTime"));
+trackTime.addEventListener("change", () => chrome.storage.local.set({ trackTime: trackTime.checked }));
+
 (async () => {
   const s = await chrome.storage.local.get(null);
+  trackTime.checked = s.trackTime !== false;
   appUrl.value = String(s.appUrl ?? DEFAULT_APP_URL);
   token.value = String(s.token ?? "");
   render(s);

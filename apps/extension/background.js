@@ -4,7 +4,7 @@
 
 import { DEFAULT_APP_URL, normalizeAppUrl } from "./lib/config.js";
 
-const PATHS = new Set(["/api/ext/known", "/api/ext/submissions"]);
+const PATHS = new Set(["/api/ext/known", "/api/ext/submissions", "/api/ext/time"]);
 
 /** @param {{ method: "GET" | "POST", path: string, body?: unknown }} req */
 async function callApp({ method, path, body }) {

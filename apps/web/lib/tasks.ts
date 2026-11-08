@@ -74,6 +74,8 @@ export interface TodayView {
   totalXp: number;
   todayXp: number;
   streak: number;
+  /** Missed days (newest first) a streak freeze could cover right now */
+  freezeOffer: string[];
   level: Awaited<ReturnType<typeof getProgress>>["level"];
 }
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex, primaryKey } from "drizzle-orm/sqlite-core";
 
 export const tasks = sqliteTable(
   "tasks",
@@ -178,6 +178,32 @@ export const patternNotes = sqliteTable("pattern_notes", {
   recognize: text("recognize").notNull().default(""),
   updatedOn: text("updated_on").notNull(),
 });
+
+/** A missed day covered by a streak freeze (local date). Counts for the streak, gives no XP. */
+export const streakFreezes = sqliteTable("streak_freezes", {
+  day: text("day").primaryKey(),
+  createdOn: text("created_on").notNull(),
+});
+
+/** Your reflection for one plan week; `week` is that week's Monday. */
+export const weeklyReviews = sqliteTable("weekly_reviews", {
+  week: text("week").primaryKey(),
+  wins: text("wins").notNull().default(""),
+  struggles: text("struggles").notNull().default(""),
+  nextFocus: text("next_focus").notNull().default(""),
+  updatedOn: text("updated_on").notNull(),
+});
+
+/** Seconds spent on a LeetCode problem page per day, reported by the browser extension. */
+export const siteTime = sqliteTable(
+  "site_time",
+  {
+    day: text("day").notNull(),
+    slug: text("slug").notNull(),
+    seconds: integer("seconds").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.slug] })],
+);
 
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
