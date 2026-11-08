@@ -1,8 +1,10 @@
 import type { LldExtra } from "./types";
+import { URL_SHORTENER_EXTRA } from "./lld-deep-b-url";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
 export const LLD_EXTRA: Record<string, LldExtra> = {
+  "lldp-url-shortener": URL_SHORTENER_EXTRA,
   "lldp-parking-lot": {
     recap: ["ParkingLot → Floors → Slots (by type); Ticket links Vehicle, Slot, entry time.", "Slot allocation is a Strategy (nearest, by floor); pricing is a Strategy.", "Atomic slot assignment (per-type free queues or synchronized allocate)."],
     flow: [

@@ -97,7 +97,7 @@ describe("practice", () => {
     const core = (await getStudyView("core"))!;
     expect(core.exercises).toEqual([]);
     expect(core.totals).toMatchObject({ covered: 1, concepts: 24, pointsChecked: 2, xp: CONCEPT_XP });
-    expect((await getStudyView("lld"))!.totals).toMatchObject({ practiced: 1, exercises: 10, xp: 25 });
+    expect((await getStudyView("lld"))!.totals).toMatchObject({ practiced: 1, exercises: 11, xp: 25 });
     // step ids from another area are ignored
     expect(await logPractice("lldp-elevator", { minutes: null, scores: { req: 5 }, notes: "", link: "" })).toBe(false);
   });

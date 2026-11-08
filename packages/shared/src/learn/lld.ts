@@ -1,4 +1,5 @@
 import { lesson, type LldGuide, type Lesson } from "./types";
+import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -78,6 +79,7 @@ export const LLD_LESSONS: Record<string, Lesson> = {
 };
 
 export const LLD_GUIDES: Record<string, LldGuide> = {
+  "lldp-url-shortener": URL_SHORTENER_GUIDE,
   "lldp-parking-lot": {
     requirements: [
       "Multiple floors, each with spots of sizes SMALL (bike), MEDIUM (car), LARGE (truck/bus).",
