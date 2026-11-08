@@ -18,6 +18,8 @@ import { DSA_GUIDES_D } from "./dsa-d";
 import { LLD_GUIDES, LLD_LESSONS } from "./lld";
 import { LLD_EXTRA } from "./lld-extra";
 import { LLD_DEEP_A, LLD_PROJECTS_A } from "./lld-projects-a";
+import { LLD_DEEP_B } from "./lld-deep-b";
+import { LLD_PROJECTS_B } from "./lld-projects-b";
 import { MORE_DB } from "./more-db";
 import { MORE_LLD } from "./more-lld";
 import { MORE_NET } from "./more-net";
@@ -41,8 +43,8 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESI
 export { LLD_GUIDES };
 
 /** Full Java projects and their long explanations, by LLD problem id (plan 0013). */
-export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A };
-export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A };
+export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B };
+export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B };
 export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 
 /** DSA pattern guides by pattern id (dsa.ts). Templates are C++. */
