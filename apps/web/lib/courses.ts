@@ -6,6 +6,9 @@ import { getDsaView } from "./dsa";
 import { getReadingList } from "./reading";
 import { conceptProgress, practiceSessions, settings } from "./schema";
 import { getStudyView } from "./study";
+import { getPackProgress, listPacks } from "./packs";
+import { getPack } from "./packs";
+import { packItems } from "@habit/shared";
 
 // The Learn hub: every course as a card with how much is done, what to do next, and what is due. A course is one entry in
 // COURSES. To add a new section to the app, add a definition here (and a way to read its progress below); the hub, the
@@ -52,7 +55,7 @@ export async function getFavouriteCourses(): Promise<string[]> {
   const row = await db.query.settings.findFirst({ where: eq(settings.key, FAV_KEY) });
   try {
     const list = JSON.parse(row?.value ?? "[]");
-    return Array.isArray(list) ? list.filter((x): x is string => typeof x === "string" && COURSES.some((c) => c.id === x)) : [];
+    return Array.isArray(list) ? list.filter((x): x is string => typeof x === "string" && (COURSES.some((c) => c.id === x) || /^pack:[a-z0-9-]+$/.test(x))) : [];
   } catch {
     return [];
   }
@@ -60,7 +63,7 @@ export async function getFavouriteCourses(): Promise<string[]> {
 
 /** Star or un-star a course. Unknown ids are ignored. */
 export async function toggleFavouriteCourse(id: string): Promise<void> {
-  if (!COURSES.some((c) => c.id === id)) return;
+  if (!COURSES.some((c) => c.id === id) && !/^pack:[a-z0-9-]+$/.test(id)) return;
   const current = await getFavouriteCourses();
   const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
   const db = await getDb();
@@ -124,6 +127,33 @@ async function readingCourse(def: CourseDef): Promise<Omit<CourseView, "favourit
   };
 }
 
+/** Imported content packs, each shown as a course of its own. */
+async function packCourses(): Promise<Omit<CourseView, "favourite">[]> {
+  const out: Omit<CourseView, "favourite">[] = [];
+  for (const s of await listPacks()) {
+    const pack = await getPack(s.id);
+    if (!pack) continue;
+    const items = packItems(pack);
+    const done = await getPackProgress(s.id);
+    const first = items.find((i) => !done.has(i.id));
+    const total = items.length;
+    out.push({
+      id: `pack:${s.id}`,
+      title: s.title,
+      blurb: s.description || "Imported content.",
+      href: `/study/packs/${s.id}`,
+      unit: "lessons and problems",
+      done: s.done,
+      total,
+      left: total - s.done,
+      percent: percentOf(s.done, total),
+      due: 0,
+      next: first ? { title: first.title, href: `/study/packs/${s.id}/${first.id}`, reason: first.type === "problem" ? "problem to solve" : "lesson to read" } : null,
+    });
+  }
+  return out;
+}
+
 export async function getCourses(): Promise<CourseView[]> {
   const favs = new Set(await getFavouriteCourses());
   const built = await Promise.all(
@@ -133,7 +163,8 @@ export async function getCourses(): Promise<CourseView[]> {
       return areaCourse(def);
     }),
   );
-  return built.map((c) => ({ ...c, favourite: favs.has(c.id) }));
+  const imported = await packCourses();
+  return [...built, ...imported].map((c) => ({ ...c, favourite: favs.has(c.id) }));
 }
 
 export interface ContinueStep {

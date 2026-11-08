@@ -209,6 +209,22 @@ CREATE TABLE site_time (
   PRIMARY KEY (day, slug)
 );
 `,
+// Content packs: problems and lessons imported as JSON (see docs/content-packs.md), and what you finished in them.
+`
+CREATE TABLE content_packs (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  json TEXT NOT NULL,
+  installed_on TEXT NOT NULL
+);
+CREATE TABLE pack_progress (
+  pack_id TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  done_on TEXT NOT NULL,
+  PRIMARY KEY (pack_id, item_id)
+);
+`,
 ];
 
 async function migrate(client: Client) {

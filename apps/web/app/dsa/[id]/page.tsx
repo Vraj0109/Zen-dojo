@@ -112,7 +112,7 @@ async function Problem({
     ];
     const wanted = typeof sp.tab === "string" ? sp.tab : undefined;
     return (
-      <article className="space-y-3">
+      <article className="judged space-y-3">
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
           <div className="min-w-0 space-y-1">
             <h2 className="text-xl font-semibold tracking-tight">{label}</h2>

@@ -211,3 +211,23 @@ export const settings = sqliteTable("settings", {
 });
 
 export type Task = typeof tasks.$inferSelect;
+
+/** An imported content pack: the validated pack JSON, kept as written. */
+export const contentPacks = sqliteTable("content_packs", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  json: text("json").notNull(),
+  installedOn: text("installed_on").notNull(),
+});
+
+/** Items (lessons read, problems solved) finished in a content pack. */
+export const packProgress = sqliteTable(
+  "pack_progress",
+  {
+    packId: text("pack_id").notNull(),
+    itemId: text("item_id").notNull(),
+    doneOn: text("done_on").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.packId, t.itemId] })],
+);

@@ -6,6 +6,7 @@ import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
 import { saveNote } from "@/lib/notes";
 import { applyFreeze } from "@/lib/progress";
 import { toggleFavouriteCourse } from "@/lib/courses";
+import { fetchPackText, installPack, removePack, setPackItemDone } from "@/lib/packs";
 import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
@@ -240,5 +241,60 @@ export async function savePatternNoteAction(formData: FormData) {
     recognize: String(formData.get("recognize") ?? ""),
     language: String(formData.get("language") ?? ""),
   });
+  refresh();
+}
+
+// ---- content packs (docs/content-packs.md)
+
+export interface PackImportState {
+  ok: boolean;
+  message: string;
+  errors: string[];
+  warnings: string[];
+}
+
+/** Imports a pack from pasted text, an uploaded file or a web address. With "checkOnly", only validates. */
+export async function importPackAction(_prev: PackImportState | null, formData: FormData): Promise<PackImportState> {
+  const fail = (message: string, errors: string[] = []): PackImportState => ({ ok: false, message, errors, warnings: [] });
+  let text = String(formData.get("json") ?? "").trim();
+  const file = formData.get("file");
+  const url = String(formData.get("url") ?? "").trim();
+  if (!text && file instanceof File && file.size > 0) {
+    if (file.size > 2_000_000) return fail("That file is over 2 MB.");
+    text = (await file.text()).trim();
+  }
+  if (!text && url) {
+    const got = await fetchPackText(url);
+    if (!got.ok) return fail(got.error);
+    text = got.text.trim();
+  }
+  if (!text) return fail("Paste the pack, choose a file or enter a web address first.");
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    return fail("That is not valid JSON.", [e instanceof Error ? e.message : String(e)]);
+  }
+  if (formData.get("checkOnly") === "1") {
+    const { validatePack } = await import("@habit/shared");
+    const r = validatePack(data);
+    return r.ok ? { ok: true, message: `Looks good: "${r.pack.title}" is valid.`, errors: [], warnings: r.warnings } : fail("The pack has problems. Fix these and try again.", r.errors);
+  }
+  const r = await installPack(data);
+  if (!r.ok) return fail("The pack has problems. Fix these and try again.", r.errors);
+  refresh();
+  return { ok: true, message: r.replaced ? "Updated. Your progress on items that still exist was kept." : "Installed. It is now a course in Learn.", errors: [], warnings: r.warnings };
+}
+
+export async function removePackAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (/^[a-z0-9-]+$/.test(id)) await removePack(id);
+  refresh();
+}
+
+export async function togglePackItemAction(formData: FormData) {
+  const pack = String(formData.get("pack") ?? "");
+  const item = String(formData.get("item") ?? "");
+  if (/^[a-z0-9-]+$/.test(pack) && /^[a-z0-9-]+$/.test(item)) await setPackItemDone(pack, item, formData.get("done") === "1");
   refresh();
 }

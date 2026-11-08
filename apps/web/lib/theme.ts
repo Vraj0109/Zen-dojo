@@ -172,6 +172,21 @@ var mo=read(${JSON.stringify(MOTION_KEY)});
 if(mo==="off"||(mo!=="on"&&rm.matches))d.setAttribute("data-motion","off");else d.removeAttribute("data-motion");
 var b=read(${JSON.stringify(BIONIC_KEY)});if(b==="on")b="subtle";
 if(b==="subtle"||b==="strong")d.setAttribute("data-bionic",b);else d.removeAttribute("data-bionic");
+custom();
+}
+var CV=["--accent","--on-accent","--background","--surface","--foreground","--line","--muted"];
+function hex(v){return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)}
+function lum(h){var c=[1,3,5].map(function(i){var x=parseInt(h.substr(i,2),16)/255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4)});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]}
+function custom(){
+if(!d.style)return;
+for(var i=0;i<CV.length;i++)d.style.removeProperty(CV[i]);
+var t=null;try{var raw=read("habit-custom-theme");t=raw?JSON.parse(raw):null}catch(e){}
+if(t&&hex(t.accent)){d.style.setProperty("--accent",t.accent);d.style.setProperty("--on-accent",lum(t.accent)>0.179?"#111111":"#ffffff")}
+var p=t&&t[d.getAttribute("data-theme")==="dark"?"dark":"light"];
+if(p)["background","surface","foreground","line","muted"].forEach(function(k){if(hex(p[k]))d.style.setProperty("--"+k,p[k])});
+var cf=null;try{var fr=read("habit-custom-font");cf=fr?JSON.parse(fr):null}catch(e){}
+if(cf&&typeof cf.family==="string"&&/^[A-Za-z0-9][A-Za-z0-9 ._\\-]{0,60}$/.test(cf.family)){d.setAttribute("data-custom-font","on");d.style.setProperty("--font-custom",String.fromCharCode(34)+cf.family+String.fromCharCode(34))}else{d.removeAttribute("data-custom-font");d.style.removeProperty("--font-custom")}
+window.__habitCustom=custom;
 }
 apply();
 if(mq.addEventListener)mq.addEventListener("change",function(){if(d.getAttribute("data-mode")==="system")apply()});
@@ -220,5 +235,6 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic, motion }
   const reduces = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (motionEnabled(motion, reduces)) root.removeAttribute("data-motion");
   else root.setAttribute("data-motion", "off");
+  (window as unknown as { __habitCustom?: () => void }).__habitCustom?.();
   window.dispatchEvent(new Event(THEME_EVENT));
 }

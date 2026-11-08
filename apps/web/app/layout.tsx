@@ -5,9 +5,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { GlobalTimer } from "./global-timer";
+import { CustomFontLoader } from "./custom-font-loader";
 import { FocusReading } from "./focus-reading";
 import { HistoryButtons } from "./history-buttons";
 import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
+import { Logo } from "./logo";
 import { Shell } from "./shell";
 
 const geistSans = Geist({
@@ -39,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <Shell aside={asideNode}>{children}</Shell>
         <FocusReading />
+        <CustomFontLoader />
       </body>
     </html>
   );
@@ -50,7 +53,7 @@ const asideNode = (
         <aside className="sticky top-0 z-10 print:hidden border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
           <div className="mb-2 flex items-center justify-between gap-2 px-1 lg:mb-6 lg:px-3">
             <Link href="/" className="flex items-center gap-2.5">
-              <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-sm font-bold text-on-accent">P</span>
+              <Logo className="size-9 shrink-0" />
               <span className="block leading-tight">
                 <span className="block text-base font-semibold tracking-tight">Prepwise</span>
                 <span className="block whitespace-nowrap text-[11px] text-muted">Offline learning</span>

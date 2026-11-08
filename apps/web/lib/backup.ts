@@ -31,6 +31,8 @@ export const BACKUP_TABLES = [
   "streak_freezes",
   "weekly_reviews",
   "site_time",
+  "content_packs",
+  "pack_progress",
 ] as const;
 
 /** Never exported or overwritten: the extension pairing key stays with this install. */

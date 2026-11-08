@@ -8,6 +8,7 @@ import { HistoryButtons } from "./history-buttons";
 /** Pages where the work (a problem and its editor) should fill the window: the sidebar becomes a slim bar. */
 export function isFocusPage(pathname: string | null): boolean {
   if (!pathname) return false;
+  if (/^\/study\/packs\/[^/]+\/[^/]+$/.test(pathname)) return true;
   return /^\/dsa\/[^/]+$/.test(pathname) && !["/dsa/boss"].includes(pathname);
 }
 
@@ -71,8 +72,8 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
           </svg>
         </button>
         <HistoryButtons />
-        <Link href="/dsa" className="ml-1 text-sm text-muted hover:text-foreground">
-          ← Practice
+        <Link href={pathname?.startsWith("/study/") ? "/study" : "/dsa"} className="ml-1 text-sm text-muted hover:text-foreground">
+          {pathname?.startsWith("/study/") ? "← Learn" : "← Practice"}
         </Link>
         <span className="ml-auto text-xs text-muted">Prepwise</span>
       </div>

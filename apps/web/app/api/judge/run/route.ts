@@ -1,6 +1,7 @@
 import { JUDGE_LANGS, JUDGE_LANG_LABEL, JUDGE_PROBLEMS, type JudgeLang } from "@habit/shared";
 import { JUDGE_LIMITS, runCode } from "@/lib/judge/run";
 import { saveSolution } from "@/lib/notes";
+import { getPackProblemSpec, setPackItemDone } from "@/lib/packs";
 
 // Runs your code on a problem's tests (the Run button). This executes code on this computer, so it only accepts
 // requests made by this app's own pages: same origin, and a JSON body (which a plain cross-site form cannot send).
@@ -31,10 +32,17 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const spec = typeof body.id === "string" ? JUDGE_PROBLEMS[body.id] : undefined;
+  const isPack = typeof body.id === "string" && body.id.startsWith("pack:");
+  const spec = typeof body.id === "string" ? (isPack ? ((await getPackProblemSpec(body.id)) ?? undefined) : JUDGE_PROBLEMS[body.id]) : undefined;
   const lang = JUDGE_LANGS.find((l) => l === body.lang) as JudgeLang | undefined;
   if (!spec || !lang || typeof body.code !== "string") return Response.json({ error: "Unknown problem, language or code." }, { status: 400 });
   const result = await runCode(spec, lang, body.code);
+  // Imported (pack) problems: passing every test marks the problem done in its course.
+  if (isPack && result.status === "done" && result.total > 0 && result.passed === result.total) {
+    const [, packId, itemId] = spec.id.split(":");
+    await setPackItemDone(packId, itemId, true);
+    return Response.json(result);
+  }
   // When every test passes, keep the solution with the problem (only the code; your notes are not touched).
   if (body.save === true && result.status === "done" && result.total > 0 && result.passed === result.total) {
     await saveSolution(spec.id, body.code, JUDGE_LANG_LABEL[lang]);

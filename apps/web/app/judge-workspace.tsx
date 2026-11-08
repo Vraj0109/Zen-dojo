@@ -207,7 +207,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           {failure}
         </p>
       )}
-      {!running && !failure && !result && <p className="text-sm text-muted">Press Run (or Ctrl+Enter) to test your code on the examples and the extra cases. When every case passes, your solution is saved with the problem.</p>}
+      {!running && !failure && !result && <p className="text-sm text-muted">Press Run (or Ctrl+Enter) to test your code on the examples and the extra cases. {id.startsWith("pack:") ? "When every case passes, the problem is marked done in its course." : "When every case passes, your solution is saved with the problem."}</p>}
       {result && <Results result={result} />}
       {result?.status === "done" && result.saved && (
         <p role="status" className="anim-pop rounded-xl border border-diff-easy bg-surface p-3 text-sm">

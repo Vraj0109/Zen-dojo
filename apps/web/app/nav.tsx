@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Avatar, useProfile } from "./custom-appearance";
 
 // Icons: 24x24 stroke paths (lucide-style), drawn in currentColor.
 const ICONS = {
@@ -60,6 +61,11 @@ export function NavFooter() {
   return <NavFooterLinks pathname={usePathname()} />;
 }
 
+function ProfileName({ fallback }: { fallback: string }) {
+  const p = useProfile();
+  return <span className="truncate">{p.name || fallback}</span>;
+}
+
 function NavItem({ link, pathname, extra = "" }: { link: NavLink; pathname: string | null; extra?: string }) {
   const active = isActive(link, pathname);
   return (
@@ -71,10 +77,14 @@ function NavItem({ link, pathname, extra = "" }: { link: NavLink; pathname: stri
           active ? "bg-accent/12 text-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-accent" : "text-muted hover:bg-background hover:text-foreground"
         }`}
       >
-        <span className={active ? "text-accent" : ""}>
-          <Icon name={link.icon} />
-        </span>
-        {link.label}
+        {link.icon === "profile" ? (
+          <Avatar className="size-[22px] text-[11px]" />
+        ) : (
+          <span className={active ? "text-accent" : ""}>
+            <Icon name={link.icon} />
+          </span>
+        )}
+        {link.icon === "profile" ? <ProfileName fallback={link.label} /> : link.label}
       </Link>
     </li>
   );

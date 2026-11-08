@@ -8,6 +8,8 @@ import { getPlanStart } from "@/lib/tasks";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { setPlanStartAction, setSimpleModeAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
+import { PackImporter } from "../../pack-importer";
+import { CustomColours, CustomFontPicker, ProfileEditor } from "../../custom-appearance";
 import { ThemePicker } from "../../theme-picker";
 import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
@@ -30,9 +32,29 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             </p>
             <ThemePicker />
           </section>
+          <section className="rounded-xl border border-line bg-surface p-4">
+            <h4 className="mb-3 font-semibold">Profile</h4>
+            <ProfileEditor />
+          </section>
+          <section className="space-y-5 rounded-xl border border-line bg-surface p-4">
+            <h4 className="font-semibold">Make it yours</h4>
+            <CustomColours />
+            <hr className="border-line" />
+            <CustomFontPicker />
+          </section>
           <Suspense fallback={<p className="text-muted">Loading…</p>}>
             <InterfaceSettings />
           </Suspense>
+
+          <h3 className="text-lg font-semibold">Content</h3>
+          <section className="space-y-3 rounded-xl border border-line bg-surface p-4">
+            <h4 className="font-semibold">Add problems and lessons</h4>
+            <p className="text-sm text-muted">
+              A content pack is one JSON file with new lessons and Run-button problems. It becomes a course in Learn. Another AI can write one for you from
+              any source: the format and a ready-made prompt are in <code>docs/content-packs.md</code>. Check it first, then install.
+            </p>
+            <PackImporter />
+          </section>
 
           <h3 className="text-lg font-semibold">Plan</h3>
           <Suspense fallback={<p className="text-muted">Loading…</p>}>

@@ -190,9 +190,9 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
   }
 
   return (
-    <div>
+    <div className="pane-root">
       {toolbar}
-      <div style={{ height }} className="min-h-[30rem]">
+      <div style={{ height }} className="pane-box min-h-[30rem]">
         {maximised ? frame(maximised) : render(preset.tree)}
       </div>
     </div>

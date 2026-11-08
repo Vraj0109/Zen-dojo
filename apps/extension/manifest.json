@@ -3,10 +3,53 @@
   "name": "Prepwise LeetCode Sync",
   "version": "0.2.0",
   "description": "Imports your own accepted LeetCode submissions (code, runtime, notes) into your local Prepwise app.",
-  "permissions": ["storage"],
-  "host_permissions": ["https://leetcode.com/*", "http://localhost/*", "http://127.0.0.1/*"],
-  "background": { "service_worker": "background.js", "type": "module" },
-  "content_scripts": [{ "matches": ["https://leetcode.com/*"], "js": ["content.js"], "run_at": "document_idle" }],
-  "web_accessible_resources": [{ "resources": ["lib/leetcode.js", "lib/sync.js", "lib/time.js"], "matches": ["https://leetcode.com/*"] }],
-  "action": { "default_title": "Prepwise", "default_popup": "popup.html" }
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/leetcode.js",
+        "lib/sync.js",
+        "lib/time.js"
+      ],
+      "matches": [
+        "https://leetcode.com/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "Prepwise",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }
