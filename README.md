@@ -1,4 +1,4 @@
-# Prepwise
+# Zen Forge
 
 Offline, open-source engineering course and practice tool: DSA with a built-in judge, system design, low-level design and core CS.
 Data is stored locally in `data/habit.db` (SQLite).
@@ -52,7 +52,7 @@ password and nothing about your login is stored. It only runs on leetcode.com an
 **Use**
 
 - **Import history**: in the popup. It reads your solved list, then only checks problems that are **on
-  Prepwise** (the roadmap list plus your other synced problems) and saves every accepted submission of
+  Zen Forge** (the roadmap list plus your other synced problems) and saves every accepted submission of
   those, three requests at a time. Keep the leetcode.com tab it opens until it finishes. Running it again only
   fetches new submissions. *Everything I've solved* imports all your solved problems instead (slower).
 - **Live capture**: with a leetcode.com tab open, each Accepted submission is sent to the app within seconds,
@@ -136,7 +136,7 @@ Set-ExecutionPolicy -Scope CurrentUser Undefined
 | macOS | `~/Library/Application Support/HabitManager` |
 | Linux | `~/.config/HabitManager` |
 
-(The folder keeps its old name on purpose, so updating from HabitManager to Prepwise keeps your data.)
+(The folder keeps its old name on purpose, so updating from HabitManager to Zen Forge keeps your data.)
 
 On first launch it offers to import your existing `data/habit.db` (it copies the file; the original isn't changed).
 Stop `pnpm start` / `pnpm dev` first so the copy is up to date. Or start fresh and restore a JSON backup in
@@ -145,9 +145,9 @@ Profile → Settings. The desktop app and `pnpm start` use separate databases, s
 **First launch warnings.** The installers aren't signed with a paid certificate:
 
 - **Windows:** SmartScreen says *Windows protected your PC*. Click *More info* → *Run anyway*.
-- **macOS:** if it says the app *is damaged* or *can't be opened*, run `xattr -cr /Applications/Prepwise.app`, then
+- **macOS:** if it says the app *is damaged* or *can't be opened*, run `xattr -cr /Applications/Zen Forge.app`, then
   open it again (or right-click → *Open*).
-- **Linux:** `chmod +x Prepwise-*.AppImage`. If it exits with a *SUID sandbox* error (Ubuntu 24.04+), start it
+- **Linux:** `chmod +x Zen Forge-*.AppImage`. If it exits with a *SUID sandbox* error (Ubuntu 24.04+), start it
   with `--no-sandbox`.
 
 **Updates.** The installed app checks GitHub releases 10 seconds after it starts and every 6 hours (or Help →

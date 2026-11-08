@@ -107,7 +107,7 @@ export function cppProgram(spec: ProblemSpec, userCode: string): string {
   return (
     cppPrelude(spec) +
     userCode +
-    "\n\n// ---- test harness (added by Prepwise) ----\n#include <bits/stdc++.h>\n" +
+    "\n\n// ---- test harness (added by Zen Forge) ----\n#include <bits/stdc++.h>\n" +
     CPP_READ_WRITE +
     cppNodeIo(spec) +
     CPP_MEMORY_LIMIT +
@@ -238,7 +238,7 @@ export function javascriptProgram(spec: ProblemSpec, userCode: string): string {
   const call = `${spec.fn.name}(${spec.fn.params.map((p, k) => jsArg(p.type, `args[${k}]`)).join(", ")})`;
   return (
     String.raw`
-// ---- added by Prepwise: console output is written straight to the console section, in order ----
+// ---- added by Zen Forge: console output is written straight to the console section, in order ----
 const __fs = require("fs");
 const __fmt = require("util").format;
 console.log = console.info = console.debug = (...a) => __fs.writeSync(1, __fmt(...a) + "\n");
@@ -250,7 +250,7 @@ process.stderr.write = (s) => { __fs.writeSync(2, String(s)); return true; };
     userCode +
     String.raw`
 
-// ---- test harness (added by Prepwise) ----
+// ---- test harness (added by Zen Forge) ----
 const __lines = __fs.readFileSync(0, "utf8").split("\n");
 const __n = parseInt(__lines[0], 10);
 for (let t = 1; t <= __n; t++) {

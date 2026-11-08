@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Prepwise", template: "%s · Prepwise" },
+  title: { default: "Zen Forge", template: "%s · Zen Forge" },
   description: "Offline, open-source engineering course: DSA, system design, low-level design and core CS",
 };
 
@@ -55,7 +55,7 @@ const asideNode = (
             <Link href="/" className="flex items-center gap-2.5">
               <Logo className="size-9 shrink-0" />
               <span className="block leading-tight">
-                <span className="block text-base font-semibold tracking-tight">Prepwise</span>
+                <span className="block text-base font-semibold tracking-tight">Zen Forge</span>
                 <span className="block whitespace-nowrap text-[11px] text-muted">Offline learning</span>
               </span>
             </Link>

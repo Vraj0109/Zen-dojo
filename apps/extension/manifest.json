@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Prepwise LeetCode Sync",
+  "name": "Zen Forge LeetCode Sync",
   "version": "0.2.0",
-  "description": "Imports your own accepted LeetCode submissions (code, runtime, notes) into your local Prepwise app.",
+  "description": "Imports your own accepted LeetCode submissions (code, runtime, notes) into your local Zen Forge app.",
   "permissions": [
     "storage"
   ],
@@ -39,7 +39,7 @@
     }
   ],
   "action": {
-    "default_title": "Prepwise",
+    "default_title": "Zen Forge",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

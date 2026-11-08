@@ -73,7 +73,7 @@ describe("backup", () => {
     await seed();
     const before = await exportBackup();
     expect(await restoreBackup(null)).toMatchObject({ ok: false });
-    expect(await restoreBackup({ format: "other" })).toMatchObject({ ok: false, error: expect.stringContaining("isn't a Prepwise backup") });
+    expect(await restoreBackup({ format: "other" })).toMatchObject({ ok: false, error: expect.stringContaining("isn't a Zen Forge backup") });
     expect(await restoreBackup({ ...before, schemaVersion: 999 })).toMatchObject({ ok: false, error: expect.stringContaining("newer version") });
     expect(await restoreBackup({ ...before, tables: { tasks: "nope" } })).toMatchObject({ ok: false });
     expect(await restoreBackup({ ...before, tables: { tasks: [{ title: { nested: 1 } }] } })).toMatchObject({ ok: false });
@@ -137,6 +137,6 @@ describe("restore route", () => {
     const error = (r: Response) => new URL(r.headers.get("location")!).searchParams.get("error");
     expect(error(await post(formWith("{}", false), "http://localhost:3000"))).toContain("Tick the box");
     expect(error(await post(formWith("{nope"), "http://localhost:3000"))).toContain("isn't valid JSON");
-    expect(error(await post(formWith('{"format":"x"}'), "http://localhost:3000"))).toContain("isn't a Prepwise backup");
+    expect(error(await post(formWith('{"format":"x"}'), "http://localhost:3000"))).toContain("isn't a Zen Forge backup");
   });
 });

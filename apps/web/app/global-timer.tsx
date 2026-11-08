@@ -51,7 +51,7 @@ export function GlobalTimer() {
     rangFor.current = key;
     beep();
     originalTitle.current = document.title;
-    document.title = "Time's up · Prepwise";
+    document.title = "Time's up · Zen Forge";
   }, [state, done, key]);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepwise setup for macOS / Linux.
+# Zen Forge setup for macOS / Linux.
 # Installs missing prerequisites (only if not installed), VS Code extensions, then builds.
 #
 #   ./setup.sh                 # required tools + build

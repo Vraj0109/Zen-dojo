@@ -68,7 +68,7 @@ Copy the prompt below, add your source (a URL, pasted text, or a PDF's text) and
 and ask for one JSON file. Then use **Check only** in Settings, which lists every problem in plain words, and fix with the same AI.
 
 ```
-You are converting learning material into a Prepwise content pack (JSON, format "prepwise-pack", version 1).
+You are converting learning material into a Zen Forge content pack (JSON, format "prepwise-pack", version 1).
 Follow the example file exactly. Rules:
 - Write everything in your own words. Do not copy long passages from the source; summarise and credit the source in the pack description.
 - One pack = one course. Use sections for topics. Lessons are Markdown (headings, short paragraphs, lists, fenced code).

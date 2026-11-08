@@ -1,7 +1,7 @@
 // @ts-check
 // Runs on leetcode.com pages only. Calls LeetCode's API from the page (so your existing login is used;
 // the extension never reads or stores your password or cookies) and hands results to background.js,
-// which forwards them to your local Prepwise app.
+// which forwards them to your local Zen Forge app.
 
 (async () => {
   /** @type {typeof import("./lib/sync.js")} */
@@ -34,7 +34,7 @@
   async function callApp(method, path, body) {
     /** @type {{ ok: boolean, data?: any, error?: string }} */
     const r = await chrome.runtime.sendMessage({ type: "app", method, path, body });
-    if (!r?.ok) throw new Error(r?.error ?? "Prepwise app did not respond");
+    if (!r?.ok) throw new Error(r?.error ?? "Zen Forge app did not respond");
     return r.data;
   }
 

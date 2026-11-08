@@ -1,9 +1,9 @@
 {
   "name": "desktop",
-  "productName": "Prepwise",
+  "productName": "Zen Forge",
   "version": "0.3.0",
   "private": true,
-  "description": "Prepwise desktop app (Windows, macOS, Linux)",
+  "description": "Zen Forge desktop app (Windows, macOS, Linux)",
   "author": "Vraj Limbachiya",
   "type": "module",
   "main": "main.js",

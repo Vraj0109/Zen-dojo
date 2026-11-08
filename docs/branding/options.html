@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Name and logo options</title>
+<style>
+  body { margin: 0; padding: 32px; background: #14110f; color: #eee; font-family: system-ui, sans-serif; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 24px; color: #a99; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  .card { background: #1d1917; border: 1px solid #3a2f2b; border-radius: 16px; padding: 20px; }
+  .card svg { width: 128px; height: 128px; display: block; margin: 0 auto 14px; }
+  .row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 10px; }
+  .row svg { width: 36px; height: 36px; margin: 0; }
+  .name { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; }
+  .jp { color: #c9a; font-size: 13px; }
+  .why { color: #bbb; font-size: 13px; line-height: 1.5; margin-top: 8px; text-align: center; }
+  .light { background: #f4efe6; color: #222; }
+  .light .why { color: #444; }
+</style>
+</head>
+<body>
+<h1>Prepwise: name and logo options</h1>
+<p class="sub">Original marks (no use of any anime's symbols). Each is a flat SVG that works as a tab icon, sidebar logo and app icon.</p>
+<div class="grid">
+
+  <div class="card">
+    <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#1c1715"/>
+      <path d="M32 6l7 19 19 7-19 7-7 19-7-19-19-7 19-7z" fill="#d62d3a"/>
+      <circle cx="32" cy="32" r="7" fill="#1c1715"/><circle cx="32" cy="32" r="3" fill="#f2e9dc"/></svg>
+    <div class="row"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#1c1715"/><path d="M32 6l7 19 19 7-19 7-7 19-7-19-19-7 19-7z" fill="#d62d3a"/><circle cx="32" cy="32" r="7" fill="#1c1715"/></svg><span class="name">SHURIKEN</span></div>
+    <div class="jp">手裏剣</div>
+    <div class="why">A four-point throwing star. Sharp, recognisable at 16 px. "Sharpen your skills."</div>
+  </div>
+
+  <div class="card">
+    <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#1c1715"/>
+      <g transform="rotate(45 32 32)">
+        <path d="M32 6l7 22-7 12-7-12z" fill="#e8e1d5"/>
+        <path d="M32 6l7 22-7 12z" fill="#b9b0a2"/>
+        <rect x="29" y="40" width="6" height="7" fill="#d62d3a"/>
+        <circle cx="32" cy="52" r="5" fill="none" stroke="#d62d3a" stroke-width="3"/>
+      </g></svg>
+    <div class="row"><span class="name">KUNAI</span></div>
+    <div class="jp">苦無</div>
+    <div class="why">A ninja's all-purpose tool: dig, climb, throw. Matches an app that does a bit of everything.</div>
+  </div>
+
+  <div class="card">
+    <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#1c1715"/>
+      <path d="M46 14a21 21 0 1 0 6 16" fill="none" stroke="#f2e9dc" stroke-width="6" stroke-linecap="round"/>
+      <path d="M18 50L50 12" stroke="#d62d3a" stroke-width="5" stroke-linecap="round"/></svg>
+    <div class="row"><span class="name">RONIN</span></div>
+    <div class="jp">浪人</div>
+    <div class="why">A samurai with no master: you teach yourself, offline, with nobody's cloud. A brush-ring (enso) cut by one slash.</div>
+  </div>
+
+  <div class="card">
+    <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#1c1715"/>
+      <rect x="8" y="22" width="48" height="20" rx="3" fill="#3a4a5c"/>
+      <rect x="14" y="26" width="36" height="12" rx="2" fill="#aab6c4"/>
+      <path d="M26 28l-5 4 5 4M38 28l5 4-5 4" fill="none" stroke="#1c1715" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M34 27l-4 10" stroke="#d62d3a" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <div class="row"><span class="name">SHINOBI</span></div>
+    <div class="jp">忍</div>
+    <div class="why">A headband plate with code brackets and a slash. "Shinobi" is the word for a ninja. Says "engineering" at a glance.</div>
+  </div>
+
+  <div class="card">
+    <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#1c1715"/>
+      <path d="M10 46c6-8 12-8 22-8s16 0 22 8" fill="none" stroke="#2a2220" stroke-width="2"/>
+      <path d="M24 12c-6 6-8 14-6 22s10 14 14 18c4-4 12-10 14-18s0-16-6-22c-4 4-8 6-16 0z" fill="#e8e1d5"/>
+      <path d="M22 28l8 3M42 28l-8 3" stroke="#d62d3a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M26 42h12" stroke="#1c1715" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <div class="row"><span class="name">KAGE</span></div>
+    <div class="jp">影</div>
+    <div class="why">"Shadow". Fits a private, offline tool that works quietly in the background. A mask with two red eye-slashes.</div>
+  </div>
+
+  <div class="card light">
+    <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#f4efe6"/>
+      <circle cx="32" cy="32" r="22" fill="#d62d3a"/>
+      <path d="M24 44V20h10a7 7 0 0 1 0 14H24" fill="none" stroke="#f4efe6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 52L52 12" stroke="#1c1715" stroke-width="3.2" stroke-linecap="round"/></svg>
+    <div class="row"><span class="name">DOJO</span></div>
+    <div class="jp">道場</div>
+    <div class="why">"Place of the way": where you train every day. A red sun (hinomaru) with a P and a sword stroke. Friendly and learner-focused.</div>
+  </div>
+
+</div>
+</body>
+</html>
