@@ -46,6 +46,42 @@ describe("problem specs", () => {
   });
 });
 
+describe("large inputs (speed and memory checks)", () => {
+  it("every problem has some, and each builds an input with the right number of arguments", () => {
+    for (const spec of specs) {
+      expect(spec.stress?.length ?? 0, spec.id + ": large inputs").toBeGreaterThanOrEqual(1);
+      for (const st of spec.stress!) {
+        expect(st.label.length, spec.id).toBeGreaterThan(3);
+        const input = st.make();
+        expect(input.length, spec.id + " / " + st.label).toBe(spec.fn.params.length);
+        expect(JSON.stringify(input).length, spec.id + " / " + st.label).toBeLessThan(8_000_000);
+      }
+    }
+  });
+
+  it("are built from fixed seeds, so the same input comes out every time", () => {
+    for (const id of ["lc-1", "lc-15", "lc-49", "lc-105", "lc-200", "lc-347"]) {
+      const a = JUDGE_PROBLEMS[id].stress!.map((x) => JSON.stringify(x.make()));
+      const b = JUDGE_PROBLEMS[id].stress!.map((x) => JSON.stringify(x.make()));
+      expect(a, id).toEqual(b);
+    }
+  });
+
+  it("keep the promise of a unique answer in Two Sum", () => {
+    for (const st of JUDGE_PROBLEMS["lc-1"].stress!) {
+      const [nums, target] = st.make() as [number[], number];
+      const seen = new Map<number, number>();
+      let pairs = 0;
+      for (const x of nums) {
+        pairs += seen.get(target - x) ?? 0;
+        seen.set(x, (seen.get(x) ?? 0) + 1);
+      }
+      expect(pairs).toBe(1);
+      expect(Math.abs(target)).toBeLessThanOrEqual(1_000_000_000);
+    }
+  });
+});
+
 describe("sameAnswer", () => {
   it("compares numbers with a tolerance and lists exactly, or ignoring order", () => {
     expect(sameAnswer(0.1 + 0.2, 0.3)).toBe(true);
@@ -64,8 +100,8 @@ describe.skipIf(!GPP)("reference solutions (C++)", () => {
       if (r.status !== "done") throw new Error(JSON.stringify(r));
       const failed = r.results.filter((x) => !x.pass);
       expect(failed, JSON.stringify(failed)).toEqual([]);
-      expect(r.passed).toBe(s.examples.length + s.tests.length);
-    }, 60_000);
+      expect(r.passed).toBe(s.examples.length + s.tests.length + (s.stress?.length ?? 0));
+    }, 120_000);
   }
 
   it("reports wrong answers with the failing input, compile errors, crashes and timeouts", async () => {
@@ -89,7 +125,7 @@ describe.skipIf(!GPP)("reference solutions (C++)", () => {
     if (loop.status === "done") {
       expect(loop.passed).toBe(0);
       expect(loop.results[0]).toMatchObject({ pass: false, problem: "timeout" });
-      expect(loop.results.length).toBe(two.examples.length + two.tests.length);
+      expect(loop.results.length).toBe(two.examples.length + two.tests.length + (two.stress?.length ?? 0));
       expect(loop.results.some((r) => r.problem === "not-run")).toBe(true); // the 15 s budget ran out
     }
   }, 90_000);
@@ -114,7 +150,7 @@ public:
     const r = await runCode(spec, "cpp", buggy);
     expect(r.status).toBe("done");
     if (r.status === "done") {
-      expect(r.results.length).toBe(spec.examples.length + spec.tests.length);
+      expect(r.results.length).toBe(spec.examples.length + spec.tests.length + (spec.stress?.length ?? 0));
       expect(r.results.every((x) => x.problem !== "not-run")).toBe(true); // every case got its own verdict
       const crashed = r.results.filter((x) => x.problem === "crash");
       expect(crashed.length).toBeGreaterThan(0);
@@ -189,7 +225,8 @@ class Solution {
     }
 }`,
     );
-    expect(two).toMatchObject({ status: "done", passed: JUDGE_PROBLEMS["lc-1"].examples.length + JUDGE_PROBLEMS["lc-1"].tests.length });
+    expect(two).toMatchObject({ status: "done" });
+    if (two.status === "done") expect(two.passed).toBe(two.total); // including the large inputs, with Java's longer time limit
 
     const par = await runCode(
       JUDGE_PROBLEMS["lc-20"],
@@ -500,5 +537,85 @@ public:
       expect(r.results[0].output!.length).toBeLessThanOrEqual(20_100); // shown output is cut off
     }
     expect(Date.now() - started).toBeLessThan(40_000);
+  }, 90_000);
+});
+
+describe.skipIf(!GPP)("speed and memory limits", () => {
+  it("fails a correct but quadratic Container With Most Water on the large inputs, and says why", async () => {
+    const spec = JUDGE_PROBLEMS["lc-11"];
+    const slowCode = `#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int maxArea(vector<int>& height) {
+        int best = 0, n = (int)height.size();
+        for (int i = 0; i < n; i++)
+            for (int j = i + 1; j < n; j++) best = max(best, (j - i) * min(height[i], height[j]));
+        return best;
+    }
+};
+`;
+    const r = await runCode(spec, "cpp", slowCode);
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      const known = spec.examples.length + spec.tests.length;
+      expect(r.results.slice(0, known).every((x) => x.pass)).toBe(true); // right on all the small cases
+      const large = r.results.slice(known);
+      expect(large.length).toBe(spec.stress!.length);
+      expect(large.some((x) => x.problem === "timeout")).toBe(true); // too slow on the big ones
+      expect(large.find((x) => x.problem === "timeout")!.error).toMatch(/too slow|Time limit exceeded/i);
+    }
+  }, 120_000);
+
+  it("stops a program that allocates far too much memory", async () => {
+    const spec = JUDGE_PROBLEMS["lc-70"];
+    const code = `#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int climbStairs(int n) {
+        vector<int> big(300000000, n);
+        return big[n];
+    }
+};
+`;
+    const r = await runCode(spec, "cpp", code);
+    expect(r.status).toBe("done");
+    if (r.status === "done") {
+      expect(r.passed).toBe(0);
+      expect(r.results[0]).toMatchObject({ problem: "memory", error: expect.stringContaining("Memory limit exceeded") });
+    }
+  }, 90_000);
+
+  it("a fast, correct solution passes the large inputs of every kind of problem (C++ reference answers match)", async () => {
+    // One list problem, one tree problem and one string problem, end to end.
+    for (const id of ["lc-92", "lc-98", "lc-76", "cses-increasing-array"]) {
+      const spec = JUDGE_PROBLEMS[id];
+      const r = await runCode(spec, "cpp", spec.solution.cpp);
+      expect(r.status, id).toBe("done");
+      if (r.status === "done") {
+        expect(r.results.filter((x) => x.kind === "stress").length, id).toBe(spec.stress!.length);
+        expect(r.passed, id).toBe(r.total);
+      }
+    }
+  }, 180_000);
+});
+
+describe.skipIf(!JAVA)("memory limit in Java", () => {
+  it("reports an OutOfMemoryError as a memory limit", async () => {
+    const r = await runCode(
+      JUDGE_PROBLEMS["lc-70"],
+      "java",
+      `class Solution {
+    public int climbStairs(int n) {
+        int[] big = new int[400000000];
+        return big[n];
+    }
+}`,
+    );
+    expect(r.status).toBe("done");
+    if (r.status === "done") expect(r.results[0]).toMatchObject({ problem: "memory" });
   }, 90_000);
 });

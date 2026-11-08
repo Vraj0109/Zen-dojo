@@ -63,6 +63,40 @@ template <class T> static void habitWrite(std::ostream& o, const std::vector<T>&
 }
 `;
 
+/** The memory limit for every language, in megabytes. Allocating more fails with an out-of-memory error. */
+export const MEMORY_LIMIT_MB = 256;
+
+// Caps this process's memory so a solution that allocates too much fails with "memory limit exceeded" instead of
+// slowing the whole computer. Windows: a job object with a per-process limit. Linux and macOS: RLIMIT_AS. If the limit
+// cannot be set, the program simply runs without one.
+const CPP_MEMORY_LIMIT = String.raw`
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+static void habitLimitMemory() {
+    HANDLE job = CreateJobObjectA(nullptr, nullptr);
+    if (!job) return;
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION info;
+    memset(&info, 0, sizeof(info));
+    info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY;
+    info.ProcessMemoryLimit = (SIZE_T)${"$"}{MEM} * 1024 * 1024;
+    if (SetInformationJobObject(job, JobObjectExtendedLimitInformation, &info, sizeof(info))) AssignProcessToJobObject(job, GetCurrentProcess());
+}
+#else
+#include <sys/resource.h>
+static void habitLimitMemory() {
+    struct rlimit r;
+    r.rlim_cur = r.rlim_max = (rlim_t)${"$"}{MEM} * 1024 * 1024;
+    setrlimit(RLIMIT_AS, &r);
+}
+#endif
+`.split("${MEM}").join(String(MEMORY_LIMIT_MB));
+
 export function cppProgram(spec: ProblemSpec, userCode: string): string {
   const { name, params } = spec.fn;
   const cppTy = (t: Ty) => ({ list: "ListNode*", tree: "TreeNode*", int: "int", long: "long long", double: "double", bool: "bool", string: "std::string", "int[]": "std::vector<int>", "long[]": "std::vector<long long>", "bool[]": "std::vector<bool>", "string[]": "std::vector<std::string>", "int[][]": "std::vector<std::vector<int>>", "string[][]": "std::vector<std::vector<std::string>>" })[t];
@@ -76,8 +110,10 @@ export function cppProgram(spec: ProblemSpec, userCode: string): string {
     "\n\n// ---- test harness (added by HabitManager) ----\n#include <bits/stdc++.h>\n" +
     CPP_READ_WRITE +
     cppNodeIo(spec) +
+    CPP_MEMORY_LIMIT +
     `
 int main() {
+    habitLimitMemory();
     // Anything your code prints goes to the console section. The judge's own answers go to a file, so the two never mix.
     // Output is unbuffered so nothing is lost if your code crashes, and cout / printf / cerr keep their order.
     std::cout << std::unitbuf;

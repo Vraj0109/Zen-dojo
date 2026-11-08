@@ -4,7 +4,7 @@ import type { CaseResult, RunResult } from "@/lib/judge/run";
 
 // How the results of a Run are shown: the verdict, one expandable row per case, and the console section.
 
-const label = (r: CaseResult) => (r.kind === "example" ? `Example ${r.index + 1}` : `Test ${r.index + 1}`);
+const label = (r: CaseResult) => (r.kind === "example" ? `Example ${r.index + 1}` : r.kind === "stress" ? `Large input: ${r.label ?? r.index + 1}` : `Test ${r.index + 1}`);
 
 export function Results({ result }: { result: RunResult }) {
   if (result.status === "unavailable") {
@@ -26,7 +26,9 @@ export function Results({ result }: { result: RunResult }) {
     ? "Accepted"
     : first.problem === "timeout"
       ? "Time limit exceeded"
-      : first.problem === "crash" || first.problem === "exception"
+      : first.problem === "memory"
+        ? "Memory limit exceeded"
+        : first.problem === "crash" || first.problem === "exception"
         ? "Runtime error"
         : first.problem === "not-run"
           ? "Stopped early"
@@ -58,7 +60,7 @@ export function Results({ result }: { result: RunResult }) {
                   <span className="ml-2 font-mono text-xs text-muted">{r.input.length > 44 ? r.input.slice(0, 44) + "…" : r.input}</span>
                 </span>
                 <span className={r.pass ? "text-diff-easy" : "text-diff-hard"}>
-                  {r.pass ? "Passed" : r.problem === "timeout" ? "Too slow" : r.problem === "crash" || r.problem === "exception" ? "Error" : r.problem === "not-run" ? "Not run" : "Failed"}
+                  {r.pass ? "Passed" : r.problem === "timeout" ? "Too slow" : r.problem === "memory" ? "Too much memory" : r.problem === "crash" || r.problem === "exception" ? "Error" : r.problem === "not-run" ? "Not run" : "Failed"}
                   {r.micros !== undefined && <span className="ml-2 text-xs text-muted">{r.micros < 1000 ? `${r.micros} µs` : `${Math.round(r.micros / 1000)} ms`}</span>}
                 </span>
               </summary>

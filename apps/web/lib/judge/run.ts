@@ -6,42 +6,56 @@ import os from "node:os";
 import path from "node:path";
 import type { JudgeLang, ProblemSpec } from "@habit/shared";
 import { sameAnswer } from "./compare";
-import { cppProgram, javaProgram, javaSupportFiles, javascriptProgram } from "./harness";
+import { MEMORY_LIMIT_MB, cppProgram, javaProgram, javaSupportFiles, javascriptProgram } from "./harness";
 
 // Runs your code on a problem's test cases, on this computer, like LeetCode's Run button. It compiles with the
-// compilers installed here (g++, a JDK, Node) and runs the program with time and output limits. Nothing leaves the
-// machine. The programs are your own code: the route that calls this only accepts same-origin requests.
+// compilers installed here (g++, a JDK, Node) and runs the program with time, memory and output limits. Nothing leaves
+// the machine. The programs are your own code: the route that calls this only accepts same-origin requests.
 //
 // How the answers get out: the test program writes each answer to a file (results.txt) and keeps standard output free
 // for whatever YOUR code prints. Before each case it prints a marker, so the output can be split per case.
 // If your code crashes or hangs on one case, that case is marked and the remaining cases are run again, so one bad
 // case never hides the rest.
+//
+// Three kinds of case: the examples, more tests (answers written into the problem), and "large inputs" that check speed
+// and memory. A large input has no stored answer: the reference solution computes it once (and the result is kept while
+// the app runs). Each large input runs in its own process with its own time limit (1.5 s for C++, 3 times that for Java,
+// 5 times for JavaScript, unless the problem says otherwise), and every program is limited to 256 MB.
 
 export const JUDGE_LIMITS = {
   code: 100_000,
   compileMs: 30_000,
-  /** Longest a single run of the cases may take before it is stopped. */
+  /** Longest a single run of the normal cases may take before it is stopped. */
   batchMs: 4_000,
-  /** All runs of one Run press together. */
+  /** All runs of the normal cases together. */
   totalMs: 15_000,
+  /** All the large inputs together. */
+  stressTotalMs: 30_000,
   /** Console output kept per run; more than this stops the program. */
   output: 1_000_000,
   /** Console output kept per case when shown. */
   perCaseOutput: 20_000,
+  memoryMb: MEMORY_LIMIT_MB,
 };
+
+/** Default time limit of a large input in C++, in milliseconds. */
+export const DEFAULT_LIMIT_MS = 1500;
+/** Java starts slowly and JavaScript is slower, so they get longer. */
+export const TIME_MULTIPLIER: Record<JudgeLang, number> = { cpp: 1, java: 3, javascript: 5 };
 
 export type CaseResult = {
   index: number;
-  kind: "example" | "test";
+  kind: "example" | "test" | "stress";
+  /** Name of a large input ("100000 random numbers") */
+  label?: string;
   pass: boolean;
   input: string;
   expected: string;
   /** What your function returned (as JSON) */
   actual?: string;
-  /** Set when the case did not produce an answer: an exception, a crash, a timeout, or not run */
+  /** Set when the case did not produce a right answer in time: an exception, a crash, a timeout, too much memory, or not run */
   error?: string;
-  /** Why the case failed without a wrong answer */
-  problem?: "exception" | "crash" | "timeout" | "not-run";
+  problem?: "exception" | "crash" | "timeout" | "memory" | "not-run";
   micros?: number;
   /** Whatever your code printed during this case (cout, printf, System.out, console.log ...) */
   output?: string;
@@ -101,8 +115,7 @@ function runProcess(file: string, args: string[], opts: { cwd: string; timeout: 
       closeSync(fd);
       let output = "";
       try {
-        const buf = readFileSync(outPath);
-        output = buf.subarray(0, JUDGE_LIMITS.output).toString("utf8");
+        output = readFileSync(outPath).subarray(0, JUDGE_LIMITS.output).toString("utf8");
       } catch {
         // no output file: treat as no output
       }
@@ -158,115 +171,218 @@ export function splitOutput(output: string): { before: string; perCase: Map<numb
 }
 
 const cap = (text: string) => (text.length > JUDGE_LIMITS.perCaseOutput ? text.slice(0, JUDGE_LIMITS.perCaseOutput) + "\n... (output cut off)" : text);
+const brief = (text: string, n = 240) => (text.length > n ? text.slice(0, n) + "..." : text);
+const OUT_OF_MEMORY = /bad_alloc|OutOfMemoryError|heap out of memory|Allocation failed|out of memory/i;
+
+interface Prepared {
+  run: { file: string; args: string[] };
+}
+
+/** Writes the program into `dir` and compiles it. Returns how to start it, or the result to report instead. */
+async function prepare(spec: ProblemSpec, lang: JudgeLang, code: string, dir: string): Promise<{ ok: true; value: Prepared } | { ok: false; result: RunResult }> {
+  if (lang === "cpp") {
+    await writeFile(path.join(dir, "main.cpp"), cppProgram(spec, code));
+    const exe = process.platform === "win32" ? "main.exe" : "main";
+    // _GLIBCXX_ASSERTIONS makes an out-of-range vector index stop with a message instead of reading garbage.
+    // On Windows a big stack lets deep recursion work, as it does on LeetCode.
+    const flags = ["-O2", "-std=c++17", "-D_GLIBCXX_ASSERTIONS", ...(process.platform === "win32" ? ["-Wl,--stack,268435456"] : []), "-o", exe, "main.cpp"];
+    const c = await runCompiler(tool("HABIT_GPP", "g++"), flags, dir);
+    if (c.missing) return { ok: false, result: { status: "unavailable", message: MISSING.cpp } };
+    if (c.timedOut) return { ok: false, result: { status: "compile_error", message: "The compiler took too long." } };
+    if (!c.ok) return { ok: false, result: { status: "compile_error", message: clean(c.text, dir) } };
+    return { ok: true, value: { run: { file: path.join(dir, exe), args: [] } } };
+  }
+  if (lang === "java") {
+    await writeFile(path.join(dir, "Solution.java"), code);
+    await writeFile(path.join(dir, "Main.java"), javaProgram(spec));
+    const support = javaSupportFiles(spec);
+    for (const [file, text] of Object.entries(support)) await writeFile(path.join(dir, file), text);
+    const c = await runCompiler(tool("HABIT_JAVAC", "javac"), ["-encoding", "UTF-8", "Solution.java", "Main.java", ...Object.keys(support)], dir);
+    if (c.missing) return { ok: false, result: { status: "unavailable", message: MISSING.java } };
+    if (c.timedOut) return { ok: false, result: { status: "compile_error", message: "The compiler took too long." } };
+    if (!c.ok) return { ok: false, result: { status: "compile_error", message: clean(c.text, dir) } };
+    return { ok: true, value: { run: { file: tool("HABIT_JAVA", "java"), args: [`-Xmx${MEMORY_LIMIT_MB}m`, "-Xss64m", "-cp", ".", "Main"] } } };
+  }
+  await writeFile(path.join(dir, "main.js"), javascriptProgram(spec, code));
+  return { ok: true, value: { run: { file: nodeBinary(), args: [`--max-old-space-size=${MEMORY_LIMIT_MB}`, "main.js"] } } };
+}
+
+interface RunCase {
+  input: unknown[];
+}
+
+interface Outcome {
+  actual?: unknown;
+  /** The answer as text when it was not valid JSON */
+  rawActual?: string;
+  micros?: number;
+  problem?: NonNullable<CaseResult["problem"]>;
+  error?: string;
+  output: string;
+}
+
+/**
+ * Runs the cases at `indices` (positions in `cases`), together in one process. If the program stops early (crash, hang,
+ * exit) that case is marked and the rest are run again, until all are done or `budgetMs` is used up.
+ */
+async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indices: number[], batchMs: number, budgetMs: number) {
+  const outcomes = new Map<number, Outcome>();
+  let beforeTests = "";
+  let pending = [...indices];
+  let budget = budgetMs;
+  let unavailable = false;
+
+  while (pending.length > 0 && budget > 200) {
+    await rm(path.join(dir, "results.txt"), { force: true });
+    const stdin = `${pending.length}\n${pending.map((i) => JSON.stringify(cases[i].input)).join("\n")}\n`;
+    const started = Date.now();
+    const limit = Math.min(batchMs, budget);
+    const r = await runProcess(run.file, run.args, { cwd: dir, timeout: limit, input: stdin });
+    budget -= Date.now() - started;
+    if (r.missing) {
+      unavailable = true;
+      break;
+    }
+
+    const text = await readFile(path.join(dir, "results.txt"), "utf8").catch(() => "");
+    const lines = text.split("\n").map((l) => l.replace(/\r$/, "")).filter((l) => l.startsWith("OK\t") || l.startsWith("ERR\t"));
+    const { before, perCase } = splitOutput(r.output);
+    beforeTests += before;
+    const printed = new Map<number, string>();
+    for (const [local, out] of perCase) if (pending[local] !== undefined) printed.set(pending[local], (printed.get(pending[local]) ?? "") + out);
+
+    lines.forEach((line, local) => {
+      const i = pending[local];
+      if (i === undefined) return;
+      const [tag, payload, micros] = line.split("\t");
+      const output = printed.get(i) ?? "";
+      if (tag === "ERR") {
+        outcomes.set(i, { problem: OUT_OF_MEMORY.test(payload ?? "") ? "memory" : "exception", error: OUT_OF_MEMORY.test(payload ?? "") ? `Memory limit exceeded (${MEMORY_LIMIT_MB} MB).` : (payload ?? "error"), output });
+        return;
+      }
+      try {
+        outcomes.set(i, { actual: JSON.parse(payload), micros: micros ? Number(micros) : undefined, output });
+      } catch {
+        outcomes.set(i, { problem: "exception", error: "The answer could not be read back.", rawActual: payload, output });
+      }
+    });
+
+    const done = lines.length;
+    if (done >= pending.length) {
+      pending = [];
+      break;
+    }
+    const stopped = pending[done];
+    const output = printed.get(stopped) ?? "";
+    if (r.timedOut) outcomes.set(stopped, { problem: "timeout", error: `Time limit exceeded (stopped after ${Math.round(limit / 100) / 10} s).`, output });
+    else if (r.tooMuchOutput) outcomes.set(stopped, { problem: "crash", error: "Your code printed too much output and was stopped.", output });
+    else if (OUT_OF_MEMORY.test(r.output)) outcomes.set(stopped, { problem: "memory", error: `Memory limit exceeded (${MEMORY_LIMIT_MB} MB).`, output });
+    else outcomes.set(stopped, { problem: "crash", error: `Crashed: ${describeExit(r.code, r.signal)}`, output });
+    pending = pending.slice(done + 1);
+  }
+
+  for (const i of pending) outcomes.set(i, { problem: "not-run", error: "Not run: the time for this run was used up by earlier cases.", output: "" });
+  return { outcomes, beforeTests, unavailable };
+}
+
+// ---- answers for the large inputs: computed by the reference solution once, kept while the app runs
+
+const referenceCache = new Map<string, Promise<(unknown | undefined)[] | null>>();
+
+/** Expected answers of a problem's large inputs, in order. null when the reference cannot be run (no g++). */
+export function referenceAnswers(spec: ProblemSpec): Promise<(unknown | undefined)[] | null> {
+  const stress = spec.stress ?? [];
+  if (stress.length === 0) return Promise.resolve([]);
+  let cached = referenceCache.get(spec.id);
+  if (!cached) {
+    cached = (async () => {
+      const dir = await mkdtemp(path.join(os.tmpdir(), "habit-ref-"));
+      try {
+        const prepared = await prepare(spec, "cpp", spec.solution.cpp, dir);
+        if (!prepared.ok) return null;
+        const cases = stress.map((s) => ({ input: s.make() }));
+        const { outcomes, unavailable } = await runSet(dir, prepared.value.run, cases, cases.map((_, i) => i), 30_000, 120_000);
+        if (unavailable) return null;
+        return cases.map((_, i) => outcomes.get(i)?.actual);
+      } finally {
+        await rm(dir, { recursive: true, force: true }).catch(() => {});
+      }
+    })();
+    referenceCache.set(spec.id, cached);
+    // A failed attempt (for example no compiler yet) must not stick: try again on the next Run.
+    cached.then((v) => {
+      if (v === null) referenceCache.delete(spec.id);
+    });
+  }
+  return cached;
+}
+
+type AnyCase = RunCase & { kind: CaseResult["kind"]; output?: unknown; label?: string; limitMs?: number };
 
 export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string): Promise<RunResult> {
   if (code.length > JUDGE_LIMITS.code) return { status: "compile_error", message: "The code is too long." };
-  const cases = [...spec.examples.map((c) => ({ ...c, kind: "example" as const })), ...spec.tests.map((c) => ({ ...c, kind: "test" as const }))];
+
+  const known: AnyCase[] = [...spec.examples.map((c) => ({ ...c, kind: "example" as const })), ...spec.tests.map((c) => ({ ...c, kind: "test" as const }))];
+  const stress: AnyCase[] = (spec.stress ?? []).map((s) => ({ kind: "stress" as const, label: s.label, input: s.make(), limitMs: s.limitMs ?? DEFAULT_LIMIT_MS }));
+  const cases: AnyCase[] = [...known, ...stress];
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "habit-judge-"));
   try {
-    let run: { file: string; args: string[] };
+    const prepared = await prepare(spec, lang, code, dir);
+    if (!prepared.ok) return prepared.result;
+    const { run } = prepared.value;
 
-    if (lang === "cpp") {
-      await writeFile(path.join(dir, "main.cpp"), cppProgram(spec, code));
-      const exe = process.platform === "win32" ? "main.exe" : "main";
-      // _GLIBCXX_ASSERTIONS makes an out-of-range vector index stop with a message instead of reading garbage.
-      const c = await runCompiler(tool("HABIT_GPP", "g++"), ["-O2", "-std=c++17", "-D_GLIBCXX_ASSERTIONS", "-o", exe, "main.cpp"], dir);
-      if (c.missing) return { status: "unavailable", message: MISSING.cpp };
-      if (c.timedOut) return { status: "compile_error", message: "The compiler took too long." };
-      if (!c.ok) return { status: "compile_error", message: clean(c.text, dir) };
-      run = { file: path.join(dir, exe), args: [] };
-    } else if (lang === "java") {
-      await writeFile(path.join(dir, "Solution.java"), code);
-      await writeFile(path.join(dir, "Main.java"), javaProgram(spec));
-      const support = javaSupportFiles(spec);
-      for (const [file, text] of Object.entries(support)) await writeFile(path.join(dir, file), text);
-      const c = await runCompiler(tool("HABIT_JAVAC", "javac"), ["-encoding", "UTF-8", "Solution.java", "Main.java", ...Object.keys(support)], dir);
-      if (c.missing) return { status: "unavailable", message: MISSING.java };
-      if (c.timedOut) return { status: "compile_error", message: "The compiler took too long." };
-      if (!c.ok) return { status: "compile_error", message: clean(c.text, dir) };
-      run = { file: tool("HABIT_JAVA", "java"), args: ["-cp", ".", "Main"] };
-    } else {
-      await writeFile(path.join(dir, "main.js"), javascriptProgram(spec, code));
-      run = { file: nodeBinary(), args: ["main.js"] };
+    const first = await runSet(dir, run, cases, known.map((_, i) => i), JUDGE_LIMITS.batchMs, JUDGE_LIMITS.totalMs);
+    if (first.unavailable) return { status: "unavailable", message: MISSING[lang] };
+    const outcomes = first.outcomes;
+    let beforeTests = first.beforeTests;
+
+    // Large inputs: each in its own process with its own time limit.
+    let stressBudget = JUDGE_LIMITS.stressTotalMs;
+    for (let s = 0; s < stress.length; s++) {
+      const i = known.length + s;
+      const limit = (stress[s].limitMs ?? DEFAULT_LIMIT_MS) * TIME_MULTIPLIER[lang];
+      const timeout = limit + 1500; // startup and reading the input come on top of the work itself
+      const part = await runSet(dir, run, cases, [i], timeout, Math.min(timeout, stressBudget));
+      stressBudget -= Math.min(timeout, stressBudget);
+      beforeTests += part.beforeTests;
+      const o = part.outcomes.get(i);
+      if (o) outcomes.set(i, o);
     }
+    const expectedStress = stress.length > 0 ? await referenceAnswers(spec) : [];
 
-    const results: (CaseResult | undefined)[] = new Array(cases.length).fill(undefined);
-    const outputs: string[] = new Array(cases.length).fill("");
-    const shown = (i: number) => ({ input: JSON.stringify(cases[i].input), expected: JSON.stringify(cases[i].output) });
-    const failed = (i: number, problem: NonNullable<CaseResult["problem"]>, error: string): CaseResult => ({
-      index: i,
-      kind: cases[i].kind,
-      pass: false,
-      ...shown(i),
-      problem,
-      error,
-    });
+    const results: CaseResult[] = cases.map((c, i) => {
+      const o = outcomes.get(i) ?? { problem: "not-run" as const, error: "Not run.", output: "" };
+      const isStress = c.kind === "stress";
+      const expectedValue = isStress ? expectedStress?.[i - known.length] : c.output;
+      const input = isStress ? `(large input: ${c.label})` : JSON.stringify(c.input);
+      const expected = isStress ? (expectedValue === undefined ? "(not available)" : brief(JSON.stringify(expectedValue))) : JSON.stringify(c.output);
+      const base: CaseResult = { index: i, kind: c.kind, label: c.label, pass: false, input, expected, micros: o.micros };
+      const out = o.output.replace(/\r\n/g, "\n");
+      const printed = out.trim() ? { output: cap(out) } : {};
+      const limitMs = c.limitMs ?? DEFAULT_LIMIT_MS;
 
-    let pending = cases.map((_, i) => i);
-    let budget = JUDGE_LIMITS.totalMs;
-    let beforeTests = "";
+      if (o.problem) return { ...base, problem: o.problem, error: o.error, ...(o.rawActual !== undefined ? { actual: o.rawActual } : {}), ...printed };
 
-    // Run all pending cases; if the program stops early (crash, hang, exit), mark that case and run the rest again.
-    while (pending.length > 0 && budget > 200) {
-      await rm(path.join(dir, "results.txt"), { force: true });
-      const stdin = `${pending.length}\n${pending.map((i) => JSON.stringify(cases[i].input)).join("\n")}\n`;
-      const started = Date.now();
-      const r = await runProcess(run.file, run.args, { cwd: dir, timeout: Math.min(JUDGE_LIMITS.batchMs, budget), input: stdin });
-      budget -= Date.now() - started;
-      if (r.missing) return { status: "unavailable", message: MISSING[lang] };
-
-      const text = await readFile(path.join(dir, "results.txt"), "utf8").catch(() => "");
-      const lines = text.split("\n").map((l) => l.replace(/\r$/, "")).filter((l) => l.startsWith("OK\t") || l.startsWith("ERR\t"));
-      const { before, perCase } = splitOutput(r.output);
-      beforeTests += before;
-      for (const [local, out] of perCase) if (pending[local] !== undefined) outputs[pending[local]] += out;
-
-      lines.forEach((line, local) => {
-        const i = pending[local];
-        if (i === undefined) return;
-        const [tag, payload, micros] = line.split("\t");
-        if (tag === "ERR") {
-          results[i] = failed(i, "exception", payload ?? "error");
-          return;
-        }
-        let actual: unknown;
-        try {
-          actual = JSON.parse(payload);
-        } catch {
-          results[i] = { ...failed(i, "exception", "The answer could not be read back."), actual: payload };
-          return;
-        }
-        results[i] = {
-          index: i,
-          kind: cases[i].kind,
-          pass: sameAnswer(cases[i].output, actual, spec.unordered),
-          ...shown(i),
-          actual: JSON.stringify(actual),
-          micros: micros ? Number(micros) : undefined,
-        };
-      });
-
-      const done = lines.length;
-      if (done >= pending.length) {
-        pending = [];
-        break;
+      const actualText = brief(JSON.stringify(o.actual));
+      const tooSlow = isStress && (o.micros ?? 0) / 1000 > limitMs * TIME_MULTIPLIER[lang];
+      if (isStress && expectedValue === undefined) {
+        // No reference answer (g++ missing): all that can be checked is that it finished in time.
+        return tooSlow ? slow(base, o, limitMs, lang, printed) : { ...base, pass: true, actual: actualText, ...printed };
       }
-      const stopped = pending[done];
-      if (r.timedOut) results[stopped] = failed(stopped, "timeout", `Time limit exceeded (more than ${Math.round(JUDGE_LIMITS.batchMs / 1000)} s).`);
-      else if (r.tooMuchOutput) results[stopped] = failed(stopped, "crash", "Your code printed too much output and was stopped.");
-      else results[stopped] = failed(stopped, "crash", `Crashed: ${describeExit(r.code, r.signal)}`);
-      pending = pending.slice(done + 1);
-    }
-
-    for (const i of pending) results[i] = failed(i, "not-run", "Not run: the time for this run was used up by earlier cases.");
-
-    const final = results.map((res, i) => {
-      const out = outputs[i].replace(/\r\n/g, "\n");
-      return { ...(res as CaseResult), ...(out.trim() ? { output: cap(out) } : {}) };
+      const right = sameAnswer(expectedValue, o.actual, spec.unordered);
+      if (right && tooSlow) return slow(base, o, limitMs, lang, printed);
+      return { ...base, pass: right, actual: actualText, ...printed };
     });
-    return { status: "done", results: final, passed: final.filter((x) => x.pass).length, total: cases.length, ...(beforeTests.trim() ? { beforeTests: cap(beforeTests) } : {}) };
+
+    return { status: "done", results, passed: results.filter((x) => x.pass).length, total: results.length, ...(beforeTests.trim() ? { beforeTests: cap(beforeTests) } : {}) };
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
+}
+
+function slow(base: CaseResult, o: Outcome, limitMs: number, lang: JudgeLang, printed: { output?: string }): CaseResult {
+  const limit = limitMs * TIME_MULTIPLIER[lang];
+  const took = Math.round((o.micros ?? 0) / 1000);
+  return { ...base, problem: "timeout", actual: brief(JSON.stringify(o.actual)), error: `Right answer, but too slow: ${took} ms, the limit here is ${limit} ms. Look for a faster algorithm.`, ...printed };
 }
