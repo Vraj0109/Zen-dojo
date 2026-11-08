@@ -13,7 +13,7 @@ const specs = Object.values(JUDGE_PROBLEMS);
 
 describe("problem specs", () => {
   it("are well formed", () => {
-    expect(specs.length).toBeGreaterThanOrEqual(29);
+    expect(specs.length).toBeGreaterThanOrEqual(53);
     for (const s of specs) {
       expect(s.statement.length, s.id).toBeGreaterThan(0);
       expect(s.constraints.length, s.id).toBeGreaterThan(0);

@@ -1,6 +1,6 @@
 # 0018: Problem statements, hints, solutions and a LeetCode-style Run button (roadmap + CSES)
 
-- **Status:** in-progress (engine, list/tree types and 29 problems done; the rest is content work)
+- **Status:** in-progress (engine, list/tree types and 53 problems done; the rest is content work)
 - **Planned by:** Claude Code, 2026-11-08
 - **Implemented by:** Claude Code, 2026-11-08
 - **Spec:** user request 2026-11-08
@@ -21,7 +21,7 @@ for problems from the CSES Problem Set.
   accepts same-origin JSON requests (it runs code on this computer).
 - **UI:** `app/problem-workspace.tsx` (statement, examples, hints, solution) and `app/judge-panel.tsx` (editor, Run, results,
   code kept in the browser). Shown on the Solve tab of `/dsa/[id]` when a spec exists, and on `/dsa/cses` and `/dsa/cses/[id]`.
-- **Done so far (29 problems):** roadmap `lc-1, 3, 11, 20, 53, 70, 121` (batch 1), `lc-92, 25, 98, 543, 102, 199, 230, 105, 337,
+- **Done so far (53 problems: 49 roadmap + 4 CSES):** batches 3 and 4 (`problems-leetcode-3.ts`, `-4.ts`) added `lc-347, 560, 42, 76, 904, 152, 41, 28, 54, 875, 215, 84` and `lc-55, 45, 62, 64, 1143, 72, 300, 416, 518, 122, 91, 134`. Earlier: roadmap `lc-1, 3, 11, 20, 53, 70, 121` (batch 1), `lc-92, 25, 98, 543, 102, 199, 230, 105, 337,
   238, 15, 49, 56, 739, 198, 322, 33, 200` (batch 2, in `problems-leetcode-2.ts`); CSES `weird-algorithm, missing-number,
   repetitions, increasing-array`. `judge.test.ts` compiles every reference solution and requires all cases to pass, and runs hand-written
   Java and JavaScript solutions through their harnesses.
@@ -48,7 +48,7 @@ for problems from the CSES Problem Set.
 
 - [x] **1. Spec types, templates, harness, runner, route, UI, tests** (see Context).
 - [x] **2. First 11 problems** (above).
-- [ ] **3. Roadmap problems, 172 left (29 of 201 done, counting CSES separately: 25 roadmap).** Write a spec for every other problem in `packages/shared/src/dsa.ts`, a pattern at a time
+- [ ] **3. Roadmap problems, 133 left (49 of the 182 non-premium roadmap problems have a spec).** Next candidates: the graph, backtracking, heap, trie and bit problems; those that need design-class APIs (LRU Cache, Trie, Time Based Store, ...) need a method-sequence test format first. Write a spec for every other problem in `packages/shared/src/dsa.ts`, a pattern at a time
   (about 10 per sitting) in `problems-leetcode-<n>.ts`, merged in `judge/index.ts`. Problems on linked lists, trees and graphs
   first need step 4. Premium problems are skipped or written from scratch.
 - [x] **4. Node types (lists and trees).** Done: `list` and `tree` types, `harness-nodes.ts` (C++, Java, JavaScript), templates with
