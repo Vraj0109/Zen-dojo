@@ -8,6 +8,7 @@ import { getPlanStart } from "@/lib/tasks";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { setPlanStartAction, setSimpleModeAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
+import { ThemePicker } from "../../theme-picker";
 import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
@@ -21,6 +22,14 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
       <div className="grid gap-8 xl:grid-cols-2">
         <div className="space-y-6">
           <h3 className="text-lg font-semibold">Interface</h3>
+          <section className="rounded-xl border border-line bg-surface p-4">
+            <h4 className="mb-1 font-semibold">Appearance and reading</h4>
+            <p className="mb-3 text-sm text-muted">
+              System follows your computer&apos;s light or dark setting. These choices are saved in this browser or app window, so they are not
+              part of a backup.
+            </p>
+            <ThemePicker />
+          </section>
           <Suspense fallback={<p className="text-muted">Loading…</p>}>
             <InterfaceSettings />
           </Suspense>

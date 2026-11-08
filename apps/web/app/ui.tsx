@@ -1,7 +1,7 @@
 // Small presentational pieces shared by the pages.
 import Link from "next/link";
 
-export function Stat({ label, value, hint, href }: { label: string; value: string; hint?: string; href?: string }) {
+export function Stat({ label, value, hint, href, className = "" }: { label: string; value: string; hint?: string; href?: string; className?: string }) {
   const content = (
     <>
       <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
@@ -11,13 +11,13 @@ export function Stat({ label, value, hint, href }: { label: string; value: strin
   );
   if (href) {
     return (
-      <Link href={href} className="block rounded-xl border border-line bg-surface p-4 hover:bg-background">
+      <Link href={href} className={`block rounded-xl border border-line bg-surface p-4 hover:bg-background ${className}`}>
         {content}
       </Link>
     );
   }
   return (
-    <div className="rounded-xl border border-line bg-surface p-4">
+    <div className={`rounded-xl border border-line bg-surface p-4 ${className}`}>
       {content}
     </div>
   );

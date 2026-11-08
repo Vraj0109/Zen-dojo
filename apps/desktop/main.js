@@ -10,6 +10,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import updaterPkg from "electron-updater";
+import { appCommandAction, swipeAction, withFeature } from "./lib/navigation.js";
 import { DEFAULT_PORT, databaseUrl, importDatabase, isExternal, pickPort, waitForServer } from "./lib/setup.js";
 import { CHECK_EVERY_MS, RELEASES_REPO, backupName, backupsToPrune, isNewer, needsBackup } from "./lib/updates.js";
 
@@ -19,6 +20,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const devMode = process.argv.includes("--dev");
 // For trying a build without touching your real data: HABIT_DATA_DIR=/some/folder
 if (process.env.HABIT_DATA_DIR) app.setPath("userData", path.resolve(process.env.HABIT_DATA_DIR));
+
+// Two-finger swipe on a touchpad = back/forward (Chrome has it; Electron needs the feature switched on).
+app.commandLine.appendSwitch("enable-features", withFeature(app.commandLine.getSwitchValue("enable-features")));
 
 /** @type {Electron.UtilityProcess | null} */
 let server = null;
@@ -161,6 +165,10 @@ function openWindow(url) {
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
   });
   win.once("ready-to-show", () => win?.show());
+
+  // Back/forward: macOS three-finger swipe, Windows mouse side buttons and browser keys.
+  win.on("swipe", (_event, direction) => navigate(swipeAction(direction)));
+  win.on("app-command", (_event, command) => navigate(appCommandAction(command)));
   win.on("closed", () => (win = null));
 
   // Links to LeetCode, papers, Excalidraw… open in the normal browser.
@@ -174,6 +182,14 @@ function openWindow(url) {
     shell.openExternal(target);
   });
   win.loadURL(url);
+}
+
+/** @param {"back" | "forward" | null} action */
+function navigate(action) {
+  const history = win?.webContents.navigationHistory;
+  if (!history) return;
+  if (action === "back" && history.canGoBack()) history.goBack();
+  if (action === "forward" && history.canGoForward()) history.goForward();
 }
 
 function buildMenu() {
@@ -190,6 +206,13 @@ function buildMenu() {
       ],
     },
     { role: "editMenu" },
+    {
+      label: "Go",
+      submenu: [
+        { label: "Back", accelerator: isMac ? "Cmd+[" : "Alt+Left", click: () => navigate("back") },
+        { label: "Forward", accelerator: isMac ? "Cmd+]" : "Alt+Right", click: () => navigate("forward") },
+      ],
+    },
     { role: "viewMenu" },
     { role: "windowMenu" },
     {

@@ -58,7 +58,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         ) : (
           <Stat label="Points ticked" value={`${totals.pointsChecked} / ${totals.points}`} hint="can explain" />
         )}
-        <Stat label="XP" value={String(totals.xp)} hint={`${due.concepts.length + due.exercises.length} due now`} />
+        <Stat label="XP" value={String(totals.xp)} hint={`${due.concepts.length + due.exercises.length} due now`} className="gamify-only" />
       </section>
 
       {(due.exercises.length > 0 || due.concepts.length > 0) && (

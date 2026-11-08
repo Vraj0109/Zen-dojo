@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Atkinson_Hyperlegible, Geist, Geist_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Suspense } from "react";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { GlobalTimer } from "./global-timer";
+import { FocusReading } from "./focus-reading";
+import { HistoryButtons } from "./history-buttons";
 import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
+
+// Optional reading fonts (Settings > Interface > Reading font). Loaded with the page, used only when chosen.
+const lexend = Lexend({ variable: "--font-lexend", subsets: ["latin"], display: "swap" });
+const atkinson = Atkinson_Hyperlegible({ variable: "--font-atkinson", subsets: ["latin"], weight: ["400", "700"], display: "swap" });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -23,14 +30,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    // suppressHydrationWarning: the init script sets data-mode/data-theme/data-accent on <html> before React runs.
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} ${atkinson.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full lg:flex">
         {/* Sidebar on wide screens, a scrolling top bar on phones */}
         <aside className="sticky top-0 z-10 print:hidden border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
-          <Link href="/" className="mb-2 block px-1 lg:mb-6 lg:px-3">
-            <span className="block text-xs font-medium text-muted">SDE2 / SWE3 prep</span>
-            <span className="block text-lg font-semibold tracking-tight">HabitManager</span>
-          </Link>
+          <div className="mb-2 flex items-center justify-between gap-2 px-1 lg:mb-6 lg:px-3">
+            <Link href="/" className="block">
+              <span className="block text-xs font-medium text-muted">SDE2 / SWE3 prep</span>
+              <span className="block text-lg font-semibold tracking-tight">HabitManager</span>
+            </Link>
+            <HistoryButtons />
+          </div>
           <Suspense fallback={<NavLinks pathname={null} />}>
             <Nav />
           </Suspense>
@@ -43,6 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <FocusReading />
       </body>
     </html>
   );

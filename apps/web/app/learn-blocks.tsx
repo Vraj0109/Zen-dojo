@@ -25,7 +25,11 @@ export function BulletCard({ title, items, ordered = false, note }: { title: str
 }
 
 export function Prose({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`space-y-4 leading-7 ${className}`}>{children}</div>;
+  return (
+    <div data-focus-reading className={`space-y-4 leading-7 ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 export function ArticleSection({
@@ -92,7 +96,9 @@ export function ArticleLayout({
           {rail}
         </aside>
       )}
-      <div className={`min-w-0 space-y-8 ${hasAside ? "order-2 xl:order-1" : ""}`}>{children}</div>
+      <div data-focus-reading className={`min-w-0 space-y-8 ${hasAside ? "order-2 xl:order-1" : ""}`}>
+        {children}
+      </div>
     </div>
   );
 }

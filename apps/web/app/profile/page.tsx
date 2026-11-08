@@ -37,7 +37,7 @@ async function Stats() {
   return (
     <div className="space-y-8">
       <section className="flex flex-col gap-6 rounded-xl border border-line bg-surface p-5 md:flex-row md:items-center">
-        <div className="flex items-center gap-4 md:w-80 md:shrink-0">
+        <div className="gamify-only flex items-center gap-4 md:w-80 md:shrink-0">
           <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-semibold text-on-accent" aria-hidden>
             {level.level}
           </div>
@@ -55,18 +55,20 @@ async function Stats() {
         </div>
         <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Plan" value={weekNo < 1 ? "Not started" : weekNo > TOTAL_WEEKS ? "Finished" : `Week ${weekNo} / ${TOTAL_WEEKS}`} hint={`started ${fmt(planStart, { month: "short", day: "numeric" })}`} />
-          <Stat label="Streak" value={`${totals.streak} day${totals.streak === 1 ? "" : "s"}`} hint={`best ${totals.bestStreak}`} />
+          <Stat label="Streak" value={`${totals.streak} day${totals.streak === 1 ? "" : "s"}`} hint={`best ${totals.bestStreak}`} className="gamify-only" />
           <Stat label="Active days" value={String(totals.activeDays)} hint={`${totals.hours} h logged`} />
-          <Stat label="Badges" value={`${earned} / ${s.badges.length}`} hint="earned" />
+          <Stat label="Badges" value={`${earned} / ${s.badges.length}`} hint="earned" className="gamify-only" />
         </div>
       </section>
 
       <div className="grid gap-8 xl:grid-cols-2">
         <Heatmap weeks={s.heatmap} today={s.today} />
-        <Balance rows={s.balance} recentXp={s.recentXp} />
+        <div className="gamify-only">
+          <Balance rows={s.balance} recentXp={s.recentXp} />
+        </div>
       </div>
 
-      <section>
+      <section className="gamify-only">
         <h2 className="mb-3 text-lg font-semibold">Badges</h2>
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {s.badges.map((b) => (
@@ -113,7 +115,8 @@ function Heatmap({ weeks, today }: { weeks: HeatCell[][]; today: string }) {
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold">Activity, last 16 weeks</h2>
         <p className="text-sm text-muted">
-          {total} XP on {active} day{active === 1 ? "" : "s"}
+          <span className="gamify-only">{total} XP on </span>
+          {active} day{active === 1 ? "" : "s"}
         </p>
       </div>
       <div className="overflow-x-auto rounded-xl border border-line bg-surface p-4">
@@ -158,7 +161,7 @@ function Heatmap({ weeks, today }: { weeks: HeatCell[][]; today: string }) {
           <thead className="text-muted">
             <tr>
               <th className="py-1 font-medium">Week of</th>
-              <th className="py-1 text-right font-medium">XP</th>
+              <th className="gamify-only py-1 text-right font-medium">XP</th>
               <th className="py-1 text-right font-medium">Active days</th>
             </tr>
           </thead>
@@ -166,7 +169,7 @@ function Heatmap({ weeks, today }: { weeks: HeatCell[][]; today: string }) {
             {[...weeks].reverse().map((col) => (
               <tr key={col[0].date} className="border-t border-line">
                 <td className="py-1">{fmt(col[0].date, { month: "short", day: "numeric" })}</td>
-                <td className="py-1 text-right">{col.reduce((a, c) => a + c.xp, 0)}</td>
+                <td className="gamify-only py-1 text-right">{col.reduce((a, c) => a + c.xp, 0)}</td>
                 <td className="py-1 text-right">{col.filter((c) => c.xp > 0).length}</td>
               </tr>
             ))}

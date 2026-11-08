@@ -39,13 +39,13 @@ export function Diagram({ source, caption }: { source: string; caption?: string 
   const [svg, setSvg] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [showSource, setShowSource] = useState(false);
-  const [scheme, setScheme] = useState(0); // bumped when the OS theme changes, to redraw
+  const [scheme, setScheme] = useState(0); // bumped when the theme changes, to redraw
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => setScheme((n) => n + 1);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    // Redraw when the theme or accent changes (the choice in Settings, or the OS while on System).
+    const observer = new MutationObserver(() => setScheme((n) => n + 1));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-accent"] });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {

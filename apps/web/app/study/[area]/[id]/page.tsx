@@ -175,7 +175,7 @@ async function ConceptView({ id }: { id: string }) {
                 ))}
               </div>
               <p className="mt-2 text-xs text-muted">
-                {COVERED_CONFIDENCE}+ counts as covered (+XP the first time). Anything from 1 to {COVERED_CONFIDENCE - 1} comes back for review a week later.
+                {COVERED_CONFIDENCE}+ counts as covered<span className="gamify-only"> (+XP the first time)</span>. Anything from 1 to {COVERED_CONFIDENCE - 1} comes back for review a week later.
               </p>
             </fieldset>
 
@@ -303,7 +303,7 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
           <div className="space-y-6">
             <form action={logPracticeAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
               <input type="hidden" name="itemId" value={id} />
-              <h4 className="font-semibold">Log a practice (+{area.exercises.xp} XP, once a day)</h4>
+              <h4 className="font-semibold">Log a practice<span className="gamify-only"> (+{area.exercises.xp} XP, once a day)</span></h4>
               <div className="space-y-2">
                 {steps.map((step) => (
                   <div key={step.id} className="flex flex-wrap items-center justify-between gap-2">
@@ -359,7 +359,7 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
                         <span className="font-medium">{fmtDate(s.practicedOn, true)}</span>
                         <span>{s.score}/5</span>
                         {s.minutes && <span className="text-muted">{s.minutes} min</span>}
-                        {s.xp > 0 && <span className="text-muted">+{s.xp} XP</span>}
+                        {s.xp > 0 && <span className="gamify-only text-muted">+{s.xp} XP</span>}
                         {s.link && (
                           <a href={s.link} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-foreground">
                             link ↗

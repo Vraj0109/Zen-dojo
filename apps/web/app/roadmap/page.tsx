@@ -86,7 +86,7 @@ function WeekCard({ w, state }: { w: RoadmapWeek; state: "past" | "current" | "f
             </span>
             <span>{w.tasksDone} daily tasks</span>
             <span>{w.problemsSolved} problems</span>
-            <span>+{w.xp} XP</span>
+            <span className="gamify-only">+{w.xp} XP</span>
           </div>
           <ProgressBar value={w.goalsDone} max={w.goalsTotal} label={`Week ${w.week} goals done`} />
         </div>
