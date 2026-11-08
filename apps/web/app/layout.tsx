@@ -8,6 +8,7 @@ import { GlobalTimer } from "./global-timer";
 import { FocusReading } from "./focus-reading";
 import { HistoryButtons } from "./history-buttons";
 import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
+import { Shell } from "./shell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full lg:flex">
+      <body className="min-h-full">
+        <Shell aside={asideNode}>{children}</Shell>
+        <FocusReading />
+      </body>
+    </html>
+  );
+}
+
+const asideNode = (
+        <>
         {/* Sidebar on wide screens, a scrolling top bar on phones */}
         <aside className="sticky top-0 z-10 print:hidden border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
           <div className="mb-2 flex items-center justify-between gap-2 px-1 lg:mb-6 lg:px-3">
@@ -56,9 +66,5 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </div>
         </aside>
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
-        <FocusReading />
-      </body>
-    </html>
-  );
-}
+        </>
+);

@@ -194,3 +194,13 @@ html { scroll-behavior: smooth; scroll-padding-top: 1.25rem; }
   scroll-behavior: auto !important;
 }
 :root[data-motion="off"] { scroll-behavior: auto; }
+
+/* Problem pages: the sidebar is a slide-out, so the problem and the editor get the room. */
+.shell-compact { --pane-h: calc(100dvh - 8.5rem); }
+.shell-compact main { padding-top: 0.5rem; padding-bottom: 0.75rem; }
+.shell-compact main > a[href="/dsa"] { display: none; }
+.drawer-panel > aside { position: static; height: 100%; width: 100%; border: 0; display: flex; flex-direction: column; padding: 1.5rem 0.75rem; }
+.drawer-panel > aside nav { overflow: visible; margin: 0; padding: 0; }
+.drawer-panel > aside nav ul { flex-direction: column; }
+.drawer-panel > aside ul.hidden { display: flex; }
+.drawer-panel > aside li.lg\:hidden { display: none; }

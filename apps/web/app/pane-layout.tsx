@@ -103,7 +103,7 @@ export interface PaneDef {
   children: ReactNode;
 }
 
-export function PaneLayout({ panes, height = "calc(100dvh - 13rem)" }: { panes: Record<PaneId, PaneDef>; height?: string }) {
+export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem))" }: { panes: Record<PaneId, PaneDef>; height?: string }) {
   const raw = useSyncExternalStore(subscribe, snapshot, () => DEFAULT_RAW);
   const narrow = useSyncExternalStore(subscribeNarrow, () => window.matchMedia(narrowQuery).matches, () => false);
   const saved = parse(raw);
