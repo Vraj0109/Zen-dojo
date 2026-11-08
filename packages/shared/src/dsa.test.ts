@@ -4,8 +4,8 @@ import { ALL_PATTERNS, DSA_GROUPS, PROBLEMS, RESOLVE_XP, patternTarget, solveSta
 describe("DSA data", () => {
   const problems = Object.values(PROBLEMS);
 
-  it("has 9 groups from the roadmap", () => {
-    expect(DSA_GROUPS).toHaveLength(9);
+  it("has 9 groups from the roadmap plus the CSES group", () => {
+    expect(DSA_GROUPS).toHaveLength(10);
   });
 
   it("references only problems that exist", () => {

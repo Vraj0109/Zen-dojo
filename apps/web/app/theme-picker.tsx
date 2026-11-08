@@ -8,15 +8,18 @@ import {
   THEME_EVENT,
   THEME_MODES,
   applyTheme,
+  MOTION_KEY,
   parseAccent,
   parseBionic,
   parseFont,
   parseMode,
+  parseMotion,
   parseStyle,
   type AccentId,
   type Appearance,
   type BionicSetting,
   type FontId,
+  type MotionSetting,
   type StyleId,
   type ThemeMode,
 } from "@/lib/theme";
@@ -44,6 +47,14 @@ const readFont = () => parseFont(attr("data-font"));
 const readScheme = () => (attr("data-theme") === "dark" ? "dark" : "light");
 const readGamify = () => attr("data-gamify") === "on";
 const readBionic = () => parseBionic(attr("data-bionic"));
+// The animation setting (Auto, On, Off) is not visible on <html> (it only shows the result), so read what was saved.
+const readMotion = (): MotionSetting => {
+  try {
+    return parseMotion(localStorage.getItem(MOTION_KEY));
+  } catch {
+    return "auto";
+  }
+};
 
 /** Appearance and reading settings. Needs JavaScript; saved in this browser or app window, not in backups. */
 export function ThemePicker() {
@@ -54,7 +65,8 @@ export function ThemePicker() {
   const scheme = useSyncExternalStore(subscribe, readScheme, () => "light" as const);
   const gamify = useSyncExternalStore(subscribe, readGamify, () => false);
   const bionic = useSyncExternalStore(subscribe, readBionic, () => "off" as BionicSetting);
-  const current: Appearance = { mode, accent, style, font, gamify, bionic };
+  const motion = useSyncExternalStore(subscribe, readMotion, () => "auto" as MotionSetting);
+  const current: Appearance = { mode, accent, style, font, gamify, bionic, motion };
   const accentColor = ACCENTS.find((a) => a.id === accent)!.color;
 
   const pill = (active: boolean) =>
@@ -173,6 +185,23 @@ export function ThemePicker() {
           Bolds the start of words in lessons, articles and problem statements. Subtle leaves short words alone and uses a semi-bold; Strong bolds about
           half of every word. Headings, code and buttons are never changed. Studies have not found that it speeds up reading for everyone, so keep it only
           if it feels good.
+        </p>
+      </div>
+
+      <div>
+        <p id="theme-motion-label" className="mb-2 text-sm font-medium">
+          Animations
+        </p>
+        <div role="radiogroup" aria-labelledby="theme-motion-label" className="flex flex-wrap gap-2">
+          {(["auto", "on", "off"] as const).map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={motion === m} onClick={() => applyTheme({ ...current, motion: m })} className={pill(motion === m)}>
+              {m === "auto" ? "Auto" : m === "on" ? "On" : "Off"}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          Fades, sliding highlights and moving progress bars. Turn them Off on a slower computer, or if motion bothers you. Auto follows your computer&apos;s
+          &quot;reduce motion&quot; setting.
         </p>
       </div>
 

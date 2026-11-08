@@ -5,6 +5,7 @@ import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/share
 import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
 import { saveNote } from "@/lib/notes";
 import { applyFreeze } from "@/lib/progress";
+import { toggleFavouriteCourse } from "@/lib/courses";
 import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
@@ -95,6 +96,12 @@ export async function setPlanStartAction(formData: FormData) {
   const date = String(formData.get("planStart") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   await setPlanStart(date);
+  refresh();
+}
+
+/** Star or un-star a course on the Learn page. */
+export async function toggleFavouriteCourseAction(formData: FormData) {
+  await toggleFavouriteCourse(String(formData.get("course") ?? ""));
   refresh();
 }
 

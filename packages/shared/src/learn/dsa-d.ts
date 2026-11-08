@@ -840,4 +840,49 @@ public:
     pitfalls: ["Forgetting to update the moved element's index in RandomizedSet.", "Copying whole arrays per snapshot (O(n) each)."],
     recap: ["Table of operations → structure per operation.", "Swap-with-last for O(1) delete from an array.", "Histories + binary search for time travel."],
   },
+  "cses-intro": {
+    idea: "The CSES introductory problems are short and mostly ask for care, not cleverness: read the constraints, pick a type that cannot overflow, and handle the smallest inputs. They train the habits that make every harder problem safer: estimate the work from n, use 64-bit integers for sums and products, and test the edges before you submit.",
+    signals: [
+      "n up to 10^5 or 10^6 means an O(n) or O(n log n) answer; a nested loop over n will not finish.",
+      "Sums, products or counts that can pass about 2 billion need long long, even if every input fits in int.",
+      "A statement that guarantees a property (exactly one missing number, a sequence that always ends) usually points at a simple pass, a formula or an XOR.",
+    ],
+    steps: [
+      "Write down the limits and compute the worst-case value of every quantity you add, multiply or count.",
+      "Choose the simplest algorithm that fits the time limit; a single pass or a formula is common here.",
+      "Work the smallest inputs by hand (n = 1, n = 2, all equal) and check your code on them first.",
+      "Run the examples and your own edge cases in the app, then look at the console output if something differs.",
+    ],
+    template: `#include <bits/stdc++.h>
+using namespace std;
+
+// A typical shape for these problems (the in-app version is a function; the CSES version reads input):
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n;
+    cin >> n;
+    long long total = 0;          // 64-bit: sums grow quickly
+    for (int i = 0; i < n; i++) {
+        long long x;
+        cin >> x;
+        total += x;
+    }
+    cout << total << "\n";
+    return 0;
+}`,
+    complexity: "Usually O(n) time and O(1) extra space; check that n * (work per element) stays under about 10^8 simple steps.",
+    variations: [
+      "Weird Algorithm: simulate a rule until it ends; the values can exceed 32 bits.",
+      "Missing Number: arithmetic series or XOR to find the one absent value in O(n).",
+      "Repetitions: one scan with a running counter and a best-so-far.",
+      "Increasing Array: a greedy left to right pass with a 64-bit answer.",
+    ],
+    pitfalls: [
+      "Looping over the wrong length (the Missing Number list has n - 1 values, not n).",
+      "Using int for a running total or product and overflowing silently.",
+      "Printing extra text or forgetting the newline when the real judge compares output exactly.",
+    ],
+    recap: ["Do the arithmetic on the limits first.", "long long for sums, products and counts.", "Test n = 1 and all-equal inputs before submitting."],
+  },
 };

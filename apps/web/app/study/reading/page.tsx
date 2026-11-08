@@ -6,7 +6,7 @@ import { ALL_CONCEPTS, ALL_EXERCISES, READING_KINDS, studyHref } from "@habit/sh
 import { getReadingList } from "@/lib/reading";
 import { toggleReadingAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
-import { LearnTabs } from "../../section-tabs";
+import { LearnBack } from "../../section-tabs";
 import { PageMain } from "../../ui";
 
 export const metadata: Metadata = { title: "Reading list" };
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Reading list" };
 export default function ReadingPage() {
   return (
     <PageMain title="Reading list">
-      <LearnTabs active="reading" />
+      <LearnBack current="Reading list" />
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
         <Reading />
       </Suspense>

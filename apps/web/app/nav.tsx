@@ -24,7 +24,7 @@ type NavLink = {
 const MAIN: NavLink[] = [
   { href: "/", label: "Today", icon: "today", matches: [] },
   { href: "/dsa", label: "Practice", icon: "dsa", matches: ["/dsa"] },
-  { href: "/study/sd", label: "Learn", icon: "learn", matches: ["/study"] },
+  { href: "/study", label: "Learn", icon: "learn", matches: ["/study"] },
   { href: "/review", label: "Review", icon: "review", matches: ["/review", "/revise"] },
 ];
 

@@ -20,6 +20,9 @@ import {
   parseMode,
   parseStyle,
   resolveMode,
+  MOTION_KEY,
+  motionEnabled,
+  parseMotion,
 } from "./theme";
 
 describe("theme parsing", () => {
@@ -42,17 +45,18 @@ describe("theme parsing", () => {
 });
 
 /** Runs the inline script against a fake <html>, storage and media query, like a browser would. */
-function runInit(stored: Record<string, string>, osDark: boolean) {
+function runInit(stored: Record<string, string>, osDark: boolean, reducedMotion = false) {
   const attrs = new Map<string, string>();
   const listeners: Array<() => void> = [];
   const mq = { matches: osDark, addEventListener: (_: string, fn: () => void) => listeners.push(fn) };
+  const rm = { matches: reducedMotion, addEventListener: () => {} };
   const root = {
     setAttribute: (k: string, v: string) => void attrs.set(k, v),
     getAttribute: (k: string) => attrs.get(k) ?? null,
     removeAttribute: (k: string) => void attrs.delete(k),
   };
   const fn = new Function("document", "window", "localStorage", THEME_INIT_SCRIPT);
-  fn({ documentElement: root }, { matchMedia: () => mq }, { getItem: (k: string) => stored[k] ?? null });
+  fn({ documentElement: root }, { matchMedia: (q: string) => (q.includes("reduced-motion") ? rm : mq) }, { getItem: (k: string) => stored[k] ?? null });
   return { attrs, mq, listeners };
 }
 
@@ -101,6 +105,35 @@ describe("theme init script", () => {
     expect(runInit({ [STYLE_KEY]: "terminal" }, false).attrs.get("data-style")).toBe("terminal");
     expect(runInit({ [STYLE_KEY]: DEFAULT_STYLE }, false).attrs.has("data-style")).toBe(false);
     expect(runInit({ [STYLE_KEY]: "bogus" }, false).attrs.has("data-style")).toBe(false);
+  });
+});
+
+describe("animations", () => {
+  it("parse with a fallback to Auto", () => {
+    expect(parseMotion("on")).toBe("on");
+    expect(parseMotion("off")).toBe("off");
+    expect(parseMotion("fast")).toBe("auto");
+    expect(parseMotion(null)).toBe("auto");
+  });
+
+  it("Auto follows the computer, On and Off do not", () => {
+    expect(motionEnabled("auto", false)).toBe(true);
+    expect(motionEnabled("auto", true)).toBe(false);
+    expect(motionEnabled("on", true)).toBe(true);
+    expect(motionEnabled("off", false)).toBe(false);
+  });
+
+  it("the init script turns animations off for Off, and for Auto when the computer asks for reduced motion", () => {
+    expect(runInit({}, false).attrs.has("data-motion")).toBe(false);
+    expect(runInit({}, false, true).attrs.get("data-motion")).toBe("off");
+    expect(runInit({ [MOTION_KEY]: "on" }, false, true).attrs.has("data-motion")).toBe(false);
+    expect(runInit({ [MOTION_KEY]: "off" }, false, false).attrs.get("data-motion")).toBe("off");
+  });
+
+  it("the stylesheet switches every animation and transition off under data-motion=off", () => {
+    const css = fs.readFileSync(path.join(__dirname, "..", "app", "globals.css"), "utf8");
+    expect(css).toMatch(/:root\[data-motion="off"\][^{]*\{[^}]*animation: none !important/);
+    expect(css).toMatch(/transition: none !important/);
   });
 });
 

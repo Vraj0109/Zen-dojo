@@ -7,6 +7,7 @@ import { getWeekFocus, taskLink, type FocusItem, type TaskLink, type WeekFocusVi
 import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import type { Task } from "@/lib/schema";
 import { REVIEW_KIND_LABELS, getReviewQueue } from "@/lib/review";
+import { getContinue } from "@/lib/courses";
 import { getCountdown } from "@/lib/revise";
 import { getTodayView } from "@/lib/tasks";
 import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } from "./actions";
@@ -36,7 +37,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
   await connection();
   after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
   const params = await searchParams;
-  const [v, resolveDue, reviews, countdown] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue(), getCountdown()]);
+  const [v, resolveDue, reviews, countdown, keepLearning] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue(), getCountdown(), getContinue()]);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;
   const currentWeek = Math.min(Math.max(v.weekNo, 1), TOTAL_WEEKS);
@@ -132,16 +133,28 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
             <h3 id="up-next" className="font-semibold">
               Up next
             </h3>
-            {!beforeStart && !finished && (
-              <span className="text-sm text-muted">
-                {doneTasks.length} / {v.dayTasks.length} tasks done today
+            {!beforeStart && !finished && v.dayTasks.length > 0 && (
+              <span className="flex items-center gap-3 text-sm text-muted">
+                <span className="hidden w-28 sm:block">
+                  <ProgressBar value={doneTasks.length} max={v.dayTasks.length} label="Tasks done today" />
+                </span>
+                {doneTasks.length} of {v.dayTasks.length} done
               </span>
             )}
           </div>
 
           {rows.length === 0 ? (
             <div className="space-y-2 p-4">
-              <p className="font-medium">All done for today.</p>
+              <p className="anim-pop font-medium">All done for today.</p>
+              {keepLearning && (
+                <p className="text-sm text-muted">
+                  Keep learning:{" "}
+                  <Link href={keepLearning.href} className="font-medium text-foreground underline">
+                    {keepLearning.title}
+                  </Link>{" "}
+                  ({keepLearning.course})
+                </p>
+              )}
               {focus.dsa.next ? (
                 <p className="text-sm text-muted">
                   Want to get ahead? Next problem:{" "}
@@ -155,7 +168,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
             </div>
           ) : (
             <>
-              <ul className="divide-y divide-line">
+              <ul className="anim-stagger divide-y divide-line">
                 {visible.map((r) => (
                   <UpNextItem key={r.key} row={r} link={link} />
                 ))}

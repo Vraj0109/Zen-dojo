@@ -3,7 +3,7 @@ import { isActive } from "./nav";
 
 const today = { href: "/", matches: [] };
 const practice = { href: "/dsa", matches: ["/dsa"] };
-const learn = { href: "/study/sd", matches: ["/study"] };
+const learn = { href: "/study", matches: ["/study"] };
 const review = { href: "/review", matches: ["/review", "/revise"] };
 const profile = { href: "/profile", matches: ["/profile", "/roadmap"] };
 
@@ -13,6 +13,7 @@ const ACTIVE: Record<string, string> = {
   "/dsa/boss": "practice",
   "/dsa/pattern/hash-map": "practice",
   "/dsa/lc-1": "practice",
+  "/study": "learn",
   "/study/sd": "learn",
   "/study/lld/lldp-parking-lot": "learn",
   "/study/reading": "learn",

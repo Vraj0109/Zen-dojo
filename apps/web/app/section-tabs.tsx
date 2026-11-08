@@ -1,48 +1,43 @@
 import { connection } from "next/server";
-import { Suspense } from "react";
+import Link from "next/link";
 import { getReviewQueue } from "@/lib/review";
-import { getSimpleMode } from "@/lib/ui-prefs";
 import { Tabs } from "./tabs";
 
 // Tab bars that tie the pages of one nav section together (Learn, Review). Profile has its own in profile/profile-ui.tsx.
 
-const LEARN_TABS = [
-  { id: "sd", label: "System design" },
-  { id: "lld", label: "LLD" },
-  { id: "core", label: "Core CS" },
-  { id: "reading", label: "Reading list" },
-  { id: "diagrams", label: "Diagrams" },
+const LEARN_LINKS = [
+  { href: "/study/sd", label: "System design" },
+  { href: "/study/lld", label: "Low-level design" },
+  { href: "/study/core", label: "Core CS" },
+  { href: "/dsa", label: "DSA patterns" },
+  { href: "/study/reading", label: "Reading list" },
+  { href: "/study/diagrams", label: "Diagrams" },
 ] as const;
 
-const LEARN_HREF: Record<(typeof LEARN_TABS)[number]["id"], string> = {
-  sd: "/study/sd",
-  lld: "/study/lld",
-  core: "/study/core",
-  reading: "/study/reading",
-  diagrams: "/study/diagrams",
-};
-
-export type LearnTab = (typeof LEARN_TABS)[number]["id"];
-
-const LEARN_CLASS = "mb-6 flex gap-6 overflow-x-auto border-b border-line print:hidden";
-const SIMPLE_HIDDEN: readonly string[] = ["reading", "diagrams"];
-
-function LearnTabsView({ active, simple }: { active: string; simple: boolean }) {
-  const tabs = LEARN_TABS.filter((t) => !simple || !SIMPLE_HIDDEN.includes(t.id) || t.id === active);
-  return <Tabs tabs={tabs} active={active} hrefFor={(id) => LEARN_HREF[id as LearnTab]} label="Learn sections" className={LEARN_CLASS} />;
-}
-
-async function LearnTabsLoader({ active }: { active: string }) {
-  await connection();
-  return <LearnTabsView active={active} simple={await getSimpleMode()} />;
-}
-
-/** System design, LLD, Core CS, Reading list, Diagrams. Simple mode hides the last two (until you are on one of them). */
-export function LearnTabs({ active }: { active: string }) {
+/** Breadcrumb for the pages inside a course: back to the Learn page, the course name, and a way to jump to another course. */
+export function LearnBack({ current }: { current: string }) {
   return (
-    <Suspense fallback={<LearnTabsView active={active} simple />}>
-      <LearnTabsLoader active={active} />
-    </Suspense>
+    <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm print:hidden">
+      <Link href="/study" className="text-muted hover:text-foreground">
+        ← Learn
+      </Link>
+      <span aria-hidden className="text-muted">
+        /
+      </span>
+      <span className="font-medium">{current}</span>
+      <details className="relative ml-auto">
+        <summary className="cursor-pointer rounded-lg border border-line px-2.5 py-1 text-xs text-muted hover:bg-background hover:text-foreground">Other courses</summary>
+        <ul className="anim-pop absolute right-0 z-20 mt-1 min-w-44 rounded-xl border border-line bg-surface p-1 shadow-lg">
+          {LEARN_LINKS.map((l) => (
+            <li key={l.href}>
+              <Link href={l.href} className="block rounded-lg px-3 py-1.5 hover:bg-background">
+                {l.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </nav>
   );
 }
 

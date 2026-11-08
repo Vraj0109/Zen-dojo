@@ -8,7 +8,8 @@ import { getProblemDetail } from "@/lib/dsa";
 import { parseProblemTab } from "@/lib/dsa-filters";
 import { getPatternNotes } from "@/lib/pattern-notes";
 import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggles";
-import { ProblemWorkspace } from "../../problem-workspace";
+import { JudgeWorkspace, type ProblemTab } from "../../judge-workspace";
+import { ProblemDescription, ProblemHelp, startersFor } from "../../problem-workspace";
 import { siteMinutesForSlug } from "@/lib/site-time";
 import { focusMinutes } from "@/lib/timer";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, undoSolveAction } from "../../actions";
@@ -24,7 +25,7 @@ export const metadata: Metadata = { title: "Problem" };
 
 export default function ProblemPage({ params, searchParams }: PageProps<"/dsa/[id]">) {
   return (
-    <PageMain title="Problem" narrow>
+    <PageMain title="Problem" full>
       <Link href="/dsa" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
         ← All patterns
       </Link>
@@ -83,6 +84,88 @@ async function Problem({
   const label = p.number ? `${p.number}. ${p.title}` : p.title;
 
   const tab = parseProblemTab(sp, p.submissions.length > 0);
+
+  const spec = JUDGE_PROBLEMS[p.id];
+  if (spec) {
+    const judgedTabs: ProblemTab[] = [
+      { id: "description", label: "Description", node: <ProblemDescription spec={spec} /> },
+      { id: "help", label: "Hints", node: <ProblemHelp spec={spec} /> },
+      {
+        id: "notes",
+        label: "Notes",
+        node: (
+          <NotesForm
+            id={p.id}
+            note={p.note}
+            notesPlaceholder={NOTES_TEMPLATE}
+            codePlaceholder="Your accepted solution is saved here automatically when every test passes. You can also paste code yourself."
+          />
+        ),
+      },
+      ...(p.submissions.length > 0
+        ? [{ id: "submissions", label: "Submissions", count: p.submissions.length, node: <Submissions list={p.submissions} /> }]
+        : []),
+      { id: "stuck", label: "Stuck log", count: open.length, node: <StuckPanel problemId={p.id} open={open} history={simple ? [] : struggles} /> },
+      ...(p.patterns.length > 0
+        ? [{ id: "pattern", label: "Pattern", node: <PatternHelp p={p} cheats={cheats} simple={simple} /> }]
+        : []),
+    ];
+    const wanted = typeof sp.tab === "string" ? sp.tab : undefined;
+    return (
+      <article className="space-y-3">
+        <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-xl font-semibold tracking-tight">{label}</h2>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              <Difficulty level={p.difficulty} />
+              {p.patterns.map((pat) => (
+                <Link key={pat.id} href={`/dsa/pattern/${pat.id}`} className="rounded-full border border-line px-2 py-0.5 text-xs hover:bg-background hover:text-foreground">
+                  {pat.name}
+                </Link>
+              ))}
+              <span className="inline-flex items-center gap-1.5">
+                <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} />
+                {s.state === "unsolved" && "Not solved"}
+                {s.state === "solved" && (s.resolveDue ? "Solved, re-solve due" : `Solved ${fmt(s.solvedOn)}`)}
+                {s.state === "resolved" && `Re-solved ${fmt(s.resolvedOn)}`}
+              </span>
+              {p.url && (
+                <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
+                  {p.id.startsWith("cses-") ? "Open on CSES ↗" : "Open on LeetCode ↗"}
+                </a>
+              )}
+              {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {p.kind === "roadmap" && s.state !== "resolved" && (
+              <form action={markSolvedAction}>
+                <input type="hidden" name="problemId" value={p.id} />
+                <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+                  {s.state === "unsolved" ? "Mark solved" : "Mark re-solved"}
+                  <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
+                </SubmitButton>
+              </form>
+            )}
+            {p.kind === "roadmap" && s.state !== "unsolved" && (
+              <form action={undoSolveAction}>
+                <input type="hidden" name="problemId" value={p.id} />
+                <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm">Undo</SubmitButton>
+              </form>
+            )}
+            <StartTimer
+              itemId={p.id}
+              label={p.title}
+              href={`/dsa/${encodeURIComponent(p.id)}`}
+              defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25}
+              totalMinutes={focused}
+            />
+          </div>
+        </header>
+        <JudgeWorkspace id={p.id} templates={startersFor(spec)} tabs={judgedTabs} initialTab={wanted === "solve" ? "description" : wanted} />
+      </article>
+    );
+  }
 
   const tabs: TabItem[] = [
     { id: "solve", label: "Solve" },
@@ -183,44 +266,7 @@ async function Problem({
 
       {tab === "solve" && (
         <div className="space-y-4">
-          {JUDGE_PROBLEMS[p.id] && <ProblemWorkspace spec={JUDGE_PROBLEMS[p.id]} />}
-          {(p.patterns.length > 0 || p.topics.length > 0) && (
-            <details className="rounded-xl border border-line bg-surface p-4">
-              <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-foreground">
-                Stuck? Show the pattern
-              </summary>
-              <div className="mt-3 space-y-3">
-                {p.patterns.length > 0 && (
-                  <ul className="space-y-2 text-sm">
-                    {p.patterns.map((pat) => (
-                      <li key={pat.id}>
-                        <Link href={`/dsa/pattern/${pat.id}`} className="font-medium hover:underline">
-                          {pat.name}
-                        </Link>
-                        <span className="text-muted"> · recognize by: {pat.recognize}</span>
-                        {!simple && cheats.get(pat.id)?.template && (
-                          <details className="mt-1">
-                            <summary className="cursor-pointer text-xs font-medium text-muted">Your template</summary>
-                            <div className="mt-1">
-                              <Code code={cheats.get(pat.id)!.template} lang={cheats.get(pat.id)!.language} maxHeight="20rem" />
-                            </div>
-                            {cheats.get(pat.id)!.recognize && (
-                              <p className="mt-1 whitespace-pre-wrap text-xs">{cheats.get(pat.id)!.recognize}</p>
-                            )}
-                          </details>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {p.topics.length > 0 && (
-                  <p className="text-xs text-muted" title="LeetCode topics">
-                    Topics: {p.topics.join(" · ")}
-                  </p>
-                )}
-              </div>
-            </details>
-          )}
+          <PatternHelp p={p} cheats={cheats} simple={simple} />
 
           {open.length > 0 && (
             <p className="rounded-xl border border-cat-mock bg-surface p-3 text-sm">
@@ -242,40 +288,7 @@ async function Problem({
         />
       )}
 
-      {tab === "submissions" && p.submissions.length > 0 && (
-        <section>
-          <h3 className="mb-1 font-semibold">Your LeetCode submissions ({p.submissions.length})</h3>
-          <p className="mb-3 text-xs text-muted">Accepted solutions imported by the browser extension, newest first.</p>
-          <ul className="space-y-2">
-            {p.submissions.map((sub, i) => (
-              <li key={sub.id}>
-                <details open={i === 0} className="group rounded-xl border border-line bg-surface">
-                  <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
-                    <span className="inline-block transition-transform group-open:rotate-90">›</span>
-                    <span className="font-medium">{when(sub.submittedAt)}</span>
-                    <span>{sub.lang}</span>
-                    {sub.runtime && <span className="text-muted">{sub.runtime}{pct(sub.runtimePct)}</span>}
-                    {sub.memory && <span className="text-muted">{sub.memory}{pct(sub.memoryPct)}</span>}
-                    {sub.notes && <span className="text-xs text-muted">notes</span>}
-                    <a
-                      href={`https://leetcode.com/submissions/detail/${sub.id}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-auto text-xs text-muted hover:text-foreground"
-                    >
-                      LeetCode ↗
-                    </a>
-                  </summary>
-                  <div className="space-y-3 border-t border-line p-4">
-                    {sub.notes && <p className="whitespace-pre-wrap text-sm">{sub.notes}</p>}
-                    <Code code={sub.code} lang={sub.lang} maxHeight="32rem" />
-                  </div>
-                </details>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {tab === "submissions" && p.submissions.length > 0 && <Submissions list={p.submissions} />}
 
       {tab === "stuck" && <StuckPanel problemId={p.id} open={open} history={simple ? [] : struggles} />}
       {simple && <SimpleHint />}
@@ -332,6 +345,82 @@ function StuckPanel({ problemId, open, history }: { problemId: string; open: Awa
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+type Detail = NonNullable<Awaited<ReturnType<typeof getProblemDetail>>>;
+
+function PatternHelp({ p, cheats, simple }: { p: Detail; cheats: Awaited<ReturnType<typeof getPatternNotes>>; simple: boolean }) {
+  if (p.patterns.length === 0 && p.topics.length === 0) return null;
+  return (
+    <details className="rounded-xl border border-line bg-surface p-4" open>
+      <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-foreground">Stuck? Show the pattern</summary>
+      <div className="mt-3 space-y-3">
+        {p.patterns.length > 0 && (
+          <ul className="space-y-2 text-sm">
+            {p.patterns.map((pat) => (
+              <li key={pat.id}>
+                <Link href={`/dsa/pattern/${pat.id}`} className="font-medium hover:underline">
+                  {pat.name}
+                </Link>
+                <span className="text-muted"> · recognize by: {pat.recognize}</span>
+                {!simple && cheats.get(pat.id)?.template && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-xs font-medium text-muted">Your template</summary>
+                    <div className="mt-1">
+                      <Code code={cheats.get(pat.id)!.template} lang={cheats.get(pat.id)!.language} maxHeight="20rem" />
+                    </div>
+                    {cheats.get(pat.id)!.recognize && <p className="mt-1 whitespace-pre-wrap text-xs">{cheats.get(pat.id)!.recognize}</p>}
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {p.topics.length > 0 && (
+          <p className="text-xs text-muted" title="LeetCode topics">
+            Topics: {p.topics.join(" · ")}
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function Submissions({ list }: { list: Detail["submissions"] }) {
+  return (
+    <section>
+      <h3 className="mb-1 font-semibold">Your LeetCode submissions ({list.length})</h3>
+      <p className="mb-3 text-xs text-muted">Accepted solutions imported by the browser extension, newest first.</p>
+      <ul className="space-y-2">
+        {list.map((sub, i) => (
+          <li key={sub.id}>
+            <details open={i === 0} className="group rounded-xl border border-line bg-surface">
+              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
+                <span className="inline-block transition-transform group-open:rotate-90">›</span>
+                <span className="font-medium">{when(sub.submittedAt)}</span>
+                <span>{sub.lang}</span>
+                {sub.runtime && <span className="text-muted">{sub.runtime}{pct(sub.runtimePct)}</span>}
+                {sub.memory && <span className="text-muted">{sub.memory}{pct(sub.memoryPct)}</span>}
+                {sub.notes && <span className="text-xs text-muted">notes</span>}
+                <a
+                  href={`https://leetcode.com/submissions/detail/${sub.id}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-xs text-muted hover:text-foreground"
+                >
+                  LeetCode ↗
+                </a>
+              </summary>
+              <div className="space-y-3 border-t border-line p-4">
+                {sub.notes && <p className="whitespace-pre-wrap text-sm">{sub.notes}</p>}
+                <Code code={sub.code} lang={sub.lang} maxHeight="32rem" />
+              </div>
+            </details>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

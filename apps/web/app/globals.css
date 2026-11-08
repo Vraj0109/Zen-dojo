@@ -163,3 +163,34 @@ pre.code-block {
   tab-size: 4;
   max-height: var(--code-max, 36rem);
 }
+
+/* ---- Motion ----
+   Small, cheap animations (opacity and transform only). All of them are switched off by Settings > Animations, or by the
+   computer's "reduce motion" setting while that is on Auto: <html data-motion="off">. */
+@keyframes habit-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes habit-pop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes habit-pulse { 50% { opacity: 0.45; } }
+.anim-fade-up { animation: habit-fade-up 0.28s ease-out both; }
+.anim-pop { animation: habit-pop 0.22s ease-out both; }
+.anim-pulse { animation: habit-pulse 1.4s ease-in-out infinite; }
+@keyframes habit-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.anim-grow { transform-origin: left; animation: habit-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.anim-stagger > * { animation: habit-fade-up 0.3s ease-out both; }
+.anim-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.anim-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.anim-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.anim-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.anim-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.anim-stagger > *:nth-child(n + 7) { animation-delay: 240ms; }
+.anim-lift { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+.anim-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgb(0 0 0 / 0.08); }
+html { scroll-behavior: smooth; scroll-padding-top: 1.25rem; }
+
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+:root[data-motion="off"] { scroll-behavior: auto; }

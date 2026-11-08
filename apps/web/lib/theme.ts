@@ -100,6 +100,7 @@ export type FontId = (typeof FONTS)[number]["id"];
 export const DEFAULT_FONT: FontId = "default";
 
 export const FONT_KEY = "habit-font";
+export const MOTION_KEY = "habit-motion";
 export const GAMIFY_KEY = "habit-gamify";
 export const BIONIC_KEY = "habit-bionic";
 export const THEME_KEY = "habit-theme";
@@ -121,6 +122,15 @@ export function parseFont(value: unknown): FontId {
 
 /** "on" only for the exact text "on"; anything else (including nothing saved) is off. */
 export const parseFlag = (value: unknown): boolean => value === "on";
+
+/** Animations: Auto follows the computer's "reduce motion" setting, On always animates, Off never does. */
+export type MotionSetting = "auto" | "on" | "off";
+export function parseMotion(value: unknown): MotionSetting {
+  return value === "on" || value === "off" ? value : "auto";
+}
+
+/** Whether animations run, given the setting and the computer's "reduce motion" preference. */
+export const motionEnabled = (setting: MotionSetting, osReduces: boolean): boolean => (setting === "auto" ? !osReduces : setting === "on");
 
 /** Focus reading strength. "on" (saved by an earlier version) means Subtle. */
 export type BionicSetting = "off" | "subtle" | "strong";
@@ -146,7 +156,7 @@ export function resolveMode(mode: ThemeMode, systemDark: boolean): "light" | "da
  */
 export const THEME_INIT_SCRIPT = `(function(){
 var d=document.documentElement,modes=${JSON.stringify(THEME_MODES)},accents=${JSON.stringify(ACCENTS.map((a) => a.id))},styles=${JSON.stringify(STYLES.map((s) => s.id))},fonts=${JSON.stringify(FONTS.map((f) => f.id))};
-var mq=window.matchMedia("(prefers-color-scheme: dark)");
+var mq=window.matchMedia("(prefers-color-scheme: dark)"),rm=window.matchMedia("(prefers-reduced-motion: reduce)");
 function read(key){try{return localStorage.getItem(key)}catch(e){return null}}
 function apply(){
 var m=read(${JSON.stringify(THEME_KEY)}),a=read(${JSON.stringify(ACCENT_KEY)}),s=read(${JSON.stringify(STYLE_KEY)});
@@ -158,11 +168,14 @@ if(styles.indexOf(s)>0)d.setAttribute("data-style",s);else d.removeAttribute("da
 var f=read(${JSON.stringify(FONT_KEY)});
 if(fonts.indexOf(f)>0)d.setAttribute("data-font",f);else d.removeAttribute("data-font");
 if(read(${JSON.stringify(GAMIFY_KEY)})==="on")d.setAttribute("data-gamify","on");else d.removeAttribute("data-gamify");
+var mo=read(${JSON.stringify(MOTION_KEY)});
+if(mo==="off"||(mo!=="on"&&rm.matches))d.setAttribute("data-motion","off");else d.removeAttribute("data-motion");
 var b=read(${JSON.stringify(BIONIC_KEY)});if(b==="on")b="subtle";
 if(b==="subtle"||b==="strong")d.setAttribute("data-bionic",b);else d.removeAttribute("data-bionic");
 }
 apply();
 if(mq.addEventListener)mq.addEventListener("change",function(){if(d.getAttribute("data-mode")==="system")apply()});
+if(rm.addEventListener)rm.addEventListener("change",apply);
 })();`;
 
 export interface Appearance {
@@ -174,10 +187,11 @@ export interface Appearance {
   gamify: boolean;
   /** Bold the first letters of words in reading areas: off, subtle or strong */
   bionic: BionicSetting;
+  motion: MotionSetting;
 }
 
 /** Browser only: saves the choice and applies it right away. */
-export function applyTheme({ mode, accent, style, font, gamify, bionic }: Appearance): void {
+export function applyTheme({ mode, accent, style, font, gamify, bionic, motion }: Appearance): void {
   const root = document.documentElement;
   try {
     localStorage.setItem(THEME_KEY, mode);
@@ -186,6 +200,7 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic }: Appear
     localStorage.setItem(FONT_KEY, font);
     localStorage.setItem(GAMIFY_KEY, gamify ? "on" : "off");
     localStorage.setItem(BIONIC_KEY, bionic);
+    localStorage.setItem(MOTION_KEY, motion);
   } catch {
     // Storage can be blocked; the choice then lasts until reload.
   }
@@ -202,5 +217,8 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic }: Appear
   else root.removeAttribute("data-gamify");
   if (bionic === "off") root.removeAttribute("data-bionic");
   else root.setAttribute("data-bionic", bionic);
+  const reduces = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (motionEnabled(motion, reduces)) root.removeAttribute("data-motion");
+  else root.setAttribute("data-motion", "off");
   window.dispatchEvent(new Event(THEME_EVENT));
 }

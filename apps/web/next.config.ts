@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/stats", destination: "/profile", permanent: false },
       { source: "/settings", destination: "/profile/settings", permanent: false },
+      // CSES problems moved into the main DSA list.
+      { source: "/dsa/cses", destination: "/dsa", permanent: false },
+      { source: "/dsa/cses/:id", destination: "/dsa/:id", permanent: false },
     ];
   },
   turbopack: {

@@ -94,15 +94,15 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
       aria-valuemin={0}
       aria-valuemax={max}
     >
-      <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+      <div className="anim-grow h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
     </div>
   );
 }
 
 /** Page wrapper: wide content area next to the sidebar. `narrow` for reading/form pages. */
-export function PageMain({ title, children, narrow = false }: { title: string; children: React.ReactNode; narrow?: boolean }) {
+export function PageMain({ title, children, narrow = false, full = false }: { title: string; children: React.ReactNode; narrow?: boolean; full?: boolean }) {
   return (
-    <main className={`w-full px-4 py-6 sm:px-6 lg:px-10 lg:py-8 ${narrow ? "max-w-4xl" : "max-w-7xl"}`}>
+    <main className={`anim-fade-up w-full px-4 py-6 sm:px-6 lg:px-10 lg:py-8 ${full ? "max-w-none" : narrow ? "max-w-4xl" : "max-w-7xl"}`}>
       <h1 className="sr-only">{title}</h1>
       {children}
     </main>

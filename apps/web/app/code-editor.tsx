@@ -11,7 +11,7 @@ import { toLang, type Lang } from "@/lib/code-lang";
  * `languageSelectId` is the id of a `<select>` whose value names the language ("C++", "Java"…).
  * CodeMirror loads lazily: pages without an editor never download it.
  */
-export function EditorField({ children, languageSelectId, rows = 14 }: { children: ReactNode; languageSelectId?: string; rows?: number }) {
+export function EditorField({ children, languageSelectId, rows = 14, fill = false }: { children: ReactNode; languageSelectId?: string; rows?: number; fill?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLParagraphElement>(null);
@@ -81,9 +81,12 @@ export function EditorField({ children, languageSelectId, rows = 14 }: { childre
           border: "1px solid var(--line)",
           borderRadius: "0.5rem",
           fontSize: "0.875rem",
+          ...(fill ? { height: "100%", borderRadius: "0", border: "none" } : {}),
         },
         "&.cm-focused": { outline: "2px solid var(--accent)", outlineOffset: "1px" },
-        ".cm-scroller": { fontFamily: "var(--font-mono), ui-monospace, monospace", lineHeight: "1.6", minHeight: `${rows * 1.6}em`, maxHeight: "42rem" },
+        ".cm-scroller": fill
+          ? { fontFamily: "var(--font-mono), ui-monospace, monospace", lineHeight: "1.6", overflow: "auto" }
+          : { fontFamily: "var(--font-mono), ui-monospace, monospace", lineHeight: "1.6", minHeight: `${rows * 1.6}em`, maxHeight: "42rem" },
         ".cm-content": { caretColor: "var(--shiki-foreground)", padding: "0.5rem 0" },
         ".cm-cursor": { borderLeftColor: "var(--shiki-foreground)" },
         ".cm-gutters": { backgroundColor: "transparent", color: "var(--muted)", border: "none" },
@@ -155,13 +158,13 @@ export function EditorField({ children, languageSelectId, rows = 14 }: { childre
       cancelled = true;
       destroy?.();
     };
-  }, [languageSelectId, rows]);
+  }, [languageSelectId, rows, fill]);
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} className={fill ? "flex h-full min-h-0 flex-col" : undefined}>
       {children}
-      <div ref={hostRef} hidden />
-      <p ref={hintRef} hidden className="mt-1 text-xs text-muted">
+      <div ref={hostRef} hidden className={fill ? "min-h-0 flex-1 [&>.cm-editor]:h-full" : undefined} />
+      <p ref={hintRef} hidden className={fill ? "shrink-0 border-t border-line px-2 py-0.5 text-xs text-muted" : "mt-1 text-xs text-muted"}>
         Tab indents. Press Esc, then Tab, to leave the editor.
       </p>
     </div>

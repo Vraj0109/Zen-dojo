@@ -43,6 +43,11 @@ function lc(number: number, title: string, slug: string, d: keyof typeof D, prem
   };
 }
 
+/** A CSES Problem Set task (https://cses.fi/problemset/). Judged in the app like the LeetCode ones; no LeetCode data. */
+function cses(slug: string, title: string, task: number): Problem {
+  return { id: `cses-${slug}`, title, url: `https://cses.fi/problemset/task/${task}` };
+}
+
 function other(id: string, title: string, url?: string): Problem {
   return { id: `c-${id}`, title, ...(url ? { url } : {}) };
 }
@@ -258,12 +263,18 @@ const PROBLEM_LIST: Problem[] = [
   lc(981, "Time Based Key-Value Store", "time-based-key-value-store", "M"),
   lc(1146, "Snapshot Array", "snapshot-array", "M"),
   lc(380, "Insert Delete GetRandom O(1)", "insert-delete-getrandom-o1", "M"),
+  // 10. CSES Problem Set
+  cses("weird-algorithm", "Weird Algorithm", 1068),
+  cses("missing-number", "Missing Number", 1083),
+  cses("repetitions", "Repetitions", 1069),
+  cses("increasing-array", "Increasing Array", 1094),
 ];
 
 export const PROBLEMS: Record<string, Problem> = Object.fromEntries(PROBLEM_LIST.map((p) => [p.id, p]));
 
 const L = (...numbers: number[]) => numbers.map((n) => `lc-${n}`);
 const C = (...ids: string[]) => ids.map((id) => `c-${id}`);
+const C2 = (...slugs: string[]) => slugs.map((slug) => `cses-${slug}`);
 
 export const DSA_GROUPS: PatternGroup[] = [
   {
@@ -385,6 +396,18 @@ export const DSA_GROUPS: PatternGroup[] = [
       { id: "ordered-set", name: "Ordered set / multiset (TreeMap)", recognize: "Floor/ceiling queries, bookings", problems: L(729, 731, 732, 220) },
       { id: "randomized", name: "Randomized and probabilistic", recognize: "Sampling, probabilistic membership", problems: [...L(382), ...C("bloom-filter", "consistent-hashing")] },
       { id: "design-ds", name: "Design problems", recognize: "Data-structure design questions", problems: L(355, 362, 981, 1146, 380) },
+    ],
+  },
+  {
+    id: "cses",
+    title: "CSES Problem Set",
+    patterns: [
+      {
+        id: "cses-intro",
+        name: "CSES: introductory problems",
+        recognize: "Short warm-up tasks from cses.fi; the same Run, hints and solutions as the roadmap problems",
+        problems: C2("weird-algorithm", "missing-number", "repetitions", "increasing-array"),
+      },
     ],
   },
 ];

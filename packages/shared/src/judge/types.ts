@@ -41,6 +41,8 @@ export interface ProblemSpec {
   solution: { idea: string[]; complexity: string; cpp: string };
   /** Official page, for CSES */
   url?: string;
+  /** Large inputs that check speed and memory. The expected answers come from the reference solution. Filled in by stress.ts. */
+  stress?: StressCase[];
 }
 
 /** Whether the problem's function uses ListNode or TreeNode (so those classes are added around your code). */
@@ -48,5 +50,13 @@ export const usesNodes = (spec: ProblemSpec): { list: boolean; tree: boolean } =
   const types = [...spec.fn.params.map((p) => p.type), spec.fn.returns];
   return { list: types.includes("list"), tree: types.includes("tree") };
 };
+
+/** One large input, built on demand (it may hold 100,000 numbers, so it is not stored in the source). */
+export interface StressCase {
+  label: string;
+  make: () => unknown[];
+  /** Milliseconds allowed in C++. Java gets 3 times as long and JavaScript 5 times. Default 1500. */
+  limitMs?: number;
+}
 
 export const isArrayTy = (t: Ty) => t.endsWith("[]");

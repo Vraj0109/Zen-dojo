@@ -68,13 +68,6 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
       </section>
 
       <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="DSA sections" />
-      <p className="-mt-3 text-sm text-muted">
-        More to practise:{" "}
-        <Link href="/dsa/cses" className="font-medium text-foreground underline">
-          CSES problems
-        </Link>{" "}
-        (starter code, Run, hints and solutions in the app). Some roadmap problems have the same panel on their Solve tab.
-      </p>
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-8">

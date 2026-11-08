@@ -50,7 +50,7 @@ export type CaseResult = {
 export type RunResult =
   | { status: "unavailable"; message: string }
   | { status: "compile_error"; message: string }
-  | { status: "done"; message?: string; results: CaseResult[]; passed: number; total: number; beforeTests?: string };
+  | { status: "done"; message?: string; results: CaseResult[]; passed: number; total: number; beforeTests?: string; saved?: boolean };
 
 /** Where each tool is. Set HABIT_GPP / HABIT_JAVAC / HABIT_JAVA / HABIT_NODE if yours are not on PATH. */
 const tool = (envName: string, fallback: string) => process.env[envName] || fallback;

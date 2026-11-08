@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { COVERED_CONFIDENCE, STUDY_AREAS, getStudyArea } from "@habit/shared";
 import { getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
 import { PageMain, ProgressBar, Stat } from "../../ui";
-import { LearnTabs } from "../../section-tabs";
+import { LearnBack } from "../../section-tabs";
 import { Confidence, fmtDate } from "../study-ui";
 
 /** The study areas are fixed, so their pages are known at build time. */
@@ -39,7 +39,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
 
   return (
     <div className="space-y-8">
-      <LearnTabs active={areaId} />
+      <LearnBack current={area.title} />
       <header>
         <h2 className="text-2xl font-semibold tracking-tight">{area.title}</h2>
         <p className="mt-1 text-sm text-muted">{area.intro}</p>

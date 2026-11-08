@@ -1,4 +1,5 @@
 import type { Section } from "@habit/shared";
+import { Toc } from "./toc";
 import { Code } from "./code";
 import { Diagram } from "./diagram";
 
@@ -68,28 +69,14 @@ export function ArticleLayout({
           {toc.length > 0 && (
             <>
               <details className="rounded-xl border border-line bg-surface p-3 text-sm xl:hidden">
-                <summary className="cursor-pointer font-medium text-muted hover:text-foreground">
-                  On this page
-                </summary>
-                <nav aria-label="Table of contents" className="mt-2 space-y-1.5 border-t border-line pt-2">
-                  {toc.map((item) => (
-                    <a key={item.id} href={`#${item.id}`} className="block text-muted hover:text-foreground">
-                      {item.title}
-                    </a>
-                  ))}
+                <summary className="cursor-pointer font-medium text-muted hover:text-foreground">On this page</summary>
+                <nav aria-label="Table of contents" className="mt-2 border-t border-line pt-2">
+                  <Toc items={toc} />
                 </nav>
               </details>
               <nav aria-label="Table of contents" className="hidden space-y-2 text-sm xl:block">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">On this page</p>
-                <ul className="space-y-1.5 border-l border-line pl-3">
-                  {toc.map((item) => (
-                    <li key={item.id}>
-                      <a href={`#${item.id}`} className="text-muted hover:text-foreground">
-                        {item.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <Toc items={toc} />
               </nav>
             </>
           )}

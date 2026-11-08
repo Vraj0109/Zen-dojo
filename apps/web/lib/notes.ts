@@ -20,6 +20,12 @@ export async function getNotedIds(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.id));
 }
 
+/** Save only the solution code and language; the notes you already wrote stay as they are. Used when a run passes every test. */
+export async function saveSolution(problemId: string, code: string, language: string) {
+  const existing = await getNote(problemId);
+  await saveNote(problemId, { notes: existing?.notes ?? "", code, language });
+}
+
 /** Save notes/code; saving both empty removes the entry. Over-long input is truncated. */
 export async function saveNote(problemId: string, input: { notes: string; code: string; language: string }) {
   const db = await getDb();
