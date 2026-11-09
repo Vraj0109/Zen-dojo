@@ -4,6 +4,7 @@ import { DESIGNS_B } from "./designs-b";
 import { DESIGN_DEPTH_A } from "./design-depth-a";
 import { DESIGN_DEPTH_B } from "./design-depth-b";
 import { DESIGN_DEPTH_C } from "./design-depth-c";
+import { DESIGN_DEPTH_D } from "./design-depth-d";
 import { DESIGN_EXTRA } from "./design-extra";
 import { DSA_ARTICLES_A } from "./dsa-articles-a";
 import { DSA_ARTICLES_B } from "./dsa-articles-b";
@@ -93,7 +94,7 @@ export function readingMinutes(id: string): number {
 }
 
 /** Diagrams, deeper sections and Java for system design walkthroughs, by design id (plan 0014). */
-export const DESIGN_DEEP: Record<string, WalkthroughDeep> = { ...DESIGN_DEPTH_A, ...DESIGN_DEPTH_B, ...DESIGN_DEPTH_C };
+export const DESIGN_DEEP: Record<string, WalkthroughDeep> = { ...DESIGN_DEPTH_A, ...DESIGN_DEPTH_B, ...DESIGN_DEPTH_C, ...DESIGN_DEPTH_D };
 export type { WalkthroughDeep } from "./design-depth-types";
 
 /** Recap and follow-up Q&A per system design exercise id. */
