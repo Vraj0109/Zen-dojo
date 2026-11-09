@@ -89,6 +89,31 @@ export async function listPacks(): Promise<PackSummary[]> {
   return out;
 }
 
+/** One heading of items that packs added to a built-in study area. */
+export interface AddedGroup {
+  /** The heading: the pack's target.section, or the pack's title */
+  section: string;
+  /** True when the heading names a section the area already has (the items then join that section) */
+  items: { packId: string; packTitle: string; id: string; title: string; type: "lesson" | "problem"; done: boolean }[];
+}
+
+/** Items of packs that name this study area as their target, grouped by heading. Removing the pack removes them. */
+export async function getAddedItems(areaId: string): Promise<AddedGroup[]> {
+  const db = await getDb();
+  const rows = await db.select().from(contentPacks);
+  const groups = new Map<string, AddedGroup>();
+  for (const r of rows.sort((a, b) => a.title.localeCompare(b.title))) {
+    const pack = parseStored(r.json);
+    if (!pack?.target || pack.target.area !== areaId) continue;
+    const done = await getPackProgress(pack.id);
+    const heading = pack.target.section ?? pack.title;
+    const group = groups.get(heading) ?? { section: heading, items: [] };
+    for (const i of packItems(pack)) group.items.push({ packId: pack.id, packTitle: pack.title, id: i.id, title: i.title, type: i.type, done: done.has(i.id) });
+    groups.set(heading, group);
+  }
+  return [...groups.values()];
+}
+
 export async function setPackItemDone(packId: string, itemId: string, done: boolean): Promise<void> {
   const pack = await getPack(packId);
   if (!pack || !packItems(pack).some((i) => i.id === itemId)) return;
@@ -106,24 +131,70 @@ export async function getPackProblemSpec(runId: string): Promise<ProblemSpec | n
   return pack && item?.type === "problem" ? packProblemSpec(item, pack.id) : null;
 }
 
-/** Downloads a pack from a web address (for example a raw file on GitHub). Only http(s), at most 2 MB, 15 seconds. */
-export async function fetchPackText(url: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+/** True for an address the app is willing to download from: http(s), no login in it, no odd characters, a sensible length. */
+export function safeDownloadUrl(text: string): URL | null {
+  if (text.length > 2000 || /[\u0000-\u0020\u007f]/.test(text.trim().replace(/ /g, "%20")) ) return null;
   let u: URL;
   try {
-    u = new URL(url);
+    u = new URL(text.trim());
   } catch {
-    return { ok: false, error: "That is not a web address." };
+    return null;
   }
-  if (u.protocol !== "https:" && u.protocol !== "http:") return { ok: false, error: "Only http and https addresses work." };
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (u.username || u.password) return null;
+  return u;
+}
+
+export const DOWNLOAD_LIMITS = { bytes: PACK_LIMITS.bytes, redirects: 3, ms: 15_000 } as const;
+
+/**
+ * Downloads text from a web address (a pack, or a content feed). Only http(s); at most 3 redirects, each one checked the
+ * same way; at most 2 MB (counted while reading, not trusted from the headers); 15 seconds in all.
+ */
+export async function fetchLimitedText(url: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const u = safeDownloadUrl(url);
+  if (!u) return { ok: false, error: "That is not a usable web address. Only plain http and https addresses work." };
+  let currentUrl: URL = u;
+  const signal = AbortSignal.timeout(DOWNLOAD_LIMITS.ms);
   try {
-    const res = await fetch(u, { redirect: "follow", signal: AbortSignal.timeout(15_000), headers: { Accept: "application/json, text/plain", "User-Agent": "Zen Dojo" } });
-    if (!res.ok) return { ok: false, error: `The server answered ${res.status}.` };
-    const length = Number(res.headers.get("content-length") ?? 0);
-    if (length > PACK_LIMITS.bytes) return { ok: false, error: "That file is over 2 MB." };
-    const text = await res.text();
-    if (text.length > PACK_LIMITS.bytes) return { ok: false, error: "That file is over 2 MB." };
-    return { ok: true, text };
+    for (let hop = 0; ; hop++) {
+      const res: Response = await fetch(currentUrl, { redirect: "manual", signal, headers: { Accept: "application/json, text/plain", "User-Agent": "Zen Dojo" } });
+      if (res.status >= 300 && res.status < 400) {
+        const to = res.headers.get("location");
+        if (hop >= DOWNLOAD_LIMITS.redirects) return { ok: false, error: "The address redirects too many times." };
+        const next = to ? safeDownloadUrl(new URL(to, currentUrl).href) : null;
+        if (!next) return { ok: false, error: "The address redirects somewhere that is not allowed." };
+        currentUrl = next;
+        continue;
+      }
+      if (!res.ok) return { ok: false, error: `The server answered ${res.status}.` };
+      if (Number(res.headers.get("content-length") ?? 0) > DOWNLOAD_LIMITS.bytes) return { ok: false, error: "That file is over 2 MB." };
+      const reader = res.body?.getReader();
+      if (!reader) return { ok: false, error: "The server sent no content." };
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > DOWNLOAD_LIMITS.bytes) {
+          await reader.cancel().catch(() => {});
+          return { ok: false, error: "That file is over 2 MB." };
+        }
+        chunks.push(value);
+      }
+      return { ok: true, text: Buffer.concat(chunks).toString("utf8") };
+    }
   } catch {
     return { ok: false, error: "Could not download that address. Check it and your connection." };
   }
+}
+
+/** Downloads a pack from a web address (for example a raw file on GitHub). */
+export const fetchPackText = fetchLimitedText;
+
+/** The stored pack as pretty JSON, to hand to a friend (it imports on any other install). */
+export async function exportPackJson(id: string): Promise<string | null> {
+  const pack = await getPack(id);
+  return pack ? JSON.stringify(pack, null, 2) + "\n" : null;
 }

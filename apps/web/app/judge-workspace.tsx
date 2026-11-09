@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { RunResult } from "@/lib/judge/run";
 import { EditorField } from "./code-editor";
 import { Results } from "./judge-panel";
@@ -36,6 +36,44 @@ const store = {
   },
 };
 
+/** The latest run of one language, as the server keeps it. */
+export interface SavedRun {
+  lang: Lang;
+  code: string;
+  ranOn: string;
+  status: string;
+  passed: number;
+  total: number;
+}
+
+const verdict = (r: SavedRun) => (r.status === "compile_error" ? "compile error" : `${r.passed} of ${r.total} passed`);
+
+const ADDED: Partial<Record<Lang, string>> = {
+  cpp: "Added for you: all C++ standard headers (#include <bits/stdc++.h>) and using namespace std;",
+  java: "Added for you: import java.util.*; java.util.function.*; java.util.stream.*;",
+};
+
+/** The Notes tab starts with your latest run of each language (read-only), above the saved accepted solution. */
+function LastRuns({ runs, children }: { runs: SavedRun[]; children: ReactNode }) {
+  return (
+    <div className="space-y-4">
+      {runs.length > 0 && (
+        <section aria-label="Last run" className="space-y-3">
+          {runs.map((r) => (
+            <div key={r.lang} className="rounded-xl border border-line bg-background p-3">
+              <p className="text-sm font-medium">
+                Last run, {LABEL[r.lang]}: {verdict(r)}, {r.ranOn}
+              </p>
+              <pre className="mt-2 max-h-72 overflow-auto text-xs whitespace-pre">{r.code}</pre>
+            </div>
+          ))}
+        </section>
+      )}
+      {children}
+    </div>
+  );
+}
+
 const noopSubscribe = () => () => {};
 
 export interface ProblemTab {
@@ -60,11 +98,33 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [runs, setRuns] = useState<SavedRun[]>([]);
+  const [customText, setCustomText] = useState("");
+  const [customBusy, setCustomBusy] = useState(false);
+  const [custom, setCustom] = useState<{ error?: string; output?: string; printed?: string; compile?: string } | null>(null);
   const [tab, setTab] = useState(tabs.some((t) => t.id === initialTab) ? initialTab! : tabs[0].id);
   const areaRef = useRef<HTMLDivElement>(null);
 
   const savedLang = hydrated ? store.get(LANG_KEY) : null;
   const lang: Lang = pickedLang ?? (savedLang === "java" || savedLang === "javascript" || savedLang === "cpp" ? savedLang : "cpp");
+
+  const loadRuns = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/judge/run?id=${encodeURIComponent(id)}`);
+      if (res.ok) setRuns(((await res.json()) as { runs: SavedRun[] }).runs);
+    } catch {
+      // the saved runs are a convenience; the editor still works without them
+    }
+  }, [id]);
+  useEffect(() => {
+    fetch(`/api/judge/run?id=${encodeURIComponent(id)}`)
+      .then((res) => (res.ok ? (res.json() as Promise<{ runs: SavedRun[] }>) : null))
+      .then((data) => data && setRuns(data.runs))
+      .catch(() => {});
+  }, [id]);
+
+  const lastRun = runs.find((r) => r.lang === lang);
+  const draft = hydrated ? store.get(codeKey(id, lang)) : null;
 
   const currentCode = () => areaRef.current?.querySelector("textarea")?.value ?? templates[lang];
   const saveDraft = () => store.set(codeKey(id, lang), currentCode());
@@ -94,13 +154,53 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
         const data = (await res.json()) as RunResult;
         setResult(data);
         if (data.status === "done" && data.saved) router.refresh(); // the Notes tab now shows the saved solution
+        void loadRuns();
       }
     } catch {
       setFailure("Could not reach the app. Is it still running?");
     } finally {
       setRunning(false);
     }
-  }, [id, lang, router, running, templates]);
+  }, [id, lang, loadRuns, router, running, templates]);
+
+  async function runCustom() {
+    if (customBusy) return;
+    const lines = customText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const values: unknown[] = [];
+    for (const [k, line] of lines.entries()) {
+      try {
+        values.push(JSON.parse(line));
+      } catch {
+        setCustom({ error: `Line ${k + 1} is not valid JSON. Write one value per line, for example [2,7,11,15] or "abc".` });
+        return;
+      }
+    }
+    setCustomBusy(true);
+    setCustom(null);
+    try {
+      const res = await fetch("/api/judge/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, lang, code: areaRef.current?.querySelector("textarea")?.value ?? templates[lang], input: values }),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string; status?: string; message?: string; output?: string; printed?: string } | null;
+      if (!res.ok || !data) setCustom({ error: data?.error ?? `The app answered HTTP ${res.status}.` });
+      else if (data.status === "compile_error") setCustom({ compile: data.message });
+      else if (data.status === "unavailable") setCustom({ error: data.message });
+      else setCustom({ error: data.error, output: data.output, printed: data.printed });
+    } catch {
+      setCustom({ error: "Could not reach the app. Is it still running?" });
+    } finally {
+      setCustomBusy(false);
+    }
+  }
+
+  function restoreLastRun() {
+    if (!lastRun) return;
+    store.set(codeKey(id, lang), lastRun.code);
+    setResetCount((n) => n + 1);
+    setResult(null);
+  }
 
   function reset() {
     if (!window.confirm("Replace your code with the starter code?")) return;
@@ -109,7 +209,8 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
     setResult(null);
   }
 
-  const initial = hydrated ? (store.get(codeKey(id, lang)) ?? templates[lang]) : templates[lang];
+  // Your draft first, else the code you last ran, else the starter.
+  const initial = hydrated ? (draft ?? lastRun?.code ?? templates[lang]) : templates[lang];
   const selectId = `judge-lang-${id}`;
   const active = tabs.find((t) => t.id === tab) ?? tabs[0];
 
@@ -134,7 +235,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {tabs.map((t) => (
           <div key={t.id} role="tabpanel" hidden={t.id !== active.id} className="anim-fade-up">
-            {t.node}
+            {t.id === "notes" ? <LastRuns runs={runs}>{t.node}</LastRuns> : t.node}
           </div>
         ))}
       </div>
@@ -158,6 +259,16 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           </option>
         ))}
       </select>
+      {lastRun && (
+        <button
+          type="button"
+          onClick={restoreLastRun}
+          title={`Last run: ${verdict(lastRun)}, ${lastRun.ranOn}`}
+          className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background"
+        >
+          Last run
+        </button>
+      )}
       <button type="button" onClick={reset} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
         Reset
       </button>
@@ -174,9 +285,10 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   );
 
   const codePane = (
-    <div
+    <div className="flex h-full min-h-0 flex-col">
+      <div
       ref={areaRef}
-      className="h-full"
+      className="min-h-0 flex-1"
       onBlurCapture={saveDraft}
       onKeyDown={(e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -186,7 +298,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       }}
     >
       {/* Remounted when the language changes or the code is reset, so the editor starts from the right text. */}
-      <EditorField key={`${lang}-${resetCount}-${hydrated}`} languageSelectId={selectId} rows={16} fill>
+      <EditorField key={`${lang}-${resetCount}-${hydrated}-${draft === null && lastRun ? "r" : "s"}`} languageSelectId={selectId} rows={16} fill>
         <textarea
           aria-label="Your code"
           defaultValue={initial}
@@ -196,6 +308,47 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           className="h-full w-full resize-none bg-background p-3 font-mono text-sm"
         />
       </EditorField>
+      </div>
+      <div className="shrink-0 space-y-1 border-t border-line px-3 py-1.5 text-xs text-muted">
+        {lastRun && (
+          <p>
+            Last run: {verdict(lastRun)}, {lastRun.ranOn}
+          </p>
+        )}
+        {ADDED[lang] && <p>{ADDED[lang]}</p>}
+        <details>
+          <summary className="cursor-pointer select-none">Custom input</summary>
+          <div className="mt-1.5 space-y-1.5">
+            <label htmlFor={`custom-${id}`} className="block">
+              One JSON value per parameter, one per line (in the order of the function).
+            </label>
+            <textarea
+              id={`custom-${id}`}
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              rows={3}
+              spellCheck={false}
+              placeholder={"[2,7,11,15]\n9"}
+              className="w-full resize-y rounded-md border border-line bg-background p-2 font-mono text-xs text-foreground"
+            />
+            <button type="button" onClick={runCustom} disabled={customBusy || !hydrated} className="rounded-md border border-line px-2 py-1 text-xs text-foreground hover:bg-background disabled:opacity-60">
+              {customBusy ? "Running…" : "Run on this input"}
+            </button>
+            {custom && (
+              <div role="status" className="space-y-1 text-foreground">
+                {custom.compile && <pre className="overflow-x-auto whitespace-pre-wrap">{custom.compile}</pre>}
+                {custom.error && <p className="text-diff-hard">{custom.error}</p>}
+                {custom.output !== undefined && (
+                  <p>
+                    Output: <code className="font-mono">{custom.output}</code>
+                  </p>
+                )}
+                {custom.printed && <pre className="overflow-x-auto whitespace-pre-wrap">{custom.printed}</pre>}
+              </div>
+            )}
+          </div>
+        </details>
+      </div>
     </div>
   );
 

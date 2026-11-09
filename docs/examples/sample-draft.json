@@ -1,0 +1,78 @@
+{
+  "format": "prepwise-pack",
+  "version": 1,
+  "id": "sample-draft",
+  "title": "Draft example: outputs written by pnpm pack:build",
+  "description": "Problems with inputs only. Run: pnpm pack:build docs/examples/sample-draft.json -o my-pack.json",
+  "sections": [
+    {
+      "title": "Warm-up",
+      "items": [
+        {
+          "type": "problem",
+          "id": "sum-of-pairs",
+          "title": "Pair sum exists",
+          "difficulty": "easy",
+          "statement": ["Given a list of integers nums and an integer target, return true if two different positions hold numbers that add up to target."],
+          "constraints": ["0 <= nums.length <= 100000", "-1000000000 <= nums[i], target <= 1000000000"],
+          "fn": { "name": "hasPair", "params": [{ "name": "nums", "type": "int[]" }, { "name": "target", "type": "int" }], "returns": "bool" },
+          "examples": [{ "input": [[2, 7, 11, 15], 9] }, { "input": [[1, 2, 3], 7] }],
+          "tests": [
+            { "input": [[], 0] },
+            { "input": [[5], 10] },
+            { "input": [[5, 5], 10] },
+            { "input": [[-3, 3], 0] },
+            { "input": [[1000000000, 1000000000], 2000000000] },
+            { "input": [[1, 2, 4, 8], 12] }
+          ],
+          "hints": ["Checking every pair is O(n^2).", "What do you need to remember about the numbers you have already seen?", "A hash set of seen numbers answers in one pass."],
+          "solution": {
+            "idea": ["Walk through the list once, keeping a set of numbers seen so far. For each number x, check whether target - x is in the set."],
+            "complexity": "O(n) time, O(n) space.",
+            "cpp": "class Solution {\npublic:\n    bool hasPair(vector<int>& nums, int target) {\n        unordered_set<long long> seen;\n        for (int x : nums) {\n            if (seen.count((long long)target - x)) return true;\n            seen.insert(x);\n        }\n        return false;\n    }\n};\n"
+          },
+          "stress": [
+            {
+              "label": "100000 numbers, no pair adds up to the target",
+              "gen": { "nums": { "kind": "ints", "n": 100000, "min": 0, "max": 1000, "seed": 7 }, "target": { "kind": "value", "value": 5000 } }
+            }
+          ]
+        },
+        {
+          "type": "problem",
+          "id": "reverse-words",
+          "title": "Reverse the order of words",
+          "difficulty": "easy",
+          "statement": ["Given a list of words, return them in reverse order."],
+          "constraints": ["0 <= words.length <= 1000", "1 <= words[i].length <= 20"],
+          "fn": { "name": "reverseWords", "params": [{ "name": "words", "type": "string[]" }], "returns": "string[]" },
+          "examples": [{ "input": [["a", "bc", "def"]] }],
+          "tests": [{ "input": [[]] }, { "input": [["solo"]] }, { "input": [["x", "x"]] }, { "input": [["one", "two", "three", "four"]] }],
+          "hints": ["Swap from both ends.", "Or use the standard reverse.", "Be careful with an empty list."],
+          "solution": {
+            "idea": ["Reverse the list in place."],
+            "complexity": "O(n)",
+            "cpp": "class Solution {\npublic:\n    vector<string> reverseWords(vector<string>& words) {\n        vector<string> out(words.rbegin(), words.rend());\n        return out;\n    }\n};\n"
+          }
+        },
+        {
+          "type": "problem",
+          "id": "count-vowels",
+          "title": "Count the vowels",
+          "difficulty": "easy",
+          "statement": ["Return how many of the letters a, e, i, o, u appear in the text s."],
+          "constraints": ["0 <= s.length <= 100000", "s uses lowercase letters"],
+          "fn": { "name": "countVowels", "params": [{ "name": "s", "type": "string" }], "returns": "int" },
+          "examples": [{ "input": ["education"] }],
+          "tests": [{ "input": [""] }, { "input": ["rhythm"] }, { "input": ["aeiou"] }, { "input": ["banana"] }],
+          "hints": ["Look at one letter at a time.", "A string of vowels makes the check short.", "Count in a loop."],
+          "solution": {
+            "idea": ["Loop over the letters and add one for each vowel."],
+            "complexity": "O(n)",
+            "cpp": "class Solution {\npublic:\n    int countVowels(string s) {\n        int n = 0;\n        for (char c : s) if (string(\"aeiou\").find(c) != string::npos) n++;\n        return n;\n    }\n};\n"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { COVERED_CONFIDENCE, STUDY_AREAS, getStudyArea } from "@habit/shared";
+import { getAddedItems, type AddedGroup } from "@/lib/packs";
 import { getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
 import { PageMain, ProgressBar, Stat } from "../../ui";
 import { LearnBack } from "../../section-tabs";
@@ -32,8 +33,11 @@ export default function StudyAreaPage({ params }: PageProps<"/study/[area]">) {
 async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }) {
   const { area: areaId } = await params;
   await connection();
-  const view = await getStudyView(areaId);
+  const [view, added] = await Promise.all([getStudyView(areaId), getAddedItems(areaId)]);
   if (!view) notFound();
+  const sectionTitles = new Set(view.sections.map((s) => s.title));
+  const joined = (title: string) => added.find((g) => g.section === title)?.items ?? [];
+  const separate = added.filter((g) => !sectionTitles.has(g.section));
   const { area, sections, exercises, due, totals } = view;
   const hours = Math.round((totals.minutes / 60) * 10) / 10;
 
@@ -94,10 +98,23 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
               {s.concepts.map((c) => (
                 <ConceptRow key={c.id} c={c} areaId={area.id} />
               ))}
+              {joined(s.title).map((i) => (
+                <AddedRow key={i.packId + i.id} item={i} />
+              ))}
             </ul>
           </section>
         );
       })}
+      {separate.map((g) => (
+        <section key={g.section}>
+          <h2 className="mb-2 text-lg font-semibold">{g.section}</h2>
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {g.items.map((i) => (
+              <AddedRow key={i.packId + i.id} item={i} />
+            ))}
+          </ul>
+        </section>
+      ))}
       </div>
 
       {area.exercises && (
@@ -125,6 +142,23 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         </section>
       )}
     </div>
+  );
+}
+
+/** An item that an imported pack added to this area, with a small "added" tag. */
+function AddedRow({ item }: { item: AddedGroup["items"][number] }) {
+  return (
+    <li className="hit flex items-center gap-3 px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <Link href={`/study/packs/${item.packId}/${item.id}`} prefetch={false} className="hit-link">
+          {item.title}
+        </Link>
+        <p className="text-xs text-muted">
+          <span className="rounded-full border border-line px-1.5">added</span> {item.type === "problem" ? "problem" : "lesson"} from {item.packTitle}
+          {item.done && <span className="font-medium text-foreground"> · done</span>}
+        </p>
+      </div>
+    </li>
   );
 }
 

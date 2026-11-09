@@ -64,7 +64,13 @@ async function Pack({ params }: { params: PageProps<"/study/packs/[id]">["params
           </ul>
         </section>
       ))}
-      <form action={removePackAction} className="pt-4">
+      <p className="pt-4 text-sm">
+        <a href={`/api/packs/${id}/download`} className="font-medium underline">
+          Download this pack
+        </a>
+        <span className="text-muted"> (a .json file you can give to a friend or import again)</span>
+      </p>
+      <form action={removePackAction} className="pt-1">
         <input type="hidden" name="id" value={id} />
         <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-xs text-muted hover:bg-background hover:text-foreground">Remove this course and its progress</SubmitButton>
       </form>

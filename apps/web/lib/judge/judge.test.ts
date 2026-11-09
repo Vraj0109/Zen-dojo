@@ -2,7 +2,9 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { JUDGE_PROBLEMS, JUDGE_LANGS, PROBLEMS, templateFor } from "@habit/shared";
 import { sameAnswer } from "./compare";
-import { runCode } from "./run";
+import { CPP_PRELUDE_LINES, JAVA_PRELUDE_LINES, cppProgram } from "./harness";
+import { firstDifference } from "./compare";
+import { runCode, runCustom, shiftLines } from "./run";
 
 const has = (cmd: string, args: string[]) => !spawnSync(cmd, args, { stdio: "ignore" }).error;
 const GPP = has("g++", ["--version"]);
@@ -611,4 +613,240 @@ describe.skipIf(!JAVA)("memory limit in Java", () => {
     expect(r.status).toBe("done");
     if (r.status === "done") expect(r.results[0]).toMatchObject({ problem: "memory" });
   }, 90_000);
+});
+
+describe("hidden boilerplate", () => {
+  it("starter code has no include or import lines", () => {
+    for (const s of specs) {
+      expect(templateFor(s, "cpp"), s.id).not.toMatch(/#include|using namespace/);
+      expect(templateFor(s, "java"), s.id).not.toMatch(/^import /m);
+    }
+    expect(templateFor(JUDGE_PROBLEMS["lc-1"], "cpp").startsWith("class Solution")).toBe(true);
+    expect(templateFor(JUDGE_PROBLEMS["lc-92"], "cpp").startsWith("/**")).toBe(true);
+  });
+
+  it("the harness adds the headers, so the line count of the prelude is known", () => {
+    expect(CPP_PRELUDE_LINES(JUDGE_PROBLEMS["lc-1"])).toBe(2);
+    expect(CPP_PRELUDE_LINES(JUDGE_PROBLEMS["lc-92"])).toBeGreaterThan(2);
+    expect(JAVA_PRELUDE_LINES).toBe(3);
+    expect(cppProgram(JUDGE_PROBLEMS["lc-1"], "class Solution {};").startsWith("#include <bits/stdc++.h>\nusing namespace std;\nclass Solution")).toBe(true);
+  });
+
+  it("shiftLines turns compiler line numbers into editor lines", () => {
+    const text = "./main.cpp:5:9: error: expected primary-expression\n    5 |   int x = ;\n./main.cpp:40:1: error: later\nmain.cpp:2:1: error: header";
+    const out = shiftLines(text, 2, 10);
+    expect(out).toContain("line 3: error: expected primary-expression");
+    expect(out).toContain("    3 |   int x = ;");
+    expect(out).toContain("code added by the judge: error: later");
+    expect(out).toContain("code added by the judge: error: header");
+    expect(shiftLines("Solution.java:4: error: x\nMain.java:9: error: y", 3, 5)).toBe("line 1: error: x\ncode added by the judge: error: y");
+  });
+});
+
+describe.skipIf(!GPP)("solutions without includes (C++)", () => {
+  const two = JUDGE_PROBLEMS["lc-1"];
+  const body = `class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> seen;
+        for (int i = 0; i < (int)nums.size(); i++) {
+            auto it = seen.find(target - nums[i]);
+            if (it != seen.end()) return {it->second, i};
+            seen[nums[i]] = i;
+        }
+        return {};
+    }
+};
+`;
+
+  it("passes with no includes, and still passes when the code has its own", async () => {
+    for (const code of [body, "#include <bits/stdc++.h>\nusing namespace std;\n" + body]) {
+      const r = await runCode(two, "cpp", code);
+      expect(r.status).toBe("done");
+      if (r.status === "done") expect(r.passed, JSON.stringify(r.results.filter((x) => !x.pass))).toBe(r.total);
+    }
+  }, 90_000);
+
+  it("shows compile errors on editor lines", async () => {
+    const r = await runCode(two, "cpp", "class Solution {\npublic:\n    int x = ;\n};\n");
+    expect(r.status).toBe("compile_error");
+    if (r.status === "compile_error") {
+      expect(r.message).toContain("line 3");
+      expect(r.message).not.toContain("main.cpp");
+    }
+    const nodes = await runCode(JUDGE_PROBLEMS["lc-92"], "cpp", "int x = ;\nclass Solution {};\n");
+    if (nodes.status === "compile_error") expect(nodes.message).toContain("line 1");
+    else throw new Error("expected a compile error");
+  }, 90_000);
+
+  it("runs on your own input", async () => {
+    const r = await runCustom(two, "cpp", body, [[2, 7, 11, 15], 9]);
+    expect(r).toMatchObject({ status: "done", output: "[0,1]" });
+    const printing = await runCustom(two, "cpp", body.replace("seen;", "seen; cout << \"hi\" << endl;"), [[3, 3], 6]);
+    expect(printing).toMatchObject({ status: "done", output: "[0,1]" });
+    if (printing.status === "done") expect(printing.printed).toContain("hi");
+  }, 90_000);
+});
+
+describe.skipIf(!JAVA)("solutions without imports (Java)", () => {
+  const two = JUDGE_PROBLEMS["lc-1"];
+  const body = `class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> seen = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            Integer j = seen.get(target - nums[i]);
+            if (j != null) return new int[] {j, i};
+            seen.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}
+`;
+  it("passes with no imports, and with its own", async () => {
+    for (const code of [body, "import java.util.*;\n" + body]) {
+      const r = await runCode(two, "java", code);
+      expect(r.status).toBe("done");
+      if (r.status === "done") expect(r.passed, JSON.stringify(r.results.filter((x) => !x.pass))).toBe(r.total);
+    }
+  }, 120_000);
+
+  it("shows compile errors on editor lines", async () => {
+    const r = await runCode(two, "java", "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        int x = ;\n    }\n}\n");
+    expect(r.status).toBe("compile_error");
+    if (r.status === "compile_error") expect(r.message).toContain("line 3");
+  }, 60_000);
+});
+
+describe("solutions (JavaScript)", () => {
+  it("passes, and runs on your own input", async () => {
+    const two = JUDGE_PROBLEMS["lc-1"];
+    const code = "function twoSum(nums, target) {\n  const seen = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    if (seen.has(target - nums[i])) return [seen.get(target - nums[i]), i];\n    seen.set(nums[i], i);\n  }\n  return [];\n}\n";
+    const r = await runCode(two, "javascript", code);
+    expect(r.status).toBe("done");
+    if (r.status === "done") expect(r.passed).toBe(r.total);
+    expect(await runCustom(two, "javascript", code, [[2, 7, 11, 15], 9])).toMatchObject({ status: "done", output: "[0,1]" });
+  }, 60_000);
+});
+
+describe("design-a-class problems", () => {
+  const lru = JUDGE_PROBLEMS["lc-146"];
+
+  it("have a starter class per language with the constructor and every method", () => {
+    const cpp = templateFor(lru, "cpp");
+    expect(cpp).toContain("LRUCache(int capacity)");
+    expect(cpp).toContain("int get(int key)");
+    expect(cpp).toContain("void put(int key, int value)");
+    expect(templateFor(lru, "java")).toContain("public void put(int key, int value)");
+    expect(templateFor(lru, "javascript")).toContain("constructor(capacity)");
+    const twitter = templateFor(JUDGE_PROBLEMS["lc-355"], "cpp");
+    expect(twitter).toContain("vector<int> getNewsFeed(int userId)");
+    expect(twitter).not.toMatch(/#include|Solution/);
+  });
+
+  it("every design problem is a design with a constructor, methods and cases written as [ops, args]", () => {
+    const designs = specs.filter((s) => s.design);
+    expect(designs.length).toBeGreaterThanOrEqual(11);
+    for (const s of designs) {
+      expect(s.kind, s.id).toBe("design");
+      for (const c of [...s.examples, ...s.tests]) {
+        const [ops, args] = c.input as [string[], unknown[][]];
+        expect(ops[0], s.id).toBe(s.design!.className);
+        expect(args.length, s.id).toBe(ops.length);
+        expect((c.output as unknown[]).length, s.id).toBe(ops.length);
+        for (const op of ops.slice(1)) expect(s.design!.methods.map((m) => m.name), s.id).toContain(op);
+      }
+    }
+  });
+
+  const cppLru = `class LRUCache {
+    int cap;
+    list<pair<int, int>> items;
+    unordered_map<int, list<pair<int, int>>::iterator> where;
+public:
+    LRUCache(int capacity) : cap(capacity) {}
+    int get(int key) {
+        auto it = where.find(key);
+        if (it == where.end()) return -1;
+        items.splice(items.begin(), items, it->second);
+        return it->second->second;
+    }
+    void put(int key, int value) {
+        auto it = where.find(key);
+        if (it != where.end()) { it->second->second = value; items.splice(items.begin(), items, it->second); return; }
+        if ((int)items.size() == cap) { where.erase(items.back().first); items.pop_back(); }
+        items.emplace_front(key, value);
+        where[key] = items.begin();
+    }
+};
+`;
+  const javaLru = `class LRUCache {
+    private final int cap;
+    private final LinkedHashMap<Integer, Integer> map = new LinkedHashMap<>();
+    public LRUCache(int capacity) { cap = capacity; }
+    public int get(int key) {
+        if (!map.containsKey(key)) return -1;
+        int v = map.remove(key);
+        map.put(key, v);
+        return v;
+    }
+    public void put(int key, int value) {
+        map.remove(key);
+        if (map.size() == cap) map.remove(map.keySet().iterator().next());
+        map.put(key, value);
+    }
+}
+`;
+  const jsLru = `class LRUCache {
+    constructor(capacity) { this.cap = capacity; this.map = new Map(); }
+    get(key) {
+        if (!this.map.has(key)) return -1;
+        const v = this.map.get(key);
+        this.map.delete(key);
+        this.map.set(key, v);
+        return v;
+    }
+    put(key, value) {
+        this.map.delete(key);
+        if (this.map.size === this.cap) this.map.delete(this.map.keys().next().value);
+        this.map.set(key, value);
+    }
+}
+`;
+
+  it.skipIf(!GPP)("LRU Cache passes in C++, and a wrong get names the operation that failed", async () => {
+    const ok = await runCode(lru, "cpp", cppLru);
+    expect(ok.status).toBe("done");
+    if (ok.status === "done") expect(ok.passed, JSON.stringify(ok.results.filter((x) => !x.pass))).toBe(ok.total);
+
+    const wrong = await runCode(lru, "cpp", cppLru.replace("items.splice(items.begin(), items, it->second);\n        return it->second->second;", "return it->second->second;")); // get forgets to count as a use
+    expect(wrong.status).toBe("done");
+    if (wrong.status === "done") {
+      const first = wrong.results.find((x) => !x.pass)!;
+      expect(first.kind).toBe("example");
+      expect(first.note).toBe("Operation 6, get(2), returned 2; expected -1.");
+    }
+    const crash = await runCode(lru, "cpp", cppLru.replace("where[key] = items.begin();", "where[key] = items.begin(); throw std::runtime_error(\"boom\");"));
+    if (crash.status === "done") expect(crash.results[0].error).toContain("operation 2 (put): boom");
+  }, 120_000);
+
+  it.skipIf(!JAVA)("LRU Cache passes in Java", async () => {
+    const r = await runCode(lru, "java", javaLru);
+    expect(r.status).toBe("done");
+    if (r.status === "done") expect(r.passed, JSON.stringify(r.results.filter((x) => !x.pass))).toBe(r.total);
+  }, 120_000);
+
+  it("LRU Cache passes in JavaScript, and runs on your own input", async () => {
+    const r = await runCode(lru, "javascript", jsLru);
+    expect(r.status).toBe("done");
+    if (r.status === "done") expect(r.passed, JSON.stringify(r.results.filter((x) => !x.pass))).toBe(r.total);
+    const own = await runCustom(lru, "javascript", jsLru, [["LRUCache", "put", "get", "get"], [[1], [1, 5], [1], [2]]]);
+    expect(own).toMatchObject({ status: "done", output: "[null,null,5,-1]" });
+  }, 60_000);
+
+  it("firstDifference says which operation was wrong", () => {
+    const input = [["Trie", "insert", "search"], [[], ["a"], ["a"]]];
+    expect(firstDifference(input, [null, null, true], [null, null, false])).toBe('Operation 3, search("a"), returned false; expected true.');
+    expect(firstDifference(input, [null, null, true], [null, null, true])).toBeUndefined();
+    expect(firstDifference(input, [null, null, true], [null])).toContain("answered 1 operations");
+  });
 });

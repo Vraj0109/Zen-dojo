@@ -8,6 +8,7 @@ import { MIGRATIONS, getDb } from "./db";
 import { getDsaView, markSolved } from "./dsa";
 import { getExtensionToken } from "./leetcode/extension";
 import { getNote, saveNote } from "./notes";
+import { getRuns, saveRun } from "./solution-runs";
 import { getConceptDetail, logPractice, saveConcept } from "./study";
 import { getTodayView } from "./tasks";
 
@@ -32,6 +33,7 @@ async function seed() {
   await saveNote("lc-1", { notes: "hash map, it's O(n)", code: "class Solution {}", language: "Java" });
   await saveConcept("sd-caching", { confidence: 4, checked: [0, 1], notes: "TTL" });
   await logPractice("sdd-chat", { minutes: 40, scores: { req: 4 }, notes: "", link: "" });
+  await saveRun("lc-1", "cpp", "class Solution {};", { status: "done", passed: 3, total: 10 });
   await getExtensionToken();
 }
 
@@ -65,6 +67,7 @@ describe("backup", () => {
     expect((await getDsaView()).totals).toMatchObject({ solved: 1 });
     expect(await getNote("lc-1")).toMatchObject({ notes: "hash map, it's O(n)", language: "Java" });
     expect((await getConceptDetail("sd-caching"))!.progress).toMatchObject({ confidence: 4, checked: [0, 1] });
+    expect(await getRuns("lc-1")).toEqual([{ problemId: "lc-1", lang: "cpp", code: "class Solution {};", ranOn: "2026-11-06", status: "done", passed: 3, total: 10 }]);
     expect(await getExtensionToken()).toBe(otherKey);
     expect(await exportBackup()).toMatchObject({ tables: backup.tables });
   });

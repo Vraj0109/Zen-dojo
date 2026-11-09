@@ -24,3 +24,16 @@ function same(a: unknown, b: unknown): boolean {
 export function sameAnswer(expected: unknown, actual: unknown, unordered = false): boolean {
   return unordered ? same(canonical(expected), canonical(actual)) : same(expected, actual);
 }
+
+/** For a design-a-class case (input [ops, args]): says which operation first gave a wrong answer. */
+export function firstDifference(input: unknown[], expected: unknown, actual: unknown): string | undefined {
+  const ops = input[0], args = input[1];
+  if (!Array.isArray(ops) || !Array.isArray(args) || !Array.isArray(expected) || !Array.isArray(actual)) return undefined;
+  if (actual.length !== expected.length) return `Your code answered ${actual.length} operations; there are ${expected.length}.`;
+  for (let k = 0; k < expected.length; k++) {
+    if (same(expected[k], actual[k])) continue;
+    const list = Array.isArray(args[k]) ? (args[k] as unknown[]).map((x) => JSON.stringify(x)).join(", ") : "";
+    return `Operation ${k + 1}, ${String(ops[k])}(${list}), returned ${JSON.stringify(actual[k])}; expected ${JSON.stringify(expected[k])}.`;
+  }
+  return undefined;
+}

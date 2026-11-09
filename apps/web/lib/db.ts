@@ -225,6 +225,19 @@ CREATE TABLE pack_progress (
   PRIMARY KEY (pack_id, item_id)
 );
 `,
+  // 0021: the latest run of your code per problem and language
+  `
+CREATE TABLE IF NOT EXISTS solution_runs (
+  problem_id TEXT NOT NULL,
+  lang TEXT NOT NULL,
+  code TEXT NOT NULL,
+  ran_on TEXT NOT NULL,
+  status TEXT NOT NULL,
+  passed INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  PRIMARY KEY (problem_id, lang)
+);
+`,
 ];
 
 async function migrate(client: Client) {

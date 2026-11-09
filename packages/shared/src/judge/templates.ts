@@ -1,4 +1,4 @@
-import { usesNodes, type JudgeLang, type ProblemSpec, type Ty } from "./types";
+import { usesNodes, type DesignSpec, type JudgeLang, type ProblemSpec, type Ty } from "./types";
 
 const CPP_LIST_DOC = `/**
  * Definition for singly-linked list (already defined for you).
@@ -75,16 +75,14 @@ const cppParam = (t: Ty) => (t.endsWith("]") ? `${CPP[t]}&` : CPP[t]);
  * where your code goes. Test code is added around it when you run (see apps/web/lib/judge/harness.ts).
  */
 export function templateFor(spec: ProblemSpec, lang: JudgeLang): string {
+  if (spec.design) return designTemplate(spec.design, lang);
   const { name, params, returns } = spec.fn;
   const nodes = usesNodes(spec);
   const cppDocs = (nodes.list ? CPP_LIST_DOC : "") + (nodes.tree ? CPP_TREE_DOC : "");
   const javaDocs = (nodes.list ? JAVA_LIST_DOC : "") + (nodes.tree ? JAVA_TREE_DOC : "");
   switch (lang) {
     case "cpp":
-      return `#include <bits/stdc++.h>
-using namespace std;
-
-${cppDocs}class Solution {
+      return `${cppDocs}class Solution {
 public:
     ${CPP[returns]} ${name}(${params.map((p) => `${cppParam(p.type)} ${p.name}`).join(", ")}) {
         // Write your code here
@@ -93,9 +91,7 @@ public:
 };
 `;
     case "java":
-      return `import java.util.*;
-
-${javaDocs}class Solution {
+      return `${javaDocs}class Solution {
     public ${JAVA[returns]} ${name}(${params.map((p) => `${JAVA[p.type]} ${p.name}`).join(", ")}) {
         // Write your code here
 
@@ -112,6 +108,31 @@ function ${name}(${params.map((p) => p.name).join(", ")}) {
 
 }
 `;
+  }
+}
+
+/** The starter for a design-a-class problem: the class with its constructor and methods, bodies empty. */
+function designTemplate(d: DesignSpec, lang: JudgeLang): string {
+  const body = "        // Write your code here\n\n    }";
+  const join = (parts: string[]) => parts.join("\n\n");
+  switch (lang) {
+    case "cpp": {
+      const ret = (m: DesignSpec["methods"][number]) => (m.returns === "void" ? "void" : CPP[m.returns]);
+      const params = (ps: { name: string; type: Ty }[]) => ps.map((p) => `${cppParam(p.type)} ${p.name}`).join(", ");
+      const methods = d.methods.map((m) => `    ${ret(m)} ${m.name}(${params(m.params)}) {\n${body}`);
+      return `class ${d.className} {\npublic:\n${join([`    ${d.className}(${params(d.ctor)}) {\n${body}`, ...methods])}\n};\n`;
+    }
+    case "java": {
+      const ret = (m: DesignSpec["methods"][number]) => (m.returns === "void" ? "void" : JAVA[m.returns]);
+      const params = (ps: { name: string; type: Ty }[]) => ps.map((p) => `${JAVA[p.type]} ${p.name}`).join(", ");
+      const methods = d.methods.map((m) => `    public ${ret(m)} ${m.name}(${params(m.params)}) {\n${body}`);
+      return `class ${d.className} {\n${join([`    public ${d.className}(${params(d.ctor)}) {\n${body}`, ...methods])}\n}\n`;
+    }
+    case "javascript": {
+      const params = (ps: { name: string }[]) => ps.map((p) => p.name).join(", ");
+      const methods = d.methods.map((m) => `    ${m.name}(${params(m.params)}) {\n${body}`);
+      return `class ${d.className} {\n${join([`    constructor(${params(d.ctor)}) {\n${body}`, ...methods])}\n}\n`;
+    }
   }
 }
 
