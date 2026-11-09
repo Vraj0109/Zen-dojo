@@ -91,3 +91,9 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0025 | [More LLD topics](0025-more-lld-topics.md) | implemented (by agent D) |
 | 0026 | [Run plans 0021 to 0025 with four Claude agents at once](0026-parallel-agents.md) | implemented (all 4 merged) |
 | 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | in-progress (round 2 merged) |
+| 0028 | [Problem workspace polish: slim bar, no clutter, Save button](0028-problem-workspace-polish.md) | ready |
+| 0029 | [Curated CSES logic-building list and cp-algorithms filter](0029-logic-building-list.md) | ready |
+| 0030 | [Add problems, tests and lessons without a release](0030-content-without-releases.md) | ready |
+| 0031 | [System design as rich as LLD](0031-system-design-parity.md) | ready |
+| 0032 | [Roadmap: hosted site with accounts and sync](0032-hosted-site-roadmap.md) | draft (decisions needed) |
+| 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | ready |
