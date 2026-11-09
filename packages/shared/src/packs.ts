@@ -2,9 +2,10 @@
 // (format "prepwise-pack"); the app validates it here, stores it, and shows it as a course in Learn. Pure code, no I/O.
 // The format is written up in docs/content-packs.md, with a prompt another AI can follow to produce a pack.
 
-import { STUDY_AREAS } from "./study";
+import { ALL_CONCEPTS, STUDY_AREAS } from "./study";
 import { checkStress, expandStress, type PackStress } from "./judge/stress-gen";
 import type { Case, ProblemSpec, Ty } from "./judge/types";
+import type { Lesson } from "./learn/types";
 
 export type { Gen, PackStress } from "./judge/stress-gen";
 
@@ -40,7 +41,16 @@ export type PackProblem = Omit<ProblemSpec, "source" | "solution" | "stress" | "
   url?: string;
   solution?: { idea: string[]; complexity: string; cpp?: string };
 };
-export type PackItem = PackLesson | PackProblem;
+export interface PackPatch {
+  type: "patch";
+  id: string;
+  title: string;
+  /** The id of the built-in concept to patch (e.g. "lld-solid") */
+  concept: string;
+  /** The replacement lesson */
+  replace: Lesson;
+}
+export type PackItem = PackLesson | PackProblem | PackPatch;
 export interface PackTarget {
   /** A study area id: "sd" (system design), "lld" or "core" (core CS) */
   area: string;
@@ -66,6 +76,28 @@ export interface Pack {
 }
 
 export type PackCheck = { ok: true; pack: Pack; warnings: string[] } | { ok: false; errors: string[] };
+
+export const FEED_FORMATS = ["zendojo-feed"] as const;
+export const FEED_FORMAT = FEED_FORMATS[0];
+export const FEED_VERSIONS = [1] as const;
+export const FEED_VERSION = 1;
+
+export interface FeedPackEntry {
+  id: string;
+  title: string;
+  version: string;
+  url: string;
+  sha256?: string;
+  description?: string;
+}
+
+export interface ContentFeed {
+  format: (typeof FEED_FORMATS)[number];
+  version: (typeof FEED_VERSIONS)[number];
+  packs: FeedPackEntry[];
+}
+
+export type FeedCheck = { ok: true; feed: ContentFeed } | { ok: false; errors: string[] };
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const isStr = (v: unknown, max = 300): v is string => typeof v === "string" && v.trim().length > 0 && v.length <= max;
@@ -194,6 +226,146 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
   };
 }
 
+/**
+ * Validates a Mermaid diagram source text.
+ * Checks for recognized diagram type header, non-empty content, and balanced delimiters.
+ */
+export function validateMermaid(source: string): { ok: true } | { ok: false; error: string } {
+  if (!source || source.trim().length === 0) {
+    return { ok: false, error: "diagram source is empty." };
+  }
+  let cleaned = source.trim();
+  if (cleaned.startsWith("---")) {
+    const end = cleaned.indexOf("---", 3);
+    if (end !== -1) cleaned = cleaned.slice(end + 3).trim();
+  }
+  const lines = cleaned.split("\n").map((l) => l.trim()).filter((l) => l.length > 0 && !l.startsWith("%%"));
+  if (lines.length === 0) {
+    return { ok: false, error: "diagram has no content." };
+  }
+  const first = lines[0];
+  const validHeader = /^(graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram(-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|xychart-beta|zenuml|sankey-beta|packet-beta|kanban|block-beta|architecture-beta)\b/i;
+  if (!validHeader.test(first)) {
+    return { ok: false, error: `unknown diagram type or missing header: "${first.slice(0, 40)}". Expected "flowchart TD", "sequenceDiagram", etc.` };
+  }
+  const isEr = /^erDiagram\b/i.test(first);
+  const isSeq = /^sequenceDiagram\b/i.test(first);
+  const stack: { char: string; line: number }[] = [];
+  for (let li = 0; li < lines.length; li++) {
+    const l = lines[li];
+    let inQuote = false;
+    for (let ci = 0; ci < l.length; ci++) {
+      const ch = l[ci];
+      if (ch === '"') {
+        inQuote = !inQuote;
+        continue;
+      }
+      if (inQuote) continue;
+      // In sequence diagrams, -) and --) are asynchronous arrows, not closing parens
+      if (isSeq && ch === ")" && ci > 0 && l[ci - 1] === "-") continue;
+      // In ER diagrams, { and } in relationships (like ||--o{ or }|--||) are cardinality symbols, not code blocks
+      if (isEr && (ch === "{" || ch === "}")) {
+        const prev = ci > 0 ? l[ci - 1] : "";
+        const next = ci < l.length - 1 ? l[ci + 1] : "";
+        if (/[-.o|]/.test(prev) || /[-.o|]/.test(next)) continue;
+      }
+      if (ch === "[" || ch === "(" || ch === "{") {
+        stack.push({ char: ch, line: li + 1 });
+      } else if (ch === "]" || ch === ")" || ch === "}") {
+        const expected = ch === "]" ? "[" : ch === ")" ? "(" : "{";
+        if (stack.length === 0 || stack[stack.length - 1].char !== expected) {
+          return { ok: false, error: `unmatched closing "${ch}" on line ${li + 1}.` };
+        }
+        stack.pop();
+      }
+    }
+    if (inQuote) {
+      return { ok: false, error: `unterminated quote on line ${li + 1}.` };
+    }
+  }
+  if (stack.length > 0) {
+    const unclosed = stack.pop()!;
+    return { ok: false, error: `unclosed "${unclosed.char}" from line ${unclosed.line}.` };
+  }
+  return { ok: true };
+}
+
+function checkLessonReplace(o: unknown, where: string, errs: string[]): Lesson | null {
+  if (!isObj(o)) {
+    errs.push(`${where} must be an object with "overview", "explain", and "questions".`);
+    return null;
+  }
+  const before = errs.length;
+  if (!isStr(o.overview, PACK_LIMITS.text)) errs.push(`${where}.overview must be non-empty text.`);
+  const explain = strList(o.explain, `${where}.explain`, errs, 1);
+  const questions = strList(o.questions, `${where}.questions`, errs, 0);
+  let pitfalls: string[] | undefined;
+  if (o.pitfalls !== undefined) {
+    pitfalls = strList(o.pitfalls, `${where}.pitfalls`, errs, 0);
+  }
+  if (errs.length > before) return null;
+  return {
+    overview: String(o.overview),
+    explain,
+    questions,
+    ...(pitfalls ? { pitfalls } : {}),
+  };
+}
+
+/** Validates a content feed JSON document (format "zendojo-feed"). */
+export function validateFeed(input: unknown): FeedCheck {
+  const errs: string[] = [];
+  if (!isObj(input)) return { ok: false, errors: ["The feed must be a JSON object."] };
+  if (input.format !== FEED_FORMAT) errs.push(`"format" must be "${FEED_FORMAT}".`);
+  if (input.version !== FEED_VERSION) errs.push(`"version" must be ${FEED_VERSION}.`);
+  if (!Array.isArray(input.packs)) {
+    errs.push(`"packs" must be a list of pack entries.`);
+    return { ok: false, errors: errs };
+  }
+  const packs: FeedPackEntry[] = [];
+  const seen = new Set<string>();
+  input.packs.forEach((p, idx) => {
+    const where = `packs[${idx}]`;
+    if (!isObj(p)) return void errs.push(`${where} must be an object.`);
+    if (typeof p.id !== "string" || !SLUG.test(p.id)) return void errs.push(`${where}: "id" must be lowercase letters, digits and hyphens.`);
+    if (seen.has(p.id)) return void errs.push(`${where}: duplicate pack id "${p.id}".`);
+    seen.add(p.id);
+    if (!isStr(p.title, 120)) return void errs.push(`${where}: "title" is required (up to 120 characters).`);
+    if (typeof p.version !== "string" || !/^[0-9A-Za-z.+-]{1,20}$/.test(p.version)) {
+      return void errs.push(`${where}: "version" must be a version string like "1.2.0".`);
+    }
+    if (typeof p.url !== "string" || !/^https?:\/\/\S+$/.test(p.url) || p.url.length > 2000) {
+      return void errs.push(`${where}: "url" must be an http(s) address.`);
+    }
+    let sha256: string | undefined;
+    if (p.sha256 !== undefined) {
+      if (typeof p.sha256 !== "string" || !/^[a-fA-F0-9]{64}$/.test(p.sha256)) {
+        errs.push(`${where}: "sha256" must be a 64-character hexadecimal checksum.`);
+      } else {
+        sha256 = p.sha256.toLowerCase();
+      }
+    }
+    const description = typeof p.description === "string" ? p.description.slice(0, 400) : undefined;
+    packs.push({
+      id: p.id,
+      title: String(p.title),
+      version: p.version,
+      url: p.url,
+      ...(sha256 ? { sha256 } : {}),
+      ...(description !== undefined ? { description } : {}),
+    });
+  });
+  if (errs.length > 0) return { ok: false, errors: errs };
+  return {
+    ok: true,
+    feed: {
+      format: input.format as ContentFeed["format"],
+      version: input.version as ContentFeed["version"],
+      packs,
+    },
+  };
+}
+
 /** Checks a pack (already parsed JSON) and returns it cleaned, or every problem found, in plain words. */
 export function validatePack(input: unknown): PackCheck {
   const errs: string[] = [];
@@ -227,17 +399,36 @@ export function validatePack(input: unknown): PackCheck {
       const where = `${sw}.items[${ii}]`;
       count++;
       if (!isObj(it)) return void errs.push(`${where} must be an object.`);
-      if (typeof it.id !== "string" || !SLUG.test(it.id)) return void errs.push(`${where}: "id" must be lowercase letters, digits and hyphens.`);
-      if (seen.has(it.id)) return void errs.push(`${where}: the id "${it.id}" is used twice. Ids must be different within a pack.`);
-      seen.add(it.id);
+      const rawId = typeof it.id === "string" && it.id.length > 0 ? it.id : (it.type === "patch" && typeof it.concept === "string" ? it.concept : "");
+      if (!SLUG.test(rawId)) return void errs.push(`${where}: ${it.type === "patch" && !it.id ? '"concept"' : '"id"'} must be lowercase letters, digits and hyphens.`);
+      if (seen.has(rawId)) return void errs.push(`${where}: the id "${rawId}" is used twice. Ids must be different within a pack.`);
+      seen.add(rawId);
       if (it.type === "lesson") {
         if (!isStr(it.title, 120)) return void errs.push(`${where}: "title" is required.`);
         if (typeof it.markdown !== "string" || it.markdown.trim().length < 20 || it.markdown.length > PACK_LIMITS.text) return void errs.push(`${where}: "markdown" must be between 20 and ${PACK_LIMITS.text} characters.`);
-        items.push({ type: "lesson", id: it.id, title: String(it.title), markdown: it.markdown });
+        const blocks = parseMarkdown(it.markdown);
+        for (const b of blocks) {
+          if (b.type === "code" && b.lang.trim().toLowerCase() === "mermaid") {
+            const mv = validateMermaid(b.text);
+            if (!mv.ok) {
+              errs.push(`${where}: invalid Mermaid diagram: ${mv.error}`);
+            }
+          }
+        }
+        items.push({ type: "lesson", id: rawId, title: String(it.title), markdown: it.markdown });
       } else if (it.type === "problem") {
         const p = checkProblem(it, where, errs, warnings);
         if (p) items.push(p);
-      } else errs.push(`${where}: "type" must be "lesson" or "problem".`);
+      } else if (it.type === "patch") {
+        if (!isStr(it.concept, 60) || !SLUG.test(it.concept)) {
+          errs.push(`${where}: "concept" is required (lowercase letters, digits and hyphens, up to 60 characters).`);
+        } else if (!(it.concept in ALL_CONCEPTS)) {
+          errs.push(`${where}: "${it.concept}" is not a recognized built-in concept.`);
+        }
+        const rep = checkLessonReplace(it.replace, `${where}.replace`, errs);
+        const title = typeof it.title === "string" && it.title.trim().length > 0 ? String(it.title) : (ALL_CONCEPTS[String(it.concept)]?.title ?? String(it.concept));
+        if (rep) items.push({ type: "patch", id: rawId, title, concept: String(it.concept), replace: rep });
+      } else errs.push(`${where}: "type" must be "lesson", "problem" or "patch".`);
     });
     sections.push({ title: String(s.title), items });
   });

@@ -58,7 +58,7 @@ async function Pack({ params }: { params: PageProps<"/study/packs/[id]">["params
                 <Link href={`/study/packs/${id}/${it.id}`} prefetch={false} className="hit-link min-w-0 flex-1 truncate">
                   {it.title}
                 </Link>
-                <span className="shrink-0 text-xs text-muted">{it.type === "problem" ? `Problem${it.difficulty ? " · " + it.difficulty : ""}` : "Lesson"}</span>
+                <span className="shrink-0 text-xs text-muted">{it.type === "problem" ? `Problem${it.difficulty ? " · " + it.difficulty : ""}` : it.type === "patch" ? "Patch" : "Lesson"}</span>
               </li>
             ))}
           </ul>

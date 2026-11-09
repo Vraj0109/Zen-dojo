@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { formatLong } from "@habit/shared";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus } from "@/lib/leetcode/sync";
+import { getFeedUrl, listLessonPatches } from "@/lib/packs";
 import { getPlanStart } from "@/lib/tasks";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { setPlanStartAction, setSimpleModeAction } from "../../actions";
@@ -14,6 +15,7 @@ import { ThemePicker } from "../../theme-picker";
 import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
+import { FeedUpdater } from "./feed-updater";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -55,6 +57,9 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             </p>
             <PackImporter />
           </section>
+          <Suspense fallback={<p className="text-muted">Loading content updates…</p>}>
+            <ContentFeedSection />
+          </Suspense>
 
           <h3 className="text-lg font-semibold">Plan</h3>
           <Suspense fallback={<p className="text-muted">Loading…</p>}>
@@ -193,4 +198,18 @@ async function Status({ searchParams }: { searchParams: PageProps<"/profile/sett
     );
   }
   return null;
+}
+
+async function ContentFeedSection() {
+  await connection();
+  const [feedUrl, patches] = await Promise.all([getFeedUrl(), listLessonPatches()]);
+  return (
+    <section className="space-y-3 rounded-xl border border-line bg-surface p-4">
+      <h4 className="font-semibold">Updates and feeds</h4>
+      <p className="text-sm text-muted">
+        Connect to an over-the-air content feed to check for new and updated problem packs.
+      </p>
+      <FeedUpdater initialFeedUrl={feedUrl} patches={patches} />
+    </section>
+  );
 }

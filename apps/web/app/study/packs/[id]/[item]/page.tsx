@@ -3,14 +3,78 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { packItems, packProblemSpec } from "@habit/shared";
+import { inlineParts, packItems, packProblemSpec, parseMarkdown } from "@habit/shared";
 import { getPack, getPackProgress } from "@/lib/packs";
 import { togglePackItemAction } from "../../../../actions";
+import { Diagram } from "../../../../diagram";
 import { JudgeWorkspace } from "../../../../judge-workspace";
-import { Markdown } from "../../../../markdown";
+import { CodeBlock } from "../../../../learn-blocks";
 import { ProblemDescription, ProblemHelp, startersFor } from "../../../../problem-workspace";
 import { SubmitButton } from "../../../../submit-button";
 import { PageMain } from "../../../../ui";
+
+function Inline({ text }: { text: string }) {
+  return (
+    <>
+      {inlineParts(text).map((p, i) =>
+        p.kind === "bold" ? (
+          <strong key={i}>{p.text}</strong>
+        ) : p.kind === "code" ? (
+          <code key={i} className="rounded bg-background px-1 py-0.5 font-mono text-[0.9em]">
+            {p.text}
+          </code>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function PackMarkdown({ source }: { source: string }) {
+  return (
+    <div data-focus-reading className="space-y-4 leading-7">
+      {parseMarkdown(source).map((b, i) => {
+        switch (b.type) {
+          case "h":
+            return b.level === 2 ? (
+              <h2 key={i} className="pt-2 text-xl font-semibold">
+                <Inline text={b.text} />
+              </h2>
+            ) : (
+              <h3 key={i} className="pt-1 text-lg font-semibold">
+                <Inline text={b.text} />
+              </h3>
+            );
+          case "p":
+            return (
+              <p key={i}>
+                <Inline text={b.text} />
+              </p>
+            );
+          case "ul":
+          case "ol": {
+            const List = b.type === "ol" ? "ol" : "ul";
+            return (
+              <List key={i} className={`${b.type === "ol" ? "list-decimal" : "list-disc"} space-y-1 pl-6`}>
+                {b.items.map((it, j) => (
+                  <li key={j}>
+                    <Inline text={it} />
+                  </li>
+                ))}
+              </List>
+            );
+          }
+          case "code":
+            if (b.lang.trim().toLowerCase() === "mermaid") {
+              return <Diagram key={i} source={b.text} />;
+            }
+            return <CodeBlock key={i} code={b.text} lang={b.lang || undefined} />;
+        }
+      })}
+    </div>
+  );
+}
 
 export const metadata: Metadata = { title: "Imported course" };
 
@@ -74,7 +138,46 @@ async function Item({ params }: { params: PageProps<"/study/packs/[id]/[item]">[
     return (
       <article className="max-w-4xl space-y-6">
         {header}
-        <Markdown source={item.markdown} />
+        <PackMarkdown source={item.markdown} />
+      </article>
+    );
+  }
+
+  if (item.type === "patch") {
+    return (
+      <article className="max-w-4xl space-y-6">
+        {header}
+        <div className="space-y-4 leading-7">
+          <p>{item.replace.overview}</p>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Key concepts</h3>
+            <ul className="list-disc space-y-1 pl-6">
+              {item.replace.explain.map((exp, i) => (
+                <li key={i}>{exp}</li>
+              ))}
+            </ul>
+          </div>
+          {item.replace.questions.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Interview questions</h3>
+              <ul className="list-disc space-y-1 pl-6">
+                {item.replace.questions.map((q, i) => (
+                  <li key={i}>{q}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {item.replace.pitfalls && item.replace.pitfalls.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Common pitfalls</h3>
+              <ul className="list-disc space-y-1 pl-6">
+                {item.replace.pitfalls.map((pit, i) => (
+                  <li key={i}>{pit}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </article>
     );
   }
