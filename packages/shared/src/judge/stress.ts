@@ -45,7 +45,7 @@ const letters = (n: number, alphabet: string, seed: number) => {
 };
 
 // ---- trees (level-order arrays with null for a missing child)
-interface TN {
+export interface TN {
   v: number;
   l: TN | null;
   r: TN | null;
@@ -409,3 +409,6 @@ export const STRESS: Record<string, StressCase[]> = {
   ],
   "lc-312": [S("300 random balloons", () => [ints(300, 0, 100, 528)]), S("300 balloons of 100", () => [fill(300, 100)], 3000)],
 };
+
+/** Helpers for the stress files of later batches (stress-6.ts onward). */
+export const H = { rng, between, ints, fill, range, shuffled, letters, level, bstFromSorted, chain, S };
