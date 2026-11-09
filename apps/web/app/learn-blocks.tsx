@@ -1,5 +1,6 @@
 import type { Section } from "@habit/shared";
-import { Toc } from "./toc";
+import { Toc, type TocItem } from "./toc";
+import { deeperIds } from "./toc-items";
 import { Code } from "./code";
 import { Diagram } from "./diagram";
 
@@ -55,13 +56,16 @@ export function ArticleSection({
 export function ArticleLayout({
   toc,
   rail,
+  outline,
   children,
 }: {
-  toc: { id: string; title: string }[];
+  toc: TocItem[];
   rail?: React.ReactNode;
+  /** The course outline (app/course-outline.tsx), shown under the table of contents. */
+  outline?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const hasAside = toc.length > 0 || !!rail;
+  const hasAside = toc.length > 0 || !!rail || !!outline;
   return (
     <div className={`grid gap-6 ${hasAside ? "xl:grid-cols-[minmax(0,1fr)_16rem]" : ""}`}>
       {hasAside && (
@@ -80,6 +84,7 @@ export function ArticleLayout({
               </nav>
             </>
           )}
+          {outline}
           {rail}
         </aside>
       )}
@@ -92,10 +97,11 @@ export function ArticleLayout({
 
 /** Deeper sections rendered open as plain subsections. */
 export function DeeperSections({ sections }: { sections: Section[] }) {
+  const ids = deeperIds(sections.map((s) => s.title));
   return (
     <div className="space-y-6">
-      {sections.map((s) => (
-        <div key={s.title} className="space-y-2">
+      {sections.map((s, i) => (
+        <div key={s.title} id={ids[i]} className="scroll-mt-6 space-y-2">
           <h3 className="text-base font-semibold">{s.title}</h3>
           <div className="space-y-3 text-sm leading-7">
             {s.body.split("\n\n").map((para, j) => (

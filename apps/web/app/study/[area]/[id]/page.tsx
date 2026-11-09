@@ -32,6 +32,8 @@ import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
 import { PageMain, SimpleHint } from "../../../ui";
 import { ArticleLayout, ArticleSection, DeeperSections } from "../../../learn-blocks";
+import { CourseOutline } from "../../../course-outline";
+import { conceptToc } from "../../../toc-items";
 import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, LldProjectView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
 
@@ -92,15 +94,13 @@ async function ConceptView({ id }: { id: string }) {
   const checked = new Set(p?.checked ?? []);
   const confidence = p?.confidence ?? 0;
 
-  const toc = [
-    ...(lesson?.overview ? [{ id: "overview", title: "Overview" }] : []),
-    { id: "what-to-know", title: "What to know" },
-    ...(extra && extra.deeper && extra.deeper.length > 0 ? [{ id: "deeper", title: "Go deeper" }] : []),
-    ...(lesson && lesson.questions.length > 0 ? [{ id: "interview-questions", title: "Interview questions" }] : []),
-    ...(lesson && lesson.pitfalls && lesson.pitfalls.length > 0 ? [{ id: "common-mistakes", title: "Common mistakes" }] : []),
-    { id: "your-turn", title: "Your turn" },
-    ...(!simple && reading.length > 0 ? [{ id: "reading", title: "Reading" }] : []),
-  ];
+  const toc = conceptToc({
+    hasOverview: !!lesson?.overview,
+    deeperTitles: extra?.deeper?.map((x) => x.title) ?? [],
+    hasQuestions: !!lesson && lesson.questions.length > 0,
+    hasPitfalls: !!lesson?.pitfalls && lesson.pitfalls.length > 0,
+    hasReading: !simple && reading.length > 0,
+  });
 
   return (
     <div className="space-y-6">
@@ -117,6 +117,7 @@ async function ConceptView({ id }: { id: string }) {
 
       <ArticleLayout
         toc={toc}
+        outline={<CourseOutline areaId={d.concept.area} currentId={id} />}
         rail={<StartTimer itemId={id} label={d.concept.title} href={studyHref(d.concept.area, id)} defaultMinutes={studyMinutes} totalMinutes={focused} />}
       >
         {lesson?.overview && (

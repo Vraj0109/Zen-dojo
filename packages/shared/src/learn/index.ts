@@ -1,10 +1,9 @@
-import { CORE_LESSONS } from "./core";
+import { GENERATED_LESSONS } from "./generated/lessons";
 import { DESIGNS_A } from "./designs-a";
 import { DESIGNS_B } from "./designs-b";
-import { DEEP_CORE } from "./deep-core";
 import { DEEP_LLD } from "./deep-lld";
-import { DEEP_SD_A } from "./deep-sd-a";
-import { DEEP_SD_B } from "./deep-sd-b";
+import { DESIGN_DEPTH_A } from "./design-depth-a";
+import { DESIGN_DEPTH_B } from "./design-depth-b";
 import { DESIGN_EXTRA } from "./design-extra";
 import { DSA_ARTICLES_A } from "./dsa-articles-a";
 import { DSA_ARTICLES_B } from "./dsa-articles-b";
@@ -47,21 +46,19 @@ import { VENDING_ATM_DEEP } from "./lld-deep-c-vending";
 import { LLD_PROJECTS_C_VENDING } from "./lld-projects-c-vending";
 import { BOOKING_DEEP } from "./lld-deep-c-booking";
 import { LLD_PROJECTS_C_BOOKING } from "./lld-projects-c-booking";
-import { MORE_DB } from "./more-db";
 import { MORE_LLD } from "./more-lld";
-import { MORE_NET } from "./more-net";
-import { MORE_OS } from "./more-os";
-import { MORE_SD_A } from "./more-sd-a";
-import { MORE_SD_B } from "./more-sd-b";
-import { MORE_SD_C } from "./more-sd-c";
-import { SD_LESSONS } from "./sd";
-import { DEEP_SD_GAPS, SD_GAP_LESSONS } from "./sd-gaps";
+import { SECTION_POINTS } from "./section-points";
+import type { WalkthroughDeep } from "./design-depth-types";
 import type { LessonExtra, LldDeep, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 /** Concept lessons by concept id (system design, LLD, core CS). */
-export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
+/** Lessons written as Markdown (content/, built into generated/lessons.ts) win over the older TypeScript ones with the same id. */
+const GENERATED_BASE: Record<string, Lesson> = Object.fromEntries(Object.entries(GENERATED_LESSONS).map(([id, g]) => [id, g.lesson]));
+/** The TypeScript lessons alone (before Markdown ones replace them); a test keeps migrated ones in step. */
+export const TS_LESSONS: Record<string, Lesson> = { ...LLD_LESSONS };
+export const LESSONS: Record<string, Lesson> = { ...TS_LESSONS, ...GENERATED_BASE };
 
 /** Reference walkthroughs by system design exercise id. */
 export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESIGNS_B };
@@ -81,11 +78,22 @@ export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, .
 export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2, ...DSA_ARTICLES_E1 };
 
 /** Deeper sections and recap lines per concept id. */
-const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_SD_GAPS, ...DEEP_LLD, ...DEEP_CORE };
-const MORE: Record<string, Section[]> = { ...MORE_SD_A, ...MORE_SD_B, ...MORE_SD_C, ...MORE_LLD, ...MORE_OS, ...MORE_DB, ...MORE_NET };
-export const LESSON_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
-  Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: [...x.deeper, ...(MORE[id] ?? [])] }]),
+const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_LLD };
+const MORE: Record<string, Section[]> = { ...MORE_LLD };
+/** Orders sections by the checklist point they belong to (section-points.ts); sections without a point go last. Stable. */
+export function sortSections(conceptId: string, sections: Section[]): Section[] {
+  const points = SECTION_POINTS[conceptId] ?? {};
+  const rank = (s: Section) => points[s.title] ?? Number.POSITIVE_INFINITY;
+  return sections.map((s, i) => ({ s, i })).sort((x, y) => rank(x.s) - rank(y.s) || x.i - y.i).map((x) => x.s);
+}
+
+export const TS_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
+  Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: sortSections(id, [...x.deeper, ...(MORE[id] ?? [])]) }]),
 );
+const GENERATED_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
+  Object.entries(GENERATED_LESSONS).map(([id, g]) => [id, { recap: g.recap, deeper: g.deeper.map(({ point: _point, ...s }) => s) }]),
+);
+export const LESSON_EXTRA: Record<string, LessonExtra> = { ...TS_EXTRA, ...GENERATED_EXTRA };
 
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 
@@ -98,6 +106,10 @@ export function readingMinutes(id: string): number {
   const code = x?.deeper.map((s) => s.code ?? "") ?? [];
   return Math.max(1, Math.round((prose.reduce((a, t) => a + words(t), 0) + code.reduce((a, t) => a + words(t), 0) * 2) / 200));
 }
+
+/** Diagrams, deeper sections and Java for system design walkthroughs, by design id (plan 0014). */
+export const DESIGN_DEEP: Record<string, WalkthroughDeep> = { ...DESIGN_DEPTH_A, ...DESIGN_DEPTH_B };
+export type { WalkthroughDeep } from "./design-depth-types";
 
 /** Recap and follow-up Q&A per system design exercise id. */
 export const WALKTHROUGH_EXTRA: Record<string, WalkthroughExtra> = DESIGN_EXTRA;

@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { COVERED_CONFIDENCE, STUDY_AREAS, getStudyArea } from "@habit/shared";
+import { COVERED_CONFIDENCE, LESSON_EXTRA, STUDY_AREAS, getStudyArea } from "@habit/shared";
 import { getAddedItems, type AddedGroup } from "@/lib/packs";
 import { getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
 import { PageMain, ProgressBar, Stat } from "../../ui";
 import { LearnBack } from "../../section-tabs";
+import { deeperIds } from "../../toc-items";
 import { Confidence, fmtDate } from "../study-ui";
 
 /** The study areas are fixed, so their pages are known at build time. */
@@ -163,6 +164,8 @@ function AddedRow({ item }: { item: AddedGroup["items"][number] }) {
 }
 
 function ConceptRow({ c, areaId }: { c: ConceptView; areaId: string }) {
+  const titles = LESSON_EXTRA[c.id]?.deeper.map((x) => x.title) ?? [];
+  const ids = deeperIds(titles);
   return (
     <li className="hit flex items-center gap-3 px-3 py-2">
       <div className="min-w-0 flex-1">
@@ -173,6 +176,22 @@ function ConceptRow({ c, areaId }: { c: ConceptView; areaId: string }) {
           {c.checked}/{c.points.length} points
           {c.reviewDue && <span className="font-medium text-foreground"> · review due</span>}
         </p>
+        {titles.length > 0 && (
+          <details className="mt-1 text-xs">
+            <summary className="w-fit cursor-pointer text-muted hover:text-foreground">
+              {titles.length} sub-sections
+            </summary>
+            <ul className="mt-1 space-y-0.5 border-l border-line pl-3">
+              {titles.map((t, i) => (
+                <li key={ids[i]}>
+                  <Link href={`/study/${areaId}/${c.id}#${ids[i]}`} prefetch={false} className="text-muted hover:text-foreground">
+                    {t}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
       <Confidence value={c.confidence} />
     </li>
