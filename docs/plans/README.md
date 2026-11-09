@@ -111,3 +111,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0038 | [Round four: who does what (plans 0014, 0022, 0025, 0031, 0012)](0038-round-four-parallel-work.md) | implemented (round 4 merged) |
 | 0039 | [Round five: balanced parallel work (plans 0022, 0025, 0031)](0039-round-five-balanced-parallel-work.md) | implemented (round 5 merged) |
 | 0040 | [Round six: balanced parallel completion (plans 0022, 0031)](0040-round-six-balanced-parallel-completion.md) | implemented (round 6 merged) |
+| 0041 | [Round seven: six-agent parallel final sprint (CSES completion, reviews & v0.6.0)](0041-round-seven-six-agent-completion.md) | ready |
