@@ -64,11 +64,26 @@ export interface ProblemSpec {
   url?: string;
   /** Large inputs that check speed and memory. The expected answers come from the reference solution. Filled in by stress.ts. */
   stress?: StressCase[];
+  difficulty?: "easy" | "medium" | "hard";
+  pattern?: string;
+  description?: string;
+  inputFormat?: string;
+  outputFormat?: string;
+  sampleCases?: (Case & { explanation?: string })[];
+  testCases?: Case[];
+  referenceSolution?: string;
 }
 
 /** Whether the problem's function uses ListNode or TreeNode (so those classes are added around your code). */
 export const usesNodes = (spec: ProblemSpec): { list: boolean; tree: boolean } => {
   const types = [...spec.fn.params.map((p) => p.type), spec.fn.returns];
+  if (spec.design) {
+    for (const p of spec.design.ctor) types.push(p.type);
+    for (const m of spec.design.methods) {
+      for (const p of m.params) types.push(p.type);
+      if (m.returns !== "void") types.push(m.returns);
+    }
+  }
   return { list: types.includes("list"), tree: types.includes("tree") };
 };
 

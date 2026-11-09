@@ -1,4 +1,5 @@
 import { usesNodes, type ProblemSpec } from "@habit/shared";
+import { specialCppNodeIo, specialCppPrelude, specialJavaNodeHelpers, specialJavaSupportFiles, specialJsNodePrelude } from "./harness-special";
 
 // Linked lists and binary trees. LeetCode gives you ListNode and TreeNode; so do we. In tests a list is a JSON array
 // ([1,2,3]) and a tree is the level-order array with null for a missing child ([1,null,2,3]). The pieces here are
@@ -33,7 +34,8 @@ struct TreeNode {
 };
 `
       : "") +
-    (n.list || n.tree ? "\n" : "")
+    specialCppPrelude(spec) +
+    (n.list || n.tree || spec.id === "lc-133" ? "\n" : "")
   );
 }
 
@@ -94,14 +96,15 @@ static void habitWrite(std::ostream& o, TreeNode* root) {
     o << ']';
 }
 `
-      : "")
+      : "") +
+    specialCppNodeIo(spec)
   );
 }
 
 /** Java: the node classes, as extra files next to Solution.java. */
 export function javaSupportFiles(spec: ProblemSpec): Record<string, string> {
   const n = usesNodes(spec);
-  const files: Record<string, string> = {};
+  const files: Record<string, string> = { ...specialJavaSupportFiles(spec) };
   if (n.list) {
     files["ListNode.java"] = `public class ListNode {
     public int val;
@@ -154,7 +157,8 @@ export function javaNodeHelpers(spec: ProblemSpec): string {
         return root;
     }
 `
-      : "")
+      : "") +
+    specialJavaNodeHelpers(spec)
   );
 }
 
@@ -221,7 +225,8 @@ function __treeTo(r) {
     return out;
 }
 `
-      : "")
+      : "") +
+    specialJsNodePrelude(spec)
   );
 }
 

@@ -1,6 +1,7 @@
 import type { JudgeLang, ProblemSpec, Ty } from "@habit/shared";
 import { cppDesignCase, javaDesignCase, jsDesignCase } from "./harness-design";
 import { cppNodeIo, cppPrelude, javaNodeHelpers, javaNodeWriter, jsArg, jsNodePrelude, jsResult } from "./harness-nodes";
+import { isSpecialProblem, specialCppCase, specialJavaCase, specialJsCase } from "./harness-special";
 
 export { javaSupportFiles } from "./harness-nodes";
 
@@ -112,7 +113,9 @@ export function cppProgram(spec: ProblemSpec, userCode: string): string {
     .map((p, k) => `            ${k > 0 ? "r.expect(',');\n            " : ""}${cppTy(p.type)} ${p.name}; habitRead(r, ${p.name});`)
     .join("\n");
   const call = `Solution().${name}(${params.map((p) => p.name).join(", ")})`;
-  const caseBody = spec.design
+  const caseBody = isSpecialProblem(spec.id)
+    ? `            ${specialCppCase(spec)}`
+    : spec.design
     ? `            ${cppDesignCase(spec)}`
     : `            r.expect('[');
 ${reads}
@@ -215,7 +218,9 @@ export function javaProgram(spec: ProblemSpec): string {
   const conv = (t: Ty, expr: string) =>
     ({ list: `list(${expr})`, tree: `tree(${expr})`, int: `toInt(${expr})`, long: `toLong(${expr})`, double: `toDouble(${expr})`, bool: `(Boolean) ${expr}`, string: `(String) ${expr}`, "int[]": `ints(${expr})`, "long[]": `longs(${expr})`, "bool[]": `bools(${expr})`, "string[]": `strings(${expr})`, "int[][]": `ints2(${expr})`, "string[][]": `strings2(${expr})` })[t];
   const args = params.map((p, k) => conv(p.type, `a.get(${k})`)).join(", ");
-  const caseBody = spec.design
+  const caseBody = isSpecialProblem(spec.id)
+    ? specialJavaCase(spec)
+    : spec.design
     ? javaDesignCase(spec)
     : `List<?> a = (List<?>) val();
                 long t0 = System.nanoTime();
@@ -251,7 +256,9 @@ export function javaProgram(spec: ProblemSpec): string {
 
 export function javascriptProgram(spec: ProblemSpec, userCode: string): string {
   const call = `${spec.fn.name}(${spec.fn.params.map((p, k) => jsArg(p.type, `args[${k}]`)).join(", ")})`;
-  const body = spec.design
+  const body = isSpecialProblem(spec.id)
+    ? "        " + specialJsCase(spec)
+    : spec.design
     ? "        " + jsDesignCase(spec)
     : `        const t0 = process.hrtime.bigint();
         const result = ${call};

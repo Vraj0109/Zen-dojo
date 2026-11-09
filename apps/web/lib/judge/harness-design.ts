@@ -112,6 +112,7 @@ export function jsDesignCase(spec: ProblemSpec): string {
   const d = design(spec);
   const names = JSON.stringify(d.methods.map((m) => m.name));
   const voids = JSON.stringify(d.methods.filter((m) => m.returns === "void").map((m) => m.name));
+  const ctorArgs = d.ctor.map((p, i) => p.type === "tree" ? `__treeFrom(list[k][${i}])` : p.type === "list" ? `__listFrom(list[k][${i}])` : `list[k][${i}]`).join(", ");
   return `const ops = args[0], list = args[1];
         const methods = ${names}, voids = ${voids};
         let obj = null, us = 0;
@@ -120,7 +121,7 @@ export function jsDesignCase(spec: ProblemSpec): string {
             const op = ops[k];
             try {
                 const t0 = process.hrtime.bigint();
-                if (op === "${d.className}") { obj = new ${d.className}(...list[k]); shown.push(null); }
+                if (op === "${d.className}") { obj = new ${d.className}(${ctorArgs || "...list[k]"}); shown.push(null); }
                 else if (methods.includes(op)) {
                     const res = obj[op](...list[k]);
                     shown.push(voids.includes(op) || res === undefined ? null : res);

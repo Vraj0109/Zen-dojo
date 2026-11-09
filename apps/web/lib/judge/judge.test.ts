@@ -856,3 +856,30 @@ public:
     expect(firstDifference(input, [null, null, true], [null])).toContain("answered 1 operations");
   });
 });
+
+describe("special problems: reference solutions and harnesses", () => {
+  const ids = ["lc-297", "lc-173", "lc-133", "lc-528", "lc-382", "lc-362"];
+
+  it("all 6 special problems exist and have templates for all languages", () => {
+    for (const id of ids) {
+      const spec = JUDGE_PROBLEMS[id];
+      expect(spec, id).toBeDefined();
+      for (const lang of JUDGE_LANGS) {
+        const tmpl = templateFor(spec, lang);
+        expect(tmpl, `${id} ${lang}`).toContain(spec.fn.name);
+        expect(tmpl, `${id} ${lang}`).toContain("Write your code here");
+      }
+    }
+  });
+
+  for (const id of ids) {
+    it.skipIf(!GPP)(`${id} C++ reference solution passes all cases`, async () => {
+      const spec = JUDGE_PROBLEMS[id];
+      const r = await runCode(spec, "cpp", spec.solution.cpp);
+      expect(r.status, id).toBe("done");
+      if (r.status === "done") {
+        expect(r.passed, `${id} failed cases: ${JSON.stringify(r.results.filter((x) => !x.pass))}`).toBe(r.total);
+      }
+    }, 120_000);
+  }
+});

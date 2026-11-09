@@ -23,6 +23,8 @@ import { LOGIC_SPECS_CODEFORCES } from "./problems-logic-codeforces";
 import { LOGIC_SPECS_KATTIS } from "./problems-logic-kattis";
 import { LOGIC_SPECS_BATCH2 } from "./problems-logic-batch2";
 import { LOGIC_SPECS_C } from "./problems-logic-c";
+import { PROBLEMS_LOGIC_D } from "./problems-logic-d";
+import { SPECIAL_SPECS } from "./problems-special";
 import { STRESS_LOGIC_C } from "./stress-logic-c";
 import { STRESS } from "./stress";
 import { STRESS_6 } from "./stress-6";
@@ -65,11 +67,12 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
     ...LOGIC_SPECS_KATTIS,
     ...LOGIC_SPECS_BATCH2,
     ...LOGIC_SPECS_C,
+    ...PROBLEMS_LOGIC_D,
   ].map((p) => [p.id, p])
 );
 
 // "Design a class" problems (LRU Cache and friends); see design.ts.
-for (const p of [...DESIGN_SPECS_A, ...DESIGN_SPECS_B, ...DESIGN_SPECS_C]) JUDGE_PROBLEMS[p.id] = p;
+for (const p of [...DESIGN_SPECS_A, ...DESIGN_SPECS_B, ...DESIGN_SPECS_C, ...SPECIAL_SPECS]) JUDGE_PROBLEMS[p.id] = p;
 
 // Attach the large inputs (speed and memory checks) to their problems.
 for (const spec of Object.values(JUDGE_PROBLEMS)) {
@@ -110,4 +113,5 @@ export const CSES_PROBLEMS: ProblemSpec[] = [
   ...CSES_SPECS_MISC,
 ];
 export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;
-export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2, ...LOGIC_SPECS_C];
+export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2, ...LOGIC_SPECS_C, ...PROBLEMS_LOGIC_D];
+export { SPECIAL_SPECS } from "./problems-special";

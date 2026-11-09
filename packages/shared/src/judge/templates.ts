@@ -75,11 +75,36 @@ const cppParam = (t: Ty) => (t.endsWith("]") ? `${CPP[t]}&` : CPP[t]);
  * where your code goes. Test code is added around it when you run (see apps/web/lib/judge/harness.ts).
  */
 export function templateFor(spec: ProblemSpec, lang: JudgeLang): string {
-  if (spec.design) return designTemplate(spec.design, lang);
-  const { name, params, returns } = spec.fn;
+  if (spec.id === "lc-297") {
+    switch (lang) {
+      case "cpp":
+        return `${CPP_TREE_DOC}class Codec {\npublic:\n    // Encodes a tree to a single string.\n    string serialize(TreeNode* root) {\n        // Write your code here\n\n    }\n\n    // Decodes your encoded data to tree.\n    TreeNode* deserialize(string data) {\n        // Write your code here\n\n    }\n};\n`;
+      case "java":
+        return `${JAVA_TREE_DOC}public class Codec {\n    // Encodes a tree to a single string.\n    public String serialize(TreeNode root) {\n        // Write your code here\n\n    }\n\n    // Decodes your encoded data to tree.\n    public TreeNode deserialize(String data) {\n        // Write your code here\n\n    }\n}\n`;
+      case "javascript":
+        return `/**\n * Definition for a binary tree node.\n * function TreeNode(val) {\n *     this.val = val;\n *     this.left = this.right = null;\n * }\n */\n\n/**\n * Encodes a tree to a single string.\n *\n * @param {TreeNode} root\n * @return {string}\n */\nfunction serialize(root) {\n    // Write your code here\n\n}\n\n/**\n * Decodes your encoded data to tree.\n *\n * @param {string} data\n * @return {TreeNode}\n */\nfunction deserialize(data) {\n    // Write your code here\n\n}\n`;
+    }
+  }
+
+  if (spec.id === "lc-133") {
+    switch (lang) {
+      case "cpp":
+        return `/**\n * Definition for a Node (already defined for you).\n * class Node {\n * public:\n *     int val;\n *     vector<Node*> neighbors;\n *     Node() : val(0), neighbors() {}\n *     Node(int _val) : val(_val), neighbors() {}\n *     Node(int _val, vector<Node*> _neighbors) : val(_val), neighbors(_neighbors) {}\n * };\n */\nclass Solution {\npublic:\n    Node* cloneGraph(Node* node) {\n        // Write your code here\n\n    }\n};\n`;
+      case "java":
+        return `/**\n * Definition for a Node (already defined for you).\n * class Node {\n *     public int val;\n *     public List<Node> neighbors;\n *     public Node() { val = 0; neighbors = new ArrayList<Node>(); }\n *     public Node(int _val) { val = _val; neighbors = new ArrayList<Node>(); }\n *     public Node(int _val, ArrayList<Node> _neighbors) { val = _val; neighbors = _neighbors; }\n * }\n */\nclass Solution {\n    public Node cloneGraph(Node node) {\n        // Write your code here\n\n    }\n}\n`;
+      case "javascript":
+        return `/**\n * // Definition for a Node.\n * function Node(val, neighbors) {\n *    this.val = val === undefined ? 0 : val;\n *    this.neighbors = neighbors === undefined ? [] : neighbors;\n * };\n */\n\n/**\n * @param {Node} node\n * @return {Node}\n */\nfunction cloneGraph(node) {\n    // Write your code here\n\n}\n`;
+    }
+  }
+
   const nodes = usesNodes(spec);
   const cppDocs = (nodes.list ? CPP_LIST_DOC : "") + (nodes.tree ? CPP_TREE_DOC : "");
   const javaDocs = (nodes.list ? JAVA_LIST_DOC : "") + (nodes.tree ? JAVA_TREE_DOC : "");
+  if (spec.design) {
+    const t = designTemplate(spec.design, lang);
+    return lang === "cpp" ? cppDocs + t : lang === "java" ? javaDocs + t : t;
+  }
+  const { name, params, returns } = spec.fn;
   switch (lang) {
     case "cpp":
       return `${cppDocs}class Solution {
