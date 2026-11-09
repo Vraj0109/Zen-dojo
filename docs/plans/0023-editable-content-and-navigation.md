@@ -60,17 +60,17 @@
   Markdown with a script (`scripts/migrate-lesson-to-md.mjs`, run once, then deleted), read the diff of at least three
   lessons by eye, and remove the old entries. Then SD and Core CS in a later sitting (record progress in the notes).
   - Done when: LLD pages look the same as before except for the fixed order, and `pnpm content:check` is green.
-- [ ] **5. Subtopics in the page navigation.** In `study/[area]/[id]/page.tsx`, build `toc` with children: "Go deeper" holds one
+- [x] **5. Subtopics in the page navigation.** In `study/[area]/[id]/page.tsx`, build `toc` with children: "Go deeper" holds one
   entry per sub-section (id `deeper-<slug>`), and the page's sub-sections get matching ids (`DeeperSections` adds them).
   Extend `app/toc.tsx` to render nested items, with the scroll-spy highlighting the sub-section in view and the parent
   while any child is. Same for imported lessons: every `##`/`###` heading of the Markdown becomes a TOC entry.
   - Done when: the SOLID page's "On this page" lists Single responsibility, Open/closed, ... under "Go deeper".
-- [ ] **6. A course outline.** New `app/course-outline.tsx` (server component fed by `getStudyView` plus the lesson sections): a
+- [x] **6. A course outline.** New `app/course-outline.tsx` (server component fed by `getStudyView` plus the lesson sections): a
   tree of section, lesson, sub-sections for the current area, with the current lesson open and checked ones marked. Show it
   (a) as a collapsible "Course outline" under the table of contents on wide screens and (b) inside the slide-out menu of
   lesson pages. Items are real links; keyboard friendly.
   - Done when: from any lesson you can jump to another lesson of the same area, or to a sub-section, in one click.
-- [ ] **7. The Learn area page.** In `study/[area]/page.tsx` show each lesson's sub-section titles under its name (collapsed by
+- [x] **7. The Learn area page.** In `study/[area]/page.tsx` show each lesson's sub-section titles under its name (collapsed by
   default, expandable), so the area page doubles as the full outline.
   - Done when: expanding a lesson lists its sub-sections as links.
 - [ ] **8. The guide for agents.** Write `docs/content-editing.md`: where each kind of content lives; the Markdown format with a
@@ -121,6 +121,22 @@
   study.ts), `lesson-md.test.ts` (all 62 lessons round-trip TypeScript -> Markdown -> parse unchanged),
   `migrate.test.ts` (does nothing unless `MIGRATE=lld` or a concept id is set; writes the .md files).
 - Open question: tests that need Node's `fs` cannot live in `packages/shared` (no @types/node), so the file work sits in the .mjs.
+
+**Steps 5 to 7 (navigation).**
+- New `app/toc-items.ts` (pure, tested in `toc-items.test.ts`): `conceptToc`, `deeperIds` (anchor ids `deeper-<slug>`),
+  `markdownToc`/`markdownHeadingIds` (ids `md-<slug>`), `courseOutline`. A new file next to `toc.tsx`, because a client
+  module cannot export functions the server calls.
+- `toc.tsx` renders nested entries; the scroll spy follows children, and the parent stays highlighted while a child is current.
+  `DeeperSections` puts the ids on each sub-section. The SOLID page now lists the five sub-sections under "Go deeper"
+  (checked on a dev server with a throwaway database).
+- `app/course-outline.tsx`: collapsible "Course outline" (section > lesson > sub-sections of the current lesson, covered
+  dot, real links), passed to `ArticleLayout` as `outline` and shown in the aside under the table of contents. On narrow
+  screens the aside sits above the text, so the same collapsible works there.
+- Area page: each lesson row has an "N sub-sections" details list with links.
+- Not done (outside agent C's files): the slide-out menu in `nav.tsx` does not hold the outline (the in-page collapsible
+  covers phones); imported Markdown lessons (`app/study/packs/[id]/[item]/page.tsx`, `app/markdown.tsx`) are not wired
+  to `markdownToc` yet because those files belong to plan 0024. The pure function and its test are ready; the wiring is
+  two lines: pass `toc={markdownToc(item.markdown)}` to `ArticleLayout` and give each heading `id` from `markdownHeadingIds`.
 
 - Not changed: the page order of "Interview questions" and "Common mistakes" (they already render in that order).
 

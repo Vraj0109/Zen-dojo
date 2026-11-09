@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // The "On this page" list for long lessons and articles. It follows your reading position: the section you are in is
 // highlighted, a marker slides to it, and a thin bar shows how far down the page you are. Clicking an entry scrolls to
@@ -9,13 +9,19 @@ import { useEffect, useRef, useState } from "react";
 export interface TocItem {
   id: string;
   title: string;
+  /** Sub-sections, shown indented under the entry. */
+  children?: TocItem[];
 }
+
+/** Every id in page order, parents before children. */
+const flatIds = (items: TocItem[]): string[] => items.flatMap((i) => [i.id, ...flatIds(i.children ?? [])]);
 
 /** How far below the top of the window a heading counts as "reached". */
 const OFFSET = 140;
 
 export function Toc({ items }: { items: TocItem[] }) {
-  const [active, setActive] = useState(items[0]?.id ?? "");
+  const all = useMemo(() => flatIds(items), [items]);
+  const [active, setActive] = useState(all[0] ?? "");
   const [progress, setProgress] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const [marker, setMarker] = useState<{ top: number; height: number } | null>(null);
@@ -24,10 +30,10 @@ export function Toc({ items }: { items: TocItem[] }) {
     let frame = 0;
     const update = () => {
       frame = 0;
-      let current = items[0]?.id ?? "";
-      for (const item of items) {
-        const el = document.getElementById(item.id);
-        if (el && el.getBoundingClientRect().top <= OFFSET) current = item.id;
+      let current = all[0] ?? "";
+      for (const id of all) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= OFFSET) current = id;
       }
       const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
       if (atBottom && items.length > 0) current = items[items.length - 1].id;
@@ -46,7 +52,7 @@ export function Toc({ items }: { items: TocItem[] }) {
       window.removeEventListener("resize", schedule);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [items]);
+  }, [items, all]);
 
   // Move the marker to the active entry.
   useEffect(() => {
@@ -68,19 +74,37 @@ export function Toc({ items }: { items: TocItem[] }) {
           />
         )}
         {items.map((item) => (
-          <li key={item.id} data-toc={item.id}>
-            <a
-              href={`#${item.id}`}
-              aria-current={item.id === active ? "location" : undefined}
-              className={`block rounded-r px-3 py-1 text-sm transition-colors ${
-                item.id === active ? "bg-accent/10 font-medium text-foreground" : "text-muted hover:text-foreground"
-              }`}
-            >
-              {item.title}
-            </a>
-          </li>
+          <TocRow key={item.id} item={item} active={active} />
         ))}
       </ul>
     </div>
+  );
+}
+
+/** One entry. The parent is highlighted while it or any of its children is the current one. */
+function TocRow({ item, active, depth = 0 }: { item: TocItem; active: string; depth?: number }) {
+  const children = item.children ?? [];
+  const inside = item.id === active || flatIds(children).includes(active);
+  return (
+    <li>
+      <div data-toc={item.id}>
+        <a
+          href={`#${item.id}`}
+          aria-current={item.id === active ? "location" : undefined}
+          className={`block rounded-r py-1 pr-3 transition-colors ${depth > 0 ? "pl-6 text-[13px]" : "pl-3 text-sm"} ${
+            item.id === active ? "bg-accent/10 font-medium text-foreground" : inside ? "font-medium text-foreground" : "text-muted hover:text-foreground"
+          }`}
+        >
+          {item.title}
+        </a>
+      </div>
+      {children.length > 0 && (
+        <ul>
+          {children.map((c) => (
+            <TocRow key={c.id} item={c} active={active} depth={depth + 1} />
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
