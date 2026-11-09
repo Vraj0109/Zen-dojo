@@ -101,6 +101,10 @@ export const SOURCE_FILTERS = [
   { value: "", label: "All" },
   { value: "leetcode", label: "LeetCode" },
   { value: "cses", label: "CSES" },
+  { value: "atcoder", label: "AtCoder" },
+  { value: "codeforces", label: "Codeforces" },
+  { value: "euler", label: "Project Euler" },
+  { value: "kattis", label: "Kattis" },
   { value: "cp-algorithms", label: "cp-algorithms" },
 ] as const;
 export type DsaSource = (typeof SOURCE_FILTERS)[number]["value"];
@@ -110,10 +114,14 @@ export function parseSource(v: string | string[] | undefined): DsaSource {
   return SOURCE_FILTERS.some((x) => x.value === s) ? (s as DsaSource) : "";
 }
 
-/** Whether a problem belongs to a source: LeetCode and CSES by id prefix, cp-algorithms by its link. An empty source matches everything. */
+/** Whether a problem belongs to a source: LeetCode, CSES, AtCoder, Codeforces, Euler and Kattis by id prefix, cp-algorithms by its link. An empty source matches everything. */
 export function matchesSource(problem: { id: string; url?: string }, source: DsaSource): boolean {
   if (source === "leetcode") return problem.id.startsWith("lc-");
   if (source === "cses") return problem.id.startsWith("cses-");
+  if (source === "atcoder") return problem.id.startsWith("c-atc-");
+  if (source === "codeforces") return problem.id.startsWith("c-cf-");
+  if (source === "euler") return problem.id.startsWith("c-euler-");
+  if (source === "kattis") return problem.id.startsWith("c-kattis-");
   if (source === "cp-algorithms") return (problem.url ?? "").includes("cp-algorithms.com");
   return true;
 }

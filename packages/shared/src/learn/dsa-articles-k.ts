@@ -1,9 +1,13 @@
 import type { PatternArticle } from "./types";
+import { DSA_SITES_ARTICLES_A } from "./dsa-sites-articles-a";
+import { DSA_SITES_ARTICLES_B } from "./dsa-sites-articles-b";
 
 // Full pattern articles, group "Greedy, math, advanced" (step 10): greedy-proof, exchange-argument, number-theory, combinatorics, geometry, segment-tree, sparse-table, ordered-set, randomized, design-ds (plan 0008). Format and rules: plan 0007. Code is C++17. Blocks of one article are
 // concatenated and compiled together, so helper names are unique per article.
 
 export const DSA_ARTICLES_K: Record<string, PatternArticle> = {
+  ...DSA_SITES_ARTICLES_A,
+  ...DSA_SITES_ARTICLES_B,
   "greedy-proof": {
     intro:
       "A greedy algorithm builds an answer by making the choice that looks best right now and never revisiting it. It is the fastest kind of algorithm when it is correct and the most dangerous when it is not, because a wrong greedy looks convincing on small examples. This article is about the second half of the job: how to convince yourself, and an interviewer, that a local choice is globally safe, using the stays-ahead argument and the invariant a greedy loop carries.",

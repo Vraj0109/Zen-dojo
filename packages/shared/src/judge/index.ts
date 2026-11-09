@@ -21,6 +21,7 @@ import { LOGIC_SPECS_EULER } from "./problems-logic-euler";
 import { LOGIC_SPECS_ATCODER } from "./problems-logic-atcoder";
 import { LOGIC_SPECS_CODEFORCES } from "./problems-logic-codeforces";
 import { LOGIC_SPECS_KATTIS } from "./problems-logic-kattis";
+import { LOGIC_SPECS_BATCH2 } from "./problems-logic-batch2";
 import { STRESS } from "./stress";
 import { STRESS_6 } from "./stress-6";
 import { STRESS_7 } from "./stress-7";
@@ -60,6 +61,7 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
     ...LOGIC_SPECS_ATCODER,
     ...LOGIC_SPECS_CODEFORCES,
     ...LOGIC_SPECS_KATTIS,
+    ...LOGIC_SPECS_BATCH2,
   ].map((p) => [p.id, p])
 );
 
@@ -104,4 +106,4 @@ export const CSES_PROBLEMS: ProblemSpec[] = [
   ...CSES_SPECS_MISC,
 ];
 export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;
-export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS];
+export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2];

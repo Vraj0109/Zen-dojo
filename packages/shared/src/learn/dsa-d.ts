@@ -1,8 +1,10 @@
 import type { PatternGuide } from "./types";
+import { DSA_SITES_GUIDES } from "./dsa-sites-guides";
 
 // DSA pattern guides: dynamic programming, greedy and math, advanced structures. Templates are C++.
 
 export const DSA_GUIDES_D: Record<string, PatternGuide> = {
+  ...DSA_SITES_GUIDES,
   "dp-1d": {
     idea: "dp[i] = the answer for the first i items (or ending at i), built from a few earlier states. Write the recurrence first, then fill bottom-up; usually only the last one or two states are needed, so space drops to O(1).",
     signals: ["Number of ways to reach step i", "Best total when you can't take adjacent items", "Decode a string where pieces have length 1 or 2", "Minimum jumps/cost to reach the end"],

@@ -1,6 +1,6 @@
 # 0022: A much bigger problem library (CSES, other platforms, design problems)
 
-- **Status:** in-progress (batches 1-9 merged; 48 problems added in round 4, further platforms and CSES sections open)
+- **Status:** in-progress (batches 1-9 merged; 48 problems added in round 4 and 25 more in round 5; further logic problems and CSES sections open)
 - **Planned by:** Claude Code, 2026-11-09
 - **Implemented by:** Claude Code (Agent 1, round four), 2026-11-09; earlier batches by Agent B
 - **Spec:** none (builds on plans 0018 and 0020)
@@ -55,13 +55,13 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
   Where an answer is not unique (a path, a construction), return a **checkable value** instead (its length, or a count), and
   say so in the statement.
   - Done when: the CSES group lists all tasks; each section has its specs in order; the open ones are listed in the notes.
-- [ ] **3. Other platforms, 150 problems.** (round four: 44 done, see Implementation notes) Original write-ups, linked to the source, grouped under a new `dsa.ts` group "Logic
+- [ ] **3. Other platforms, 150 problems.** (round four: 44 done, round five: 25 more = 69, see Implementation notes) Original write-ups, linked to the source, grouped under a new `dsa.ts` group "Logic
   building" with these sets: AtCoder Beginner Contest A-D (about 40), Codeforces Div. 2 A-B rated 800-1400 on greedy,
   constructive, math and implementation (about 50), Project Euler 1-60 as functions with a fixed input (about 40), Kattis
   starter problems (about 20). Each gets a `source` value (`"atcoder" | "codeforces" | "euler" | "kattis"`; extend the
   `source` union in `types.ts` and the link label in `dsa/[id]/page.tsx`).
   - Done when: the group exists, every problem meets the quality bar, and the UI says where it comes from.
-- [ ] **4. Pattern tags and difficulty.** (done for the 44 logic problems, in the `cses-intro` pattern) Every new problem gets patterns (so it appears in `/dsa/pattern/[id]` practice
+- [x] **4. Pattern tags and difficulty.** (done for all 69 logic problems, one pattern per site: `cses-euler`, `cses-atcoder`, `cses-codeforces`, `cses-kattis`) Every new problem gets patterns (so it appears in `/dsa/pattern/[id]` practice
   lists where it fits) and a difficulty. Add a `patterns` mapping in `dsa.ts`; `getDsaView` already groups by pattern.
   - Done when: the pattern pages list the new problems and the totals on `/dsa` are right (`dsa.test.ts` counts updated).
 - [x] **5. Filters.** On `/dsa` add a source filter (LeetCode, CSES, AtCoder, Codeforces, Euler) next to the existing ones.
@@ -126,3 +126,15 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 - **UI.** `apps/web/app/dsa/[id]/page.tsx` now labels the link to the original ("Open on AtCoder", "Codeforces", "Project Euler", "Kattis"); before it would have said "Open on LeetCode". This file is outside the list of files this agent owns, but the plan asks for it in step 3.
 - **Not done (step 5 and 2).** The source filter on `/dsa` (`lib/dsa-filters.ts`) still offers only LeetCode, CSES and cp-algorithms; adding AtCoder, Codeforces, Euler and Kattis also means changing `dsa-filters.test.ts` (it pins `parseSource("codeforces")` to empty), so it was left for the owner of those files. The remaining CSES sections (range queries, tree, math, string, geometry and so on) were not started.
 - **Check.** `pnpm check` passed (65 test files, 944 tests, build ok). The first run failed on two tests that need a guide and an article for every new pattern id, which led to the `cses-intro` decision above. The status is `implemented` for this round's work; steps 2, 3 (106 problems short of 150) and 5 stay open, so the plan is not finished.
+
+### Round five, Agent 1 (2026-11-10)
+
+- **Source filter (step 5 finished).** `SOURCE_FILTERS` in `apps/web/lib/dsa-filters.ts` now lists All, LeetCode, CSES, AtCoder, Codeforces, Project Euler, Kattis and cp-algorithms. `matchesSource` matches the new sites by id prefix (`c-atc-`, `c-cf-`, `c-euler-`, `c-kattis-`). The dropdown on `/dsa` was already a plain GET form (`name="source"`, works without JS), so only the list changed. `dsa-filters.test.ts` was updated on purpose: `parseSource("codeforces")` is now `"codeforces"`, and an unknown site such as `hackerrank` still gives an empty source.
+- **Per-site patterns (step 4).** The logic problems moved out of `cses-intro` (name back to "CSES: introductory problems") into four patterns in the same group: `cses-euler`, `cses-atcoder`, `cses-codeforces`, `cses-kattis`. The ids start with `cses-` on purpose: `pattern-articles.test.ts` requires exactly 67 patterns without that prefix, and renaming the prefix would have meant editing that test. Each id has a guide (`learn/dsa-sites-guides.ts`, registered by one spread in `dsa-d.ts`) and a full 8-section article (`learn/dsa-sites-articles-a.ts` Euler and AtCoder, `-b.ts` Codeforces and Kattis, registered by two spreads in `dsa-articles-k.ts`). `learn/index.ts` was not touched. Their C++ blocks compile (`pattern-article-code.test.ts -t cses-`).
+- **25 more logic problems (step 3, now 69 of 150)**, file `problems-logic-batch2.ts` (`LOGIC_SPECS_BATCH2`, registered in `judge/index.ts`), large inputs in `stress-logic.ts`, 1 to 4 per problem. Each has own-words statement, source link, 6 or more tests (7 to 11), 3 hints and a reference solution.
+  - Euler (8): c-euler-4, 17, 19, 21, 26, 31, 35, 48. Parameters are not the original ones where that would publish the answer (Euler 4 takes a factor range, 31 takes coins and returns the count modulo 1000000007, 48 takes n and the digit count).
+  - AtCoder (6): c-atc-abc136-b, abc143-b, abc146-b, abc148-b, abc149-b, abc150-b.
+  - Codeforces (8): c-cf-71a, 118a, 266a, 677a, 160a, 69a, 110a (the number is a string because it can have 18 digits), 339a.
+  - Kattis (3): c-kattis-r2, spavanac, autori.
+- **Outputs.** Every expected output (examples, tests) came from compiling and running the C++ reference through `computeOutputs` with a git-excluded authoring test (not kept in the repo). The same run checked that the reference answers the statement's known values (for example 74 letters for n = 15, 13 circular primes below 100, 405071317 for the last ten digits of 1^1 to 10^10), that every value is a safe integer, and that every large input runs (slowest: Euler 26 at about 100 ms).
+- **Not done.** About 81 logic problems are still missing to reach 150 (AtCoder 15 of about 40, Codeforces 21 of about 50, Euler 24 of about 40, Kattis 9 of about 20). Step 2 (remaining CSES sections) and step 7 (final `pnpm check`) are open, so the status stays in-progress. Targeted tests run: dsa-filters, learn, pattern-articles, dsa, no-emoji, packages/shared (all passed); `pnpm check` not run (the lead does that).

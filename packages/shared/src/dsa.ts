@@ -407,6 +407,31 @@ const PROBLEM_LIST: Problem[] = [
   logic("kattis-oddmanout", "Odd Man Out (Kattis)", "https://open.kattis.com/problems/oddmanout", "E", "XOR cancels pairs and leaves the single code."),
   logic("kattis-planina", "Planina (Kattis)", "https://open.kattis.com/problems/planina", "E", "Spot the pattern: (2^n + 1)^2 points after n steps."),
   logic("kattis-bijele", "Bijele (Kattis)", "https://open.kattis.com/problems/bijele", "E", "Subtract what you have from a fixed target list."),
+  logic("euler-4", "Largest Palindrome Product (Project Euler 4)", "https://projecteuler.net/problem=4", "E", "Scan factor pairs from the top and break early once a product cannot beat the best palindrome."),
+  logic("euler-17", "Number Letter Counts (Project Euler 17)", "https://projecteuler.net/problem=17", "M", "Count letters from lookup tables of word lengths; get the 'and' rule right."),
+  logic("euler-19", "Counting Sundays (Project Euler 19)", "https://projecteuler.net/problem=19", "M", "Track the weekday modulo 7 while stepping month lengths, with the leap-year rule."),
+  logic("euler-21", "Amicable Numbers (Project Euler 21)", "https://projecteuler.net/problem=21", "M", "Divisor-sum sieve, then check that each partner maps back."),
+  logic("euler-26", "Reciprocal Cycles (Project Euler 26)", "https://projecteuler.net/problem=26", "M", "Strip 2s and 5s, then find the order of 10 modulo what is left."),
+  logic("euler-31", "Coin Sums (Project Euler 31)", "https://projecteuler.net/problem=31", "M", "Unbounded knapsack counting with coins in the outer loop."),
+  logic("euler-35", "Circular Primes (Project Euler 35)", "https://projecteuler.net/problem=35", "M", "Sieve once, then rotate digits and look each rotation up."),
+  logic("euler-48", "Self Powers (Project Euler 48)", "https://projecteuler.net/problem=48", "M", "Fast modular exponentiation with a 128-bit multiply for big moduli."),
+  logic("atc-abc136-b", "Uneven Numbers (AtCoder ABC 136 B)", "https://atcoder.jp/contests/abc136/tasks/abc136_b", "E", "Count whole digit-length blocks with a formula, not a loop over the numbers."),
+  logic("atc-abc143-b", "Takoyaki Festival (AtCoder ABC 143 B)", "https://atcoder.jp/contests/abc143/tasks/abc143_b", "E", "Sum of pair products from (sum squared - sum of squares) / 2."),
+  logic("atc-abc146-b", "ROT N (AtCoder ABC 146 B)", "https://atcoder.jp/contests/abc146/tasks/abc146_b", "E", "Shift letters with modulo 26 arithmetic."),
+  logic("atc-abc148-b", "Strings with the Same Length (AtCoder ABC 148 B)", "https://atcoder.jp/contests/abc148/tasks/abc148_b", "E", "Interleave two strings with one index."),
+  logic("atc-abc149-b", "Greedy Takahashi (AtCoder ABC 149 B)", "https://atcoder.jp/contests/abc149/tasks/abc149_b", "E", "Spend actions on the first pile with min(), then the second; no simulation at 10^12."),
+  logic("atc-abc150-b", "Count ABC (AtCoder ABC 150 B)", "https://atcoder.jp/contests/abc150/tasks/abc150_b", "E", "Slide a window of three characters."),
+  logic("cf-71a", "Way Too Long Words (Codeforces 71A)", "https://codeforces.com/problemset/problem/71/A", "E", "Branch on length and build first letter + count + last letter."),
+  logic("cf-118a", "String Task (Codeforces 118A)", "https://codeforces.com/problemset/problem/118/A", "E", "Filter characters, lowercase and prefix a dot in one pass."),
+  logic("cf-266a", "Stones on the Table (Codeforces 266A)", "https://codeforces.com/problemset/problem/266/A", "E", "Count adjacent equal pairs."),
+  logic("cf-677a", "Vanya and Fence (Codeforces 677A)", "https://codeforces.com/problemset/problem/677/A", "E", "Add 1 or 2 per element depending on a threshold."),
+  logic("cf-160a", "Twins (Codeforces 160A)", "https://codeforces.com/problemset/problem/160/A", "E", "Greedy: take the largest coins until you hold more than half."),
+  logic("cf-69a", "Young Physicist (Codeforces 69A)", "https://codeforces.com/problemset/problem/69/A", "E", "Sum each coordinate separately and test for zero."),
+  logic("cf-110a", "Nearly Lucky Number (Codeforces 110A)", "https://codeforces.com/problemset/problem/110/A", "E", "Read a huge number as a string and test the digit count."),
+  logic("cf-339a", "Helpful Maths (Codeforces 339A)", "https://codeforces.com/problemset/problem/339/A", "E", "Sort the digits and re-join them with plus signs."),
+  logic("kattis-r2", "R2 (Kattis)", "https://open.kattis.com/problems/r2", "E", "Solve the mean equation for the missing value."),
+  logic("kattis-spavanac", "Spavanac (Kattis)", "https://open.kattis.com/problems/spavanac", "E", "Clock arithmetic in minutes since midnight with a wrap-around."),
+  logic("kattis-autori", "Autori (Kattis)", "https://open.kattis.com/problems/autori", "E", "Take the first character of each hyphen-separated word."),
 ];
 
 export const PROBLEMS: Record<string, Problem> = Object.fromEntries(PROBLEM_LIST.map((p) => [p.id, p]));
@@ -415,7 +440,7 @@ const L = (...numbers: number[]) => numbers.map((n) => `lc-${n}`);
 const C = (...ids: string[]) => ids.map((id) => `c-${id}`);
 const C2 = (...slugs: string[]) => slugs.map((slug) => `cses-${slug}`);
 /** Logic-building problems from AtCoder, Codeforces, Project Euler and Kattis: they share the warm-up pattern below. */
-const LOGIC_IDS = PROBLEM_LIST.filter((p) => /^c-(euler|atc|cf|kattis)-/.test(p.id)).map((p) => p.id);
+const logicIds = (site: string) => PROBLEM_LIST.filter((p) => p.id.startsWith(`c-${site}-`)).map((p) => p.id);
 
 export const DSA_GROUPS: PatternGroup[] = [
   {
@@ -545,8 +570,8 @@ export const DSA_GROUPS: PatternGroup[] = [
     patterns: [
       {
         id: "cses-intro",
-        name: "Warm-up tasks: CSES intro, Euler, AtCoder, Codeforces, Kattis",
-        recognize: "Short tasks from cses.fi, Project Euler, AtCoder, Codeforces and Kattis; the same Run, hints and solutions as the roadmap problems",
+        name: "CSES: introductory problems",
+        recognize: "Short tasks from cses.fi that ask for care with limits and 64-bit arithmetic; the same Run, hints and solutions as the roadmap problems",
         problems: [
           ...C2(
             "weird-algorithm",
@@ -573,8 +598,31 @@ export const DSA_GROUPS: PatternGroup[] = [
             "string-reorder",
             "grid-path-description"
           ),
-          ...LOGIC_IDS,
         ],
+      },
+      {
+        id: "cses-euler",
+        name: "Project Euler: math and number theory",
+        recognize: "Closed formulas, sieves, modular arithmetic and careful 64-bit ranges, from projecteuler.net",
+        problems: logicIds("euler"),
+      },
+      {
+        id: "cses-atcoder",
+        name: "AtCoder: beginner contest tasks",
+        recognize: "Short ABC tasks that reward reading the constraints and picking a formula or a small brute force",
+        problems: logicIds("atc"),
+      },
+      {
+        id: "cses-codeforces",
+        name: "Codeforces: Div. 2 A and B tasks",
+        recognize: "Implementation, greedy and math tasks rated about 800 to 1400 on codeforces.com",
+        problems: logicIds("cf"),
+      },
+      {
+        id: "cses-kattis",
+        name: "Kattis: starter problems",
+        recognize: "Small string, arithmetic and counting problems from open.kattis.com",
+        problems: logicIds("kattis"),
       },
       {
         id: "cses-sorting",

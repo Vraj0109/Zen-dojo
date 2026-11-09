@@ -113,7 +113,9 @@ describe("source filter", () => {
   it("parses the source and keeps only known values", () => {
     expect(parseSource("cp-algorithms")).toBe("cp-algorithms");
     expect(parseSource(["CSES"])).toBe("cses");
-    expect(parseSource("codeforces")).toBe("");
+    expect(parseSource("codeforces")).toBe("codeforces");
+    expect(parseSource("euler")).toBe("euler");
+    expect(parseSource("hackerrank")).toBe("");
     expect(parseSource(undefined)).toBe("");
   });
 
@@ -126,5 +128,11 @@ describe("source filter", () => {
     expect([lc, cses, cp, plain].filter((p) => matchesSource(p, "cses"))).toEqual([cses]);
     expect([lc, cses, cp, plain].filter((p) => matchesSource(p, "cp-algorithms"))).toEqual([cp]);
     expect([lc, cses, cp, plain].filter((p) => matchesSource(p, ""))).toHaveLength(4);
+    const logic = [{ id: "c-euler-1" }, { id: "c-atc-abc086-a" }, { id: "c-cf-4a" }, { id: "c-kattis-pot" }];
+    expect(logic.filter((p) => matchesSource(p, "euler"))).toEqual([logic[0]]);
+    expect(logic.filter((p) => matchesSource(p, "atcoder"))).toEqual([logic[1]]);
+    expect(logic.filter((p) => matchesSource(p, "codeforces"))).toEqual([logic[2]]);
+    expect(logic.filter((p) => matchesSource(p, "kattis"))).toEqual([logic[3]]);
+    expect(logic.filter((p) => matchesSource(p, "leetcode"))).toEqual([]);
   });
 });
