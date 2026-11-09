@@ -17,4 +17,4 @@ When running C++ code on Windows 11, the judge compiles a temporary executable (
 1. **Solve in Java or JavaScript**: The editor automatically switches and remembers this language choice per problem.
 2. **Add an exclusion**: Add the app directory or temporary folder to **Windows Security > Virus & threat protection > Manage settings > Exclusions**.
 3. **Smart App Control settings**: In **Windows Security > App & browser control > Smart App Control settings**. Note: Windows does not allow turning Smart App Control back on after disabling it without reinstalling the OS.
-4. **Future WebAssembly runner (Plan 0034 Part B)**: Compiling C++ to WebAssembly and running it in Node without spawning native executables.
+4. **WebAssembly evaluation (Plan 0034 Part B ADR)**: Formally rejected because in-browser Wasm Clang is 5–15× slower to compile and adds 40MB+ of binary bloat. Java/Node signed runtimes remain the high-speed solution on Windows.

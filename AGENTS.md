@@ -21,7 +21,9 @@ The plan file is the contract and the shared memory between tools. Whoever works
 ## Commands (run from repo root)
 
 - `pnpm dev` / `pnpm build` / `pnpm start`: web app on http://localhost:3000
-- `pnpm test`: Vitest, all tests once (~6s). `pnpm check`: lint + typecheck + test + build (what CI runs)
+- `pnpm test`: Vitest full test suite (compiles all C++ and Java demos, takes ~3.5 min). Never run during active dev.
+- `pnpm check`: lint + typecheck + test + build (what CI runs, takes ~5 min). Run ONLY ONCE before push.
+- Targeted tests (fast, 2-5s): `pnpm exec vitest run <path/to/test.ts>` (e.g. `learn.test.ts`, `diagrams-parse.test.ts`).
 - `pnpm desktop:build`: Electron installer for the current OS in `apps/desktop/dist/` (~2 min);
   `pnpm desktop:dev`: Electron window on the dev server
 - Windows: in PowerShell use `pnpm.cmd` / `npm.cmd` (script execution policy may block `pnpm.ps1`)
@@ -98,8 +100,8 @@ The plan file is the contract and the shared memory between tools. Whoever works
 
 - **Git:** never `git commit` or `git push` unless the user explicitly asks in that conversation. Never add a
   `Co-Authored-By` line or any AI attribution to commits. Suggest a commit message instead.
-- **Done means checked:** run `pnpm test`, then `pnpm check`, before saying work is finished. Report failures as
-  they are; don't hide or skip them.
+- **Fast feedback loop:** during implementation, run ONLY targeted test files (`pnpm exec vitest run <file>`) or `pnpm -r typecheck`. Never run full `pnpm test` during iterations.
+- **Done means checked:** run `pnpm check` (NOT `pnpm test` then `pnpm check`) once at the very end before signing off. Report failures as they are; don't hide or skip them.
 - **Stay in scope:** do what the plan or request says. Note other problems you find instead of fixing them silently.
 - **User data:** never read credentials, never modify `data/habit.db` or the desktop app-data folder; use copies or
   `:memory:` for testing.

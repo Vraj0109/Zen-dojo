@@ -13,6 +13,13 @@ In this repo Claude plans features and reviews implementations; Antigravity (see
 - Set the status to `ready` and add it to the index in `docs/plans/README.md`. Don't implement it unless the user
   explicitly asks Claude to.
 
+## Speed & Testing Rules (Vital)
+
+- **Never run full `pnpm test` during implementation**: It compiles all 71 C++ pattern programs and 9 Java LLD systems from scratch, taking ~4 minutes.
+- **Run targeted tests only**: Use `pnpm exec vitest run <file>` (e.g. `pnpm exec vitest run packages/shared/src/learn/design-depth.test.ts`) which finishes in 1–3 seconds.
+- Use `pnpm -r typecheck` to check TypeScript types without compiling native binaries.
+- Do not run `pnpm test` and `pnpm check` back to back. `pnpm check` already runs tests as part of its pipeline.
+
 ## Reviewing (`/review-plan <number>`)
 
 - Read the plan, `git status`/`git diff` for the change, and run `pnpm check`.
