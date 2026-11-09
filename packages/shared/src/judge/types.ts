@@ -39,9 +39,9 @@ export interface DesignSpec {
 }
 
 export interface ProblemSpec {
-  /** "lc-1" for a roadmap LeetCode problem, "cses-<slug>" for a CSES problem, "c-<slug>" for other problems */
+  /** "lc-1" for a roadmap LeetCode problem, "cses-<slug>" for a CSES problem, "c-<slug>" for other problems ("c-euler-1", "c-atc-...", "c-cf-...", "c-kattis-...") */
   id: string;
-  source: "leetcode" | "cses" | "other";
+  source: "leetcode" | "cses" | "other" | "atcoder" | "codeforces" | "euler" | "kattis";
   title: string;
   /** Paragraphs, plain text. Backtick-free; `code` spans are written with plain quotes. */
   statement: string[];

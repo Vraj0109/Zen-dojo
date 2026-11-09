@@ -21,6 +21,17 @@ import { Tabs, type TabItem } from "../../tabs";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 
+/** The text of the link to the original problem page, by where the problem comes from. */
+function linkLabel(id: string, url: string): string {
+  if (id.startsWith("cses-")) return "Open on CSES ↗";
+  if (url.includes("cp-algorithms.com")) return "Open on cp-algorithms ↗";
+  if (url.includes("atcoder.jp")) return "Open on AtCoder ↗";
+  if (url.includes("codeforces.com")) return "Open on Codeforces ↗";
+  if (url.includes("projecteuler.net")) return "Open on Project Euler ↗";
+  if (url.includes("kattis.com")) return "Open on Kattis ↗";
+  return "Open on LeetCode ↗";
+}
+
 export const metadata: Metadata = { title: "Problem" };
 
 export default function ProblemPage({ params, searchParams }: PageProps<"/dsa/[id]">) {
@@ -132,7 +143,7 @@ async function Problem({
               </span>
               {p.url && (
                 <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
-                  {p.id.startsWith("cses-") ? "Open on CSES ↗" : p.url.includes("cp-algorithms.com") ? "Open on cp-algorithms ↗" : "Open on LeetCode ↗"}
+                  {linkLabel(p.id, p.url)}
                 </a>
               )}
               {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
@@ -216,7 +227,7 @@ async function Problem({
               rel="noopener noreferrer"
               className="text-foreground hover:underline"
             >
-              {p.id.startsWith("cses-") ? "Open on CSES ↗" : p.url.includes("cp-algorithms.com") ? "Open on cp-algorithms ↗" : "Open on LeetCode ↗"}
+              {linkLabel(p.id, p.url)}
             </a>
           )}
         </div>

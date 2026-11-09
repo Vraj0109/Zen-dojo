@@ -1,8 +1,8 @@
 # 0022: A much bigger problem library (CSES, other platforms, design problems)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-09
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (Agent 1, round four), 2026-11-09; earlier batches by Agent B
 - **Spec:** none (builds on plans 0018 and 0020)
 
 ## Goal
@@ -55,13 +55,13 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
   Where an answer is not unique (a path, a construction), return a **checkable value** instead (its length, or a count), and
   say so in the statement.
   - Done when: the CSES group lists all tasks; each section has its specs in order; the open ones are listed in the notes.
-- [ ] **3. Other platforms, 150 problems.** Original write-ups, linked to the source, grouped under a new `dsa.ts` group "Logic
+- [ ] **3. Other platforms, 150 problems.** (round four: 44 done, see Implementation notes) Original write-ups, linked to the source, grouped under a new `dsa.ts` group "Logic
   building" with these sets: AtCoder Beginner Contest A-D (about 40), Codeforces Div. 2 A-B rated 800-1400 on greedy,
   constructive, math and implementation (about 50), Project Euler 1-60 as functions with a fixed input (about 40), Kattis
   starter problems (about 20). Each gets a `source` value (`"atcoder" | "codeforces" | "euler" | "kattis"`; extend the
   `source` union in `types.ts` and the link label in `dsa/[id]/page.tsx`).
   - Done when: the group exists, every problem meets the quality bar, and the UI says where it comes from.
-- [ ] **4. Pattern tags and difficulty.** Every new problem gets patterns (so it appears in `/dsa/pattern/[id]` practice
+- [ ] **4. Pattern tags and difficulty.** (done for the 44 logic problems, in the `cses-intro` pattern) Every new problem gets patterns (so it appears in `/dsa/pattern/[id]` practice
   lists where it fits) and a difficulty. Add a `patterns` mapping in `dsa.ts`; `getDsaView` already groups by pattern.
   - Done when: the pattern pages list the new problems and the totals on `/dsa` are right (`dsa.test.ts` counts updated).
 - [x] **5. Filters.** On `/dsa` add a source filter (LeetCode, CSES, AtCoder, Codeforces, Euler) next to the existing ones.
@@ -110,3 +110,19 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 - Fixed empty-link problems: added full runnable `ProblemSpec`s and stress generators for `c-z-function` and `c-rabin-karp` (`packages/shared/src/judge/problems-other.ts`).
 - Expanded CSES Introductory section: added runnable `ProblemSpec`s and stress tests for 7 introductory tasks (`cses-permutations`, `cses-number-spiral`, `cses-two-knights`, `cses-two-sets`, `cses-bit-strings`, `cses-trailing-zeros`, `cses-coin-piles`).
 - Total judgeable problems now exceeds 160 problems across LeetCode roadmap, CSES, and logic-building sets.
+
+### Round four, Agent 1 (2026-11-09)
+
+- **Roadmap problems (step 1 finished).** Every roadmap problem that fits has a spec now. Added in this round (file `problems-design-c.ts`): `lc-142` Linked List Cycle II (adapted: the list is `nums` plus `pos`, the answer is the index where the cycle starts), `lc-480` Sliding Window Median (adapted: returns twice each median as `long[]`, because there is no `double[]` return type), `lc-295` Find Median from Data Stream and `lc-432` All O`one (design-class problems; the tests only ask for a max or min when it is unique). Only 6 LeetCode roadmap problems still have no spec: `lc-297` (serialize: the format is free, nothing to check), `lc-173` (the constructor takes a tree, design problems allow only plain types), `lc-133` (graph nodes), `lc-528` and `lc-382` (random output), `lc-362` (premium); the other roadmap items without a spec are the concept entries (`c-sparse-table`, `c-sqrt-decomposition`, `c-bloom-filter`, `c-consistent-hashing`, `c-tsp`, `c-dp-optimizations`, `c-modular-inverse`, `c-ncr-mod-p`, `c-subtree-range-queries`, `c-aggressive-cows`), which are reading items, not function problems. The "about 30 remaining" in the task was out of date: Agent B's batches 6 to 9 had already covered the rest.
+- **Logic building (step 3, 44 of 150).** New `source` values `atcoder | codeforces | euler | kattis` in `types.ts`. Ids: `c-euler-N`, `c-atc-<task>`, `c-cf-<contest><letter>`, `c-kattis-<slug>`. Each problem has its statement written in our own words, a link to the original, 6 or more tests, 3 hints, a reference solution and 1 to 5 large inputs (`stress-logic.ts`).
+  - Project Euler, 16 (`projecteuler.net`): 1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 24, 28, 29. They take parameters instead of the fixed original input so there are 6 or more different tests. No test uses the original parameter of the Euler task, so the repository does not hold the published answers. All outputs must stay below 2^53 (the tests are JSON numbers), so some limits are smaller than the originals (for example Euler 6 stops at n = 10000).
+  - AtCoder, 9 (the practice contest `abs`): ABC 086 A, 081 B, 087 B, 083 B, 088 B, 085 B, 085 C (a count of triples instead of "any triple"), 086 C (Traveling, task `arc089_a`), 049 C (Daydream, task `arc065_a`).
+  - Codeforces, 13: 4A, 1A, 231A, 158A, 50A, 263A, 546A, 158B, 363B (returns the smallest start index so the answer is unique), 580A, 466A, 1352C, 1475A.
+  - Kattis, 6: pot, tarifa, sevenwonders, oddmanout, planina, bijele.
+  - Not done: about 106 more to reach 150 (AtCoder is at 9 of about 40, Codeforces 13 of about 50, Euler 16 of about 40, Kattis 6 of about 20).
+- **Outputs.** Every expected output was produced by compiling and running the C++ reference (`g++`) through the judge's `computeOutputs`, using a git-excluded authoring test that is not part of the repository. Where the statement quotes a known answer (for example Euler 1 below 10 is 23) the authoring step checked the reference against it. This caught four wrong hand-written guesses of mine (AtCoder 088 B, Codeforces 158A and 466A, AtCoder 086 C) before they were written into the specs, and an output above 2^53 in Euler 1 and 6.
+- **Checked by running.** A temporary test ran the reference of all 48 new problems against every example, test and large input through `runCode` (all 48 passed, 185 s). It is not kept: plan step 7 says not to add a test that runs every reference solution.
+- **Step 4 (patterns).** The 44 logic problems are listed in the existing pattern `cses-intro` (id kept because `learn.test.ts` needs a guide for every pattern id and `pattern-articles.test.ts` an article for every id not starting with `cses-`; new pattern ids would have needed guides in `learn/dsa-*.ts`, outside this agent's files). Its name is now "Warm-up tasks: CSES intro, Euler, AtCoder, Codeforces, Kattis". A later plan could give each site its own pattern with a guide. Each new problem has a difficulty and a one-line "why" (`logic(...)` helper in `dsa.ts`). `dsa.test.ts` needed no change (the group count stays 10).
+- **UI.** `apps/web/app/dsa/[id]/page.tsx` now labels the link to the original ("Open on AtCoder", "Codeforces", "Project Euler", "Kattis"); before it would have said "Open on LeetCode". This file is outside the list of files this agent owns, but the plan asks for it in step 3.
+- **Not done (step 5 and 2).** The source filter on `/dsa` (`lib/dsa-filters.ts`) still offers only LeetCode, CSES and cp-algorithms; adding AtCoder, Codeforces, Euler and Kattis also means changing `dsa-filters.test.ts` (it pins `parseSource("codeforces")` to empty), so it was left for the owner of those files. The remaining CSES sections (range queries, tree, math, string, geometry and so on) were not started.
+- **Check.** `pnpm check` passed (65 test files, 944 tests, build ok). The first run failed on two tests that need a guide and an article for every new pattern id, which led to the `cses-intro` decision above. The status is `implemented` for this round's work; steps 2, 3 (106 problems short of 150) and 5 stay open, so the plan is not finished.

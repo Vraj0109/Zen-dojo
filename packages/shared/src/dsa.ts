@@ -50,6 +50,11 @@ function cses(slug: string, title: string, task: number, why?: string): Problem 
   return { id: `cses-${slug}`, title, url: `https://cses.fi/problemset/task/${task}`, ...(why ? { why } : {}) };
 }
 
+/** A logic-building problem from another site (AtCoder, Codeforces, Project Euler, Kattis), written in our own words. */
+function logic(id: string, title: string, url: string, d: keyof typeof D, why: string): Problem {
+  return { id: `c-${id}`, title, url, difficulty: D[d], why };
+}
+
 function other(id: string, title: string, url?: string): Problem {
   return { id: `c-${id}`, title, ...(url ? { url } : {}) };
 }
@@ -357,6 +362,51 @@ const PROBLEM_LIST: Problem[] = [
   cses("binomial-coefficients", "Binomial Coefficients", 1079, "Precomputed factorials and modular inverse via Fermat's Little Theorem for nCr."),
   cses("fibonacci-numbers", "Fibonacci Numbers", 1722, "2x2 matrix exponentiation to compute nth Fibonacci number in O(log n)."),
   cses("string-matching", "String Matching", 1753, "KMP algorithm (Knuth-Morris-Pratt) or Z-algorithm for linear pattern matching."),
+  // 11. Logic building from other sites (statements written for this app, each linked to its source)
+  logic("euler-1", "Multiples of Two Numbers (Project Euler 1)", "https://projecteuler.net/problem=1", "E", "Inclusion-exclusion with arithmetic series instead of a loop."),
+  logic("euler-2", "Even Fibonacci Numbers (Project Euler 2)", "https://projecteuler.net/problem=2", "E", "Generate a sequence with two variables and filter by parity."),
+  logic("euler-3", "Largest Prime Factor (Project Euler 3)", "https://projecteuler.net/problem=3", "E", "Trial division that divides each factor out, stopping at the square root."),
+  logic("euler-5", "Smallest Common Multiple (Project Euler 5)", "https://projecteuler.net/problem=5", "E", "Fold lcm over 1..n and divide before multiplying."),
+  logic("euler-6", "Sum Square Difference (Project Euler 6)", "https://projecteuler.net/problem=6", "E", "Closed formulas for sums and sums of squares; watch 64-bit range."),
+  logic("euler-7", "The n-th Prime (Project Euler 7)", "https://projecteuler.net/problem=7", "E", "Sieve of Eratosthenes with a safe upper bound for the n-th prime."),
+  logic("euler-8", "Largest Product in a Series (Project Euler 8)", "https://projecteuler.net/problem=8", "E", "Sliding window over digits; zeros break running products."),
+  logic("euler-9", "Pythagorean Triplet by Perimeter (Project Euler 9)", "https://projecteuler.net/problem=9", "M", "Fix one side and solve for the other with algebra."),
+  logic("euler-10", "Summation of Primes (Project Euler 10)", "https://projecteuler.net/problem=10", "E", "Sieve up to 20 million and a 64-bit sum."),
+  logic("euler-12", "Triangle Number With Many Divisors (Project Euler 12)", "https://projecteuler.net/problem=12", "M", "Divisor counts from prime factorisation of two coprime halves."),
+  logic("euler-14", "Longest Collatz Chain (Project Euler 14)", "https://projecteuler.net/problem=14", "M", "Memoise chain lengths and use 64-bit values inside chains."),
+  logic("euler-15", "Lattice Paths in a Rectangle (Project Euler 15)", "https://projecteuler.net/problem=15", "M", "Binomial coefficient modulo a prime with factorials and Fermat inverses."),
+  logic("euler-16", "Digit Sum of a Power of Two (Project Euler 16)", "https://projecteuler.net/problem=16", "M", "Big-number doubling in base 10^9 limbs."),
+  logic("euler-24", "k-th Lexicographic Permutation (Project Euler 24)", "https://projecteuler.net/problem=24", "M", "Factorial number system: pick each digit by division."),
+  logic("euler-28", "Number Spiral Diagonals (Project Euler 28)", "https://projecteuler.net/problem=28", "E", "Find the corner formula for each ring of the spiral."),
+  logic("euler-29", "Distinct Powers (Project Euler 29)", "https://projecteuler.net/problem=29", "M", "Normalise a^b to (root, exponent) pairs and count distinct pairs."),
+  logic("atc-abc086-a", "Product (AtCoder ABC 086 A)", "https://atcoder.jp/contests/abs/tasks/abc086_a", "E", "Parity of a product from parity of the factors."),
+  logic("atc-abc081-b", "Shift Only (AtCoder ABC 081 B)", "https://atcoder.jp/contests/abs/tasks/abc081_b", "E", "Minimum count of factors of two across the numbers."),
+  logic("atc-abc087-b", "Coins (AtCoder ABC 087 B)", "https://atcoder.jp/contests/abs/tasks/abc087_b", "E", "Brute force over small counts of three coin kinds."),
+  logic("atc-abc083-b", "Some Sums (AtCoder ABC 083 B)", "https://atcoder.jp/contests/abs/tasks/abc083_b", "E", "Digit sum by repeated modulo and division, filtered sum."),
+  logic("atc-abc088-b", "Card Game for Two (AtCoder ABC 088 B)", "https://atcoder.jp/contests/abs/tasks/abc088_b", "E", "Greedy play: sort descending and alternate signs."),
+  logic("atc-abc085-b", "Kagami Mochi (AtCoder ABC 085 B)", "https://atcoder.jp/contests/abs/tasks/abc085_b", "E", "Count of distinct values via a set."),
+  logic("atc-abc085-c", "Otoshidama Combinations (AtCoder ABC 085 C)", "https://atcoder.jp/contests/abs/tasks/abc085_c", "M", "Two loops fix the third count; count matching triples."),
+  logic("atc-arc089-a", "Traveling (AtCoder ABC 086 C)", "https://atcoder.jp/contests/abs/tasks/arc089_a", "M", "Manhattan distance and parity decide whether a leg is possible."),
+  logic("atc-arc065-a", "Daydream (AtCoder ABC 049 C)", "https://atcoder.jp/contests/abs/tasks/arc065_a", "M", "String DP over word endings, or reversed greedy matching."),
+  logic("cf-4a", "Watermelon (Codeforces 4A)", "https://codeforces.com/problemset/problem/4/A", "E", "Even and greater than 2 as the whole condition."),
+  logic("cf-1a", "Theatre Square (Codeforces 1A)", "https://codeforces.com/problemset/problem/1/A", "E", "Ceiling division per side and a 64-bit product."),
+  logic("cf-231a", "Team (Codeforces 231A)", "https://codeforces.com/problemset/problem/231/A", "E", "Count rows that meet a simple threshold."),
+  logic("cf-158a", "Next Round (Codeforces 158A)", "https://codeforces.com/problemset/problem/158/A", "E", "Compare each score with the k-th score and exclude zero."),
+  logic("cf-50a", "Domino Piling (Codeforces 50A)", "https://codeforces.com/problemset/problem/50/A", "E", "An area bound that is always reachable: m * n / 2."),
+  logic("cf-263a", "Beautiful Matrix (Codeforces 263A)", "https://codeforces.com/problemset/problem/263/A", "E", "Manhattan distance of a single cell to the centre."),
+  logic("cf-546a", "Soldier and Bananas (Codeforces 546A)", "https://codeforces.com/problemset/problem/546/A", "E", "Arithmetic series total, clamp at zero, 64-bit."),
+  logic("cf-158b", "Taxi (Codeforces 158B)", "https://codeforces.com/problemset/problem/158/B", "M", "Count group sizes and pair 3s with 1s, 2s with 2s."),
+  logic("cf-363b", "Fence (Codeforces 363B)", "https://codeforces.com/problemset/problem/363/B", "E", "Fixed-size sliding window sum with the earliest minimum."),
+  logic("cf-580a", "Kefa and First Steps (Codeforces 580A)", "https://codeforces.com/problemset/problem/580/A", "E", "Longest non-decreasing run in one pass."),
+  logic("cf-466a", "Cheap Travel (Codeforces 466A)", "https://codeforces.com/problemset/problem/466/A", "E", "Compare buying only singles, only bundles, or bundles plus singles."),
+  logic("cf-1352c", "K-th Not Divisible by n (Codeforces 1352C)", "https://codeforces.com/problemset/problem/1352/C", "M", "Count skipped multiples with a formula: k + (k - 1) / (n - 1)."),
+  logic("cf-1475a", "Odd Divisor (Codeforces 1475A)", "https://codeforces.com/problemset/problem/1475/A", "E", "No odd divisor above 1 means a power of two: n & (n - 1) == 0."),
+  logic("kattis-pot", "Pot (Kattis)", "https://open.kattis.com/problems/pot", "E", "Split a number into base and exponent and sum the powers."),
+  logic("kattis-tarifa", "Tarifa (Kattis)", "https://open.kattis.com/problems/tarifa", "E", "Total received minus total used, with carry-over implicit."),
+  logic("kattis-sevenwonders", "Seven Wonders (Kattis)", "https://open.kattis.com/problems/sevenwonders", "E", "Count letters; squares plus a bonus for complete sets."),
+  logic("kattis-oddmanout", "Odd Man Out (Kattis)", "https://open.kattis.com/problems/oddmanout", "E", "XOR cancels pairs and leaves the single code."),
+  logic("kattis-planina", "Planina (Kattis)", "https://open.kattis.com/problems/planina", "E", "Spot the pattern: (2^n + 1)^2 points after n steps."),
+  logic("kattis-bijele", "Bijele (Kattis)", "https://open.kattis.com/problems/bijele", "E", "Subtract what you have from a fixed target list."),
 ];
 
 export const PROBLEMS: Record<string, Problem> = Object.fromEntries(PROBLEM_LIST.map((p) => [p.id, p]));
@@ -364,6 +414,8 @@ export const PROBLEMS: Record<string, Problem> = Object.fromEntries(PROBLEM_LIST
 const L = (...numbers: number[]) => numbers.map((n) => `lc-${n}`);
 const C = (...ids: string[]) => ids.map((id) => `c-${id}`);
 const C2 = (...slugs: string[]) => slugs.map((slug) => `cses-${slug}`);
+/** Logic-building problems from AtCoder, Codeforces, Project Euler and Kattis: they share the warm-up pattern below. */
+const LOGIC_IDS = PROBLEM_LIST.filter((p) => /^c-(euler|atc|cf|kattis)-/.test(p.id)).map((p) => p.id);
 
 export const DSA_GROUPS: PatternGroup[] = [
   {
@@ -489,37 +541,40 @@ export const DSA_GROUPS: PatternGroup[] = [
   },
   {
     id: "cses",
-    title: "CSES: logic building",
+    title: "Logic building: CSES and other sites",
     patterns: [
       {
         id: "cses-intro",
-        name: "CSES: introductory problems",
-        recognize: "Short warm-up tasks from cses.fi; the same Run, hints and solutions as the roadmap problems",
-        problems: C2(
-          "weird-algorithm",
-          "missing-number",
-          "repetitions",
-          "increasing-array",
-          "permutations",
-          "number-spiral",
-          "two-knights",
-          "two-sets",
-          "bit-strings",
-          "trailing-zeros",
-          "coin-piles",
-          "palindrome-reorder",
-          "creating-strings",
-          "apple-division",
-          "chessboard-and-queens",
-          "digit-queries",
-          "grid-coloring-i",
-          "gray-code",
-          "tower-of-hanoi",
-          "mex-grid-construction",
-          "knight-moves-grid",
-          "string-reorder",
-          "grid-path-description"
-        ),
+        name: "Warm-up tasks: CSES intro, Euler, AtCoder, Codeforces, Kattis",
+        recognize: "Short tasks from cses.fi, Project Euler, AtCoder, Codeforces and Kattis; the same Run, hints and solutions as the roadmap problems",
+        problems: [
+          ...C2(
+            "weird-algorithm",
+            "missing-number",
+            "repetitions",
+            "increasing-array",
+            "permutations",
+            "number-spiral",
+            "two-knights",
+            "two-sets",
+            "bit-strings",
+            "trailing-zeros",
+            "coin-piles",
+            "palindrome-reorder",
+            "creating-strings",
+            "apple-division",
+            "chessboard-and-queens",
+            "digit-queries",
+            "grid-coloring-i",
+            "gray-code",
+            "tower-of-hanoi",
+            "mex-grid-construction",
+            "knight-moves-grid",
+            "string-reorder",
+            "grid-path-description"
+          ),
+          ...LOGIC_IDS,
+        ],
       },
       {
         id: "cses-sorting",
