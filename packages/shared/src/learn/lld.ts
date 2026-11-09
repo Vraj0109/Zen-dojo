@@ -1,6 +1,7 @@
 import { lesson, type LldGuide, type Lesson } from "./types";
 import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
 import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
+import { BOOKING_GUIDE } from "./lld-deep-c-booking";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -224,78 +225,7 @@ class ElevatorSystem {
       "Thread safety: dispatcher on one thread, each elevator on its own thread consuming a BlockingQueue of commands.",
     ],
   },
-  "lldp-booking": {
-    requirements: [
-      "Movie ticket booking: cities → theatres → screens → shows; each show has a seat map.",
-      "User selects seats, they're held for a few minutes while paying, then confirmed or released.",
-      "Two users must never book the same seat.",
-      "Pricing by seat category; cancellation with refund rules.",
-    ],
-    entities: ["Movie", "Theatre / Screen", "Show (movie, screen, start time)", "Seat (row, number, category)", "ShowSeat (seat state per show: AVAILABLE, HELD, BOOKED; hold expiry; version)", "Booking (user, show, seats, status)", "PaymentService"],
-    patterns: ["State for ShowSeat and Booking status", "Strategy for pricing", "Optimistic locking for holds"],
-    code: `enum SeatState { AVAILABLE, HELD, BOOKED }
-
-class ShowSeat {
-  final String seatId; SeatState state = SeatState.AVAILABLE;
-  String heldBy; Instant holdUntil;
-  ShowSeat(String seatId) { this.seatId = seatId; }
-  boolean isFree(Instant now) {
-    return state == SeatState.AVAILABLE || (state == SeatState.HELD && holdUntil.isBefore(now));
-  }
-}
-
-class Show {
-  final String id; private final Map<String, ShowSeat> seats = new HashMap<>();
-  Show(String id, List<String> seatIds) { this.id = id; seatIds.forEach(s -> seats.put(s, new ShowSeat(s))); }
-
-  /** All-or-nothing hold. Lock per show keeps it simple; a DB would use a conditional update. */
-  synchronized boolean hold(List<String> ids, String userId, Instant now, Duration ttl) {
-    if (!ids.stream().allMatch(id -> seats.get(id).isFree(now))) return false;
-    for (String id : ids) {
-      ShowSeat s = seats.get(id);
-      s.state = SeatState.HELD; s.heldBy = userId; s.holdUntil = now.plus(ttl);
-    }
-    return true;
-  }
-
-  synchronized void confirm(List<String> ids, String userId, Instant now) {
-    for (String id : ids) {
-      ShowSeat s = seats.get(id);
-      if (s.state != SeatState.HELD || !userId.equals(s.heldBy) || s.holdUntil.isBefore(now))
-        throw new IllegalStateException("Hold expired for " + id);
-    }
-    ids.forEach(id -> seats.get(id).state = SeatState.BOOKED);
-  }
-
-  synchronized void release(List<String> ids, String userId) {
-    ids.stream().map(seats::get).filter(s -> userId.equals(s.heldBy) && s.state == SeatState.HELD)
-        .forEach(s -> { s.state = SeatState.AVAILABLE; s.heldBy = null; });
-  }
-}
-
-class BookingService {
-  private final PaymentService payments; private final Clock clock;
-  BookingService(PaymentService p, Clock c) { payments = p; clock = c; }
-
-  Booking book(Show show, List<String> seatIds, String userId, long amount) {
-    if (!show.hold(seatIds, userId, clock.instant(), Duration.ofMinutes(5)))
-      throw new IllegalStateException("Seats no longer available");
-    try {
-      payments.charge(userId, amount, /* idempotency key */ show.id + ":" + userId + ":" + seatIds);
-      show.confirm(seatIds, userId, clock.instant());
-      return new Booking(UUID.randomUUID().toString(), userId, show.id, seatIds);
-    } catch (RuntimeException e) {
-      show.release(seatIds, userId);
-      throw e;
-    }
-  }
-}`,
-    extensions: [
-      "In a database: UPDATE show_seats SET state='HELD', held_by=?, hold_until=? WHERE show_id=? AND seat_id IN (…) AND (state='AVAILABLE' OR hold_until < now()) and check the affected row count.",
-      "A background sweeper (or lazy check, as above) releases expired holds.",
-      "Library or hotel booking: the same hold → pay → confirm flow with date ranges instead of seats.",
-    ],
-  },
+  "lldp-booking": BOOKING_GUIDE,
   "lldp-lru-rate-limiter": {
     requirements: [
       "LRU cache with capacity N: get and put in O(1); evict the least recently used entry when full.",

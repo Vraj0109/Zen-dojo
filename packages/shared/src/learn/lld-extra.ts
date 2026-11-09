@@ -1,6 +1,7 @@
 import type { LldExtra } from "./types";
 import { URL_SHORTENER_EXTRA } from "./lld-deep-b-url";
 import { VENDING_ATM_EXTRA } from "./lld-deep-c-vending";
+import { BOOKING_EXTRA } from "./lld-deep-c-booking";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -28,17 +29,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Request for the floor the car is already at with doors open.", "Overweight → doors stay open, refuse to move.", "Car in maintenance excluded from dispatch.", "All cars busy → queue the request.", "Emergency stop / fire mode overrides everything."],
   },
-  "lldp-booking": {
-    recap: ["Show/Room/Book has inventory units (Seat, RoomNight, Copy).", "Hold with expiry → confirm on payment → release on timeout.", "Lock per unit (or optimistic version) to prevent double booking."],
-    flow: [
-      "User selects seats A1, A2 → BookingService.hold(showId, seats, userId).",
-      "For each seat (sorted to avoid deadlock): lock, check AVAILABLE, mark HELD with holdUntil.",
-      "Return Booking(PENDING, expiresAt).",
-      "Payment success → confirm(): seats HELD → BOOKED, booking CONFIRMED.",
-      "Scheduler releases holds past holdUntil → AVAILABLE.",
-    ],
-    edgeCases: ["Partial availability (A1 free, A2 taken) → all or nothing.", "Payment confirms after the hold expired.", "Same user double-clicks confirm (idempotent).", "Cancellation and refund rules by time before show."],
-  },
+  "lldp-booking": BOOKING_EXTRA,
   "lldp-lru-rate-limiter": {
     recap: ["LRU: HashMap<K, Node> + doubly linked list; get/put O(1).", "Rate limiter interface with TokenBucket / SlidingWindow implementations, keyed per client.", "Thread safety: one lock per cache (or segmented), per-key buckets in a ConcurrentHashMap."],
     flow: [

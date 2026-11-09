@@ -216,7 +216,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
     items: [
       lldProblem("parking-lot", "Parking lot", "Entities, pricing strategy, concurrency on slots"),
       lldProblem("elevator", "Elevator system", "State machine, scheduling strategy"),
-      lldProblem("booking", "Library / hotel / movie ticket booking", "Reservations, locking, state transitions"),
+      lldProblem("booking", "Movie ticket booking", "Seat holds with expiry, atomic multi-seat booking, pricing, refunds"),
       lldProblem("lru-rate-limiter", "LRU cache, rate limiter (as classes)", "Data structure choice, thread safety"),
       lldProblem("url-shortener", "URL shortener (as classes)", "Code generation, collisions, validation, expiry"),
       lldProblem("splitwise", "Splitwise / expense sharing", "Balances graph, simplify debts"),
