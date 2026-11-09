@@ -23,6 +23,12 @@ export function databaseUrl(): string {
   return "file:" + path.join(dataDir, "habit.db").replaceAll("\\", "/");
 }
 
+/** Options for the libSQL client: the database address, plus the access token when a remote database needs one (DATABASE_AUTH_TOKEN). */
+export function clientOptions(env: Record<string, string | undefined> = process.env): { url: string; authToken?: string } {
+  const url = env.DATABASE_URL ? env.DATABASE_URL : databaseUrl();
+  return env.DATABASE_AUTH_TOKEN ? { url, authToken: env.DATABASE_AUTH_TOKEN } : { url };
+}
+
 /**
  * Schema migrations, applied in order. The database's `PRAGMA user_version` records how many
  * have run, so each runs once. Never edit a shipped migration; append a new one instead.
@@ -238,6 +244,19 @@ CREATE TABLE IF NOT EXISTS solution_runs (
   PRIMARY KEY (problem_id, lang)
 );
 `,
+  // 0030: single content items (a problem, extra test cases, a lesson, a patch, a reading link), kept apart from user data
+  `
+CREATE TABLE content_items (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  body TEXT NOT NULL,
+  rev TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'local',
+  updated_at TEXT NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX content_items_type ON content_items (type);
+`,
 ];
 
 async function migrate(client: Client) {
@@ -252,7 +271,7 @@ async function migrate(client: Client) {
 const globalForDb = globalThis as unknown as { habitDb?: ReturnType<typeof create> };
 
 function create() {
-  const client = createClient({ url: databaseUrl() });
+  const client = createClient(clientOptions());
   const db = drizzle(client, { schema });
   const ready = migrate(client).then(() => db);
   return { db, ready };

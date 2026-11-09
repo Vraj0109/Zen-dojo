@@ -1,0 +1,26 @@
+{
+  "type": "problem",
+  "id": "count-vowels",
+  "title": "Count the vowels",
+  "difficulty": "easy",
+  "tags": ["strings"],
+  "statement": ["Given a lowercase word, return how many of its letters are vowels (a, e, i, o, u)."],
+  "constraints": ["0 <= word.length <= 100000", "word has only lowercase letters"],
+  "fn": { "name": "countVowels", "params": [{ "name": "word", "type": "string" }], "returns": "int" },
+  "examples": [
+    { "input": ["banana"], "output": 3, "explanation": "The vowels are a, a and a." },
+    { "input": ["rhythm"], "output": 0 }
+  ],
+  "tests": [
+    { "input": [""], "output": 0 },
+    { "input": ["aeiou"], "output": 5 },
+    { "input": ["xyz"], "output": 0 },
+    { "input": ["queue"], "output": 4 }
+  ],
+  "hints": ["Look at each letter once and count the ones that are in the string aeiou."],
+  "solution": {
+    "idea": ["Walk the word once. Add one for every letter that is a vowel."],
+    "complexity": "O(n) time, O(1) space.",
+    "cpp": "class Solution {\npublic:\n    int countVowels(string word) {\n        int n = 0;\n        for (char c : word) if (string(\"aeiou\").find(c) != string::npos) n++;\n        return n;\n    }\n};"
+  }
+}

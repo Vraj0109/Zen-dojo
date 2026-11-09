@@ -232,6 +232,17 @@ export const packProgress = sqliteTable(
   (t) => [primaryKey({ columns: [t.packId, t.itemId] })],
 );
 
+/** One content item added without a release (plan 0030): JSON body, a revision, where it came from. Separate from user data. */
+export const contentItems = sqliteTable("content_items", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  body: text("body").notNull(),
+  rev: text("rev").notNull(),
+  source: text("source").notNull().default("local"),
+  updatedAt: text("updated_at").notNull(),
+  deleted: integer("deleted").notNull().default(0),
+});
+
 /** The latest run of your code per problem and language (the Run button), so it comes back after a reload. */
 export const solutionRuns = sqliteTable(
   "solution_runs",

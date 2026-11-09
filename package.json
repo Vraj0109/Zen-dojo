@@ -19,6 +19,12 @@
     "content:check": "node scripts/build-content.mjs --check",
     "import:cp-algorithms": "node scripts/import-cp-algorithms.mjs",
     "pack:check": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/pack-check.mjs",
+    "content:add": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/content.mjs add",
+    "content:sync": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/content.mjs sync",
+    "content:list": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/content.mjs list",
+    "content:remove": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/content.mjs remove",
+    "content:export": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/content.mjs export",
+    "content:seed": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/content.mjs seed",
     "pack:build": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/pack-build.mjs"
   },
   "packageManager": "pnpm@12.18.0",

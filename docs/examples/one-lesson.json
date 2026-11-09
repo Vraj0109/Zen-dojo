@@ -1,0 +1,6 @@
+{
+  "type": "lesson",
+  "id": "two-pointers-in-one-minute",
+  "title": "Two pointers in one minute",
+  "markdown": "## The idea\n\nKeep two positions in a sorted list and move them towards each other. If the sum is too small, move the left one right. If it is too big, move the right one left.\n\n## When to use it\n\n- the data is sorted (or you can sort it)\n- you look for a pair or a window\n\n```cpp\nint l = 0, r = n - 1;\nwhile (l < r) {\n    int s = a[l] + a[r];\n    if (s == target) break;\n    if (s < target) l++; else r--;\n}\n```"
+}

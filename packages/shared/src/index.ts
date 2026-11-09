@@ -12,3 +12,4 @@ export * from "./learn";
 export * from "./revise";
 export * from "./cp-algorithms";
 export * from "./packs";
+export * from "./content-items";

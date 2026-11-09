@@ -57,6 +57,7 @@ The plan file is the contract and the shared memory between tools. Whoever works
   app-data folder. `lib/setup.js` and `lib/updates.js` are pure and tested. To try a build without touching real
   data, set `HABIT_DATA_DIR`
 - `docs/content-editing.md`: how to change, reorder and add lessons (Markdown in `packages/shared/content/`, `pnpm content:build` / `content:check`)
+- `docs/content-editing.md` "Add one thing": add one problem, extra test cases, a lesson or a reading link with `pnpm content:add` (no code, no release); `docs/hosting.md`: remote libSQL via `DATABASE_AUTH_TOKEN`
 - `docs/content-packs.md`: the JSON format for adding lessons and problems without code (`packages/shared/src/packs.ts`, `apps/web/lib/packs.ts`)
 - `docs/plans/`: feature plans (see the workflow above)
 - `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
