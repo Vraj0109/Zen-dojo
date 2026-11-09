@@ -67,8 +67,8 @@ What is left:
 | # | Plan | What | Status |
 |---|---|---|---|
 | 1 | **0022** | CSES, remaining roadmap problems (batch 9 ~30 problems), other platforms | in progress |
-| 2 | **0014** | System design batches D and E (12 designs remaining: payments, metrics, Kafka, etc.) | in progress |
-| 3 | **0008** | Remaining DSA pattern articles (batches 6 to 10: graphs part 2, backtracking, DP, greedy/math) | in progress (34 of 68) |
+| 2 | **0014** | System design batches D and E (7 designs remaining in Batch E; Batch D completed with 20 of 27 designs done) | in progress (20 of 27) |
+| 3 | **0008** | Remaining DSA pattern articles (batches 7 to 10: backtracking, DP, greedy/math; batches 1-6 completed) | in progress (40 of 68) |
 | 4 | **0025** | Batch F new topics (optional future work) | not started |
 
 Why this order: 0021 is small and fixes daily friction. 0023 makes content cheap to edit (so a cheaper agent can do 0022, 0025,
