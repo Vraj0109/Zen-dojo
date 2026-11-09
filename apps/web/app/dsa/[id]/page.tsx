@@ -131,7 +131,7 @@ async function Problem({
               </span>
               {p.url && (
                 <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
-                  {p.id.startsWith("cses-") ? "Open on CSES ↗" : "Open on LeetCode ↗"}
+                  {p.id.startsWith("cses-") ? "Open on CSES ↗" : p.url.includes("cp-algorithms.com") ? "Open on cp-algorithms ↗" : "Open on LeetCode ↗"}
                 </a>
               )}
               {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
@@ -215,7 +215,7 @@ async function Problem({
               rel="noopener noreferrer"
               className="text-foreground hover:underline"
             >
-              Open on LeetCode ↗
+              {p.id.startsWith("cses-") ? "Open on CSES ↗" : p.url.includes("cp-algorithms.com") ? "Open on cp-algorithms ↗" : "Open on LeetCode ↗"}
             </a>
           )}
         </div>

@@ -82,7 +82,7 @@ const PROBLEM_LIST: Problem[] = [
   lc(442, "Find All Duplicates in an Array", "find-all-duplicates-in-an-array", "M"),
   lc(28, "Find the Index of the First Occurrence in a String", "find-the-index-of-the-first-occurrence-in-a-string", "E"),
   other("z-function", "Z-function", "https://cp-algorithms.com/string/z-function.html"),
-  other("rabin-karp", "Rabin-Karp", "https://cp-algorithms.com/string/rabin-karp.html"),
+  other("rabin-karp", "Rabin-Karp Algorithm", "https://cp-algorithms.com/string/rabin-karp.html"),
   lc(1392, "Longest Happy Prefix", "longest-happy-prefix", "H"),
   lc(686, "Repeated String Match", "repeated-string-match", "M"),
   lc(54, "Spiral Matrix", "spiral-matrix", "M"),
@@ -268,6 +268,13 @@ const PROBLEM_LIST: Problem[] = [
   cses("missing-number", "Missing Number", 1083),
   cses("repetitions", "Repetitions", 1069),
   cses("increasing-array", "Increasing Array", 1094),
+  cses("permutations", "Permutations", 1070),
+  cses("number-spiral", "Number Spiral", 1071),
+  cses("two-knights", "Two Knights", 1072),
+  cses("two-sets", "Two Sets", 1092),
+  cses("bit-strings", "Bit Strings", 1617),
+  cses("trailing-zeros", "Trailing Zeros", 1618),
+  cses("coin-piles", "Coin Piles", 1754),
 ];
 
 export const PROBLEMS: Record<string, Problem> = Object.fromEntries(PROBLEM_LIST.map((p) => [p.id, p]));
@@ -406,7 +413,19 @@ export const DSA_GROUPS: PatternGroup[] = [
         id: "cses-intro",
         name: "CSES: introductory problems",
         recognize: "Short warm-up tasks from cses.fi; the same Run, hints and solutions as the roadmap problems",
-        problems: C2("weird-algorithm", "missing-number", "repetitions", "increasing-array"),
+        problems: C2(
+          "weird-algorithm",
+          "missing-number",
+          "repetitions",
+          "increasing-array",
+          "permutations",
+          "number-spiral",
+          "two-knights",
+          "two-sets",
+          "bit-strings",
+          "trailing-zeros",
+          "coin-piles"
+        ),
       },
     ],
   },

@@ -251,6 +251,52 @@ export const STRESS: Record<string, StressCase[]> = {
     S("200000 falling numbers", () => [range(200000).map((i) => 1_000_000_000 - i)]),
     S("200000 numbers alternating 1 and 10^9 (the answer needs 64 bits)", () => [range(200000).map((i) => (i % 2 === 0 ? 1_000_000_000 : 1))]),
   ],
+  "cses-permutations": [
+    S("n = 200000 (even)", () => [200000]),
+    S("n = 199999 (odd)", () => [199999]),
+    S("n = 3 (no solution)", () => [3]),
+  ],
+  "cses-number-spiral": [
+    S("y = 10^9, x = 10^9", () => [1_000_000_000, 1_000_000_000]),
+    S("y = 10^9, x = 1", () => [1_000_000_000, 1]),
+    S("y = 123456789, x = 987654321", () => [123456789, 987654321]),
+  ],
+  "cses-two-knights": [
+    S("n = 10000", () => [10000]),
+    S("n = 9999", () => [9999]),
+    S("n = 1000", () => [1000]),
+  ],
+  "cses-two-sets": [
+    S("n = 200000 (divisible by 4)", () => [200000]),
+    S("n = 199999 (sum is even, partition possible)", () => [199999]),
+    S("n = 199998 (sum is odd, no partition)", () => [199998]),
+  ],
+  "cses-bit-strings": [
+    S("n = 1000000", () => [1_000_000]),
+    S("n = 999999", () => [999_999]),
+    S("n = 500000", () => [500_000]),
+  ],
+  "cses-trailing-zeros": [
+    S("n = 1000000000", () => [1_000_000_000]),
+    S("n = 999999999", () => [999_999_999]),
+    S("n = 555555555", () => [555_555_555]),
+  ],
+  "cses-coin-piles": [
+    S("a = 10^9, b = 10^9", () => [1_000_000_000, 1_000_000_000]),
+    S("a = 10^9, b = 5*10^8 (boundary of 2:1)", () => [1_000_000_000, 500_000_000]),
+    S("a = 10^9, b = 5*10^8 - 1 (cannot empty)", () => [1_000_000_000, 499_999_999]),
+  ],
+  // ---------------- Other
+  "c-z-function": [
+    S("100000 characters, all 'a'", () => ["a".repeat(100_000)]),
+    S("100000 random characters", () => [letters(100_000, "abcdefghij", 501)]),
+    S("100000 characters, periodic", () => ["abacaba".repeat(14285) + "aba"]),
+  ],
+  "c-rabin-karp": [
+    S("short pattern in 100000 random characters", () => ["ab", letters(100_000, "abcdefghij", 511)]),
+    S("repeated pattern in all 'a' text", () => ["a".repeat(500), "a".repeat(100_000)]),
+    S("pattern not present in 100000 characters", () => ["zzzz", "a".repeat(100_000)]),
+  ],
   "lc-134": [
     S("100000 stations, no way round", () => {
       const cost = ints(100000, 1, 100, 371);
