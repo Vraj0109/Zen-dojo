@@ -7,8 +7,9 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Implemented (awaiting Claude Code review): 0008, 0012, 0015, 0021, 0023, 0024, 0025, 0026, 0027, 0028, 0029, 0030, 0033, 0034.
-Open for depth: 0014 (Batch E depth), 0022 (CSES remaining sections and other platforms).
+Implemented: 0008, 0012-0017, 0019-0021, 0023-0031, 0033-0041.
+Ready to implement: 0042 (TLE cutoff & process cancellation), 0043 (LLD & System Design interactive Java IDE).
+In-progress / draft: 0022 (Advanced CSES sections), 0032 (Hosted site & sync).
 
 | Plan | What | Status |
 |---|---|---|
@@ -111,4 +112,6 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0038 | [Round four: who does what (plans 0014, 0022, 0025, 0031, 0012)](0038-round-four-parallel-work.md) | implemented (round 4 merged) |
 | 0039 | [Round five: balanced parallel work (plans 0022, 0025, 0031)](0039-round-five-balanced-parallel-work.md) | implemented (round 5 merged) |
 | 0040 | [Round six: balanced parallel completion (plans 0022, 0031)](0040-round-six-balanced-parallel-completion.md) | implemented (round 6 merged) |
-| 0041 | [Round seven: six-agent parallel final sprint (CSES completion, reviews & v0.6.0)](0041-round-seven-six-agent-completion.md) | ready |
+| 0041 | [Round seven: six-agent parallel final sprint (CSES completion, reviews & v0.6.0)](0041-round-seven-six-agent-completion.md) | implemented |
+| 0042 | [Time Limit Exceeded (TLE) hard cutoff and process tree cancellation](0042-tle-hard-cutoff-and-cancellation.md) | ready |
+| 0043 | [Interactive multi-file Java IDE for LLD and System Design practice](0043-lld-system-design-interactive-java-ide.md) | ready |
