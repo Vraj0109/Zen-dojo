@@ -140,7 +140,7 @@ describe("API routes", () => {
     expect(await res.json()).toMatchObject({ ok: true, stored: 1, added: 1 });
     const body = await (await knownRoute(await req("/api/ext/known"))).json();
     expect(body).toMatchObject({ ok: true, known: ["77"] });
-    expect(body.slugs).toHaveLength(189);
+    expect(body.slugs.length).toBeGreaterThanOrEqual(189); // grows as problems are added
     expect(body.slugs).toContain("two-sum");
   });
 
