@@ -120,13 +120,13 @@ Each is one small JSON file. A complete example of each is in `docs/examples/`.
 
 | What | Example file | `type` | Where it shows up |
 |---|---|---|---|
-| A new problem you can run | `docs/examples/one-problem.json` | `problem` | Learn, course "Added items"; runs with the Run button as `pack:items:<id>` |
+| A new problem you can run | `docs/examples/one-problem.json` | `problem` | the /dsa list (tab "Other solves", under the heading in `group`, default "Added by you"), the pattern pages named in `patterns`, and Learn (course "Added items"). Opens in the same Run / Notes workspace; id `pack:items:<id>` |
 | More test cases for any problem | `docs/examples/extra-tests.json` | `tests` | appended to that problem's tests when it runs |
 | A lesson | `docs/examples/one-lesson.json` | `lesson` | Learn, course "Added items" |
 | A replacement for a built-in lesson | (a `patch`, see `docs/content-packs.md`) | `patch` | the lesson of that concept, with a "Back to built-in" button |
 | A reading link | `docs/examples/one-reading.json` | `reading` | stored and listed (`pnpm content:list`) |
 
-`problem`, `lesson` and `patch` use exactly the item formats of `docs/content-packs.md` (the field `section` is not needed).
+`problem`, `lesson` and `patch` use exactly the item formats of `docs/content-packs.md` (the field `section` is not needed). A `problem` may also have `"group": "Warm-ups"` (the heading it is listed under in /dsa) and `"patterns": ["hash-map"]` (roadmap pattern ids, up to 5; the problem is then also listed on those pattern pages).
 `tests` is new: `{ "type": "tests", "problem": "lc-1", "cases": [ { "input": [[3, 3], 6] } ] }`. `input` is a list with one value per
 parameter. **`output` is optional**: when it is missing, `content:add` computes it by running the problem's own C++ reference solution
 (needs g++). `reading` is `{ "type": "reading", "id": "...", "title": "...", "url": "https://..." }` with optional `area` and `note`.

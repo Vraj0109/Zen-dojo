@@ -4,6 +4,8 @@
   "title": "Count the vowels",
   "difficulty": "easy",
   "tags": ["strings"],
+  "group": "Warm-ups",
+  "patterns": ["hash-map"],
   "statement": ["Given a lowercase word, return how many of its letters are vowels (a, e, i, o, u)."],
   "constraints": ["0 <= word.length <= 100000", "word has only lowercase letters"],
   "fn": { "name": "countVowels", "params": [{ "name": "word", "type": "string" }], "returns": "int" },

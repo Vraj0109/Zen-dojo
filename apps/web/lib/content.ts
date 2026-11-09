@@ -20,7 +20,7 @@ import {
 } from "@habit/shared";
 import { getDb } from "./db";
 import { contentItems } from "./schema";
-import { installPack, removePack } from "./packs";
+import { getPackProgress, installPack, removePack } from "./packs";
 
 // The content repository (plan 0030): single items added without a release, stored in `content_items`. It is the one place
 // that merges stored content with the built-in content:
@@ -173,4 +173,39 @@ export async function seedBuiltinProblems(): Promise<number> {
     n++;
   }
   return n;
+}
+
+// ---- stored problems in the /dsa list ----------------------------------------------------------------------------------
+
+export interface AddedProblem {
+  /** The id the Run button uses: "pack:items:<id>" */
+  id: string;
+  title: string;
+  difficulty?: "easy" | "medium" | "hard";
+  /** Heading in the list: the item's "group", or "Added by you" */
+  group: string;
+  /** Roadmap pattern ids the item names */
+  patterns: string[];
+  /** The problem page (statement, Run, Notes) */
+  href: string;
+  done: boolean;
+}
+
+/** Problems added as content items, for the /dsa list and for pattern pages (pass a pattern id to keep only its problems). */
+export async function listAddedProblems(patternId?: string): Promise<AddedProblem[]> {
+  const rows = (await listItems("problem")).filter((r) => r.source !== "builtin");
+  if (rows.length === 0) return [];
+  const done = await getPackProgress(ITEMS_PACK_ID);
+  return rows
+    .map((r) => r.item as PackProblem)
+    .filter((p) => !patternId || (p.patterns ?? []).includes(patternId))
+    .map((p) => ({
+      id: `pack:${ITEMS_PACK_ID}:${p.id}`,
+      title: p.title,
+      ...(p.difficulty ? { difficulty: p.difficulty } : {}),
+      group: p.group ?? "Added by you",
+      patterns: p.patterns ?? [],
+      href: `/study/packs/${ITEMS_PACK_ID}/${p.id}`,
+      done: done.has(p.id),
+    }));
 }

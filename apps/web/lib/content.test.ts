@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { validateItem } from "@habit/shared";
 import { exportBackup, restoreBackup } from "./backup";
 import { adminDenied } from "./content-admin";
-import { deleteItem, getExtraTests, getItem, listItems, listReading, resolveProblemSpec, seedBuiltinProblems, upsertItem, withExtraTests } from "./content";
+import { deleteItem, getExtraTests, getItem, listAddedProblems, listItems, listReading, resolveProblemSpec, seedBuiltinProblems, upsertItem, withExtraTests } from "./content";
 import { clientOptions, databaseUrl } from "./db";
 import { getPackProblemSpec, listPacks } from "./packs";
 
@@ -57,6 +57,17 @@ describe("content items", () => {
     expect(await getPackProblemSpec("pack:items:count-vowels")).toBeNull();
     await deleteItem("lesson:two-pointers-in-one-minute");
     expect(await listPacks()).toEqual([]);
+  });
+
+  it("stored problems are listed for /dsa under their group and on the pattern pages they name", async () => {
+    await upsertItem(example("one-problem"));
+    await upsertItem({ ...example("one-problem"), id: "plain-one", title: "Plain", group: undefined, patterns: undefined });
+    expect((await listAddedProblems()).map((p) => [p.id, p.group, p.done])).toEqual([["pack:items:count-vowels", "Warm-ups", false], ["pack:items:plain-one", "Added by you", false]]);
+    expect((await listAddedProblems("hash-map")).map((p) => p.title)).toEqual(["Count the vowels"]);
+    expect(await listAddedProblems("dp-1d")).toEqual([]);
+    expect((await listAddedProblems())[0].href).toBe("/study/packs/items/count-vowels");
+    const bad = await upsertItem({ ...example("one-problem"), id: "bad-pattern", patterns: ["no-such-pattern"] });
+    expect(bad.ok).toBe(false);
   });
 
   it("an invalid problem is refused and leaves the stored ones alone", async () => {

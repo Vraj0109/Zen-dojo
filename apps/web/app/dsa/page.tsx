@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { getDsaView, type PatternView } from "@/lib/dsa";
+import { AddedProblems } from "./added-problems";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, parseDsaTab, type DsaFilters } from "@/lib/dsa-filters";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
@@ -209,6 +210,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                   ))}
                 </ul>
               )}
+              <AddedProblems />
             </section>
           )}
         </div>
