@@ -16,6 +16,274 @@ export interface GeneratedLesson {
 }
 
 export const GENERATED_LESSONS: Record<string, GeneratedLesson> = {
+  "lld-concurrency": {
+    "id": "lld-concurrency",
+    "title": "Concurrency in code",
+    "area": "lld",
+    "section": "Topics",
+    "points": [
+      "Threads vs processes",
+      "Mutex and semaphore",
+      "Producer-consumer with a blocking queue",
+      "Thread pools",
+      "Deadlock conditions",
+      "Atomic operations",
+      "Thread-safe singleton and LRU cache"
+    ],
+    "lesson": {
+      "overview": "LLD problems often end with 'now make it thread-safe'. Know the Java concurrency tools, where races hide in your design, and the classic thread-safe structures.",
+      "explain": [
+        "Processes are isolated, threads share memory (see Core CS). In LLD, the question is which of your objects are shared between threads (a parking lot's spot map, a cache, a counter) and therefore need protection.",
+        "A mutex (synchronized, ReentrantLock) gives exclusive access to a critical section; ReentrantLock adds tryLock with a timeout, fairness and multiple conditions. A semaphore limits concurrent access to N (Semaphore(10) for 10 connections or 10 parking spots).",
+        "Producers put work on a BlockingQueue and consumers take from it; put() blocks when full (backpressure) and take() blocks when empty. ArrayBlockingQueue (bounded) or LinkedBlockingQueue. This is the standard way to hand off work between threads.",
+        "Creating a thread per task is expensive and unbounded. An ExecutorService (fixed thread pool) reuses threads and queues tasks; submit() returns a Future. Size pools by workload: about the core count for CPU-bound work, more for I/O-bound. Use CompletableFuture to compose async steps.",
+        "Mutual exclusion, hold and wait, no preemption and circular wait (see Core CS). In code, always acquire multiple locks in a global order (by id), keep critical sections small, and never call out to unknown code while holding a lock.",
+        "AtomicInteger and AtomicLong (incrementAndGet, compareAndSet) give lock-free counters; ConcurrentHashMap (computeIfAbsent, merge) gives thread-safe maps without locking the whole map. Check-then-act on a normal map (if (!map.containsKey(k)) map.put(…)) is a race; use putIfAbsent or compute instead.",
+        "Thread-safe lazy singleton: the holder idiom (a static nested class holding the instance, initialized on first access by the class loader) or an enum. Thread-safe LRU cache: a HashMap plus a doubly linked list guarded by one lock, or a LinkedHashMap with accessOrder=true wrapped with a lock; ConcurrentHashMap alone doesn't give you LRU order."
+      ],
+      "questions": [
+        "Make your parking lot's spot allocation thread-safe.",
+        "Implement a bounded blocking queue with wait/notify or locks and conditions.",
+        "Why isn't ConcurrentHashMap enough for an LRU cache?"
+      ]
+    },
+    "recap": [
+      "Find the shared mutable state; protect it with one lock, or make it immutable/confined.",
+      "Check-then-act must be atomic (synchronized block, CAS, putIfAbsent).",
+      "BlockingQueue for producer-consumer; ExecutorService for thread pools.",
+      "Deadlock needs 4 conditions; break circular wait with a global lock order."
+    ],
+    "deeper": [
+      {
+        "title": "Java concurrency toolbox",
+        "body": "synchronized: intrinsic lock on an object; simple, reentrant, and also guarantees visibility of changes. ReentrantLock: explicit lock with tryLock (timeouts), fairness option and multiple Conditions; always unlock in finally. ReadWriteLock / StampedLock: many readers or one writer, for read-heavy shared data. volatile: visibility and ordering for a single variable (flags), but no atomic compound actions. Atomic classes (AtomicInteger, AtomicReference, LongAdder): lock-free CAS updates. Concurrent collections: ConcurrentHashMap (atomic compute/merge/putIfAbsent per key), CopyOnWriteArrayList (read-mostly listener lists), BlockingQueue implementations, ConcurrentSkipListMap (sorted, concurrent).\n\nExecutors: fixed thread pools for CPU-bound work; bounded queues to avoid unbounded memory; CompletableFuture for composing async tasks; virtual threads (Java 21) make blocking I/O code scale to many concurrent tasks. Coordination: CountDownLatch (wait for N events), CyclicBarrier, Semaphore (limit concurrent access, e.g. 10 parallel API calls).",
+        "code": "class Counter {\n    private final ConcurrentHashMap<String, LongAdder> counts = new ConcurrentHashMap<>();\n    void hit(String key) { counts.computeIfAbsent(key, k -> new LongAdder()).increment(); }\n    long get(String key) { LongAdder a = counts.get(key); return a == null ? 0 : a.sum(); }\n}\n\nSemaphore permits = new Semaphore(10);        // at most 10 concurrent calls\nvoid callApi() throws InterruptedException {\n    permits.acquire();\n    try { client.call(); } finally { permits.release(); }\n}",
+        "point": 0.5
+      },
+      {
+        "title": "Thread-safe slot allocation",
+        "body": "Two cars arrive at once; both see slot 7 free and both park there. The check (isFree) and the act (occupy) must be one atomic step. Options: synchronized on the floor while choosing and occupying; or a ConcurrentLinkedQueue / BlockingQueue of free slots per type, where poll() atomically hands each slot to exactly one caller.",
+        "code": "class Floor {\n    private final Map<SlotType, BlockingQueue<Slot>> free = new EnumMap<>(SlotType.class);\n\n    Optional<Slot> allocate(SlotType type) {\n        Slot s = free.get(type).poll();          // atomic: one caller gets each slot\n        return Optional.ofNullable(s);\n    }\n    void release(Slot s) { free.get(s.type()).offer(s); }\n}",
+        "point": 1
+      },
+      {
+        "title": "Producer-consumer and thread pools",
+        "body": "A bounded BlockingQueue gives backpressure for free: put() blocks when full, take() blocks when empty. Executors.newFixedThreadPool(n) for CPU-bound work (n ≈ cores); for I/O-bound work more threads or virtual threads (Java 21). Always bound queues and name threads.\n\nFor caches and counters prefer ConcurrentHashMap (compute/merge are atomic per key) and AtomicLong/LongAdder over synchronized blocks. Double-checked locking for a lazy singleton needs a volatile field; the holder-class idiom avoids the subtlety.",
+        "code": "BlockingQueue<Job> queue = new ArrayBlockingQueue<>(1000);\nExecutorService workers = Executors.newFixedThreadPool(8);\nfor (int i = 0; i < 8; i++) workers.submit(() -> {\n    while (!Thread.currentThread().isInterrupted()) {\n        Job j = queue.take();                    // blocks when empty\n        j.run();\n    }\n    return null;\n});\nqueue.put(new Job());                            // blocks when full (backpressure)",
+        "point": 2
+      },
+      {
+        "title": "Common concurrency bugs to name",
+        "body": "Race on check-then-act: if (!map.containsKey(k)) map.put(k, v) by two threads; use putIfAbsent/computeIfAbsent or a lock around both. Lost update on read-modify-write: count = count + 1; use atomics or locks. Visibility: a worker loops on a non-volatile boolean flag and never sees the change. Deadlock: two locks acquired in different orders. Starvation: unfair locks or a priority scheme that never lets low-priority work run. Livelock: threads keep yielding to each other.\n\nAlso: holding a lock while doing I/O (slow, invites deadlocks), unbounded thread creation (one thread per request), unbounded queues (memory blow-up), double-checked locking without volatile, and sharing non-thread-safe objects (SimpleDateFormat, HashMap) across threads. Prefer immutability and confinement: immutable objects need no locks, and data owned by a single thread needs none either.",
+        "point": 4
+      },
+      {
+        "title": "A thread-safe LRU cache, two ways",
+        "body": "Simplest correct version: extend LinkedHashMap with accessOrder = true and override removeEldestEntry, then guard every method with one lock (Collections.synchronizedMap or synchronized methods). Note that get() mutates the order in access-order mode, so even reads need the lock; a read-write lock doesn't help here.\n\nFor higher concurrency, shard the cache into N segments by key hash, each an independent LRU with its own lock (eviction becomes approximately LRU overall), or use a library like Caffeine, which uses a concurrent hash map plus buffered, batched recency updates.\n\nIn an interview, write the simple locked version first, state its limitation (one lock serializes all access), then describe sharding as the scaling step.",
+        "code": "class LruCache<K, V> {\n    private final int capacity;\n    private final LinkedHashMap<K, V> map;\n    LruCache(int capacity) {\n        this.capacity = capacity;\n        this.map = new LinkedHashMap<>(16, 0.75f, true) {          // access order\n            protected boolean removeEldestEntry(Map.Entry<K, V> e) { return size() > LruCache.this.capacity; }\n        };\n    }\n    public synchronized V get(K key) { return map.get(key); }      // get reorders → needs the lock\n    public synchronized void put(K key, V value) { map.put(key, value); }\n}",
+        "point": 6
+      }
+    ]
+  },
+  "lld-modeling": {
+    "id": "lld-modeling",
+    "title": "Modeling",
+    "area": "lld",
+    "section": "Topics",
+    "points": [
+      "Entities and relationships",
+      "Enums for states",
+      "State machines",
+      "Validation and error handling",
+      "Extensibility"
+    ],
+    "lesson": {
+      "overview": "Modeling turns requirements into entities, relationships and states. Good models make illegal states hard to represent and keep the core flow simple to code in 20 minutes.",
+      "explain": [
+        "Find the nouns (entities: ParkingLot, Floor, Spot, Vehicle, Ticket) and verbs (operations: park, unpark, pay). Decide ownership and cardinality (a Lot has many Floors; a Ticket references one Spot and one Vehicle), and keep relationships one-directional where possible.",
+        "Use enums for fixed sets (VehicleType, SpotSize, OrderStatus, Direction) instead of strings or ints. The type system catches typos, and switches over them stay exhaustive.",
+        "Write down the allowed transitions (CREATED → PAID → SHIPPED → DELIVERED, with CANCELLED from CREATED or PAID) and enforce them in one place, rejecting invalid ones. This is often the heart of the problem (order, elevator, vending machine, booking).",
+        "Validate inputs at the boundary (amount > 0, seat exists) and fail with specific exceptions (SeatAlreadyBookedException, InsufficientFundsException) instead of returning null or false. Decide what's a checked versus a runtime error, and keep the system consistent when something fails halfway.",
+        "Identify what's likely to change (new vehicle types, pricing rules, payment methods, notification channels) and put an interface there. Don't add abstraction for things that won't change; say why you're adding each interface."
+      ],
+      "questions": [
+        "Model the order states of an e-commerce system and its legal transitions.",
+        "Where would you put interfaces in a parking lot?"
+      ]
+    },
+    "recap": [
+      "Nouns → entities; verbs → methods on the class that owns the data.",
+      "Enums for finite states; a transition table rejects illegal moves.",
+      "Validate at boundaries; throw specific exceptions; keep objects always valid.",
+      "Identify the extension points up front (new vehicle type, new pricing) and put interfaces there."
+    ],
+    "deeper": [
+      {
+        "title": "From requirements to classes in 10 minutes",
+        "body": "1) List use cases as verbs with actors: 'customer books seats', 'admin adds a show', 'system releases expired holds'. 2) Underline nouns: Customer, Show, Seat, Booking, Screen, Payment. Some nouns are attributes (seat number), some are entities with identity and lifecycle (Booking), some are value objects (Money, TimeRange). 3) Decide relationships and multiplicities: a Screen has many Seats; a Show is a Movie on a Screen at a time; a Booking has many SeatHolds. 4) Assign behaviour to the class owning the data (Show.hold(seats), Booking.confirm(payment)). 5) Identify states with enums and their transitions. 6) Mark the extension points with interfaces. 7) Add a service or facade that orchestrates use cases and handles concurrency.\n\nSay these steps out loud while sketching; interviewers grade the process as much as the result.",
+        "point": 0
+      },
+      {
+        "title": "Relationships and ownership",
+        "body": "Decide who owns what: a ParkingLot has Floors, a Floor has Slots (composition: slots don't exist without the floor). A Ticket references a Vehicle and a Slot (association). Put behaviour where the data is: Slot.park(vehicle) checks fit and occupancy; the lot only chooses which slot.\n\nKeep IDs and value objects (Money, TimeRange) immutable; avoid primitives for money (use long cents or BigDecimal) and for time ranges.",
+        "point": 0.5
+      },
+      {
+        "title": "A state machine with an explicit transition table",
+        "body": "Order states: CREATED → PAID → SHIPPED → DELIVERED, with CANCELLED reachable from CREATED or PAID. Encode allowed moves in one map so every transition is checked the same way, and history/audit is easy to add.",
+        "code": "enum OrderStatus { CREATED, PAID, SHIPPED, DELIVERED, CANCELLED }\n\nclass Order {\n    private static final Map<OrderStatus, Set<OrderStatus>> NEXT = Map.of(\n        OrderStatus.CREATED,   EnumSet.of(OrderStatus.PAID, OrderStatus.CANCELLED),\n        OrderStatus.PAID,      EnumSet.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),\n        OrderStatus.SHIPPED,   EnumSet.of(OrderStatus.DELIVERED),\n        OrderStatus.DELIVERED, EnumSet.noneOf(OrderStatus.class),\n        OrderStatus.CANCELLED, EnumSet.noneOf(OrderStatus.class));\n    private OrderStatus status = OrderStatus.CREATED;\n\n    synchronized void moveTo(OrderStatus next) {\n        if (!NEXT.get(status).contains(next))\n            throw new IllegalStateException(status + \" -> \" + next + \" not allowed\");\n        status = next;\n    }\n}",
+        "point": 2
+      },
+      {
+        "title": "Validation and error handling",
+        "body": "Validate at boundaries and keep objects valid from construction: constructors and factory methods reject invalid input (negative amounts, end before start), so the rest of the code can trust its objects. Use specific exceptions or result types: SlotUnavailableException, InsufficientFundsException, InvalidTransitionException, rather than returning null or a generic RuntimeException.\n\nDecide on checked vs unchecked: many modern Java codebases use unchecked exceptions for business errors and document them; alternatively return Optional or a Result type for expected outcomes (no slot free is expected, not exceptional). Never swallow exceptions silently.\n\nFor operations with external side effects (payments), define what happens on partial failure: compensating actions, idempotency keys, and states like PAYMENT_PENDING that can be resolved later. Mentioning this in an LLD round connects your class design to real reliability concerns.",
+        "code": "sealed interface BookingResult permits Booked, Unavailable, PaymentDeclined {}\nrecord Booked(Booking booking) implements BookingResult {}\nrecord Unavailable(List<SeatId> taken) implements BookingResult {}\nrecord PaymentDeclined(String reason) implements BookingResult {}\n\nBookingResult book(ShowId show, List<SeatId> seats, PaymentToken token) {\n    List<SeatId> taken = inventory.tryHold(show, seats);\n    if (!taken.isEmpty()) return new Unavailable(taken);\n    PaymentResult p = payments.charge(price(show, seats), token);\n    if (!p.ok()) { inventory.release(show, seats); return new PaymentDeclined(p.reason()); }\n    return new Booked(bookings.confirm(show, seats, p.id()));\n}",
+        "point": 3
+      },
+      {
+        "title": "Designing for extension",
+        "body": "Ask the interviewer which changes are likely, then design those as seams. Typical seams: new types of things (vehicle types, payment methods, notification channels) → interface + factory; changing rules (pricing, discounts, matching, eligibility) → strategy or rule objects evaluated in order; new reactions to events (send email, update loyalty points) → observer/event bus; new states → state pattern or a transition table.\n\nAlso design data for extension: use enums with behaviour or lookup tables rather than scattered switch statements; prefer composition (a Vehicle has a Size) over deep hierarchies. Close the interview with a short 'how this extends' tour: 'adding EV charging slots = new SlotType and a ChargingFee strategy; no changes to ParkingLot or Floor.'",
+        "point": 4
+      }
+    ]
+  },
+  "lld-oop": {
+    "id": "lld-oop",
+    "title": "OOP principles",
+    "area": "lld",
+    "section": "Topics",
+    "points": [
+      "Encapsulation",
+      "Inheritance vs composition",
+      "Polymorphism",
+      "Interfaces and abstract classes"
+    ],
+    "lesson": {
+      "overview": "Object-oriented design is about putting behaviour next to the data it protects and depending on abstractions. In an LLD round, interviewers judge whether your classes have clear responsibilities and whether the design bends easily when requirements change.",
+      "explain": [
+        "Keep fields private and expose behaviour, not setters: account.withdraw(amount) checks the balance itself instead of callers doing setBalance(getBalance() - x). This keeps invariants in one place.",
+        "Inheritance models 'is-a' and couples the subclass to the parent's internals; deep hierarchies get brittle. Composition ('has-a', delegating to a field) is more flexible: a Car has an Engine you can swap. Prefer composition, and use inheritance for true subtypes with shared behaviour.",
+        "Callers work with an interface (PaymentMethod) and each implementation (Card, UPI, Wallet) behaves differently behind it. This removes if/else-on-type chains, and new types are added without touching callers.",
+        "An interface is a pure contract with no state; a class can implement many, and it's the default for abstractions. An abstract class can hold shared state and partial implementation for closely related subclasses (template method). Program to interfaces."
+      ],
+      "questions": [
+        "Composition vs inheritance: give a case where inheritance goes wrong.",
+        "Interface vs abstract class in Java?"
+      ]
+    },
+    "recap": [
+      "Encapsulation: private state, public behaviour; validate in one place.",
+      "Prefer composition (has-a) over inheritance (is-a) unless substitution truly holds.",
+      "Polymorphism: call through an interface; add a class instead of an if/else branch.",
+      "Interface = capability contract; abstract class = shared partial implementation."
+    ],
+    "deeper": [
+      {
+        "title": "Encapsulation that protects invariants",
+        "body": "A BankAccount with a public balance field lets any caller make it negative. Make balance private and expose withdraw(amount) that checks the rule in one place; there's no setter. Return unmodifiable views of internal collections so callers can't add items behind your back.\n\nIn interviews, when you draw a class, say which invariant each method protects ('a slot can be occupied by at most one vehicle').",
+        "point": 0
+      },
+      {
+        "title": "Inheritance gone wrong, composition instead",
+        "body": "Classic trap: class Bird { fly() }, class Penguin extends Bird → Penguin.fly() throws. The hierarchy encoded a capability that not every subtype has. Composition models capabilities as parts: a Bird has a MovementStrategy (Flying, Swimming, Walking). New combinations need no new subclasses, and behaviour can change at runtime.\n\nUse inheritance for true 'is-a' with shared invariants (ArrayList is a List), and keep hierarchies shallow.",
+        "code": "interface Movement { void move(); }\nclass Flying implements Movement { public void move() { System.out.println(\"flap\"); } }\nclass Swimming implements Movement { public void move() { System.out.println(\"paddle\"); } }\n\nclass Bird {\n    private final String name;\n    private final Movement movement;          // has-a, swappable\n    Bird(String name, Movement movement) { this.name = name; this.movement = movement; }\n    void travel() { movement.move(); }\n}\n// new Bird(\"penguin\", new Swimming()); new Bird(\"eagle\", new Flying());",
+        "point": 1
+      },
+      {
+        "title": "Polymorphism: overloading vs overriding",
+        "body": "Compile-time polymorphism (overloading): same method name with different parameter lists in one class (print(int), print(String)); the compiler picks based on static types. Runtime polymorphism (overriding): a subclass provides its own implementation of an inherited method; the JVM picks based on the object's actual class (dynamic dispatch). Overriding is what lets you replace conditionals with objects.\n\nOverriding rules: same signature, return type the same or a subtype (covariant), can't reduce visibility, can't throw broader checked exceptions; use @Override so the compiler catches mistakes. static methods are hidden, not overridden; private methods aren't inherited. Fields aren't polymorphic.\n\nequals and hashCode: if two objects are equal, their hash codes must match, or HashMap/HashSet break. Override both together for value objects (Money, Point, Coordinate), and keep them consistent with the fields that define identity. Prefer immutable value objects (Java records give equals/hashCode/toString for free).",
+        "code": "record Money(long cents, String currency) {\n    Money {\n        if (cents < 0) throw new IllegalArgumentException(\"negative amount\");\n        Objects.requireNonNull(currency);\n    }\n    Money plus(Money other) {\n        if (!currency.equals(other.currency)) throw new IllegalArgumentException(\"currency mismatch\");\n        return new Money(cents + other.cents, currency);\n    }\n}\n// records: immutable, equals/hashCode/toString generated from the fields",
+        "point": 2
+      },
+      {
+        "title": "Abstraction, interfaces and abstract classes",
+        "body": "Abstraction means exposing what an object does and hiding how. In Java, an interface declares a capability (Comparable, Runnable, PaymentMethod) with no state; a class can implement many. Since Java 8, interfaces can have default methods for shared behaviour, but still no instance fields. An abstract class can hold state and constructors and partially implement behaviour, but a class extends only one.\n\nRule of thumb: use an interface for a role that unrelated classes may play (Notifier implemented by EmailNotifier, SmsNotifier). Use an abstract class when subclasses share real state and a template of steps (an AbstractReportGenerator with generate() calling abstract fetchData() and format(): the template method pattern). Program to interfaces in fields and parameters (List<Order> rather than ArrayList<Order>) so implementations can change.\n\nIn interviews, define the interfaces first for the parts that will vary (pricing, matching, notification channels), then write concrete classes.",
+        "code": "abstract class Report {\n    // Template method: fixed order of steps, details left to subclasses\n    public final String generate() {\n        List<Row> rows = fetch();\n        return header() + format(rows);\n    }\n    protected abstract List<Row> fetch();\n    protected abstract String format(List<Row> rows);\n    protected String header() { return \"Report generated at \" + Instant.now() + \"\\n\"; }\n}\n\nclass SalesReport extends Report {\n    protected List<Row> fetch() { return salesRepo.lastMonth(); }\n    protected String format(List<Row> rows) { return Csv.of(rows); }\n}",
+        "point": 3
+      },
+      {
+        "title": "Cohesion, coupling and good class boundaries",
+        "body": "High cohesion: everything in a class serves one purpose (a Ticket knows its entry time, vehicle and slot, and how long it has been open). Low coupling: classes depend on few others, through narrow interfaces, so changes stay local.\n\nSmells in interview code: a God class (ParkingLotManager doing allocation, pricing, payments and printing), anemic models (classes with only getters/setters while all logic lives in a service), feature envy (a method mostly using another object's data, which suggests it belongs there), long parameter lists (introduce a parameter object), and primitive obsession (passing raw strings and ints for money, ids, statuses instead of types and enums).\n\nLaw of Demeter: talk to your direct collaborators, not their internals (lot.getFloor(2).getSlots().get(5).park(car) leaks structure; prefer lot.park(car) delegating down). Following these keeps the class diagram you draw in an interview clean and easy to extend."
+      }
+    ]
+  },
+  "lld-patterns": {
+    "id": "lld-patterns",
+    "title": "Design patterns",
+    "area": "lld",
+    "section": "Topics",
+    "points": [
+      "Strategy",
+      "Observer",
+      "Factory and Abstract Factory",
+      "Builder",
+      "Singleton (and its pitfalls)",
+      "Decorator",
+      "State",
+      "Command",
+      "Adapter",
+      "Chain of Responsibility"
+    ],
+    "lesson": {
+      "overview": "Patterns are named solutions to recurring design problems. Use them when the problem calls for them, name them as you use them, and know the one-line intent of each common one.",
+      "explain": [
+        "Define a family of interchangeable algorithms behind one interface and choose at runtime: pricing strategies, payment methods, elevator scheduling, rate-limit algorithms. It replaces conditionals on type.",
+        "Subjects notify registered observers when something changes, so publishers don't know the concrete subscribers: notify display boards when a parking spot frees up, or send notifications on order status changes. Watch out for memory leaks from forgotten subscriptions, and for ordering.",
+        "A factory centralizes object creation behind a method (VehicleFactory.create(type)), so callers don't call new on concrete classes. An abstract factory creates families of related objects (a UI toolkit's Button and Checkbox for Mac vs Windows).",
+        "Build complex objects step by step with readable, optional parameters instead of telescoping constructors: new Pizza.Builder().size(L).cheese().build(). Validate in build(). Good for immutable objects with many fields.",
+        "Ensures one instance with a global access point (configuration, a connection pool). Pitfalls: hidden global state, hard to test (can't swap it for a fake), and thread-safety of lazy creation. Prefer dependency injection; if you need one, use an enum or a holder class for thread-safe laziness.",
+        "Wrap an object to add behaviour while keeping the same interface, stacking at runtime: new BufferedInputStream(new FileInputStream(f)), or a coffee with milk and sugar decorators, or logging and caching wrappers around a repository.",
+        "An object changes behaviour when its internal state changes, with each state as a class: a vending machine (Idle → HasMoney → Dispensing), an order lifecycle, a TCP connection. It replaces big switch statements on a state enum and makes illegal transitions explicit.",
+        "Encapsulate a request as an object so it can be queued, logged, retried or undone: text editor undo and redo, a job queue, elevator requests, transaction operations.",
+        "Convert one interface to another that clients expect, wrapping a legacy or third-party API: a PaymentGateway adapter around the Stripe SDK, or an XML-to-JSON adapter.",
+        "Pass a request along a chain of handlers until one handles it: middleware (auth → rate limit → logging → handler), approval workflows (manager → director → VP), ATM cash dispensing (2000s → 500s → 100s), logging levels."
+      ],
+      "questions": [
+        "Which patterns would you use in a vending machine?",
+        "What's wrong with Singleton, and what would you do instead?",
+        "Strategy vs State?"
+      ],
+      "pitfalls": [
+        "Forcing patterns where a simple class would do."
+      ]
+    },
+    "recap": [
+      "Strategy: swap an algorithm (pricing, matching). State: behaviour depends on a state object.",
+      "Observer: notify subscribers of events. Command: an action as an object (undo, queue).",
+      "Factory: hide which class to create. Builder: many optional parameters, immutable result.",
+      "Decorator: add behaviour by wrapping. Adapter: convert one interface to another."
+    ],
+    "deeper": [
+      {
+        "title": "Behavioural patterns: Strategy, Observer, Command, Chain of Responsibility",
+        "body": "Strategy: a family of interchangeable algorithms behind one interface, chosen at runtime (pricing by hour vs flat, matching nearest vs best-rated). Observer: subjects publish events and observers subscribe (order shipped → notify customer, update analytics), decoupling the source from reactions; in distributed systems this becomes pub/sub. Command: encapsulate a request as an object with execute() (and undo()), enabling queues, logging, retries and undo stacks (text editors, smart home actions). Chain of Responsibility: pass a request along a chain of handlers until one handles it (logging levels, approval workflows by amount, middleware: auth → rate limit → validation → handler).\n\nState (covered with the vending machine) and Template Method (covered with reports) complete the set interviewers expect.",
+        "code": "interface Approver { void setNext(Approver next); void approve(Expense e); }\nabstract class BaseApprover implements Approver {\n    private Approver next;\n    public void setNext(Approver next) { this.next = next; }\n    protected void passOn(Expense e) {\n        if (next == null) throw new IllegalStateException(\"No one can approve \" + e.amount());\n        next.approve(e);\n    }\n}\nclass Manager extends BaseApprover {\n    public void approve(Expense e) { if (e.amount() <= 1_000) System.out.println(\"Manager approved\"); else passOn(e); }\n}\nclass Director extends BaseApprover {\n    public void approve(Expense e) { if (e.amount() <= 10_000) System.out.println(\"Director approved\"); else passOn(e); }\n}\n// manager.setNext(director); director.setNext(cfo); manager.approve(new Expense(5_000));",
+        "point": 0
+      },
+      {
+        "title": "Creational patterns: Factory, Builder, Singleton",
+        "body": "Factory method / simple factory: centralize object creation when the concrete class depends on input (VehicleFactory.create(type) returns Car, Bike or Truck). Callers depend on the interface, and adding a type changes one place. Abstract factory: create families of related objects that must match (a UI theme factory producing a matching Button and Checkbox).\n\nBuilder: construct complex objects step by step with readable, optional parameters, producing an immutable result and validating at build(). Ideal for objects with many optional fields (an HTTP request, a search query, a pizza order).\n\nSingleton: exactly one instance (a configuration registry, a connection pool manager). Implement safely with an enum or the holder idiom. Pitfalls: hidden global state, hard to test (can't swap it), and lifecycle problems; prefer creating one instance in the composition root and injecting it.",
+        "code": "class SearchQuery {\n    private final String text; private final int limit; private final List<String> filters;\n    private SearchQuery(Builder b) { text = b.text; limit = b.limit; filters = List.copyOf(b.filters); }\n    static Builder builder(String text) { return new Builder(text); }\n    static class Builder {\n        private final String text; private int limit = 20; private final List<String> filters = new ArrayList<>();\n        Builder(String text) { this.text = text; }\n        Builder limit(int n) { if (n <= 0) throw new IllegalArgumentException(); limit = n; return this; }\n        Builder filter(String f) { filters.add(f); return this; }\n        SearchQuery build() { return new SearchQuery(this); }\n    }\n}\n// SearchQuery q = SearchQuery.builder(\"shoes\").limit(50).filter(\"brand:nike\").build();\n\nenum Config { INSTANCE; private final Properties props = load(); String get(String k) { return props.getProperty(k); } }",
+        "point": 2
+      },
+      {
+        "title": "Structural patterns: Decorator, Adapter, Facade, Composite, Proxy",
+        "body": "Decorator: wrap an object to add behaviour while keeping its interface (a Notifier wrapped by RetryingNotifier and LoggingNotifier; Java I/O streams). Composable and avoids subclass explosion. Adapter: make an existing class fit the interface you need (wrap a third-party SMS SDK to implement your Notifier). Facade: a simple entry point over a complex subsystem (ParkingLotSystem.park(vehicle) hiding floors, allocation and tickets), often the class your LLD answer exposes to the 'client'. Composite: treat individual objects and groups uniformly (files and directories in a file system, both FileSystemNode with size()). Proxy: a stand-in controlling access (lazy loading, caching, access checks, remote calls).",
+        "code": "interface Notifier { void send(String to, String msg); }\nclass SmsNotifier implements Notifier { public void send(String to, String msg) { /* provider call */ } }\n\nclass RetryingNotifier implements Notifier {          // Decorator\n    private final Notifier inner; private final int attempts;\n    RetryingNotifier(Notifier inner, int attempts) { this.inner = inner; this.attempts = attempts; }\n    public void send(String to, String msg) {\n        for (int i = 1; ; i++) {\n            try { inner.send(to, msg); return; }\n            catch (RuntimeException e) { if (i == attempts) throw e; sleep(100L << i); }\n        }\n    }\n}\n// Notifier n = new LoggingNotifier(new RetryingNotifier(new SmsNotifier(), 3));",
+        "point": 5
+      },
+      {
+        "title": "State pattern for a vending machine",
+        "body": "Without it, every method has a switch on state. With it, each state is a class handling the events that make sense and moving the machine to the next state; invalid actions are rejected in one obvious place per state.",
+        "code": "interface State {\n    default void insertCoin(Machine m, int cents) { throw new IllegalStateException(\"Can't insert now\"); }\n    default void select(Machine m, String code)  { throw new IllegalStateException(\"Insert money first\"); }\n}\nclass Idle implements State {\n    public void insertCoin(Machine m, int c) { m.addCredit(c); m.setState(new HasCredit()); }\n}\nclass HasCredit implements State {\n    public void insertCoin(Machine m, int c) { m.addCredit(c); }\n    public void select(Machine m, String code) {\n        Item item = m.inventory().get(code);\n        if (item.price() > m.credit()) throw new IllegalStateException(\"Not enough credit\");\n        m.dispense(item);                         // returns change, decrements stock\n        m.setState(new Idle());\n    }\n}",
+        "point": 6
+      },
+      {
+        "title": "Picking a pattern in an interview",
+        "body": "Say the force first, then the pattern: 'pricing rules will change per lot, so pricing is a Strategy'; 'many things must react when an order ships, so Observer/events'; 'the elevator behaves differently when moving vs idle vs maintenance, so State'; 'undo in the editor, so Command with an undo stack'; 'notification channels need retries and logging added uniformly, so Decorators around a Notifier'.\n\nSingleton: mention it for a single shared resource, then mention its costs (global state, hard to test) and prefer injecting one instance."
+      }
+    ]
+  },
   "lld-solid": {
     "id": "lld-solid",
     "title": "SOLID",
@@ -75,6 +343,66 @@ export const GENERATED_LESSONS: Record<string, GeneratedLesson> = {
       {
         "title": "When SOLID is overkill, and how to say so",
         "body": "Every abstraction has a cost: more files, indirection, and names to learn. In a 45-minute LLD round, apply SOLID where change is likely or stated by the interviewer (pricing rules, payment methods, notification channels, vehicle types, game rules) and keep the rest concrete.\n\nYAGNI ('you aren't gonna need it') balances OCP: don't add a strategy interface for something with one implementation and no expected variation. A good line: 'Pricing is a strategy because rates differ by lot and time; slot assignment I'll keep as a simple nearest-first method, but it's isolated in one class so we can turn it into a strategy if we need to.' This shows judgment, which interviewers value more than reciting principles."
+      }
+    ]
+  },
+  "lld-testing": {
+    "id": "lld-testing",
+    "title": "Testing mindset",
+    "area": "lld",
+    "section": "Topics",
+    "points": [
+      "Unit tests for the class you wrote",
+      "Edge cases",
+      "Mocks",
+      "What you'd test in integration"
+    ],
+    "lesson": {
+      "overview": "Mentioning how you'd test your design shows seniority. Keep it short: what you'd unit test, the edge cases, and how dependency injection makes it testable.",
+      "explain": [
+        "Test behaviour through public methods: park assigns the smallest fitting spot, unpark frees it and computes the fee. One behaviour per test, arrange-act-assert, descriptive names (parksBikeInSmallestAvailableSpot).",
+        "Empty and full states (no spots left), boundary values (exactly at the fee boundary), invalid input (negative amount, unknown ticket), duplicates (paying twice), and concurrency (two cars racing for the last spot).",
+        "Replace dependencies (payment gateway, clock, notification sender) with fakes or mocks so tests are fast and deterministic. That's only possible if the dependencies are injected interfaces, which ties back to dependency inversion. Inject a Clock for any time-based logic.",
+        "Integration tests check real wiring: repository against a real database (Testcontainers), API endpoints end to end, message flow through a queue. Fewer of them, covering the paths that unit tests with fakes can't prove."
+      ],
+      "questions": [
+        "How would you test fee calculation that depends on the current time?",
+        "What would you mock in your design and why?"
+      ]
+    },
+    "recap": [
+      "Test behaviour through the public API: happy path, boundaries, invalid input, state transitions.",
+      "Mock only what you don't own or what's slow (clock, payment gateway, random).",
+      "Inject Clock and Random so time and randomness are testable.",
+      "Integration tests for wiring: DB queries, serialization, concurrency under load."
+    ],
+    "deeper": [
+      {
+        "title": "Designing tests for an LLD solution",
+        "body": "Organize tests by behaviour, with names that read as specifications: parks_vehicle_in_nearest_free_slot, rejects_when_no_slot_of_matching_type, charges_minimum_one_hour, releases_slot_on_exit. Use arrange-act-assert structure. Cover: the main happy path; boundary values (exactly at capacity, zero items, the first and last hour); invalid input (null, negative, unknown ids); state machine transitions, both allowed and forbidden; and concurrency (many threads competing for the last resource).\n\nTable-driven tests for rules: a list of (input, expected) cases run through one test, which is perfect for pricing and validation. Keep tests deterministic: inject the clock, random source and ids.",
+        "code": "@ParameterizedTest\n@CsvSource({\n    \"0,   60\",     // minutes parked, expected fee: first hour minimum\n    \"59,  60\",\n    \"61,  120\",\n    \"1440, 1200\"   // daily cap\n})\nvoid hourly_pricing(int minutes, int expectedCents) {\n    PricingStrategy p = new HourlyPricing(60, 1200);\n    assertEquals(expectedCents, p.fee(Duration.ofMinutes(minutes)));\n}",
+        "point": 0
+      },
+      {
+        "title": "Testing a rate limiter with an injected clock",
+        "body": "A limiter that calls System.currentTimeMillis() can only be tested with sleeps. Inject a Clock (or a LongSupplier) and advance it in the test. Cover: allows up to the limit, rejects the next, refills after time passes, separate keys are independent, concurrent callers never exceed the limit (run N threads and count allowed).",
+        "code": "class FakeClock implements LongSupplier { long now; public long getAsLong() { return now; } }\n\n@Test void refillsAfterOneSecond() {\n    FakeClock clock = new FakeClock();\n    TokenBucket b = new TokenBucket(2, 2.0, clock);   // capacity 2, 2 tokens/s\n    assertTrue(b.tryAcquire()); assertTrue(b.tryAcquire());\n    assertFalse(b.tryAcquire());\n    clock.now += 500;                                 // half a second → 1 token\n    assertTrue(b.tryAcquire());\n    assertFalse(b.tryAcquire());\n}",
+        "point": 0.5
+      },
+      {
+        "title": "Mocks, fakes and stubs",
+        "body": "A stub returns canned answers (a PaymentGateway that always approves). A fake is a working lightweight implementation (an in-memory repository backed by a HashMap). A mock records interactions so you can verify calls (verify(notifier).send(\"user@x\", any())). Spy wraps a real object.\n\nPrefer fakes for repositories and stores (tests read naturally and don't break on refactors), stubs for external services, and mocks only when the interaction itself is the behaviour (we must notify the customer exactly once). Over-mocking couples tests to implementation details: if a refactor that keeps behaviour breaks tests, they're testing the wrong thing.\n\nTest the concurrency claim directly: start N threads with a CountDownLatch to release them together, have each try to book the last seat, and assert exactly one succeeded.",
+        "code": "@Test\nvoid only_one_thread_gets_the_last_slot() throws Exception {\n    ParkingLot lot = lotWithFreeSlots(1);\n    int threads = 32;\n    CountDownLatch start = new CountDownLatch(1);\n    ExecutorService pool = Executors.newFixedThreadPool(threads);\n    List<Future<Optional<Ticket>>> results = new ArrayList<>();\n    for (int i = 0; i < threads; i++)\n        results.add(pool.submit(() -> { start.await(); return lot.park(new Car(\"KA-\" + UUID.randomUUID())); }));\n    start.countDown();\n    long parked = 0;\n    for (var f : results) if (f.get().isPresent()) parked++;\n    assertEquals(1, parked);\n}",
+        "point": 2
+      },
+      {
+        "title": "Integration and contract tests",
+        "body": "Unit tests check classes; integration tests check the wiring: real database queries (Testcontainers spins up Postgres in Docker), serialization of API requests and responses, message formats on queues, and transaction boundaries (does a failure roll back both writes?). Contract tests (Pact) verify that a provider still satisfies what its consumers expect, catching breaking API changes between services.\n\nEnd-to-end tests cover a few critical journeys through the real system; they're slow and flaky if overused, so keep the pyramid: many unit tests, fewer integration tests, very few end-to-end tests.\n\nIn an interview wrap-up, one sentence per level is enough: 'Unit tests for pricing and allocation with a fake clock; an integration test for the repository with Testcontainers; a concurrency test for slot allocation.'",
+        "point": 3
+      },
+      {
+        "title": "What to say about tests in an LLD round",
+        "body": "List 4-6 named cases for your design: 'park when full returns empty', 'exit computes fee across midnight', 'two threads can't take the same slot', 'unknown ticket throws'. Mention that strategies (pricing, matching) are unit-tested in isolation with table-driven cases, and that the facade gets a few end-to-end tests.\n\nThat shows the design is testable, which is usually the real point of the question."
       }
     ]
   }

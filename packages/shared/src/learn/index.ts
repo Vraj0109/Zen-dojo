@@ -42,7 +42,9 @@ export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject
 /** Concept lessons by concept id (system design, LLD, core CS). */
 /** Lessons written as Markdown (content/, built into generated/lessons.ts) win over the older TypeScript ones with the same id. */
 const GENERATED_BASE: Record<string, Lesson> = Object.fromEntries(Object.entries(GENERATED_LESSONS).map(([id, g]) => [id, g.lesson]));
-export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS, ...GENERATED_BASE };
+/** The TypeScript lessons alone (before Markdown ones replace them); a test keeps migrated ones in step. */
+export const TS_LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
+export const LESSONS: Record<string, Lesson> = { ...TS_LESSONS, ...GENERATED_BASE };
 
 /** Reference walkthroughs by system design exercise id. */
 export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESIGNS_B };
@@ -71,7 +73,7 @@ export function sortSections(conceptId: string, sections: Section[]): Section[] 
   return sections.map((s, i) => ({ s, i })).sort((x, y) => rank(x.s) - rank(y.s) || x.i - y.i).map((x) => x.s);
 }
 
-const TS_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
+export const TS_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
   Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: sortSections(id, [...x.deeper, ...(MORE[id] ?? [])]) }]),
 );
 const GENERATED_EXTRA: Record<string, LessonExtra> = Object.fromEntries(

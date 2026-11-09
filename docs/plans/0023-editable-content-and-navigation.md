@@ -56,7 +56,7 @@
   `pnpm content:build` and `pnpm content:check` (fails with plain messages: file, line, what is wrong, how to fix).
   - Done when: a sample `content/lld/lld-solid.md` builds and `learn/index.ts` prefers generated entries over the old
     TypeScript ones for the same id.
-- [ ] **4. Migrate the LLD area first.** Convert the LLD lessons (the 11 LLD concepts, with their deep and more sections) to
+- [x] **4. Migrate the LLD area first.** Convert the LLD lessons (the 11 LLD concepts, with their deep and more sections) to
   Markdown with a script (`scripts/migrate-lesson-to-md.mjs`, run once, then deleted), read the diff of at least three
   lessons by eye, and remove the old entries. Then SD and Core CS in a later sitting (record progress in the notes).
   - Done when: LLD pages look the same as before except for the fixed order, and `pnpm content:check` is green.
@@ -73,13 +73,13 @@
 - [x] **7. The Learn area page.** In `study/[area]/page.tsx` show each lesson's sub-section titles under its name (collapsed by
   default, expandable), so the area page doubles as the full outline.
   - Done when: expanding a lesson lists its sub-sections as links.
-- [ ] **8. The guide for agents.** Write `docs/content-editing.md`: where each kind of content lives; the Markdown format with a
+- [x] **8. The guide for agents.** Write `docs/content-editing.md`: where each kind of content lives; the Markdown format with a
   tiny complete example; "how to change a lesson safely" (edit the `.md`, run `pnpm content:check`, then `pnpm check`);
   what **not** to touch (generated files, ids in `study.ts` unless adding a concept); how to reorder (change `point` or
   the numbers) and how to add a lesson (new `.md`, plus the concept in `study.ts`). Link it from `AGENTS.md` and
   `docs/HANDOFF.md`. State the prompt to give an agent: "Read docs/content-editing.md, then fix <problem> in <file>."
   - Done when: someone who has never seen the repo can fix a typo and a section order by following only that page.
-- [ ] **9. Tests.** `content-build.test.ts` (parser: front matter, sub-sections with `point`, mermaid, error messages with file and
+- [x] **9. Tests.** `content-build.test.ts` (parser: front matter, sub-sections with `point`, mermaid, error messages with file and
   line), the audit test from step 1 across all lessons, a render test that the TOC has the nested entries (use the pure
   function that builds `toc`, so no browser is needed).
   - Done when: `pnpm check` passes.
@@ -93,6 +93,11 @@
 - [ ] `pnpm check` passes.
 
 ## Open questions
+
+- Merger: copy of this plan file was added on the branch because 0023 was untracked in the main checkout. Keep one copy.
+- `learn/types.ts` has no `point` on `Section` (not in agent C's files); `section-points.ts` carries the numbers for TypeScript lessons.
+- `docs/HANDOFF.md` still needs a link to `docs/content-editing.md` (merger).
+- `learn.test.ts` and `study.test.ts` pass unchanged.
 
 - Should SD and Core CS be migrated in this plan or only LLD? (Plan: LLD now, the rest as a follow-up sitting; keep both
   paths working because step 3 makes generated entries win over TypeScript ones.)
@@ -137,6 +142,22 @@
   covers phones); imported Markdown lessons (`app/study/packs/[id]/[item]/page.tsx`, `app/markdown.tsx`) are not wired
   to `markdownToc` yet because those files belong to plan 0024. The pure function and its test are ready; the wiring is
   two lines: pass `toc={markdownToc(item.markdown)}` to `ArticleLayout` and give each heading `id` from `markdownHeadingIds`.
+
+**Step 4 (LLD to Markdown).**
+- The study area has 6 LLD concepts, not 11 (oop, solid, patterns, modeling, concurrency, testing). All six are now
+  `content/lld/*.md`, written by `MIGRATE=lld pnpm exec vitest run packages/shared/src/learn/generated/migrate.test.ts`
+  (kept as the reusable script; it replaces `scripts/migrate-lesson-to-md.mjs`, which would need a TypeScript loader).
+  Round trip proven for all 62 lessons by `lesson-md.test.ts`; read lld-solid, lld-patterns and lld-oop by eye.
+- The old TypeScript entries (`lld.ts`, `deep-lld.ts`, `more-lld.ts`) are NOT removed yet: `lld.ts` belongs to agent D and
+  D is adding LLD content. The Markdown wins in `index.ts`, and a temporary test
+  (`migrated lessons still match their old TypeScript entries`) fails if the TypeScript text of a migrated lesson changes,
+  so D's edits cannot be hidden silently. **After the merge:** re-run `MIGRATE=lld` (picks up D's changes), then delete the
+  six old entries and that temporary test.
+- SD and Core CS are not migrated (later sitting). `section-points.ts` keeps their order correct until then.
+
+**Steps 8 and 9.** `docs/content-editing.md` written and linked from `AGENTS.md` (the link in `docs/HANDOFF.md` is left to
+the merger, who owns that file). Tests: `content-build.test.ts`, `order-audit.test.ts`, `lesson-md.test.ts`,
+`apps/web/app/toc-items.test.ts`.
 
 - Not changed: the page order of "Interview questions" and "Common mistakes" (they already render in that order).
 
