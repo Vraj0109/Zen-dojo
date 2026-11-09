@@ -1,8 +1,10 @@
 import type { WalkthroughDeep } from "./design-depth-types";
+import { DEPTH_MORE_1, type DepthMore } from "./design-depth-e-more1";
+import { DEPTH_MORE_2 } from "./design-depth-e-more2";
 
 // Depth for system design walkthroughs (plan 0014). Diagrams are Mermaid, code is Java 17 (compiled by design-code.test.ts).
 
-export const DESIGN_DEPTH_E: Record<string, WalkthroughDeep> = {
+const BASE_E: Record<string, WalkthroughDeep> = {
   "sdd-metrics": {
     "diagrams": [
       {
@@ -301,3 +303,23 @@ export const DESIGN_DEPTH_E: Record<string, WalkthroughDeep> = {
     ]
   }
 };
+
+// Plan 0014 batch E (lengthened to 1,500+ words) and plan 0031 (architecture cards, evaluation criteria): the extra
+// sections live in design-depth-e-more1.ts and -more2.ts. Edge cases and capacity sections go before the failure-modes
+// section, the trade-offs section goes last, so the reading order is: numbers, mechanisms, edge cases, failures, trade-offs.
+const MORE: Record<string, DepthMore> = { ...DEPTH_MORE_1, ...DEPTH_MORE_2 };
+
+function merge(id: string, base: WalkthroughDeep): WalkthroughDeep {
+  const more = MORE[id];
+  if (!more) return base;
+  const at = base.sections.findIndex((s) => /failure/i.test(s.title));
+  const cut = at < 0 ? base.sections.length : at;
+  return {
+    ...base,
+    sections: [...base.sections.slice(0, cut), ...more.before, ...base.sections.slice(cut), ...more.after],
+    architecture: more.architecture,
+    criteria: more.criteria,
+  };
+}
+
+export const DESIGN_DEPTH_E: Record<string, WalkthroughDeep> = Object.fromEntries(Object.entries(BASE_E).map(([id, d]) => [id, merge(id, d)]));

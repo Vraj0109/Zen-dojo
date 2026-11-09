@@ -33,9 +33,9 @@ trie.
 
 ## Steps
 
-- [ ] **1. Types, merge and page.** As above. On `study/[area]/[id]/page.tsx` for design exercises show Diagrams, Deep
+- [x] **1. Types, merge and page.** As above. On `study/[area]/[id]/page.tsx` for design exercises show Diagrams, Deep
   dives, Code, then the existing sections. Simple mode keeps current behaviour.
-- [ ] **2. Content, in the batches below.** Everything under *Context*.
+- [x] **2. Content, in the batches below.** Everything under *Context*.
 - [x] **3. Tests.** `learn.test.ts`: every design has 3+ diagrams, 800+ words of `sections` and a failure-modes
   section; the Java `code` entries compile.
 
@@ -45,7 +45,7 @@ trie.
 - [x] B. news-feed, chat, video, file-sync, collab-editing
 - [x] C. ride-sharing, maps, crawler, job-scheduler, top-k
 - [x] D. payments, inventory, ticketing, order-management, warehouse
-- [ ] E. metrics, kafka, recommendations, building-blocks, delivery-slots, pricing, catalog
+- [x] E. metrics, kafka, recommendations, building-blocks, delivery-slots, pricing, catalog
 
 ## Acceptance criteria
 
@@ -65,6 +65,8 @@ trie.
 - **Batch B done** (`design-depth-b.ts`): news-feed, chat, video, file-sync, collab-editing, each with 3 diagrams, a failure-modes section and, except video, Java (FeedFanout, ChatSequence, ChunkDedupe, OtDemo, run once with javac -Xlint:all). Video has no Java: its heart is a transcoding pipeline, not a small program.
 - **Batch C done** (`design-depth-c.ts`): ride-sharing, maps, crawler, job-scheduler, top-k, each with 3 diagrams, a failure-modes section and Java (RideMatching, MapRouter, WebCrawlerFrontier, JobScheduler, TopKHeavyHitters).
 - **Batch D done** (`design-depth-d.ts`): payments, inventory, ticketing, order-management, warehouse, each with 3 diagrams, 800+ words across sections, a failure-modes section, and runnable Java (PaymentLedger, FlashSaleInventory, TicketReservationSystem, OrderFulfillmentSaga, WarehouseRoutingOptimizer).
-- Batch E (7 designs: metrics, kafka, recommendations, building-blocks, delivery-slots, pricing, catalog) is not written.
+- **Batch E lengthened (round four, agent 2):** the seven designs now have 1,900 to 2,050 words in sections (metrics 2020, kafka 2049, recommendations 1936, building-blocks 1953, delivery-slots 1919, pricing 1954, catalog 1961), up from 1,010 to 1,355. Each gained an edge-cases section (building-blocks also a worked capacity-planning section) before Failure modes and a trade-offs section last, with the arithmetic shown (QPS, storage, bandwidth, Little's law for holds, partition counts, shard fan-out). The new text lives in `design-depth-e-more1.ts` and `design-depth-e-more2.ts`; `design-depth-e.ts` merges it into the base entries. The existing Java files are unchanged.
+- **Plan 0031 follow-up (round four):** `WalkthroughDeep` has two optional fields, `architecture` (cards: job, scale, when it fails) and `criteria` (interviewer scorecard: strong and weak answer). `design-deep.tsx` renders them as plain `<details>` elements (no client JavaScript): "Architecture explorer" under the diagrams and "How you will be judged" at the end of the depth sections. Filled for the 7 batch E designs only; the other 20 have none yet. Not done because the files are outside this agent's list: the two blocks have no table-of-contents entries (`app/toc-items.ts`, `designDeepToc`), and `ArchitectureBlock` and `EvaluationCriterion` are not re-exported from `learn/index.ts` (the component derives the types).
+- Test: `design-depth.test.ts` checks the seven designs for 1,500+ words, 4+ architecture cards and 4+ criteria.
 
 ## Review
