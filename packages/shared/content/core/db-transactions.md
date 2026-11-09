@@ -79,6 +79,37 @@ Defenses: statement_timeout and lock_timeout (fail fast instead of waiting forev
 
 Batch updates should be chunked (update 10,000 rows per transaction in a loop) rather than one transaction updating millions of rows, which holds locks for a long time, bloats the WAL and replicas lag.
 
+### What COMMIT actually waits for {point: 1}
+
+A transaction moves through a few states, and knowing them makes failure handling easy to explain. It starts **active** while statements run. When the last statement finishes and COMMIT is issued it is **partially committed**: the work is done, but the database has not yet promised that it will survive a crash. It becomes **committed** once the commit record is safely in the log, and from then on the changes cannot be lost. If anything fails before that point (a constraint violation, a deadlock, a timeout, a lost connection, even a failed log write), the transaction is **failed** and then **aborted**: the database undoes its changes and the application sees an error. This split matters because "the statements ran without error" and "the transaction is committed" are two different moments, and an application must treat only a successful COMMIT as the promise. Aborted is also a normal ending, not a bug: databases abort transactions on purpose, as deadlock victims or on serialization conflicts, and expect the caller to retry.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Active: BEGIN
+  Active --> PartiallyCommitted: last statement done, COMMIT issued
+  PartiallyCommitted --> Committed: commit record flushed to the log
+  Active --> Failed: error, deadlock victim, constraint violation
+  PartiallyCommitted --> Failed: log flush fails
+  Failed --> Aborted: ROLLBACK, undo changes
+  Committed --> [*]
+  Aborted --> [*]
+```
+Diagram caption: A transaction is durable only once its commit record is on stable storage. Until then it can still be aborted.
+
+### The commit path and the durability dial {point: 1}
+
+When your code calls COMMIT, the database does roughly this. It appends a commit record to the write-ahead log and asks the operating system to flush the log file to disk (an fsync). Only when the flush returns does it tell the client "committed". The changed data pages themselves can stay in memory and be written later, because if the server crashes the log is enough to redo them. That is why commits are fast enough: one sequential log write, not a random write per changed page. Because an fsync costs milliseconds on a disk, databases use **group commit**: while one flush is in progress, commits from other connections queue up and share the next flush.
+
+Durability has a dial. Postgres has `synchronous_commit` and MySQL InnoDB has `innodb_flush_log_at_trx_commit`. Set to the strict value, every commit waits for the flush, and a crash loses nothing that was acknowledged. Relaxed values acknowledge before the flush, which raises throughput but means that a crash can lose the last fraction of a second of acknowledged commits (the database stays consistent, it just forgets the newest transactions). With replication there is a second dial: whether commit also waits for a replica to confirm (synchronous replication), which protects against losing the primary's disk but adds network latency to every commit.
+
+### Rollback, savepoints and error handling in practice {point: 2}
+
+An error inside a transaction has different effects in different databases. In Postgres, after any statement error the whole transaction is aborted: further statements fail with "current transaction is aborted" until you roll back or roll back to a savepoint. MySQL keeps the transaction open after most statement errors, so the application must decide what to do. A **savepoint** marks a point inside the transaction you can return to (`ROLLBACK TO SAVEPOINT s1`) without losing the earlier work, which is how frameworks implement nested transactions and "try this insert, recover if it conflicts".
+
+Three application habits matter more than the theory. Keep transactions short: a transaction holds locks and keeps old row versions alive for as long as it runs, so never wait for a user or a remote call inside one. Retry on serialization failures and deadlocks: those errors are the database asking you to run the transaction again, so wrap the whole unit of work in a retry loop with a limit and some backoff. And remember that **autocommit** is on by default in most drivers, so two statements you meant to be one unit are two separate transactions unless you issue BEGIN yourself or turn autocommit off.
+
+One more point that interviewers like: a transaction is a boundary for the database, not for the outside world. If your code sends an email or calls a payment API inside a transaction and the transaction then rolls back, the email is still sent. Either do the external call after the commit succeeds, or record the intent in a table inside the same transaction (the outbox pattern) and let a separate worker perform it, retrying until it works.
+
 ## Interview questions
 
 - Explain each ACID property and what implements it.

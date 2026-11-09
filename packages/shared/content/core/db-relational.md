@@ -105,6 +105,32 @@ LEFT JOIN orders o ON o.customer_id = c.id
 WHERE o.id IS NULL;
 ```
 
+### The logical order of a SELECT: why WHERE cannot see your alias {point: 2}
+
+You write a query in the order SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY. The database thinks about it in a different order, and that order explains most "why does this error?" and "why is this slow?" questions.
+
+```mermaid
+flowchart TD
+  A[FROM and JOIN: build the row set] --> B[WHERE: keep rows]
+  B --> C[GROUP BY: form groups]
+  C --> D[HAVING: keep groups]
+  D --> E[SELECT: compute expressions, window functions]
+  E --> F[DISTINCT]
+  F --> G[ORDER BY]
+  G --> H[LIMIT and OFFSET]
+```
+Diagram caption: The logical order of evaluation. The optimizer may physically do things in another order, but the result must be the same as this.
+
+### Rules that follow from the order {point: 2}
+
+Several rules follow from the order. `WHERE` runs before `SELECT`, so it cannot use a column alias defined in the select list (`SELECT price * qty AS total ... WHERE total > 100` fails in standard SQL; repeat the expression or use a subquery). `WHERE` also runs before grouping, so it cannot contain aggregates: `WHERE COUNT(*) > 1` is an error, and the filter on a group's aggregate belongs in `HAVING`. The reverse is a performance habit: filter rows in `WHERE` whenever you can (`WHERE country = 'IN'`) rather than in `HAVING`, so fewer rows are grouped. `ORDER BY` runs after `SELECT`, so it can use aliases. Window functions run at the `SELECT` step, after grouping, which is why you can write `SUM(total) OVER (...)` next to a `GROUP BY` result but cannot filter on a window function in the same query's `WHERE`; wrap it in a subquery or CTE and filter outside.
+
+Two details cause real bugs. First, **NULL** is not equal to anything, including itself. `x = NULL` is never true; use `x IS NULL`. `COUNT(*)` counts rows, `COUNT(col)` skips NULLs, and `AVG(col)` ignores them too, so an average over a column with NULLs is the average of the non-null values. `NOT IN (subquery)` returns no rows at all if the subquery produces even one NULL, because the comparison with that NULL is unknown; `NOT EXISTS` does not have this trap and is the safer choice.
+
+Second, the outer join trap: `LEFT JOIN orders o ON ... WHERE o.status = 'PAID'` throws away the customers with no orders, because their `o.status` is NULL and the filter in `WHERE` removes them, turning the left join into an inner join. Put the condition in the `ON` clause (`ON o.customer_id = c.id AND o.status = 'PAID'`) to keep the unmatched left rows.
+
+A good interview answer ties these together: "I think of the query as FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT, so conditions on rows go in WHERE, conditions on aggregates in HAVING, and conditions on the right side of an outer join go in ON."
+
 ## Interview questions
 
 - Write SQL for the second-highest salary per department.

@@ -64,6 +64,29 @@ WHERE LOWER(email) = ? on an index of email (use a functional index or store nor
 
 Always check with EXPLAIN rather than guessing.
 
+### Covering indexes and index-only scans {point: 2.5}
+
+A normal secondary index lookup is two steps. The database walks the B+tree to the leaf entries for the key, which hold the indexed columns and a pointer to the row (the primary key in InnoDB, a tuple id in Postgres), then follows the pointer into the table to fetch the other columns. That second step is a random read for every matching row, and for a query returning thousands of rows it dominates the cost.
+
+A **covering index** contains every column the query needs, so the second step is skipped. The plan shows it as an index-only scan (Postgres) or "Using index" (MySQL). The query `SELECT email FROM users WHERE country = 'IN' AND created_at > '2026-01-01'` is covered by an index on `(country, created_at, email)`: the first two columns are used to seek and filter, and the last one is carried in the leaf just to be returned. In SQL Server and recent Postgres versions you can add non-key columns with `INCLUDE (email)`, which stores them in the leaf without making them part of the sort order.
+
+```mermaid
+flowchart TD
+  Q[Query: country = IN and created_at after a date, returns email] --> I[Walk the B+tree on country, created_at]
+  I --> L[Reach leaf entries in range]
+  L --> C{index holds every needed column?}
+  C -- yes --> R[Return rows straight from the index: index-only scan]
+  C -- no --> H[For each entry, fetch the table row by pointer]
+  H --> R2[Return rows, one random read per match]
+```
+Diagram caption: A covering index removes the table fetch, which is often the biggest cost of a range query.
+
+### What covering costs, and column order {point: 2.5}
+
+Covering is not free. Every extra column makes the index bigger, which means more memory for the cache and more bytes to write on every insert and update. An index is updated on each write that touches an indexed column, so write-heavy tables should carry few indexes. In Postgres an index-only scan also depends on the visibility map: a page is only skipped when all its rows are known visible to every transaction, so a table that has not been vacuumed recently can still need table visits.
+
+Column order decides whether the index helps at all. Equality columns go first, then the range column, then columns only needed for output; an index on `(created_at, country)` could not seek on country. Because of the "leftmost prefix" rule, an index on `(a, b, c)` also serves queries on `a` and on `(a, b)`, so you rarely need a separate index on `a` alone. When someone asks you to speed up a slow query, the interview-quality answer names the evidence (the plan shows a scan or many table fetches), the change (a composite or covering index with a specific column order) and the cost (write overhead, storage), then says you would check the new plan.
+
 ## Interview questions
 
 - Why are B+ trees used instead of binary search trees on disk?

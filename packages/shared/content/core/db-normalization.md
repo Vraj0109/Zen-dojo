@@ -65,6 +65,48 @@ Costs: extra storage, write amplification (one change updates several places), a
 
 Analytics schemas (star schemas, wide tables) are deliberately denormalized because they're read-mostly and loaded in batches. OLTP schemas should start normalized and denormalize specific hot spots.
 
+### Anomalies, and when a star schema breaks the rules on purpose {point: 2.5}
+
+Normal forms are easier to remember as the problems they remove. Start with one wide table, `order_lines(order_id, customer_id, customer_email, product_id, product_name, unit_price, qty)`, and look at what goes wrong.
+
+An **update anomaly**: the customer changes email, and it must be changed in every row of every order they placed. Miss one and the data disagrees with itself. An **insert anomaly**: you cannot record a new product until someone orders it, because the row needs an order. A **delete anomaly**: delete the only order that contained a product and you lose the product's name and price. All three come from the same cause, facts about different things stored together, and the cure is to give each fact one home.
+
+```mermaid
+erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ ORDER_LINE : contains
+  PRODUCT ||--o{ ORDER_LINE : "appears in"
+  CUSTOMER {
+    int id PK
+    string email
+  }
+  ORDER {
+    int id PK
+    int customer_id FK
+  }
+  PRODUCT {
+    int id PK
+    string name
+    int unit_price
+  }
+  ORDER_LINE {
+    int order_id FK
+    int product_id FK
+    int qty
+  }
+```
+Diagram caption: The decomposed schema. Customer email lives once, product name and price live once, and order_line keeps only what is true of that line.
+
+### Third normal form versus BCNF {point: 0}
+
+3NF says every non-key column depends on the key, the whole key and nothing but the key. Boyce-Codd normal form (BCNF) is slightly stricter: for every functional dependency, the left side must be a key. The classic gap is a table `(student, subject, teacher)` where each teacher teaches exactly one subject (`teacher -> subject`) and a student has one teacher per subject. The key is `(student, subject)`. The dependency `teacher -> subject` has a left side that is not a key, so the table is not in BCNF, yet it is in 3NF because `subject` is part of a candidate key. The cost of leaving it: you can record that a teacher teaches a subject only along with a student, and changing a teacher's subject touches many rows. Splitting into `(teacher, subject)` and `(student, teacher)` fixes it, at the price that the rule "a student has one teacher per subject" can no longer be enforced by a key alone.
+
+### When denormalizing on purpose is right {point: 2}
+
+Analytics databases break normalization deliberately. A **star schema** has one large fact table (one row per sale, with foreign keys and numbers) surrounded by small dimension tables (date, product, store) that are flattened: the product dimension carries category and brand in the same row even though category depends on product, not on the key. Reports then join one fact table to a few dimensions and group, without walking long chains of joins. Because data is loaded in batches and rarely updated, update anomalies are managed by the load process instead of by constraints. The rule of thumb for interviews: normalize the system of record, where writes and correctness matter; denormalize read paths, caches and warehouses, where you control how the copies are refreshed and can accept that they may be briefly stale.
+
+A practical check before you decide: ask what the copy is for and who keeps it fresh. A denormalized column that a nightly job rebuilds from the source of truth is safe. A copy that application code must remember to update in five places is the update anomaly again, with the database no longer able to catch your mistake. If you must keep a copy in the same database, a trigger, a generated column or a materialized view moves the work from "every developer remembers" to "the database does it".
+
 ## Interview questions
 
 - Normalize this table: orders(order_id, customer_name, customer_email, product, price).

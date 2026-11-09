@@ -62,6 +62,75 @@ Physical backups copy data files (pg_basebackup, Percona XtraBackup, storage sna
 
 Disaster recovery planning: define RPO (data loss tolerated) and RTO (downtime tolerated); keep backups in another region and account (protects against region loss and ransomware or a compromised account); encrypt backups; test restores on a schedule and time them; and use replicas for fast failover, while remembering that replicas faithfully replicate mistakes like DROP TABLE, so they don't replace backups.
 
+### A write-ahead log in Java: crash, then redo what committed {point: 2}
+
+The core promise of a write-ahead log (WAL) is one rule: **the log record describing a change reaches stable storage before the change itself does**, and a transaction counts as committed only when its commit record is in the log. After a crash, the log is the truth.
+
+```mermaid
+sequenceDiagram
+  participant App as Transaction
+  participant Mem as Buffer pool in memory
+  participant Log as Log on disk
+  participant Data as Data files
+  App->>Mem: change a page, dirty in memory
+  App->>Log: append log record, SET a = 1
+  App->>Log: append COMMIT, then flush the log
+  Log-->>App: durable, safe to say committed
+  Note over Mem,Data: later: a checkpoint writes dirty pages to the data files
+  Note over Mem: a crash loses memory, recovery replays the log
+```
+Diagram caption: The data pages can be written lazily because the log already contains everything needed to redo them.
+
+### The demo {point: 2}
+
+The demo models that. It keeps a list of log records (the part that survives the crash) and a map for memory (the part that does not). Transaction 1 sets `a=1` and `b=2` and commits. Transaction 2 sets `a=99` but the crash comes before its commit. After the crash, memory is empty. **Recovery** scans the log, finds which transactions have a COMMIT record, and redoes only their changes, so `a` is back to 1 and the uncommitted 99 never appears.
+
+```java
+import java.util.*;
+
+public class WalDemo {
+    /** A log record: BEGIN, SET key value, COMMIT. */
+    record Rec(int tx, String type, String key, String value) {}
+
+    static final List<Rec> log = new ArrayList<>();   // survives the crash (it is on disk)
+    static Map<String, String> memory = new HashMap<>(); // lost in the crash
+
+    static void begin(int tx) { log.add(new Rec(tx, "BEGIN", null, null)); }
+    static void set(int tx, String k, String v) { log.add(new Rec(tx, "SET", k, v)); memory.put(k, v); }
+    static void commit(int tx) { log.add(new Rec(tx, "COMMIT", null, null)); } // the commit is the log flush
+
+    /** Redo only what committed; changes of unfinished transactions are ignored. */
+    static Map<String, String> recover() {
+        Set<Integer> done = new HashSet<>();
+        for (Rec r : log) if (r.type().equals("COMMIT")) done.add(r.tx());
+        Map<String, String> state = new TreeMap<>();
+        for (Rec r : log) if (r.type().equals("SET") && done.contains(r.tx())) state.put(r.key(), r.value());
+        return state;
+    }
+
+    public static void main(String[] args) {
+        begin(1); set(1, "a", "1"); set(1, "b", "2"); commit(1);
+        begin(2); set(2, "a", "99"); // never commits: the crash comes first
+        System.out.println("before crash, memory = " + new TreeMap<>(memory));
+        memory = new HashMap<>(); // crash: memory is gone, the log is not
+        System.out.println("after crash, memory = " + memory);
+        System.out.println("after recovery = " + recover());
+        System.out.println("log records = " + log.size());
+    }
+}
+```
+### Reading the output {point: 2}
+
+It prints `before crash, memory = {a=99, b=2}`, `after crash, memory = {}`, `after recovery = {a=1, b=2}` and `log records = 6`. The six records are the BEGIN, two SETs and COMMIT of transaction 1, plus the BEGIN and SET of transaction 2, which has no COMMIT.
+
+That missing COMMIT is the whole story. Recovery never asks "did this change reach the data file?", only "is there a commit record for its transaction?". The memory map held `a=99` before the crash, a value no committed transaction ever wrote, and recovery correctly drops it. This also shows why the order matters: if the engine wrote the commit to the log after changing the data pages and crashed in between, a change could exist without its log record, which is exactly what write-ahead logging forbids. The log record goes first, always. A real engine also has to make sure the log write is truly on disk (the fsync from the previous section) before it acknowledges the commit to the client; otherwise a client could be told "committed" for a transaction the log has never heard of.
+
+### What a real engine adds {point: 2}
+
+The toy replays the whole log. A real engine writes **checkpoints**: it records which log position everything before has been applied to the data files, so recovery starts there instead of at the beginning. It also has to cope with the case the demo avoids: the buffer pool may write a dirty page of an uncommitted transaction to disk before commit (a "steal" policy, which frees memory), so recovery needs **undo** information too, not only redo. ARIES, the classic algorithm, does three passes: analysis (find what was in flight at the crash), redo (repeat history, including the work of transactions that later turn out uncommitted), then undo (roll back the transactions without a commit record, logging compensation records so a crash during recovery is also safe). Each log record carries a log sequence number (LSN), and each page remembers the LSN of its last change, so redo can skip a change the page already contains. That is why replaying a log twice does no harm: redo is idempotent.
+
+Log records are also the basis for other features: replicas apply the same stream (physical replication), change-data-capture tools read it to feed other systems, and point-in-time recovery restores a base backup and replays the archived log up to a chosen moment.
+
 ## Interview questions
 
 - How does a database recover after a power failure?

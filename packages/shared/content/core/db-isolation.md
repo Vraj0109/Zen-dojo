@@ -70,6 +70,34 @@ Know the costs: higher levels mean more aborts and retries under contention (opt
 
 In interviews, the strongest answer names the anomaly the business can't tolerate and the cheapest mechanism that prevents it.
 
+### The check-then-insert race and how to close it {point: 1.7}
+
+The most common isolation bug in application code is not an exotic anomaly. It is this pattern: read to check a condition, then write based on the answer. Take a sign-up form. The code runs `SELECT 1 FROM users WHERE username = 'sam'`; if no row comes back, it runs `INSERT INTO users ... 'sam'`. Run two requests for the same name at the same moment and both checks see nothing, because neither insert is visible yet, and both inserts then go through.
+
+```mermaid
+sequenceDiagram
+  participant A as Request A
+  participant DB as Database
+  participant B as Request B
+  A->>DB: SELECT username = sam, no rows
+  B->>DB: SELECT username = sam, no rows
+  A->>DB: INSERT sam
+  B->>DB: INSERT sam
+  Note over DB: both succeed, two users named sam
+```
+Diagram caption: Both requests pass the check before either writes. This is a phantom, and it happens at read committed and at repeatable read in MySQL.
+
+### Closing the race {point: 1.7}
+
+This is why "just wrap it in a transaction" is not an answer. At read committed, the second `SELECT` does not see the first insert until it commits, and at snapshot isolation neither sees the other's insert. The checks and the writes are separate steps and nothing ties them together. The fixes, from most to least preferred:
+
+- **Let the database enforce the rule.** A `UNIQUE` constraint on `username` makes the second insert fail with a duplicate-key error, no matter how the requests interleave. Handle that error (show "name taken"). Use `INSERT ... ON CONFLICT DO NOTHING` (Postgres) or `INSERT IGNORE` / `ON DUPLICATE KEY UPDATE` (MySQL) when the conflict is a normal outcome. Constraints, including foreign keys and exclusion constraints (for example, no two overlapping bookings for one room), are the strongest tool because they hold for every client, not just yours.
+- **Lock what you read.** `SELECT ... FOR UPDATE` on an existing row locks it, so the second request waits. It does not help when the row does not exist yet, because there is nothing to lock (MySQL's gap locks cover some of this at repeatable read, at the price of surprising deadlocks). For "no row yet", lock a parent row (the account or the room) that every request touches first, or use an advisory lock keyed on the value.
+- **Run at SERIALIZABLE and retry.** Serializable isolation detects this interleaving and aborts one transaction with a serialization failure. It is correct without schema changes, but every transaction must be written to retry.
+- **Make the write conditional.** `UPDATE accounts SET balance = balance - 50 WHERE id = 7 AND balance >= 50` checks and changes in one statement, so there is no gap. The same idea with a version column (`WHERE id = 7 AND version = 12`) is optimistic locking.
+
+The general lesson for an interview: a read followed by a write on the strength of that read is a race unless something makes it atomic. Say which mechanism you pick, and why it fits: constraint for uniqueness, conditional update for counters and balances, row lock for read-modify-write on an existing row, serializable for complex invariants.
+
 ## Interview questions
 
 - Give an example of write skew and two ways to prevent it.

@@ -68,6 +68,92 @@ T1 updates row A then B; T2 updates B then A. The database's lock manager builds
 
 Prevent most of them by touching rows in a consistent order (sort ids before updating), keeping transactions short, and using the right indexes (missing indexes make UPDATEs lock more rows or ranges than needed).
 
+### A small MVCC engine in Java: snapshots and version chains {point: 2}
+
+MVCC is easiest to understand when you can see the data structure. Each row is a chain of versions. A version records the transaction that created it and, once it is replaced or deleted, the transaction that ended it. A reader takes a **snapshot** when it starts: the set of transactions that had committed at that moment. A version is visible to the reader if its creator is in the snapshot (or is the reader itself) and its end marker, if any, is not.
+
+```mermaid
+flowchart LR
+  subgraph x[row x]
+    V1[version: 100, created by tx1, ended by tx2]
+    V2[version: 150, created by tx2, still current]
+    V1 --> V2
+  end
+  S1[reader tx3, snapshot taken before tx2 committed] -- sees --> V1
+  S2[reader tx4, snapshot taken after tx2 committed] -- sees --> V2
+```
+Diagram caption: Two versions of one row coexist. Each reader sees the version that matches its snapshot, so nobody blocks.
+
+### The demo and what it prints {point: 2}
+
+The demo implements exactly that in about forty lines. A setup transaction writes `x = 100` and commits. T1 starts. T2 then updates x to 150 but does not commit; T1 still reads 100, and T2 reads its own uncommitted 150. After T2 commits, T1 still reads 100, because its snapshot was taken earlier (this is repeatable read, the behaviour of snapshot isolation). T3, starting after the commit, reads 150. The row now has two versions.
+
+```java
+import java.util.*;
+
+public class MvccDemo {
+    /** One version of a row: written by createdBy, replaced by deletedBy (0 = still current). */
+    record Version(String value, int createdBy, int deletedBy) {}
+
+    static final Map<String, List<Version>> table = new HashMap<>();
+    static final Set<Integer> committed = new HashSet<>();
+    static int nextTx = 1;
+
+    static class Tx {
+        final int id = nextTx++;
+        final Set<Integer> snapshot = new HashSet<>(committed); // who was committed when we started
+
+        boolean sees(int txId) { return txId == id || snapshot.contains(txId); }
+
+        String read(String key) {
+            for (Version v : table.getOrDefault(key, List.of())) {
+                boolean created = sees(v.createdBy());
+                boolean deleted = v.deletedBy() != 0 && sees(v.deletedBy());
+                if (created && !deleted) return v.value();
+            }
+            return null;
+        }
+
+        void write(String key, String value) {
+            List<Version> versions = table.computeIfAbsent(key, k -> new ArrayList<>());
+            for (int i = 0; i < versions.size(); i++) {
+                Version v = versions.get(i);
+                if (v.deletedBy() == 0 && sees(v.createdBy())) versions.set(i, new Version(v.value(), v.createdBy(), id));
+            }
+            versions.add(new Version(value, id, 0));
+        }
+
+        void commit() { committed.add(id); }
+    }
+
+    public static void main(String[] args) {
+        Tx setup = new Tx();
+        setup.write("x", "100");
+        setup.commit();
+
+        Tx t1 = new Tx();                       // starts before the update
+        Tx t2 = new Tx();
+        t2.write("x", "150");
+        System.out.println("T1 reads x = " + t1.read("x") + " (T2 not committed)");
+        System.out.println("T2 reads its own write x = " + t2.read("x"));
+        t2.commit();
+        System.out.println("T1 reads x = " + t1.read("x") + " (snapshot taken before T2 committed)");
+        Tx t3 = new Tx();                       // starts after the commit
+        System.out.println("T3 reads x = " + t3.read("x"));
+        System.out.println("versions of x: " + table.get("x").size());
+    }
+}
+```
+### Reading the output {point: 2}
+
+It prints `T1 reads x = 100`, `T2 reads its own write x = 150`, `T1 reads x = 100` again, `T3 reads x = 150` and `versions of x: 2`.
+
+Read the output line by line against the snapshot rule. T1's first read: the version written by T2 has creator T2, which is not in T1's snapshot and is not T1 itself, so it is invisible, while the original version is visible because its end marker (T2) is also invisible to T1. T2's read: the creator is T2 itself, so the new version is visible and the old version's end marker is T2, which T2 sees, so the old one is hidden. T1's second read, after the commit: T2 is now in the global committed set, but T1 copied that set when it started, so nothing changed for T1. T3 copied the set after the commit, so for T3 the old version is ended by a visible transaction (hidden) and the new one is visible. The same row, three answers, no locks and no waiting; that is the whole point of MVCC.
+
+### What this toy leaves out {point: 2.5}
+
+Real engines add what the demo skips. Two transactions that both try to update `x` must not both succeed: Postgres makes the second wait for the first (and, at repeatable read, aborts it with "could not serialize access" if the first commits), while InnoDB takes a row lock on the write. Old versions must be removed once no snapshot can see them: Postgres does this with VACUUM, InnoDB with a purge thread reading undo logs, and a long-running transaction holds back that cleanup, which makes tables bloat. And real systems store transaction ids in the row header and consult a commit log to decide whether a creator committed, instead of copying a set of ids; Postgres records a snapshot as a range (`xmin`, `xmax`) plus the list of in-progress ids. The principle is the same as in the demo: readers choose a version by snapshot, writers add versions, and nobody waits for a read.
+
 ## Interview questions
 
 - MVCC vs two-phase locking?
