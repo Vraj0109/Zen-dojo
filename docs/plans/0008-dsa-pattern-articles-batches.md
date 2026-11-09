@@ -43,7 +43,7 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
   bipartite. Union-find: path compression and union by size with the near-constant bound explained.
 - [x] **6. Graphs, part 2** → `dsa-articles-g.ts`: dijkstra, bellman-ford, floyd-warshall, mst, tarjan, eulerian.
   Dijkstra needs the correctness proof (why non-negative weights matter) and the lazy-deletion heap version.
-- [ ] **7. Backtracking and bits** → `dsa-articles-h.ts`: subsets, constraint-backtracking, meet-in-middle,
+- [x] **7. Backtracking and bits** → `dsa-articles-h.ts`: subsets, constraint-backtracking, meet-in-middle,
   bit-tricks, bitmask-dp-subsets.
 - [ ] **8. Dynamic programming, part 1** → `dsa-articles-i.ts`: dp-1d, knapsack, lis, grid-dp, two-string-dp.
   For each: state, transition, base case, order of evaluation, space optimisation, reconstruction.
@@ -69,6 +69,8 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
 ## Open questions
 
 ## Implementation notes
+
+**Step 7 (agent C, round three):** `dsa-articles-h.ts` has subsets, constraint-backtracking, meet-in-middle, bit-tricks and bitmask-dp-subsets, each with the eight sections plus two or three `Implementation:` sections, a traced worked example and C++17 that passes `pattern-article-code.test.ts` (`g++ -std=c++17 -fsyntax-only -Wall`). The article text was generated from a plain-text source with a small script (JSON), registered in `learn/index.ts`. Steps 8 to 11 are not done.
 
 (Record the batch you finished and anything skipped, after each sitting.)
 
