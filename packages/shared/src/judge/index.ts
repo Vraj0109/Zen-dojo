@@ -1,4 +1,5 @@
 import { CSES_SPECS } from "./problems-cses";
+import { CSES_SPECS_INTRO } from "./problems-cses-intro";
 import { OTHER_SPECS } from "./problems-other";
 import { LEETCODE_SPECS } from "./problems-leetcode";
 import { LEETCODE_SPECS_2 } from "./problems-leetcode-2";
@@ -16,6 +17,7 @@ import { STRESS_6 } from "./stress-6";
 import { STRESS_7 } from "./stress-7";
 import { STRESS_8 } from "./stress-8";
 import { STRESS_9 } from "./stress-9";
+import { STRESS_CSES_INTRO } from "./stress-cses-intro";
 import type { ProblemSpec } from "./types";
 
 export * from "./types";
@@ -34,6 +36,7 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
     ...LEETCODE_SPECS_8,
     ...LEETCODE_SPECS_9,
     ...CSES_SPECS,
+    ...CSES_SPECS_INTRO,
     ...OTHER_SPECS,
   ].map((p) => [p.id, p])
 );
@@ -43,7 +46,13 @@ for (const p of [...DESIGN_SPECS_A, ...DESIGN_SPECS_B]) JUDGE_PROBLEMS[p.id] = p
 
 // Attach the large inputs (speed and memory checks) to their problems.
 for (const spec of Object.values(JUDGE_PROBLEMS)) {
-  const stress = STRESS[spec.id] ?? STRESS_6[spec.id] ?? STRESS_7[spec.id] ?? STRESS_8[spec.id] ?? STRESS_9[spec.id];
+  const stress =
+    STRESS[spec.id] ??
+    STRESS_6[spec.id] ??
+    STRESS_7[spec.id] ??
+    STRESS_8[spec.id] ??
+    STRESS_9[spec.id] ??
+    STRESS_CSES_INTRO[spec.id];
   if (stress) spec.stress = stress;
 }
 
@@ -52,6 +61,7 @@ export { STRESS_6 } from "./stress-6";
 export { STRESS_7 } from "./stress-7";
 export { STRESS_8 } from "./stress-8";
 export { STRESS_9 } from "./stress-9";
+export { STRESS_CSES_INTRO } from "./stress-cses-intro";
 
-export const CSES_PROBLEMS: ProblemSpec[] = CSES_SPECS;
+export const CSES_PROBLEMS: ProblemSpec[] = [...CSES_SPECS, ...CSES_SPECS_INTRO];
 export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;

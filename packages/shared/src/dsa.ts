@@ -14,6 +14,8 @@ export interface Problem {
   slug?: string;
   difficulty?: Difficulty;
   premium?: boolean;
+  /** One line on what the problem teaches (shown in the problem header and as a tooltip in lists) */
+  why?: string;
 }
 
 export interface Pattern {
@@ -44,8 +46,8 @@ function lc(number: number, title: string, slug: string, d: keyof typeof D, prem
 }
 
 /** A CSES Problem Set task (https://cses.fi/problemset/). Judged in the app like the LeetCode ones; no LeetCode data. */
-function cses(slug: string, title: string, task: number): Problem {
-  return { id: `cses-${slug}`, title, url: `https://cses.fi/problemset/task/${task}` };
+function cses(slug: string, title: string, task: number, why?: string): Problem {
+  return { id: `cses-${slug}`, title, url: `https://cses.fi/problemset/task/${task}`, ...(why ? { why } : {}) };
 }
 
 function other(id: string, title: string, url?: string): Problem {
