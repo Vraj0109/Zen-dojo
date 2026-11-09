@@ -225,6 +225,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("logger-notifications", "Logger / notification system", "Observer, strategy for channels"),
       lldProblem("food-cab", "Food delivery / cab booking (small scope)", "Matching strategy, order lifecycle"),
       lldProblem("file-system-kv", "In-memory file system / key-value store", "Trie or map design, API cleanliness"),
+      lldProblem("library", "Library management", "Loans, renewals, reservation queue with holds, fines, lock order"),
     ],
   },
 };

@@ -3,6 +3,7 @@ import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
 import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
 import { BOOKING_GUIDE } from "./lld-deep-c-booking";
 import { SPLITWISE_GUIDE } from "./lld-deep-c-splitwise";
+import { LIBRARY_GUIDE } from "./lld-deep-c-library";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -558,4 +559,5 @@ class KVStore {
       "KV store: TTL per key (min-heap of expiries), snapshots to disk, count of values (secondary map value → count).",
     ],
   },
+  "lldp-library": LIBRARY_GUIDE,
 };

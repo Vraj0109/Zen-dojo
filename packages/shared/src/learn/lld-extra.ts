@@ -3,6 +3,7 @@ import { URL_SHORTENER_EXTRA } from "./lld-deep-b-url";
 import { VENDING_ATM_EXTRA } from "./lld-deep-c-vending";
 import { BOOKING_EXTRA } from "./lld-deep-c-booking";
 import { SPLITWISE_EXTRA } from "./lld-deep-c-splitwise";
+import { LIBRARY_EXTRA } from "./lld-deep-c-library";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -83,4 +84,5 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Path with trailing slash or '..'.", "File and directory with the same name.", "Nested transactions and rollback with nothing open.", "Expired keys checked lazily on get plus periodic cleanup."],
   },
+  "lldp-library": LIBRARY_EXTRA,
 };

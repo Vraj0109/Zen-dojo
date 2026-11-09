@@ -24,6 +24,8 @@ import { LLD_DEEP_B_URL } from "./lld-deep-b-url";
 import { LLD_PROJECTS_B_LOG } from "./lld-projects-b-log";
 import { LLD_PROJECTS_B_URL } from "./lld-projects-b-url";
 import { LLD_PROJECTS_B } from "./lld-projects-b";
+import { LIBRARY_DEEP } from "./lld-deep-c-library";
+import { LLD_PROJECTS_C_LIBRARY } from "./lld-projects-c-library";
 import { SPLITWISE_DEEP } from "./lld-deep-c-splitwise";
 import { LLD_PROJECTS_C_SPLITWISE } from "./lld-projects-c-splitwise";
 import { VENDING_ATM_DEEP } from "./lld-deep-c-vending";
@@ -53,8 +55,8 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESI
 export { LLD_GUIDES };
 
 /** Full Java projects and their long explanations, by LLD problem id (plan 0013). */
-export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B, ...LLD_PROJECTS_B_URL, ...LLD_PROJECTS_B_LOG, ...LLD_PROJECTS_C_VENDING, ...LLD_PROJECTS_C_BOOKING, ...LLD_PROJECTS_C_SPLITWISE };
-export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B, ...LLD_DEEP_B_URL, ...LLD_DEEP_B_LOG, ...VENDING_ATM_DEEP, ...BOOKING_DEEP, ...SPLITWISE_DEEP };
+export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B, ...LLD_PROJECTS_B_URL, ...LLD_PROJECTS_B_LOG, ...LLD_PROJECTS_C_VENDING, ...LLD_PROJECTS_C_BOOKING, ...LLD_PROJECTS_C_SPLITWISE, ...LLD_PROJECTS_C_LIBRARY };
+export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B, ...LLD_DEEP_B_URL, ...LLD_DEEP_B_LOG, ...VENDING_ATM_DEEP, ...BOOKING_DEEP, ...SPLITWISE_DEEP, ...LIBRARY_DEEP };
 export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 
 /** DSA pattern guides by pattern id (dsa.ts). Templates are C++. */

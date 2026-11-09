@@ -39,7 +39,7 @@ describe("LLD and core CS", () => {
   it("cover the roadmap's LLD section and the core subjects", () => {
     const lld = STUDY_AREAS.find((a) => a.id === "lld")!;
     expect(lld.sections[0].concepts).toHaveLength(6);
-    expect(lld.exercises!.items).toHaveLength(11);
+    expect(lld.exercises!.items).toHaveLength(12);
     expect(lld.exercises!.steps.map((s) => s.minutes).reduce((a, b) => a + b, 0)).toBe(45);
     expect(ALL_CONCEPTS["lld-patterns"].points).toHaveLength(10);
 
