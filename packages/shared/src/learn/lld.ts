@@ -5,6 +5,7 @@ import { BOOKING_GUIDE } from "./lld-deep-c-booking";
 import { SPLITWISE_GUIDE } from "./lld-deep-c-splitwise";
 import { LIBRARY_GUIDE } from "./lld-deep-c-library";
 import { FOOD_GUIDE } from "./lld-deep-d-food";
+import { CAB_GUIDE } from "./lld-deep-d-cab";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -489,4 +490,5 @@ class KVStore {
     ],
   },
   "lldp-library": LIBRARY_GUIDE,
+  "lldp-cab": CAB_GUIDE,
 };

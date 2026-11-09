@@ -226,6 +226,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("food-cab", "Food delivery", "Order state machine, courier matching with offers, atomic claims"),
       lldProblem("file-system-kv", "In-memory file system / key-value store", "Trie or map design, API cleanliness"),
       lldProblem("library", "Library management", "Loans, renewals, reservation queue with holds, fines, lock order"),
+      lldProblem("cab", "Cab booking", "Spatial grid index, parallel offers, metered fare, surge"),
     ],
   },
 };
