@@ -83,12 +83,8 @@ interface Exec {
   blocked: boolean;
 }
 
-/** True when a failed start means the OS blocked the program, not that the tool is missing. */
-export function isBlockedSpawnError(e: unknown): boolean {
-  const code = (e as NodeJS.ErrnoException | null)?.code;
-  const text = String((e as Error | null)?.message ?? "");
-  return code === "UNKNOWN" || code === "EPERM" || code === "EACCES" || /spawn (UNKNOWN|EPERM|EACCES)/.test(text);
-}
+import { isBlockedSpawnError } from "./blocked";
+export { isBlockedSpawnError };
 
 /** What to tell the learner when the compiled program was blocked. */
 function blockedMessage(lang: JudgeLang): string {

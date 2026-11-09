@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { RunResult } from "@/lib/judge/run";
+import { blockedBannerMessage, isBlockedRunMessage, pickFallbackLanguage } from "@/lib/judge/blocked";
 import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
 import { EditorField } from "./code-editor";
 import { editorHelp } from "./editor-help";
@@ -12,6 +13,7 @@ import { PaneLayout } from "./pane-layout";
 type Lang = "cpp" | "java" | "javascript";
 const LABEL: Record<Lang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript" };
 const LANG_KEY = "habit-judge-lang";
+const problemLangKey = (problemId: string) => `habit-judge-lang:${problemId}`;
 const codeKey = (id: string, lang: Lang) => `habit-judge:${id}:${lang}`;
 
 const store = {
@@ -152,10 +154,11 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const [customText, setCustomText] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
   const [custom, setCustom] = useState<{ error?: string; output?: string; printed?: string; compile?: string } | null>(null);
+  const [blockedBanner, setBlockedBanner] = useState<string | null>(null);
   const [tab, setTab] = useState(tabs.some((t) => t.id === initialTab) ? initialTab! : tabs[0].id);
   const areaRef = useRef<HTMLDivElement>(null);
 
-  const savedLang = hydrated ? store.get(LANG_KEY) : null;
+  const savedLang = hydrated ? (store.get(problemLangKey(id)) ?? store.get(LANG_KEY)) : null;
   const lang: Lang = pickedLang ?? (savedLang === "java" || savedLang === "javascript" || savedLang === "cpp" ? savedLang : "cpp");
 
   const loadRuns = useCallback(async () => {
@@ -179,16 +182,17 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const lastRun = runs.find((r) => r.lang === lang);
   const draft = hydrated ? store.get(codeKey(id, lang)) : null;
 
-  const currentCode = () => areaRef.current?.querySelector("textarea")?.value ?? templates[lang];
-  const saveDraft = () => store.set(codeKey(id, lang), currentCode());
+  const currentCode = useCallback(() => areaRef.current?.querySelector("textarea")?.value ?? templates[lang], [lang, templates]);
+  const saveDraft = useCallback(() => store.set(codeKey(id, lang), currentCode()), [currentCode, id, lang]);
 
-  function switchLang(next: Lang) {
+  const switchLang = useCallback((next: Lang) => {
     saveDraft();
     store.set(LANG_KEY, next);
+    store.set(problemLangKey(id), next);
     setPickedLang(next);
     setResult(null);
     setFailure(null);
-  }
+  }, [id, saveDraft]);
 
   const run = useCallback(async () => {
     if (running) return;
@@ -206,6 +210,12 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       else {
         const data = (await res.json()) as RunResult;
         setResult(data);
+        if (data.status === "unavailable" && isBlockedRunMessage(data.message)) {
+          const javaMissing = runs.some((r) => r.lang === "java" && r.status === "unavailable");
+          const nextLang = pickFallbackLanguage(lang, !javaMissing);
+          setBlockedBanner(blockedBannerMessage(nextLang));
+          switchLang(nextLang);
+        }
         if (data.status === "done" && data.saved) router.refresh(); // the Notes tab now shows the saved solution
         void loadRuns();
         void getSavedSolutionsAction(id).then((list) => setSavedSolutions(list as SavedSolutionView[])).catch(() => {});
@@ -215,7 +225,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
     } finally {
       setRunning(false);
     }
-  }, [id, lang, loadRuns, router, running, templates]);
+  }, [id, lang, loadRuns, router, running, runs, switchLang, templates]);
 
   async function runCustom() {
     if (customBusy) return;
@@ -240,7 +250,15 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       const data = (await res.json().catch(() => null)) as { error?: string; status?: string; message?: string; output?: string; printed?: string } | null;
       if (!res.ok || !data) setCustom({ error: data?.error ?? `The app answered HTTP ${res.status}.` });
       else if (data.status === "compile_error") setCustom({ compile: data.message });
-      else if (data.status === "unavailable") setCustom({ error: data.message });
+      else if (data.status === "unavailable") {
+        setCustom({ error: data.message });
+        if (isBlockedRunMessage(data.message)) {
+          const javaMissing = runs.some((r) => r.lang === "java" && r.status === "unavailable");
+          const nextLang = pickFallbackLanguage(lang, !javaMissing);
+          setBlockedBanner(blockedBannerMessage(nextLang));
+          switchLang(nextLang);
+        }
+      }
       else setCustom({ error: data.error, output: data.output, printed: data.printed });
     } catch {
       setCustom({ error: "Could not reach the app. Is it still running?" });
@@ -265,6 +283,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   function loadSaved(v: SavedSolutionView) {
     store.set(codeKey(id, v.lang), v.code);
     store.set(LANG_KEY, v.lang);
+    store.set(problemLangKey(id), v.lang);
     setPickedLang(v.lang);
     setResetCount((n) => n + 1);
     setResult(null);
@@ -368,6 +387,19 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
 
   const codePane = (
     <div className="flex h-full min-h-0 flex-col">
+      {blockedBanner && (
+        <div role="alert" className="flex shrink-0 items-start justify-between gap-2 border-b border-line bg-surface p-2.5 text-xs text-foreground">
+          <p>{blockedBanner}</p>
+          <button
+            type="button"
+            onClick={() => setBlockedBanner(null)}
+            aria-label="Dismiss banner"
+            className="rounded px-1.5 py-0.5 text-muted hover:bg-background hover:text-foreground"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div
       ref={areaRef}
       className="min-h-0 flex-1"
