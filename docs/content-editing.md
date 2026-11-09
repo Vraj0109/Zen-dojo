@@ -7,14 +7,12 @@ The prompt to give an agent: **"Read docs/content-editing.md, then fix <problem>
 
 | Kind | Where | Format |
 |---|---|---|
-| Concept lessons that are migrated (LLD now; the rest later) | `packages/shared/content/<area>/<concept-id>.md` | Markdown, described below. **Edit these.** |
-| Concept lessons not yet migrated (system design, core CS) | `packages/shared/src/learn/` (`sd*.ts`, `core.ts`, `deep-*.ts`, `more-*.ts`) | TypeScript template literals |
+| Concept lessons (system design, LLD, core CS) | `packages/shared/content/<area>/<concept-id>.md` | Markdown, described below. **Edit these.** |
 | Checklists (the "What to know" points), concept ids, exercises | `packages/shared/src/study.ts` | TypeScript |
-| Where each section of an unmigrated lesson sits | `packages/shared/src/learn/section-points.ts` | concept id, section title, point number |
 | System design walkthroughs, LLD projects, DSA articles | `packages/shared/src/learn/designs-*.ts`, `lld-projects-*.ts`, `dsa-articles-*.ts` | TypeScript (see HANDOFF.md) |
 | Added lessons and problems without code | `docs/content-packs.md` | JSON |
 
-A concept id exists in `study.ts`. A Markdown lesson with the same id replaces the TypeScript lesson of that id.
+A concept id exists in `study.ts`; every concept has exactly one Markdown lesson.
 
 ## The Markdown format
 
@@ -94,9 +92,7 @@ Rules:
 
 ### Reorder sections
 
-Change the `{point: N}` numbers (or the numbers in a fraction) and run `pnpm.cmd content:build`. For a lesson that is still
-TypeScript, change the number next to its section title in `learn/section-points.ts`. The audit test
-(`learn/order-audit.test.ts`) fails if a section's title in `section-points.ts` no longer exists or the order is wrong.
+Change the `{point: N}` numbers (or the numbers in a fraction) and run `pnpm.cmd content:build`. The audit test (`learn/order-audit.test.ts`) fails if a point is out of range or the order is wrong.
 
 ### Add a lesson
 
@@ -106,8 +102,7 @@ TypeScript, change the number next to its section title in `learn/section-points
 
 ### Rename a section title
 
-In a `.md` file just edit the heading (links to it use the title, so they change with it). In an unmigrated lesson, change
-the title in the TypeScript file **and** the same title in `section-points.ts`.
+Edit the heading in the `.md` file (links to it use the title, so they change with it).
 
 ## What not to touch
 
@@ -115,9 +110,3 @@ the title in the TypeScript file **and** the same title in `section-points.ts`.
 - Concept ids and checklist text in `study.ts`, unless you are adding a concept: ids are stored in people's progress data,
   and the Markdown must be changed to match any text you change.
 - Never `data/habit.db` or the desktop app-data folder.
-
-## Moving an old TypeScript lesson to Markdown
-
-`MIGRATE=<area or concept id> pnpm.cmd exec vitest run packages/shared/src/learn/generated/migrate.test.ts` writes the
-`.md` files from the current TypeScript lessons (overwriting existing files). Then `pnpm.cmd content:build`. The round-trip
-test (`generated/lesson-md.test.ts`) proves every lesson survives TypeScript -> Markdown -> parse unchanged.
