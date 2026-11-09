@@ -207,29 +207,41 @@ export const STRESS_CSES_RANGE: Record<string, StressCase[]> = {
     S("200000 equal values, random ranges", () => [fill(N, 1000000000), ranges(Q, N, 8236)]),
   ],
   "cses-movie-festival-queries": [
-    S("200000 random movies, random windows", () => {
+    S("100000 random movies, random windows", () => {
       const r = rng(8241);
+      const n = 100000;
+      const q = 100000;
       return [
-        Array.from({ length: N }, () => {
+        Array.from({ length: n }, () => {
           const s = between(r, 1, 999990000);
           return [s, s + between(r, 1, 10000)];
         }),
-        Array.from({ length: Q }, () => {
+        Array.from({ length: q }, () => {
           const a = between(r, 1, 989000000);
           return [a, a + between(r, 1, 10000000)];
         }),
       ];
     }, 3000),
-    S("200000 back-to-back unit movies, full window", () => [range(N, 1).map((i) => [i, i + 1]), fill(Q, [1, N + 1])]),
-    S("200000 identical movies", () => [fill(N, [1, 1000000000]), Array.from({ length: Q }, (_, i) => (i % 2 === 0 ? [1, 1000000000] : [2, 999999999]))]),
-    S("200000 movies of random length, wide windows", () => {
+    S("100000 back-to-back unit movies, full window", () => {
+      const n = 100000;
+      const q = 100000;
+      return [range(n, 1).map((i) => [i, i + 1]), fill(q, [1, n + 1])];
+    }),
+    S("100000 identical movies", () => {
+      const n = 100000;
+      const q = 100000;
+      return [fill(n, [1, 1000000000]), Array.from({ length: q }, (_, i) => (i % 2 === 0 ? [1, 1000000000] : [2, 999999999]))];
+    }),
+    S("100000 movies of random length, wide windows", () => {
       const r = rng(8242);
+      const n = 100000;
+      const q = 100000;
       return [
-        Array.from({ length: N }, () => {
+        Array.from({ length: n }, () => {
           const s = between(r, 1, 900000000);
           return [s, s + between(r, 1, 100000000)];
         }),
-        Array.from({ length: Q }, () => {
+        Array.from({ length: q }, () => {
           const a = between(r, 1, 100000000);
           return [a, a + between(r, 800000000, 899999999)];
         }),

@@ -37,6 +37,14 @@ import { STRESS_CSES_SORTING } from "./stress-cses-sorting";
 import { STRESS_CSES_DP } from "./stress-cses-dp";
 import { STRESS_CSES_GRAPH } from "./stress-cses-graph";
 import { STRESS_CSES_MISC } from "./stress-cses-misc";
+import { CSES_RANGE_SPECS } from "./problems-cses-range";
+import { STRESS_CSES_RANGE } from "./stress-cses-range";
+import { CSES_TREE_SPECS } from "./problems-cses-tree";
+import { STRESS_CSES_TREE } from "./stress-cses-tree";
+import { CSES_SPECS_MATH } from "./problems-cses-math";
+import { STRESS_CSES_MATH } from "./stress-cses-math";
+import { CSES_SPECS_GEO_STR } from "./problems-cses-geo-str";
+import { STRESS_CSES_GEO_STR } from "./stress-cses-geo-str";
 import { STRESS_LOGIC } from "./stress-logic";
 import type { ProblemSpec } from "./types";
 
@@ -68,6 +76,10 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
     ...LOGIC_SPECS_KATTIS,
     ...LOGIC_SPECS_BATCH2,
     ...LOGIC_SPECS_C,
+    ...CSES_RANGE_SPECS,
+    ...CSES_TREE_SPECS,
+    ...CSES_SPECS_MATH,
+    ...CSES_SPECS_GEO_STR,
     ...PROBLEMS_LOGIC_D,
   ].map((p) => [p.id, p])
 );
@@ -88,6 +100,10 @@ for (const spec of Object.values(JUDGE_PROBLEMS)) {
     STRESS_CSES_DP[spec.id] ??
     STRESS_CSES_GRAPH[spec.id] ??
     STRESS_CSES_MISC[spec.id] ??
+    STRESS_CSES_RANGE[spec.id] ??
+    STRESS_CSES_TREE[spec.id] ??
+    STRESS_CSES_MATH[spec.id] ??
+    STRESS_CSES_GEO_STR[spec.id] ??
     STRESS_LOGIC[spec.id] ??
     STRESS_LOGIC_C[spec.id] ??
     STRESS_LOGIC_D[spec.id];
@@ -113,6 +129,10 @@ export const CSES_PROBLEMS: ProblemSpec[] = [
   ...CSES_SPECS_DP,
   ...CSES_SPECS_GRAPH,
   ...CSES_SPECS_MISC,
+  ...CSES_RANGE_SPECS,
+  ...CSES_TREE_SPECS,
+  ...CSES_SPECS_MATH,
+  ...CSES_SPECS_GEO_STR,
 ];
 export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;
 export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2, ...LOGIC_SPECS_C, ...PROBLEMS_LOGIC_D];

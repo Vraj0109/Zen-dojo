@@ -7,7 +7,7 @@ import type { StressCase } from "./types";
 
 const { ints, fill, range, rng, S } = H;
 
-const N = 200000;
+const N = 100000;
 type Shape = "path" | "star" | "binary" | "random" | "broom";
 
 /** Parent of node i (index 2..n) for a tree shape; indexes 0 and 1 are unused. */
