@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { JudgeLang, ProblemSpec } from "@habit/shared";
-import { sameAnswer } from "./compare";
+import { firstDifference, sameAnswer } from "./compare";
 import { CPP_PRELUDE_LINES, JAVA_PRELUDE, JAVA_PRELUDE_LINES, MEMORY_LIMIT_MB, cppProgram, javaProgram, javaSupportFiles, javascriptProgram } from "./harness";
 
 // Runs your code on a problem's test cases, on this computer, like LeetCode's Run button. It compiles with the
@@ -57,6 +57,8 @@ export type CaseResult = {
   error?: string;
   problem?: "exception" | "crash" | "timeout" | "memory" | "not-run";
   micros?: number;
+  /** Design problems: which operation first gave a wrong answer */
+  note?: string;
   /** Whatever your code printed during this case (cout, printf, System.out, console.log ...) */
   output?: string;
 };
@@ -388,7 +390,8 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
       }
       const right = sameAnswer(expectedValue, o.actual, spec.unordered);
       if (right && tooSlow) return slow(base, o, limitMs, lang, printed);
-      return { ...base, pass: right, actual: actualText, ...printed };
+      const note = !right && spec.design ? firstDifference(c.input, expectedValue, o.actual) : undefined;
+      return { ...base, pass: right, actual: actualText, ...(note ? { note } : {}), ...printed };
     });
 
     return { status: "done", results, passed: results.filter((x) => x.pass).length, total: results.length, ...(beforeTests.trim() ? { beforeTests: cap(beforeTests) } : {}) };

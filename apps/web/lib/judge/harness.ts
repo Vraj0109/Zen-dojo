@@ -1,4 +1,5 @@
 import type { JudgeLang, ProblemSpec, Ty } from "@habit/shared";
+import { cppDesignCase, javaDesignCase, jsDesignCase } from "./harness-design";
 import { cppNodeIo, cppPrelude, javaNodeHelpers, javaNodeWriter, jsArg, jsNodePrelude, jsResult } from "./harness-nodes";
 
 export { javaSupportFiles } from "./harness-nodes";
@@ -111,6 +112,15 @@ export function cppProgram(spec: ProblemSpec, userCode: string): string {
     .map((p, k) => `            ${k > 0 ? "r.expect(',');\n            " : ""}${cppTy(p.type)} ${p.name}; habitRead(r, ${p.name});`)
     .join("\n");
   const call = `Solution().${name}(${params.map((p) => p.name).join(", ")})`;
+  const caseBody = spec.design
+    ? `            ${cppDesignCase(spec)}`
+    : `            r.expect('[');
+${reads}
+            auto t0 = std::chrono::steady_clock::now();
+            auto result = ${call};
+            auto t1 = std::chrono::steady_clock::now();
+            std::ostringstream o; habitWrite(o, result);
+            long long micros = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();`;
   return (
     cppPrelude(spec) +
     userCode +
@@ -134,13 +144,8 @@ int main() {
         std::cout << char(1) << "CASE " << t << char(2) << std::endl; // tells the judge which case prints from here on
         try {
             HabitReader r{line};
-            r.expect('[');
-${reads}
-            auto t0 = std::chrono::steady_clock::now();
-            auto result = ${call};
-            auto t1 = std::chrono::steady_clock::now();
-            std::ostringstream o; habitWrite(o, result);
-            results << "OK\\t" << o.str() << "\\t" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << std::endl;
+${caseBody}
+            results << "OK\\t" << o.str() << "\\t" << micros << std::endl;
         } catch (std::exception& e) {
             results << "ERR\\t" << e.what() << std::endl;
         } catch (...) {
@@ -210,6 +215,13 @@ export function javaProgram(spec: ProblemSpec): string {
   const conv = (t: Ty, expr: string) =>
     ({ list: `list(${expr})`, tree: `tree(${expr})`, int: `toInt(${expr})`, long: `toLong(${expr})`, double: `toDouble(${expr})`, bool: `(Boolean) ${expr}`, string: `(String) ${expr}`, "int[]": `ints(${expr})`, "long[]": `longs(${expr})`, "bool[]": `bools(${expr})`, "string[]": `strings(${expr})`, "int[][]": `ints2(${expr})`, "string[][]": `strings2(${expr})` })[t];
   const args = params.map((p, k) => conv(p.type, `a.get(${k})`)).join(", ");
+  const caseBody = spec.design
+    ? javaDesignCase(spec)
+    : `List<?> a = (List<?>) val();
+                long t0 = System.nanoTime();
+                Object result = new Solution().${name}(${args});
+                long us = (System.nanoTime() - t0) / 1000;
+                StringBuilder b = new StringBuilder(); wr(b, result);`;
   return (
     JAVA_MAIN.replace("/*NODE_HELPERS*/", () => javaNodeHelpers(spec)).replace("/*NODE_WRITER*/", () => javaNodeWriter(spec)) +
     `
@@ -223,11 +235,7 @@ export function javaProgram(spec: ProblemSpec): string {
             System.out.print((char) 1 + "CASE " + t + (char) 2 + "\\n"); // tells the judge which case prints from here on
             System.out.flush();
             try {
-                List<?> a = (List<?>) val();
-                long t0 = System.nanoTime();
-                Object result = new Solution().${name}(${args});
-                long us = (System.nanoTime() - t0) / 1000;
-                StringBuilder b = new StringBuilder(); wr(b, result);
+                ${caseBody}
                 results.println("OK\\t" + b + "\\t" + us);
             } catch (Throwable e) {
                 results.println("ERR\\t" + e.toString().replace('\\n', ' '));
@@ -243,6 +251,12 @@ export function javaProgram(spec: ProblemSpec): string {
 
 export function javascriptProgram(spec: ProblemSpec, userCode: string): string {
   const call = `${spec.fn.name}(${spec.fn.params.map((p, k) => jsArg(p.type, `args[${k}]`)).join(", ")})`;
+  const body = spec.design
+    ? "        " + jsDesignCase(spec)
+    : `        const t0 = process.hrtime.bigint();
+        const result = ${call};
+        const us = Number((process.hrtime.bigint() - t0) / 1000n);
+        const shown = ${jsResult(spec.fn.returns, "result")};`;
   return (
     String.raw`
 // ---- added by Zen Dojo: console output is written straight to the console section, in order ----
@@ -264,14 +278,9 @@ for (let t = 1; t <= __n; t++) {
     __fs.writeSync(1, "\u0001CASE " + (t - 1) + "\u0002\n"); // tells the judge which case prints from here on
     try {
         const args = JSON.parse(__lines[t]);
-        const t0 = process.hrtime.bigint();
-        const result = ` +
-    call +
-    String.raw`;
-        const us = Number((process.hrtime.bigint() - t0) / 1000n);
-        const shown = ` +
-    jsResult(spec.fn.returns, "result") +
-    String.raw`;
+` +
+    body +
+    String.raw`
         __fs.appendFileSync("results.txt", "OK\t" + JSON.stringify(shown === undefined ? null : shown) + "\t" + us + "\n");
     } catch (e) {
         __fs.appendFileSync("results.txt", "ERR\t" + String((e && e.message) || e).split("\n")[0] + "\n");

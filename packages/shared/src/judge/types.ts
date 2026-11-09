@@ -20,6 +20,24 @@ export interface Case {
   output: unknown;
 }
 
+/** One method of a "design a class" problem. `void` returns nothing (the answer list shows null). Types are the plain ones: no list or tree. */
+export interface DesignMethod {
+  name: string;
+  params: { name: string; type: Ty }[];
+  returns: Ty | "void";
+}
+
+/**
+ * A "design a class" problem, written like LeetCode's: the test gives a list of operations (the class name first, then
+ * method names) and a list of argument lists, and the expected answer is a list with null for the constructor and for
+ * methods that return nothing. A case is `input: [ops, args]` and `output: [...]`.
+ */
+export interface DesignSpec {
+  className: string;
+  ctor: { name: string; type: Ty }[];
+  methods: DesignMethod[];
+}
+
 export interface ProblemSpec {
   /** "lc-1" for a roadmap LeetCode problem, "cses-<slug>" for a CSES problem */
   id: string;
@@ -28,7 +46,10 @@ export interface ProblemSpec {
   /** Paragraphs, plain text. Backtick-free; `code` spans are written with plain quotes. */
   statement: string[];
   constraints: string[];
-  /** The function you implement */
+  /** "design" for a design-a-class problem (then `design` is set); anything else is a function problem */
+  kind?: "function" | "design";
+  design?: DesignSpec;
+  /** The function you implement. For a design problem it is a stand-in (name = class name; the two inputs are ops and args). */
   fn: { name: string; params: { name: string; type: Ty }[]; returns: Ty };
   /** Shown with the statement; also run as the first tests */
   examples: (Case & { explanation?: string })[];

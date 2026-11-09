@@ -36,6 +36,13 @@ export async function GET(request: Request) {
 
 /** Checks one typed value per parameter. Returns the values, or a plain message for the first one that does not fit. */
 function checkInput(spec: ProblemSpec, input: unknown): { ok: true; values: unknown[] } | { ok: false; message: string } {
+  if (spec.design) {
+    const [ops, args] = Array.isArray(input) ? input : [];
+    if (!Array.isArray(input) || input.length !== 2 || !Array.isArray(ops) || !ops.every((x) => typeof x === "string") || !Array.isArray(args) || !args.every(Array.isArray) || ops.length !== args.length) {
+      return { ok: false, message: "Write two lines: the operations, like [\"LRUCache\",\"put\",\"get\"], and one argument list per operation, like [[2],[1,1],[1]]." };
+    }
+    return { ok: true, values: input };
+  }
   const params = spec.fn.params;
   if (!Array.isArray(input) || input.length !== params.length) return { ok: false, message: `The function takes ${params.length} value${params.length === 1 ? "" : "s"}, one per line.` };
   for (let k = 0; k < params.length; k++) {

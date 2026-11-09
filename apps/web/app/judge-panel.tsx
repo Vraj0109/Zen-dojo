@@ -67,6 +67,7 @@ export function Results({ result }: { result: RunResult }) {
               <dl className="space-y-1 border-t border-line px-3 py-2">
                 <Row label="Input" value={r.input} />
                 <Row label="Expected" value={r.expected} />
+                {r.note && <Row label="First wrong operation" value={r.note} />}
                 <Row label={r.error ? "What happened" : "Your output"} value={r.error ?? r.actual ?? "(nothing)"} />
                 {r.output && <Row label="Printed by your code" value={r.output} block />}
               </dl>

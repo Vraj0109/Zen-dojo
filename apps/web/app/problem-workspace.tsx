@@ -12,7 +12,10 @@ export function startersFor(spec: ProblemSpec) {
 }
 
 export function ProblemDescription({ spec }: { spec: ProblemSpec }) {
-  const signature = `${spec.fn.name}(${spec.fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) -> ${spec.fn.returns}`;
+  const d = spec.design;
+  const signature = d
+    ? [`${d.className}(${d.ctor.map((p) => `${p.name}: ${p.type}`).join(", ")})`, ...d.methods.map((m) => `${m.name}(${m.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) -> ${m.returns}`)].join("; ")
+    : `${spec.fn.name}(${spec.fn.params.map((p) => `${p.name}: ${p.type}`).join(", ")}) -> ${spec.fn.returns}`;
   return (
     <div data-focus-reading className="space-y-5">
       <section aria-label="Description" className="space-y-3">
