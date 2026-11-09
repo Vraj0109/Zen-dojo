@@ -7,22 +7,23 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Done so far: 0001-0007, 0009, 0010, 0011 (Claude Code built 0003-0005, 0007, 0009, 0011). **0008** is approved (ready). New and ready: 0012 diagrams, 0013 LLD Java codebases, 0014 system design depth, 0015 core subjects depth. Order: 0012 first, then 0008 and 0013-0015 in batches.
+Done: 0001-0007, 0009-0012, 0016-0020 (release 0.4.0). In progress: 0008 (22 of 67 articles), 0013 (batches A and B; superseded in part by 0025).
+Ready, in this order:
+
+| Plan | What |
+|---|---|
+| [0021](0021-run-button-v2.md) | Run button v2: hide `#include`/imports, last run saved, custom input |
+| [0023](0023-editable-content-and-navigation.md) | Lessons as Markdown, fix SOLID and other ordering, subtopics in navigation, content-editing guide |
+| [0024](0024-content-packs-v2.md) | Content packs v2: add to existing courses, patch lessons, update feed, pack tools |
+| [0022](0022-problem-library.md) | Problem library: remaining roadmap problems, all CSES, other platforms, design-class problems |
+| [0025](0025-more-lld-topics.md) | More LLD topics, vending machine and ATM as code |
+| 0014, 0015 | System design depth; core subjects depth |
+| 0008 | The other 45 DSA pattern articles |
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo
-agy -i "Implement docs/plans/0010-no-emoji-leetcode-style-ui.md"
+agy -i "Implement docs/plans/0021-run-button-v2.md"
 ```
-
-Then, in this order (run `/review-plan NNNN` in Claude Code after each):
-1. **0011** coloured code and a code editor (needs 0010 first, both touch the problem page).
-2. **0007** full DSA pattern articles: the format, tests, and three exemplar articles. **Stop and read them**, then tell
-   Claude whether the depth is right; Claude then sets 0008 to `ready`.
-3. **0008** the other 64 pattern articles, one batch (group) per sitting.
-4. **0004** nav and Today, then **0005** global timer and Simple mode (0005 needs 0004).
-5. **0009** reading sources and two small lessons (data only, independent; a cheaper model is fine).
-6. **0003 steps 3-6**: cp-algorithms Reference tab. Lowest priority: extra reading on top of our own full articles.
-   Do it after 0007 (it adds a tab to the new pattern page).
 
 Update this section when a plan is done.
 
@@ -82,3 +83,10 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0018 | [Problem statements, hints, solutions and a Run button (roadmap + CSES)](0018-in-app-problems-and-judge.md) | in-progress (engine, lists and trees, 53 problems done) |
 | 0019 | [Focus styles, reading aids, game switch, desktop back/forward](0019-focus-themes-game-switch-desktop-navigation.md) | implemented (by Claude Code) |
 | 0020 | [Problem workspace, CSES in the main list, Learn hub, animations, reading tracker](0020-problem-workspace-learn-hub-motion.md) | implemented (by Claude Code) |
+| 0021 | [Run button v2: hidden boilerplate, last run saved, custom input](0021-run-button-v2.md) | ready |
+| 0022 | [A much bigger problem library](0022-problem-library.md) | ready |
+| 0023 | [Lessons as plain, editable files; ordering; subtopic navigation](0023-editable-content-and-navigation.md) | ready |
+| 0024 | [Content packs v2 and over-the-air updates](0024-content-packs-v2.md) | ready |
+| 0025 | [More LLD topics](0025-more-lld-topics.md) | ready |
+| 0026 | [Run plans 0021 to 0025 with four Claude agents at once](0026-parallel-agents.md) | ready |
+| 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | ready |

@@ -1,164 +1,119 @@
-# Handoff: finishing the learning-content work
+# Handoff
 
-Written 2026-11-08 by Claude Code for the next agent (Claude Code, Antigravity or anything else). Read this first, then
-`AGENTS.md`, then the plan you pick up. It says what is done, what is left, in what order, how to verify, and what has
-already gone wrong once so you do not repeat it.
+Written 2026-11-09 by Claude Code, after release **0.4.0**. For the next agent (Claude Code, Antigravity or anything else).
+Read this first, then `AGENTS.md`, then the plan you pick up. It says what the project is, what is done, what to do next and in what
+order, how to verify, and the mistakes already made.
 
-## 1. The project in three lines
+## 1. The project in four lines
 
-HabitManager is a personal tracker for a 16-week SDE2/SWE3 interview-prep roadmap (Next.js 16 + SQLite, packaged as an
-Electron app; pnpm workspace). The current job is **content depth**: the user wants every DSA pattern, LLD problem,
-system design and core subject taught in full, with diagrams. Plans are in `docs/plans/NNNN-*.md`; `docs/plans/README.md`
-is the index. The plan file is the contract: tick its boxes, write its *Implementation notes*, set its status.
+**Zen Dojo** (renamed from HabitManager on 2026-11-09; first Prepwise, then Zen Forge, then Zen Dojo) is an offline, open-source
+engineering course and practice tool: DSA with a built-in code judge, system design, low-level design, core CS, reading list,
+review queue. Next.js 16 + SQLite (libSQL), packaged as an Electron desktop app, pnpm workspace (`apps/web`, `apps/desktop`,
+`apps/extension`, `packages/shared`). Single user, local only. The user prepares for SDE2/SWE3 interviews but wants it to feel
+like a learning platform (Striver, GeeksforGeeks), not a habit tracker.
 
 ## 2. How we work (the user's rules)
 
-- **Claude and Antigravity both implement now.** (Antigravity was too slow, so the user said Claude implements too.)
-- **Commits:** one commit per batch, message in plain English, **never a `Co-Authored-By` line or any AI attribution**.
-  Only commit or push when the user asked in this conversation. They asked for everything to be pushed on 2026-11-08.
-- **Done means checked.** `pnpm test` then `pnpm check` (lint, typecheck, test, build) before saying a batch is done.
-  Report failures as they are. Never claim code is compiled when it was not (see section 5).
-- **Writing for the user:** plain, specific, short sentences, no hype, no emoji (there is a test for emoji).
-- **Never touch `data/habit.db`** or the desktop app-data folder. Test against a copy or `:memory:`.
-- **Depth is what the user wants.** They read the exemplar DSA articles (about 2,000 words, traced examples, C++) and said
-  "the details are right, I need that much". Do not shorten to save effort.
-- **LLD feedback (2026-11-08):** "solutions for these LLD problems are too simple, and LLDs are the ones that need the
-  diagrams." See section 6, item L1: this is an open requirement, not finished.
+- **Git:** commit only when the user asks in this conversation; never add `Co-Authored-By` or AI attribution. **Never push or tag
+  unless asked.** The user asked for the 0.4.0 release explicitly on 2026-11-09; that does not cover later releases.
+- **Do not build the desktop installer to "check" something** (`pnpm desktop:build`, 10 minutes). The user said it is a waste.
+  Releases are built by the GitHub workflow when a tag is pushed.
+- **Tests must stay fast.** `pnpm check` takes about 3.5 minutes. The user rejected running every problem's reference solution
+  and every Java project on each run; do not add per-item test loops. Check new content by running just its ids.
+- **Done means checked:** `pnpm check` (lint, typecheck, test, build) before saying work is done. Report failures as they are.
+- **Writing for the user:** plain, specific, short; no hype; no emoji in the UI (a test enforces it, including check marks: use SVG).
+- **Never touch `data/habit.db`** or the desktop app-data folder (`%APPDATA%\HabitManager`; the folder keeps that old name on purpose).
+- **Depth is wanted** for learning content (see plans 0008, 0013 to 0015, 0025). LLD answers must be rich and diagram-heavy.
+- **Content must be easy for other AI agents to edit** (the user wants to use Antigravity to fix content cheaply). Plans 0023 and 0024 are about this.
+- **Ask for decisions only when they change the plan.** Naming and design taste are the user's.
 
-## 3. Machine setup you need
+## 3. State on 2026-11-09 (release 0.4.0)
 
-| Tool | Why | Where it is on the user's Windows machine |
+Released: tag `v0.4.0` pushed; the `Desktop app` workflow builds Windows, macOS and Linux installers and publishes the release with
+`docs/releases/v0.4.0.md`. (Check `gh release list`; if the workflow failed, read its log with `gh run view --log-failed`. Never reuse or
+move a published tag: fix and ship 0.4.1.) The user's installed copy is the old build until they install a new one. The Windows
+shortcut may keep the old name and icon.
+
+What exists (all in 0.4.0):
+
+- **Judge:** 81 problems run (77 roadmap, 4 CSES) in C++, Java, JavaScript. Specs `packages/shared/src/judge/problems-*.ts`, large inputs
+  `judge/stress.ts`, harnesses `apps/web/lib/judge/harness*.ts`, runner `run.ts`, route `app/api/judge/run/route.ts`, UI
+  `app/judge-workspace.tsx`, `judge-panel.tsx`, `pane-layout.tsx` (resizable and swappable panes).
+- **Learn:** hub of course cards (`lib/courses.ts`, `app/study/page.tsx`), lessons, 27 design walkthroughs, LLD Java projects (parking lot,
+  elevator, vending machine, LRU + rate limiter, URL shortener, logger + notifications), 22 of 67 DSA pattern articles, Mermaid diagrams.
+- **Personalisation:** themes (7 styles, 5 accents, WCAG-tested), custom colours, custom font (installed name or uploaded file in IndexedDB),
+  profile name and picture, reading fonts, focus reading, animations switch, game features off by default. Code: `lib/theme.ts`,
+  `lib/custom.ts`, `app/custom-appearance.tsx`, `app/theme-picker.tsx`.
+- **Shell:** `app/shell.tsx` (slim bar + slide-out menu on problem pages, Ctrl+B), `app/nav.tsx`, whole-card links (`.hit` / `.hit-link` in `globals.css`).
+- **Content packs v1:** JSON packs add lessons and problems (`docs/content-packs.md`, `packages/shared/src/packs.ts`, `lib/packs.ts`,
+  `/study/packs/...`). Pack format name is `prepwise-pack` (keep accepting it).
+- **Other:** streak freeze, weekly review, LeetCode extension (icons and name updated), desktop back/forward gestures, backup/restore.
+
+## 4. What is left, in this order
+
+| # | Plan | What | Status |
+|---|---|---|---|
+| 1 | **0021** | Run button v2: hide `#include`/imports, save the last run, custom input | ready |
+| 2 | **0023** | Lessons as Markdown files, fix SOLID and other ordering, subtopics in navigation, `docs/content-editing.md` | ready |
+| 3 | **0024** | Content packs v2: into existing courses, patch built-in lessons, feed updates, `pack:build`/`pack:check`, large inputs | ready |
+| 4 | **0022** | Problem library: ~105 roadmap problems, all CSES, ~150 logic-building problems, design-class problem type | ready |
+| 5 | **0025** | LLD: vending/ATM richer, batches C to F, concept lessons | ready |
+| 6 | 0014, 0015 | System design depth; core subjects depth | ready, not started |
+| 7 | 0008 | 45 DSA pattern articles (batches 4 to 10) | in progress (22 of 67) |
+
+Why this order: 0021 is small and fixes daily friction. 0023 makes content cheap to edit (so a cheaper agent can do 0022, 0025,
+0014, 0015 and 0008 afterwards). 0024 lets content ship without releases. Then the content volume.
+
+Not hand-verified in 0.4.0 (tests cover the logic, nobody has clicked them): dragging dividers and swapping panes, the other layouts,
+the lesson table-of-contents marker while scrolling, favourites, the new styles and fonts, Focus reading strengths, desktop swipe on a
+real touchpad, custom colours/font upload/profile picture in the UI, a Run on an imported pack problem to the end, and the packaged
+desktop app showing the new name and icon.
+
+Known gaps and ideas: the GitHub repo is still `Vraj0109/habit-manager`, the app id is still `dev.habitmanager.app` (changing it
+breaks updates; leave it); the plan 0012 step 4 check (a diagram shows offline in the packaged app) is still open; plans 0016 to 0020
+were written after the fact and have not been through `/review-plan`.
+
+## 5. Machine setup
+
+| Tool | Why | Notes |
 |---|---|---|
-| g++ (WinLibs 16.2) | compiles the C++ in DSA articles (`apps/web/lib/pattern-article-code.test.ts`) | `C:\Users\bhavn\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin`. Not always on PATH in the agent shell: `export PATH="<that dir>:$PATH"` first. |
-| JDK 17 | compiles and runs the Java projects (`apps/web/lib/lld-projects.test.ts`) | **Not installed yet.** `winget install EclipseAdoptium.Temurin.17.JDK` (or `setup.cmd`), then a new terminal. Until it exists that test is *skipped* and no Java has been compiled. |
-| pnpm | everything | use `pnpm.cmd` in PowerShell/Git Bash on Windows |
+| Node 26, pnpm | everything | use `pnpm.cmd` in PowerShell and Git Bash on Windows |
+| g++ (WinLibs) | the judge's C++ and the article compile test | may not be on PATH in the agent shell; the WinLibs `mingw64\bin` is under `%LOCALAPPDATA%\Microsoft\WinGet\Packages\BrechtSanders.WinLibs...` |
+| JDK 17 | Java in the judge and the LLD compile test | installed (Temurin 17) |
 
-Both tests skip themselves when the compiler is missing, so a green `pnpm test` on a machine without g++/javac proves
-nothing about the code in the content. CI (`.github/workflows/ci.yml`) has both g++ (runner default) and JDK 17.
+Tests that need a compiler skip themselves when it is missing, so a green run without g++ or javac proves little. Say which you had.
 
-## 4. State of every plan
-
-| Plan | What | Status |
-|---|---|---|
-| 0001-0007, 0009-0011 | DSA focus, study pages, cp-algorithms, nav, timer, declutter, article format, reading list, no-emoji UI, code colouring | done / implemented, v0.3.0 released |
-| 0012 | Mermaid diagrams (`Section.diagram`, `app/diagram.tsx`, parse tests) | implemented. **Open:** step 4, check the packaged desktop build shows a diagram offline (`pnpm --filter desktop prepare-server`, then run it with the network off) |
-| 0008 | the other 64 DSA pattern articles | **in progress: 22 of 67 written** (batches 1-3 of 10) |
-| 0013 | LLD problems as full Java projects | **in progress: batch A of 5 written** (parking lot, elevator, vending machine); Java uncompiled; user says too simple (L1) |
-| 0014 | system design: diagrams, depth, Java for the key part | ready, **not started** |
-| 0015 | core subjects (OS, DB, networking, Java concurrency) depth | ready, **not started** |
-
-Written so far, where it lives:
-
-- DSA articles: `packages/shared/src/learn/dsa-articles-a.ts` (hash-map, two-pointers, sliding-window), `-b.ts` (prefix-sums,
-  kadane, intervals, cyclic-sort, string-matching, matrix), `-c.ts` (bs-index, bs-answer, quickselect, custom-sort,
-  merge-sort-count), `-d.ts` (fast-slow, list-reversal, monotonic-stack, monotonic-deque) and `-d2.ts` (stack-parsing, heap-top-k, two-heaps, lru-lfu). Registered in `learn/index.ts` (`PATTERN_ARTICLES`).
-- LLD: `learn/lld-projects-a.ts` (`LLD_PROJECTS_A`, `LLD_DEEP_A`), `learn/lld-diagrams-a.ts` (extra diagrams), merged in
-  `learn/index.ts` (`LLD_PROJECTS`, `LLD_DEEP`). Page: `LldProjectView` in `apps/web/app/study/learn-ui.tsx`, used by
-  `app/study/[area]/[id]/page.tsx`.
-
-## 5. Verification (do this every batch)
+## 6. Verification
 
 ```bash
-export PATH="/c/Users/bhavn/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin:$PATH"
-pnpm.cmd exec vitest run packages/shared apps/web/lib/pattern-article-code.test.ts apps/web/lib/diagrams-parse.test.ts apps/web/lib/lld-projects.test.ts apps/web/app/no-emoji.test.ts
-pnpm.cmd check        # lint + typecheck + test + build, about 3 minutes
+pnpm.cmd check          # lint + typecheck + test + build, about 3.5 minutes
+pnpm.cmd test           # tests only
+pnpm.cmd exec vitest run apps/web/lib/judge -t "lc-1094"   # just one problem while authoring
 ```
 
-What each test guards:
-
-- `learn/pattern-articles.test.ts`: eight required sections in order, 900+ words, 2+ code blocks, no placeholders, the
-  Practice order names at least min(3, number of the pattern's problems) of its problems **by exact title** (titles are
-  in `packages/shared/src/dsa.ts`; look them up with `grep "lc(NUMBER," dsa.ts`).
-- `apps/web/lib/pattern-article-code.test.ts`: all code blocks of one article are concatenated and compiled with
-  `g++ -std=c++17 -fsyntax-only -Wall`. **Helper names must be unique within an article.**
-- `learn/learn.test.ts` (LLD block): each Java project has `Main.java`, tests, expected output, no TODO, and a 1,000+
-  word walkthrough with 6+ sections, a class diagram and a sequence diagram.
-- `apps/web/lib/lld-projects.test.ts`: `javac -Xlint:all`, runs `Main`, checks every `expectedOutput` line is printed, runs
-  `Tests` and requires `PASS` and no `FAIL`.
-- `apps/web/lib/diagrams-parse.test.ts` (jsdom): parses **every** diagram with Mermaid. A bad diagram fails here.
-
-Looking at a page: start `pnpm --filter web exec next dev -p 3112` with `DATABASE_URL=file:<copy of a db>`; open
-`/dsa/pattern/<id>` or `/study/lld/<lldp-id>`. Electron works as a headless browser (the helper scripts were in a scratchpad
-and are not in the repo). If the dev server shows `Cannot read properties of undefined`, it is a stale module cache for the
-workspace package: kill the dev server and start it again.
-
-## 6. What is left, in order
-
-### L1. Make the LLD solutions richer and diagram-heavy (user feedback, do this first)
-
-**Status 2026-11-08: the parking lot is done** (31 Java files, EV chargers, reservations, payment, lost tickets, report, garage, 47 passing checks, compiled with JDK 17; see plan 0013 notes). **The elevator is done too** (17 files: direction-aware hall calls, hand-back when out of service, express cars, fire recall, events and stats, 28 checks). **Only the vending machine / ATM is still open** (the ATM as code is the biggest piece). The parking-lot list below is kept as the model for how rich the other two should become.
-
-The user said the three finished LLD solutions are too simple and that LLD needs more diagrams. Diagrams were extended on
-2026-11-08 (each problem now has 7-8 extra diagrams in `lld-diagrams-a.ts`: decision flows, exit/race/overload sequences,
-component views, state machines, extension maps, the ATM design). **The code is still the simple version.** Raise it:
-
-- Per problem add the features an interviewer asks for next, as real code with tests, not as prose:
-  - Parking lot: electric-vehicle spots (capability on `Spot` + a strategy), reservations, a payment step at exit
-    (`PaymentProcessor` interface, cash and card), several lots behind a `Garage`, lost-ticket handling, a report of
-    revenue and occupancy.
-  - Elevator: a car taken out of service hands its stops back (the diagram "Car taken out of service mid-trip" already
-    shows it, implement `drainStops`), express cars with allowed floors, fire-service mode, direction-aware hall calls
-    (an UP call must not be picked up by a car going DOWN past it), an event log.
-  - Vending machine: out-of-service state, staff refill and cashbox collection (maintenance state), card payment as a
-    second payment strategy, a timeout refund driven by the clock. **Implement the ATM as code** too (states, a
-    `CashDispenser` that plans notes with the same bounded search, `BankService` with hold/confirm/reverse, PIN attempts),
-    because the problem is titled "Vending machine / ATM" and only the vending half exists as code.
-- Aim for 400-800 lines of Java per problem instead of 150-400, still standard library only.
-- Add a **package/module diagram, an object diagram of a runtime snapshot, and an activity diagram per main flow** if they
-  help; every new diagram goes in `lld-diagrams-*.ts` and is parsed by the test.
-- Update `expectedOutput`, `Tests.java` and the walkthrough text so they match the new code exactly.
-- Install the JDK first so you can really compile it (section 3).
-
-### L2. Finish 0013 (batches B to E)
-
-Follow `docs/plans/0013-lld-full-java-codebases.md`: B lru-rate-limiter, logger-notifications, url-shortener; C booking,
-splitwise, library; D food-cab, games, file-system-kv; E hotel, meeting-rooms. Four are new problems and need entries in
-`study.ts` (LLD practice list) plus the count guard in `study.test.ts`. Put each batch in `lld-projects-<letter>.ts` and
-`lld-diagrams-<letter>.ts`, merge them in `learn/index.ts` and `learn/diagram-sources.ts` already reads `LLD_DEEP`.
-Apply the richer standard from L1 to every one of them from the start.
-
-### D. Finish 0008 (DSA batches 3 to 10 + retire the old guide)
-
-Next: **batch 4 trees** (`dsa-articles-e.ts`), then batches 5-10 exactly as listed in
-`docs/plans/0008-dsa-pattern-articles-batches.md`. One batch per sitting. Final step 11 retires the short guide on the
-page and makes "every pattern has an article" a failing assertion.
-
-Article recipe (copy the structure of `dsa-articles-c.ts`): intro; The intuition (+ a Mermaid `diagram`); Why it works (an
-actual proof or invariant); A worked example (traced by hand with real numbers, verified); Implementation (+ "Implementation: ..."
-sections as needed); Variants; Complexity; Pitfalls and edge cases; Practice order (exact problem titles). 1,300-2,200
-words, C++17, code that compiles with `-Wall`. Patterns with a cp-algorithms mapping can be fact-checked against
-`apps/web/content/cp-algorithms/`, but write your own text (licence).
-
-### S. Plan 0014 (system design) and C. Plan 0015 (core subjects)
-
-Both are fully specified in their plan files and not started. They need Mermaid diagrams (done: 0012) and Java code for the
-key component; add `design-code`/`core-code` compile tests the way `lld-projects.test.ts` does it. Same depth standard.
-
-### R. Release
-
-After the Java compiles on a machine with a JDK and CI is green: write `docs/releases/v0.4.0.md`, bump
-`apps/desktop/package.json` to 0.4.0, commit, `git tag v0.4.0`, push the tag (the workflow checks the tag equals the
-version and publishes installers and notes). Never reuse or move a tag.
+To look at the UI: build, then `DATABASE_URL=file:<windows path> next start -p <port>` on a temp database and load pages in a hidden
+Electron window (`app.disableHardwareAcceleration()`, `show: false`, `capturePage()`), then read the PNG. Hidden windows pause CSS
+transitions: set `localStorage['habit-motion']='off'` first or the slide-out menu will look closed. The helper scripts were in a
+session scratchpad and are not in the repo.
 
 ## 7. Pitfalls already hit (do not repeat them)
 
-- **Shell quoting.** The Bash tool mangles backslashes and quotes in heredocs and `node -e`. Write scripts to a file
-  (the scratchpad or `$TEMP`) and run them, or use the Edit/Write tools. A regex `\s` lost its backslash once and made a
-  test pass vacuously: after writing any regex through a script, read the file back.
-- **Mermaid:** quote every node label (`A["text with [brackets]"]`); an unquoted `[right]` inside a label breaks the diagram.
-  No semicolons or `#` in message text. The parse test catches syntax errors, not layout problems: look at big ones.
-- **Template literals:** content is written in TypeScript template literals. Never put a backtick or `${` in the text or
-  the code, and avoid backslashes (write Java strings without `\n`).
-- **Next 16 `cacheComponents`:** no `Date.now()`/`Math.random()` in render; request data behind `await connection()` in a
-  `Suspense`. Client components cannot read the clock during prerender (this broke the build once).
-- **Lockfile:** if you add a dependency, commit `package.json` and `pnpm-lock.yaml` together. CI uses
-  `pnpm install --frozen-lockfile`; a mismatch once failed CI (it looked like a lint error but was the lockfile).
-- **Tests that skip.** No g++ or javac means the compile tests silently skip. Say which compilers you had when you report.
-- **Hand-traced examples are not proof.** Three of them in batch 2 had slips (a day count, a wrong trace). Recompute
-  every number in a worked example before committing.
-- **Do not leave stale claims in docs.** The README index, the plan status and the notes must match reality.
+- **Shell quoting (very common).** The Bash tool breaks on quotes and backslashes in heredocs and `node -e '...'`: the whole command fails to
+  parse and nothing runs. Write files with the Write tool and scripts to a file, then run them. After writing a regex through a script, read it back.
+- **The inline theme script** (`THEME_INIT_SCRIPT` in `lib/theme.ts`) is plain ES5 inside a TypeScript template literal: `\"` becomes `"`,
+  `\-` becomes `-` (in a character class `.-_` is a range!). Use `String.fromCharCode(34)` and `\\-`. Tests run it against a fake document.
+- **Template literals in content:** never a backtick or `${` in lesson text or Java code; avoid backslashes.
+- **Hand-computed expected outputs are wrong about 1 time in 6** (5 of 28 in one batch). Compute with the reference solution (plan 0024 adds a tool).
+- **Next 16 `cacheComponents`:** no `Date.now()`/`Math.random()` in render; request data behind `await connection()` inside `<Suspense>`;
+  `usePathname` needs a Suspense boundary. After adding a route run `pnpm --filter web exec next typegen` or `PageProps<"/new/[route]">` fails to typecheck.
+- **No emoji guard** (`apps/web/app/no-emoji.test.ts`) fails on check marks and stars in `.tsx`: draw SVG.
+- **Broad process kills are blocked.** Stop a test server by its port (`netstat -ano | grep :PORT`, `taskkill //PID`), never `taskkill /IM node.exe`.
+- **Do not poll a background command or chain sleeps;** wait for its completion notice.
+- **Lockfile:** commit `package.json` and `pnpm-lock.yaml` together (CI uses `--frozen-lockfile`).
+- **Migrations are append-only.** New tables also go into `BACKUP_TABLES` and `schema.ts`.
+- **Do not leave stale claims in docs.** README, plan statuses and notes must match reality (this file was stale for a day).
 
-## 8. Git state when this was written
+## 8. Release process
 
-All work is committed in per-batch commits on `main`. Push status: see `git status -sb`. Release v0.3.0 is published;
-v0.4.0 is not cut.
+Bump `version` in `apps/desktop/package.json`, add `docs/releases/vX.Y.Z.md` (hand-written notes are used as the release body),
+commit, `git tag vX.Y.Z` (must equal the version), push `main` and the tag. Only when the user asks.
