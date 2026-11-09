@@ -2,13 +2,19 @@
 // (format "prepwise-pack"); the app validates it here, stores it, and shows it as a course in Learn. Pure code, no I/O.
 // The format is written up in docs/content-packs.md, with a prompt another AI can follow to produce a pack.
 
+import { STUDY_AREAS } from "./study";
 import { checkStress, expandStress, type PackStress } from "./judge/stress-gen";
 import type { Case, ProblemSpec, Ty } from "./judge/types";
 
 export type { Gen, PackStress } from "./judge/stress-gen";
 
-export const PACK_FORMAT = "prepwise-pack";
-export const PACK_VERSION = 1;
+/** "prepwise-pack" is the name from before the app was renamed. Both are accepted for ever. */
+export const PACK_FORMATS = ["prepwise-pack", "zendojo-pack"] as const;
+export const PACK_FORMAT = PACK_FORMATS[1];
+export type PackFormat = (typeof PACK_FORMATS)[number];
+/** Version 1 packs (app 0.4.0) still work. Version 2 adds target, revision, tags and source. */
+export const PACK_VERSIONS = [1, 2] as const;
+export const PACK_VERSION = 2;
 export const PACK_LIMITS = { bytes: 2_000_000, items: 500, tests: 200, text: 60_000 } as const;
 
 const TYPES: readonly Ty[] = ["list", "tree", "int", "long", "double", "bool", "string", "int[]", "long[]", "bool[]", "string[]", "int[][]", "string[][]"];
@@ -22,6 +28,11 @@ export interface PackLesson {
 }
 export type PackProblem = Omit<ProblemSpec, "source" | "solution" | "stress" | "url"> & {
   type: "problem";
+  /** Free labels, for example ["graphs", "bfs"] */
+  tags?: string[];
+  /** Where the problem came from, in words ("AtCoder ABC 300 C") and a link */
+  source?: string;
+  sourceUrl?: string;
   /** Large inputs (speed and memory checks) written as data; see judge/stress-gen.ts. Needs solution.cpp for expected answers. */
   stress?: PackStress[];
   difficulty?: "easy" | "medium" | "hard";
@@ -30,13 +41,23 @@ export type PackProblem = Omit<ProblemSpec, "source" | "solution" | "stress" | "
   solution?: { idea: string[]; complexity: string; cpp?: string };
 };
 export type PackItem = PackLesson | PackProblem;
+export interface PackTarget {
+  /** A study area id: "sd" (system design), "lld" or "core" (core CS) */
+  area: string;
+  /** Heading the items are listed under (an existing section title puts them next to it) */
+  section?: string;
+}
 export interface PackSection {
   title: string;
   items: PackItem[];
 }
 export interface Pack {
-  format: typeof PACK_FORMAT;
+  format: PackFormat;
   version: number;
+  /** Your own version of the pack's content, for update checks ("1.2.0") */
+  revision?: string;
+  /** Put the pack's items into a built-in study area instead of making a course of its own */
+  target?: PackTarget;
   /** Lowercase letters, digits and hyphens */
   id: string;
   title: string;
@@ -144,6 +165,14 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
   if (errs.length > before) return null;
   const difficulty = o.difficulty === "easy" || o.difficulty === "medium" || o.difficulty === "hard" ? o.difficulty : undefined;
   const url = typeof o.url === "string" && /^https?:\/\//.test(o.url) && o.url.length <= 300 ? o.url : undefined;
+  let tags: string[] | undefined;
+  if (o.tags !== undefined) {
+    if (!Array.isArray(o.tags) || o.tags.length > 10 || !o.tags.every((t) => isStr(t, 30))) errs.push(`${where}.tags must be a list of up to 10 short labels.`);
+    else tags = o.tags as string[];
+  }
+  if (o.source !== undefined && !isStr(o.source, 80)) errs.push(`${where}.source must be text of up to 80 characters.`);
+  if (o.sourceUrl !== undefined && !(typeof o.sourceUrl === "string" && /^https?:\/\/\S+$/.test(o.sourceUrl) && o.sourceUrl.length <= 300)) errs.push(`${where}.sourceUrl must be an http or https address.`);
+  if (errs.length > before) return null;
   return {
     type: "problem",
     id: String(o.id),
@@ -159,6 +188,9 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
     ...(checked.stress.length > 0 ? { stress: checked.stress } : {}),
     ...(difficulty ? { difficulty } : {}),
     ...(url ? { url } : {}),
+    ...(tags && tags.length > 0 ? { tags } : {}),
+    ...(typeof o.source === "string" ? { source: o.source } : {}),
+    ...(typeof o.sourceUrl === "string" ? { sourceUrl: o.sourceUrl } : {}),
   };
 }
 
@@ -167,8 +199,17 @@ export function validatePack(input: unknown): PackCheck {
   const errs: string[] = [];
   const warnings: string[] = [];
   if (!isObj(input)) return { ok: false, errors: ["The file must be a JSON object."] };
-  if (input.format !== PACK_FORMAT) errs.push(`"format" must be "${PACK_FORMAT}".`);
-  if (input.version !== PACK_VERSION) errs.push(`"version" must be ${PACK_VERSION}.`);
+  if (!(PACK_FORMATS as readonly unknown[]).includes(input.format)) errs.push(`"format" must be "${PACK_FORMAT}" (or the older "prepwise-pack").`);
+  if (!(PACK_VERSIONS as readonly unknown[]).includes(input.version)) errs.push(`"version" must be 1 or 2.`);
+  const revision = input.revision === undefined ? undefined : typeof input.revision === "string" && /^[0-9A-Za-z.+-]{1,20}$/.test(input.revision) ? input.revision : null;
+  if (revision === null) errs.push(`"revision" must be a short version text such as "1.2.0" (letters, digits, dots and hyphens, up to 20 characters).`);
+  let target: PackTarget | undefined;
+  if (input.target !== undefined) {
+    const t = input.target;
+    if (!isObj(t) || typeof t.area !== "string" || !STUDY_AREAS.some((a) => a.id === t.area)) errs.push(`"target.area" must be one of: ${STUDY_AREAS.map((a) => a.id).join(", ")}.`);
+    else if (t.section !== undefined && !isStr(t.section, 80)) errs.push(`"target.section" must be a heading of up to 80 characters.`);
+    else target = { area: t.area, ...(typeof t.section === "string" ? { section: t.section } : {}) };
+  }
   if (typeof input.id !== "string" || !SLUG.test(input.id)) errs.push(`"id" must be lowercase letters, digits and hyphens (up to 40 characters).`);
   if (!isStr(input.title, 80)) errs.push(`"title" is required (up to 80 characters).`);
   const description = typeof input.description === "string" ? input.description.slice(0, 400) : "";
@@ -202,7 +243,20 @@ export function validatePack(input: unknown): PackCheck {
   });
   if (count > PACK_LIMITS.items) errs.push(`A pack can hold at most ${PACK_LIMITS.items} items.`);
   if (errs.length > 0) return { ok: false, errors: errs.slice(0, 40) };
-  return { ok: true, pack: { format: PACK_FORMAT, version: PACK_VERSION, id: String(input.id), title: String(input.title), description, sections }, warnings };
+  return {
+    ok: true,
+    pack: {
+      format: input.format as PackFormat,
+      version: input.version as number,
+      id: String(input.id),
+      title: String(input.title),
+      description,
+      ...(revision ? { revision } : {}),
+      ...(target ? { target } : {}),
+      sections,
+    },
+    warnings,
+  };
 }
 
 export const packItems = (p: Pack): PackItem[] => p.sections.flatMap((s) => s.items);

@@ -132,7 +132,7 @@ async function packCourses(): Promise<Omit<CourseView, "favourite">[]> {
   const out: Omit<CourseView, "favourite">[] = [];
   for (const s of await listPacks()) {
     const pack = await getPack(s.id);
-    if (!pack) continue;
+    if (!pack || pack.target) continue; // a pack with a target adds to a study area instead of being a course
     const items = packItems(pack);
     const done = await getPackProgress(s.id);
     const first = items.find((i) => !done.has(i.id));
