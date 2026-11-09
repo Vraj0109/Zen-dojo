@@ -66,6 +66,70 @@ The same IP prefix is announced via BGP from many data centers; routers send pac
 
 Works best for short, stateless exchanges (DNS over UDP) or with stable routing for TCP (route changes mid-connection could land on another PoP). 8.8.8.8 and 1.1.1.1 are anycast.
 
+### CIDR arithmetic in Java {point: 0}
+
+CIDR notation `a.b.c.d/n` means "the first n bits are the network, the rest identify a host". The prefix `/24` leaves 8 host bits, so the block holds 2^8 = 256 addresses; `/16` leaves 16 bits for 65,536; `/26` leaves 6 bits for 64. Of those, a classic IPv4 subnet reserves the first address (the network address, all host bits zero) and the last (the broadcast address, all host bits one), so the usable hosts are 2^(32-n) minus 2. Cloud providers reserve a few more in each subnet; AWS keeps five, so a `/28` (16 addresses) leaves 11 usable.
+
+The arithmetic is bit manipulation. Convert the dotted address to a 32-bit number, build the mask with n leading ones (`0xFFFFFFFF << (32 - n)`), and AND the address with the mask to get the network address. OR the network with the inverted mask to get the broadcast address. To test whether an address belongs to a block, mask both with the block's mask and compare. Routers do exactly this comparison, in hardware, against every entry of the routing table, and the entry with the longest matching prefix wins.
+
+```java
+public class CidrDemo {
+    static long toLong(String ip) {
+        String[] p = ip.split("[.]");
+        long v = 0;
+        for (String s : p) v = (v << 8) | Integer.parseInt(s);
+        return v;
+    }
+
+    static String toIp(long v) {
+        return ((v >> 24) & 255) + "." + ((v >> 16) & 255) + "." + ((v >> 8) & 255) + "." + (v & 255);
+    }
+
+    static void describe(String cidr) {
+        String[] parts = cidr.split("/");
+        int prefix = Integer.parseInt(parts[1]);
+        long mask = prefix == 0 ? 0 : (0xFFFFFFFFL << (32 - prefix)) & 0xFFFFFFFFL;
+        long network = toLong(parts[0]) & mask;
+        long broadcast = network | (~mask & 0xFFFFFFFFL);
+        long total = 1L << (32 - prefix);
+        System.out.println(cidr + " -> network " + toIp(network) + ", broadcast " + toIp(broadcast)
+                + ", addresses " + total + ", usable hosts " + Math.max(0, total - 2));
+    }
+
+    static boolean contains(String cidr, String ip) {
+        String[] parts = cidr.split("/");
+        int prefix = Integer.parseInt(parts[1]);
+        long mask = prefix == 0 ? 0 : (0xFFFFFFFFL << (32 - prefix)) & 0xFFFFFFFFL;
+        return (toLong(ip) & mask) == (toLong(parts[0]) & mask);
+    }
+
+    public static void main(String[] args) {
+        describe("10.0.1.0/24");
+        describe("10.0.0.0/16");
+        describe("192.168.1.130/26");
+        System.out.println("10.0.1.77 in 10.0.1.0/24: " + contains("10.0.1.0/24", "10.0.1.77"));
+        System.out.println("10.0.2.5 in 10.0.1.0/24: " + contains("10.0.1.0/24", "10.0.2.5"));
+    }
+}
+```
+
+### Planning the address space of a VPC {point: 0.5}
+
+The program prints `10.0.1.0/24 -> network 10.0.1.0, broadcast 10.0.1.255, addresses 256, usable hosts 254`, then the same for `10.0.0.0/16` (65,536 addresses) and for `192.168.1.130/26`. The last one is the instructive case: the address is not the start of its block, and the program shows that the block really begins at `192.168.1.128` and ends at `192.168.1.191`, 64 addresses in all. It then prints `true` for `10.0.1.77` in `10.0.1.0/24` and `false` for `10.0.2.5`.
+
+Use this when you design a network in an interview. Pick a private range (RFC 1918: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), give each VPC a block that does not overlap with any VPC or office network you may ever connect to it (peering and VPN need distinct ranges, and renumbering later is painful), and carve it into subnets per availability zone and tier. A common layout uses a /16 for the VPC and /24 subnets: public ones for load balancers and NAT gateways, private ones for application servers, and isolated ones for databases with no route to the internet.
+
+```mermaid
+flowchart TD
+  V[VPC 10.0.0.0/16] --> PA[Public subnet AZ a: 10.0.1.0/24, load balancer, NAT gateway]
+  V --> PB[Public subnet AZ b: 10.0.2.0/24]
+  V --> AA[Private app subnet AZ a: 10.0.11.0/24]
+  V --> AB[Private app subnet AZ b: 10.0.12.0/24]
+  V --> DA[Database subnet AZ a: 10.0.21.0/24, no internet route]
+  V --> DB[Database subnet AZ b: 10.0.22.0/24]
+```
+Diagram caption: One VPC, two availability zones, three tiers. Routing tables, not the address ranges themselves, decide which subnets can reach the internet.
+
 ## Interview questions
 
 - How many hosts fit in a /24?

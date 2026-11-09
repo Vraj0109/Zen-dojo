@@ -64,6 +64,35 @@ Health-checked DNS (Route 53) stops returning a failed region's IP; geo/latency 
 
 For faster failover, combine DNS with anycast or a global load balancer that has a stable IP.
 
+### Reading a dig answer and the DNS pitfalls that cause outages {point: 0}
+
+`dig` shows what DNS does in the form people ask about. Run `dig api.shop.com` and the answer section lists records: a name, a TTL in seconds, the class `IN`, the type and the value. For example `api.shop.com. 300 IN A 203.0.113.10` says the name has an IPv4 address and that resolvers may cache it for 300 seconds. If the answer begins with a `CNAME` line (`api.shop.com. 60 IN CNAME lb-123.cloud.example.`), the name is an alias, and the resolver follows it to the final A or AAAA records. `dig +trace api.shop.com` makes your machine do the walk itself from the root servers, which is the clearest way to see delegation: root points to the `.com` servers, which point to the domain's own authoritative servers, which answer.
+
+```mermaid
+flowchart TD
+  A[App asks the OS: connect to api.shop.com] --> B{OS and browser cache hit?}
+  B -- yes --> Z[use the cached address]
+  B -- no --> C[Stub resolver asks the recursive resolver of your ISP or company]
+  C --> D{Recursive resolver cache hit?}
+  D -- yes --> Z
+  D -- no --> E[Ask a root server: who handles com?]
+  E --> F[Ask the com server: who handles shop.com?]
+  F --> G[Ask shop.com's authoritative server: A record for api]
+  G --> H[Cache the answer for its TTL, return it]
+  H --> Z
+```
+Diagram caption: Most lookups end at a cache. Only a cold name needs the full walk, and each layer keeps its own copy for the TTL.
+
+### Pitfalls that cause real incidents {point: 2}
+
+**TTL and caching.** Lowering a record's TTL before a migration only helps once the old, longer TTL has expired everywhere, so lower it a day ahead, not at the moment of change. Caches exist at several layers (browser, operating system, your recursive resolver, and the application: the JVM caches successful lookups for 30 seconds by default when no security manager is installed, and the `networkaddress.cache.ttl` setting changes that). A long-lived connection pool never looks up the name again, so a failover by DNS does nothing for connections that already exist.
+
+**Negative caching.** A lookup that returns "does not exist" (NXDOMAIN) is cached too, for the time set in the zone's SOA record. If a service starts querying a name before it is created, the miss can stick for minutes after you add it.
+
+**CNAME at the zone apex.** A CNAME cannot coexist with other records for the same name, and the apex (`shop.com`) must carry SOA and NS records, so you cannot make the bare domain a CNAME. Providers offer ALIAS or ANAME flattening for this, which resolves the target on the server side and returns plain A records.
+
+**DNS failover limits.** Health-checked DNS can steer traffic away from a dead region, but clients and resolvers that ignore TTLs keep sending users to the old address, so recovery takes minutes, not seconds. For faster failover, use anycast or a load balancer in front, and keep DNS for coarse steering. Finally, DNS uses UDP on port 53 for small answers and falls back to TCP for large ones or zone transfers, which is why a firewall that blocks TCP 53 causes rare, confusing failures for big responses such as DNSSEC-signed answers.
+
 ## Interview questions
 
 - Walk through resolving www.example.com from a cold cache.

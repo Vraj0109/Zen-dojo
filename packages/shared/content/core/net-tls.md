@@ -64,6 +64,35 @@ Where to terminate TLS: at the CDN/edge for clients (lowest latency); re-encrypt
 
 Performance: TLS 1.3 handshakes are fast, session resumption avoids full handshakes, and connection reuse means the handshake cost is paid rarely; CPU cost of encryption is small on modern hardware.
 
+### How a client decides to trust a certificate {point: 1.5}
+
+After the key exchange, the server sends its certificate chain, and the client must decide whether the key in it really belongs to the site it wanted. That decision is a short, fixed checklist, and each item maps to a common production failure.
+
+Take the steps in turn. A **chain** is the leaf certificate (issued to your domain), signed by an intermediate certificate authority (CA), signed by a root. Roots are not sent; they ship inside the operating system or browser **trust store**. If the server forgets to send the intermediate, some clients can fetch it themselves and others fail, which is why "works in my browser, fails in curl or in my Java service" is a classic report. The fix is to configure the server with the full chain, leaf plus intermediates. **Validity dates** are checked against the client's clock, so an expired certificate, or a device with a wrong clock, fails. The **hostname** must match a name in the certificate's Subject Alternative Name field (the old Common Name is ignored by modern clients), and wildcard names such as `*.shop.com` match exactly one label, so `a.b.shop.com` is not covered.
+
+```mermaid
+flowchart TD
+  A[Server sends leaf certificate and intermediates] --> B[Build a chain: leaf, then intermediate, up to a root]
+  B --> C{Does the chain end in a root in the client's trust store?}
+  C -- no --> F1[Fail: unknown issuer, often a missing intermediate]
+  C -- yes --> D{Each signature valid and each certificate inside its dates?}
+  D -- no --> F2[Fail: expired or not yet valid]
+  D -- yes --> E{Hostname matches a name in the Subject Alternative Name list?}
+  E -- no --> F3[Fail: name mismatch]
+  E -- yes --> G{Revoked? check OCSP staple or CRL}
+  G -- yes --> F4[Fail: revoked]
+  G -- no --> OK[Trusted: continue the handshake]
+```
+Diagram caption: Four ways validation fails. Each one has a typical operational cause.
+
+### Revocation, pinning and rotation {point: 1}
+
+**Revocation** answers "was this certificate withdrawn before its expiry?" The old way is a certificate revocation list (CRL), a large file the client downloads. The newer way is OCSP, an online query per certificate, which slows the connection and tells the CA which sites you visit. **OCSP stapling** has the server fetch a signed, time-stamped OCSP answer regularly and attach it to the handshake, which fixes both problems. In practice the industry has moved toward short-lived certificates (90 days or less) because a certificate that expires soon matters less if revocation is unreliable.
+
+**Pinning** means a client accepts only a specific certificate or public key, not just anything signed by a trusted CA. It protects against a rogue CA, but a pinned certificate that you rotate without updating the client breaks the app, so mobile apps use it carefully, often pinning to a backup key as well.
+
+Most real outages here are plain **expiry**: someone forgot a renewal. Automation removes it: the ACME protocol (used by Let's Encrypt) proves control of a domain and issues certificates automatically, tools like cert-manager renew them in Kubernetes, and monitoring should alert when any certificate is within, say, 14 days of expiry. For service-to-service traffic with mutual TLS, the same checklist applies in both directions, and a service mesh typically issues and rotates the short-lived certificates for you.
+
 ## Interview questions
 
 - Walk through a TLS 1.3 handshake.

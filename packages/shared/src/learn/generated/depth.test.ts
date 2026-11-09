@@ -4,7 +4,7 @@ import { LESSON_EXTRA, LESSONS } from "../index";
 
 // Plans 0014 and 0015: every concept of a finished batch reaches 1,200 words of lesson text and has a diagram.
 // Add a concept id prefix to BATCHES when its batch is written.
-const BATCHES = ["os-", "db-"];
+const BATCHES = ["os-", "db-", "net-"];
 const WORDS = 1200;
 
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;

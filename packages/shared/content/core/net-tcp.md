@@ -68,6 +68,37 @@ CUBIC (Linux default for years) grows cwnd as a cubic function of time since the
 
 Related: Nagle's algorithm delays small writes until outstanding data is acknowledged (combining them), which interacts badly with delayed ACKs for request-response protocols, so latency-sensitive apps set TCP_NODELAY. TCP keep-alive probes idle connections (default after 2 hours, usually tuned lower) so dead peers and NAT timeouts are detected; application-level heartbeats are more common.
 
+### Head-of-line blocking, Nagle's algorithm and delayed ACKs {point: 4}
+
+TCP gives the application one ordered byte stream. That promise has a price called **head-of-line blocking**: if segment 2 is lost, segments 3 and 4 may arrive on time, but TCP must not hand them to the application until segment 2 has been retransmitted and received, because the application expects bytes in order. The receiver holds the later data in its buffer and keeps sending acknowledgements for the last in-order byte. The sender notices the gap either through a timeout (slow, typically at least 200 ms on Linux) or through three duplicate ACKs, which trigger **fast retransmit** of the missing segment without waiting.
+
+This is the reason HTTP/2 over TCP can suffer when many streams share one connection: one lost packet delays all of them. QUIC, which runs over UDP, tracks loss per stream, so a lost packet only stalls the streams whose data it carried. It is also why a single TCP connection on a lossy mobile network feels worse than the packet-loss rate suggests.
+
+```mermaid
+sequenceDiagram
+  participant S as Sender
+  participant R as Receiver
+  S->>R: segment 1
+  R-->>S: ACK 2 (next expected is 2)
+  S-xR: segment 2 lost
+  S->>R: segment 3
+  R-->>S: ACK 2 again (duplicate 1)
+  S->>R: segment 4
+  R-->>S: ACK 2 again (duplicate 2)
+  S->>R: segment 5
+  R-->>S: ACK 2 again (duplicate 3)
+  Note over S: three duplicate ACKs, retransmit segment 2 now
+  S->>R: segment 2 again
+  R-->>S: ACK 6, everything delivered in order
+```
+Diagram caption: Segments 3 to 5 sit in the receiver's buffer until the retransmitted segment 2 fills the gap. The application sees nothing from 2 onward until then.
+
+### Nagle's algorithm and delayed ACKs {point: 5}
+
+Two older optimisations can combine badly. **Nagle's algorithm** reduces the number of tiny packets: if there is unacknowledged data in flight, new small writes are held back and merged until an ACK arrives or a full segment's worth is ready. This saves bandwidth for bulk transfer and for keystroke-style traffic. **Delayed ACK** is the receiver's side of the same thinking: instead of acknowledging every segment at once, it waits up to about 40 ms (200 ms on some systems) hoping to piggyback the ACK on data going the other way.
+
+Put them together in a request-response protocol that writes the request in two small pieces (a header, then a body). The first piece goes out at once. The second is held by Nagle until the first is acknowledged. The server holds back its ACK for up to 40 ms hoping for more data. Result: a stall of tens of milliseconds on every request, with an idle CPU and an idle network, a classic "why is my latency always 40 ms?" puzzle. The fixes are to write the request in a single call (build the whole message first), or to disable Nagle on latency-sensitive sockets with `TCP_NODELAY` (`socket.setTcpNoDelay(true)` in Java), which most RPC libraries and web servers already do. **TCP keep-alive** is a different feature: it sends a tiny probe after a long idle period (two hours by default on Linux) to detect dead peers and to keep NAT and firewall entries alive, and many systems tune it down to a minute or so.
+
 ## Interview questions
 
 - Walk through the TCP handshake and why it takes a round trip.

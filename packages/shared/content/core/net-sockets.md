@@ -77,6 +77,70 @@ Break a request's latency into parts and you know what to optimize. Client side:
 
 Tail latency: with many dependencies called in parallel, the slowest one decides (if each call has a 1% chance of being slow, a request fanning out to 100 calls is slow 63% of the time). Mitigations: hedged requests (send a duplicate after the p95 time and take the first answer), timeouts, reducing fan-out, caching, and keeping services in the same zone. Measure with distributed tracing to see where the time actually goes.
 
+### An echo server and client in Java, with the socket calls named {point: 1}
+
+A socket is the program's handle to a network connection. The calls come in a fixed order, and each Java class hides one or two of them. The server creates a listening socket: `socket`, then `bind` to an address and port, then `listen` to mark it as accepting connections. In Java, `new ServerSocket(port, backlog, address)` does all three. Passing port 0 asks the operating system for any free port, which `getLocalPort()` then reports. The server then calls `accept`, which blocks until a client completes a connection and returns a new socket for that one conversation; the listening socket stays open for more. The client calls `connect` (in Java `new Socket(host, port)`), and the operating system picks an **ephemeral** local port for it, which is why a client's local port differs from the server's. After that both sides `read` and `write` bytes until one closes.
+
+The demo runs both sides in one program on the loopback address. The client sends `hello` and `again`; the server prefixes each line with `echo: ` and sends it back; when the client closes its end, the server's read returns end-of-file and its loop ends. It prints `client uses an ephemeral port: true`, then `echo: hello`, `echo: again`, and finally `connection closed, server loop ended`.
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class EchoDemo {
+    public static void main(String[] args) throws Exception {
+        try (ServerSocket listener = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) { // bind + listen, any free port
+            Thread server = new Thread(() -> {
+                try (Socket conn = listener.accept();                                              // accept: one connection
+                     BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                     PrintWriter out = new PrintWriter(conn.getOutputStream(), true)) {
+                    String line;
+                    while ((line = in.readLine()) != null) out.println("echo: " + line);
+                } catch (IOException e) {
+                    System.out.println("server error " + e);
+                }
+            });
+            server.start();
+
+            try (Socket client = new Socket(InetAddress.getLoopbackAddress(), listener.getLocalPort()); // connect
+                 BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                 PrintWriter out = new PrintWriter(client.getOutputStream(), true)) {
+                System.out.println("client uses an ephemeral port: " + (client.getLocalPort() != listener.getLocalPort()));
+                out.println("hello");
+                System.out.println(in.readLine());
+                out.println("again");
+                System.out.println(in.readLine());
+            }
+            server.join();
+            System.out.println("connection closed, server loop ended");
+        }
+    }
+}
+```
+
+### What the kernel does between the calls {point: 1}
+
+The demo is one connection handled by one thread. The important question is how a real server handles thousands. Between `listen` and `accept`, the kernel does the TCP handshake on its own. Incoming SYNs sit in a **SYN queue** until the handshake finishes, and completed connections wait in the **accept queue** until your program calls `accept`. The `backlog` argument bounds the accept queue. If your server is too slow to call `accept`, the queue fills and new clients see timeouts or resets, with the application unaware of it: a reason to watch accept-queue overflow counters (`ss -lnt` shows the queue length) when a busy service drops connections.
+
+The next design question is how to serve many connections at once. One thread per connection is simple and works for hundreds or a few thousand, but each thread costs memory and context switches. Event-driven servers (epoll with a few threads, as in Nginx, Netty or Node.js) hold many sockets in non-blocking mode and react to readiness. Java 21 virtual threads bring back the simple style: write blocking code, one virtual thread per connection, and the runtime parks it cheaply while it waits. Whatever the model, set timeouts on every socket (connect, read), close sockets in `finally` or try-with-resources, and expect `TIME_WAIT` entries on whichever side closes first: they are normal, and become a problem only when a client opens huge numbers of short connections to one address, which is what connection pooling avoids.
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant K as Server kernel
+  participant A as Server application
+  A->>K: socket, bind, listen
+  C->>K: SYN
+  K-->>C: SYN-ACK
+  C->>K: ACK, connection joins the accept queue
+  A->>K: accept returns a new socket
+  C->>A: write request
+  A-->>C: write response
+  C->>K: close, FIN
+  A->>K: close, FIN
+```
+Diagram caption: The kernel completes the handshake before the application ever sees the connection. accept only collects it.
+
 ## Interview questions
 
 - What happens when you type a URL and press Enter? Go as deep as you can.

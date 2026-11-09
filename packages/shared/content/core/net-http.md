@@ -62,6 +62,73 @@ Other performance tools: compression (gzip, Brotli; don't compress already-compr
 
 On the server side, proxies and services should reuse upstream connections (pooling), set sensible timeouts (connect, read, idle), and limit request sizes. Slowloris-style attacks hold many connections open sending headers very slowly; reverse proxies buffer and time out such clients before they reach application servers.
 
+### Conditional requests: ETag and 304 Not Modified {point: 1}
+
+Caching in HTTP has two halves. The first is **freshness**: `Cache-Control: max-age=3600` tells a cache it may reuse the response for an hour without asking anyone. The second is **validation**: once a cached copy is stale, the cache does not have to download it again. It asks the server "has this changed?", and the server answers with a tiny 304 if not.
+
+The server marks each version of a resource with a validator, most often an `ETag`, an opaque string such as a hash of the content or a version number. The client stores it with the response. On the next request it sends `If-None-Match: "v1"`. If the current ETag still matches, the server replies `304 Not Modified` with no body, and the client reuses its stored copy; if the content changed, the server sends `200` with the new body and a new ETag. `Last-Modified` and `If-Modified-Since` do the same with a timestamp, with a one-second resolution that ETags do not have. A 304 saves bandwidth, not a round trip, so it is the right tool for large responses that change rarely (an image, a big JSON file). The same ETags can protect writes: `If-Match` on a PUT lets the server refuse an update (412 Precondition Failed) when someone else changed the resource first, which is optimistic locking over HTTP. Two details come up in questions. A **weak** ETag (written `W/"v1"`) says the content is equivalent but not byte-identical, which is enough for caching but not for range requests. And when a URL can return different bodies depending on a request header (`Accept-Encoding`, `Accept-Language`), the response must carry a `Vary` header naming it, or a shared cache may serve a gzipped body to a client that cannot read it.
+
+```mermaid
+sequenceDiagram
+  participant C as Client cache
+  participant S as Server
+  C->>S: GET /item
+  S-->>C: 200, ETag v1, body, Cache-Control max-age=0 must-revalidate
+  Note over C: stores the body and the ETag
+  C->>S: GET /item with If-None-Match v1
+  S-->>C: 304 Not Modified, no body
+  Note over C: reuses the stored body
+```
+Diagram caption: The first response carries the body. The second carries only headers, so a large body is sent once.
+
+### A runnable demo with the JDK's own server and client {point: 1}
+
+The demo starts the JDK's built-in `HttpServer` on a free port, then uses `java.net.http.HttpClient` to fetch `/item` twice. The server sets an ETag, and answers 304 with no body when `If-None-Match` equals it. It prints `first request: 200 ETag="v1" body={"price": 42}` and then `revalidation: 304 body length=0`, which is the exchange from the diagram, on a real socket.
+
+```java
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+
+public class EtagDemo {
+    public static void main(String[] args) throws Exception {
+        String body = "{\"price\": 42}";
+        String etag = "\"v1\"";
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/item", ex -> {
+            String inm = ex.getRequestHeaders().getFirst("If-None-Match");
+            ex.getResponseHeaders().add("ETag", etag);
+            ex.getResponseHeaders().add("Cache-Control", "max-age=0, must-revalidate");
+            if (etag.equals(inm)) {
+                ex.sendResponseHeaders(304, -1);          // no body: the client's copy is still good
+            } else {
+                byte[] b = body.getBytes(StandardCharsets.UTF_8);
+                ex.sendResponseHeaders(200, b.length);
+                ex.getResponseBody().write(b);
+            }
+            ex.close();
+        });
+        server.start();
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            URI uri = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/item");
+            HttpResponse<String> first = client.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofString());
+            System.out.println("first request: " + first.statusCode() + " ETag=" + first.headers().firstValue("ETag").orElse("none") + " body=" + first.body());
+            HttpResponse<String> second = client.send(
+                    HttpRequest.newBuilder(uri).header("If-None-Match", first.headers().firstValue("ETag").orElseThrow()).build(),
+                    HttpResponse.BodyHandlers.ofString());
+            System.out.println("revalidation: " + second.statusCode() + " body length=" + second.body().length());
+        } finally {
+            server.stop(0);
+        }
+    }
+}
+```
+
 ## Interview questions
 
 - PUT vs POST vs PATCH?

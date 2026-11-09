@@ -59,6 +59,32 @@ Security is built in: TLS 1.3 is integrated into the handshake, and almost all o
 
 Connection IDs let a connection survive changes in the client's IP address or port (mobile network switches, NAT rebinding). Because it runs in user space, QUIC evolves quickly with application releases, at the cost of more CPU than kernel TCP (improving with offloads like UDP GSO). Operationally, load balancers must route by connection ID to keep a connection on one server, and some networks block UDP 443, so clients fall back to TCP.
 
+### What you must rebuild when you leave TCP {point: 0.6}
+
+Choosing UDP does not remove the need for reliability, ordering and congestion control. It only moves the decision into your application, where you can pick what to keep. UDP gives you a port, a length and a checksum, and nothing else: no connection, no retransmission, no ordering, no flow control. Datagrams can be lost, duplicated and reordered, and each one is delivered whole or not at all.
+
+For each TCP feature, ask whether your application needs it. A voice call does not want a retransmitted packet that arrives 300 ms late, since the moment to play it has passed, so it keeps UDP's behaviour and hides the gaps with codec-level concealment. A multiplayer game sends the player's position 30 times a second, and an old position is worthless once a newer one arrives, so it also drops late data. A game's chat messages or "item purchased" events do need to arrive, so many games run two channels: unreliable for state, reliable for events. DNS needs one request and one response, so it does its own simple timeout and retry, with no connection at all.
+
+```mermaid
+flowchart TD
+  U[UDP datagram service] --> Q{What does the application need?}
+  Q --> A[Loss recovery: sequence numbers, acks, retransmit only what is useful]
+  Q --> B[Ordering per stream, not across all data]
+  Q --> C[Congestion control, so the app does not flood the network]
+  Q --> D[Security: encryption and authentication]
+  A --> X[QUIC combines all of these over UDP]
+  B --> X
+  C --> X
+  D --> X
+```
+Diagram caption: QUIC is what you get when you rebuild the useful parts of TCP and TLS in user space on top of UDP.
+
+### Why QUIC chose UDP, and the 0-RTT trade-off {point: 2}
+
+QUIC could not be a new IP protocol: routers, NATs and firewalls drop unknown protocol numbers, and operating system kernels take years to change. UDP passes through almost everywhere, and QUIC runs in a user-space library, so browsers and servers can update it quickly. It adds what the web needs: multiple independent streams on one connection (so one lost packet does not block the others), connection setup that includes the encryption handshake in a single round trip, and **connection migration**: a connection is identified by a connection id, not by the IP and port pair, so it survives a phone moving from Wi-Fi to cellular.
+
+**0-RTT** lets a client that has talked to the server before send application data in its very first flight, using a key remembered from the previous session. That saves a round trip for repeat visits. The trade-off is **replay**: 0-RTT data is not protected against an attacker who records the packet and sends it again, so servers should accept it only for safe, idempotent requests (a GET of a public page), never for something like a payment. The same reasoning appears in TLS 1.3 early data. Running over UDP has operational costs too: some networks rate-limit or block UDP, so clients fall back to TCP, and QUIC's per-packet encryption uses more CPU than kernel TCP, which is a real cost at scale.
+
 ## Interview questions
 
 - Why does video calling use UDP?
