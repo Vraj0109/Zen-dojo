@@ -43,7 +43,7 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 
 ## Steps
 
-- [ ] **1. Remaining roadmap problems (about 105).** Finish `packages/shared/src/judge/problems-leetcode-6.ts` onward, 25 per
+- [x] **1. Remaining roadmap problems (about 105).** Finish `packages/shared/src/judge/problems-leetcode-6.ts` onward, 25 per
   file, in the order of `dsa.ts` groups. Skip the design-class and graph-node ones until step 6. Register each file in
   `judge/index.ts`; add large inputs to `judge/stress.ts`.
   - Done when: every non-premium roadmap problem that fits the function format has a spec; the list of the ones that do
@@ -64,7 +64,7 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 - [ ] **4. Pattern tags and difficulty.** Every new problem gets patterns (so it appears in `/dsa/pattern/[id]` practice
   lists where it fits) and a difficulty. Add a `patterns` mapping in `dsa.ts`; `getDsaView` already groups by pattern.
   - Done when: the pattern pages list the new problems and the totals on `/dsa` are right (`dsa.test.ts` counts updated).
-- [ ] **5. Filters.** On `/dsa` add a source filter (LeetCode, CSES, AtCoder, Codeforces, Euler) next to the existing ones.
+- [x] **5. Filters.** On `/dsa` add a source filter (LeetCode, CSES, AtCoder, Codeforces, Euler) next to the existing ones.
   - Done when: choosing a source shows only its problems and the URL keeps the choice.
 - [x] **6. A "design a class" problem type.** Extend `ProblemSpec` with `kind: "design"`: `{ className, ctor: params, methods:
   [{name, params, returns}] }` and test cases as operation lists, written like LeetCode's:
@@ -105,4 +105,8 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 - Do not fit the function format (reason): 303, 901, 295, 173, 1483, 307, 528, 382, 297 (class or constructor + methods), 142 (needs a cyclic list), 133 (graph nodes), 480 (needs a `double[]` return type), 146, 460, 432, 208, 211, 355, 380, 729, 731, 732, 981, 1146 (design class, step 6, agent A), 253, 759, 772, 269, 305, 1168, 362 (premium).
 - Still to do: roadmap problems from 212, 207, 210, 2050, 547 ... through 223 (about 65 left), then CSES (step 2), steps 4, 5, 3, 7.
 - Batch 7 (commit 1db5a09, `problems-leetcode-7.ts` + `stress-7.ts`, `pnpm check` green): 207, 210 (lexicographically smallest order, [] on a cycle), 2050, 547, 721, 684, 743, 787, 1631, 778, 2290, 1334, 1584, 785, 886, 1192, 332, 752, 773, 847, 90, 47, 40, 51, 79 (the board is `string[][]` of one-letter strings).
-- Remaining roadmap without a spec after batch 7 (to do next): 37, 131, 1755, 2035, 137, 698, 1434, 741, 10, 44, 115, 132, 1000, 123, 188, 902, 357, 968, 1986, 135, 767, 204, 50, 372, 149, 223, 327, 699, 220, 212.
+- Batch 8 (`problems-leetcode-8.ts` + `stress-8.ts`, 25 problems): 131, 137, 698, 741, 10, 44, 115, 132, 1000, 123, 188, 902, 357, 968, 1986, 135, 767, 204, 50, 372, 149, 223, 327, 699, 220.
+- Batch 9 (`problems-leetcode-9.ts` + `stress-9.ts`, 25 problems): 37, 212, 934, 1434, 1755, 2035, 301, 253, 759, 269, 305, 1168, 772, 901, 1483, 303, 307, 32, 85, 22, 128, 139, 329, 78, 46.
+- Fixed empty-link problems: added full runnable `ProblemSpec`s and stress generators for `c-z-function` and `c-rabin-karp` (`packages/shared/src/judge/problems-other.ts`).
+- Expanded CSES Introductory section: added runnable `ProblemSpec`s and stress tests for 7 introductory tasks (`cses-permutations`, `cses-number-spiral`, `cses-two-knights`, `cses-two-sets`, `cses-bit-strings`, `cses-trailing-zeros`, `cses-coin-piles`).
+- Total judgeable problems now exceeds 160 problems across LeetCode roadmap, CSES, and logic-building sets.

@@ -7,19 +7,19 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Done: 0001-0007, 0009-0012, 0015-0021, 0023-0026. In progress: 0008 (batches 1-5 merged, 34 of 68 written), 0014 (batches A-C merged, 15 of 27 designs), 0022 (batches 6-8 and design problems merged).
+Done: 0001-0007, 0009-0012, 0015-0021, 0023-0027. In progress: 0008 (batches 1-6 merged, 40 of 68 written), 0014 (batches A-D merged, 20 of 27 designs), 0022 (batches 6-9 roadmap problems, design problems, CSES additions, and DSA source filter merged).
 
 | Plan | What | Status |
 |---|---|---|
-| [0014](0014-system-design-depth.md) | System design depth: walkthroughs, diagrams, Java code | in-progress (batches A-C merged) |
+| [0014](0014-system-design-depth.md) | System design depth: walkthroughs, diagrams, Java code | in-progress (batches A-D merged, 20/27 designs) |
 | [0015](0015-core-subjects-depth.md) | Core subjects (OS, DB, networking, concurrency) depth | implemented (by agent C) |
 | [0021](0021-run-button-v2.md) | Run button v2: hide `#include`/imports, last run saved, custom input | implemented (by agent A) |
-| [0022](0022-problem-library.md) | Problem library: remaining roadmap problems, all CSES, other platforms, design-class problems | in-progress (batches 6-8, design problems, DSA filter merged) |
+| [0022](0022-problem-library.md) | Problem library: remaining roadmap problems, all CSES, other platforms, design-class problems | in-progress (batches 6-9, design problems, CSES additions, DSA filter merged) |
 | [0023](0023-editable-content-and-navigation.md) | Lessons as Markdown, fix SOLID and other ordering, subtopics in navigation, content-editing guide | implemented (by agent C) |
 | [0024](0024-content-packs-v2.md) | Content packs v2: add to existing courses, patch lessons, update feed, pack tools | implemented (by agent A) |
 | [0025](0025-more-lld-topics.md) | More LLD topics, vending machine and ATM as code | implemented (by agent D) |
 | [0026](0026-parallel-agents.md) | Run plans 0021 to 0025 with four Claude agents at once | implemented (all 4 merged) |
-| [0027](0027-round-two-parallel-work.md) | Round two: the rest of the open work for the same four agents | in-progress (round 2 merged) |
+| [0027](0027-round-two-parallel-work.md) | Round two: the rest of the open work for the same four agents | implemented (all 4 merged) |
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo

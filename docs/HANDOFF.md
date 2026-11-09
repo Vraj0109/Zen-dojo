@@ -54,20 +54,20 @@ What exists (all in 0.4.0):
 Merged from parallel worktrees (`agent/a-judge`, `agent/b-problems`, `agent/c-lessons`, `agent/d-lld`):
 
 - **Plan 0021 (implemented, agent A):** Run button v2 with hidden prelude boilerplate, compiler line number shift, `solution_runs` table saving the last run, custom input.
-- **Plan 0022 (in progress, agent B & A):** Roadmap batches 6, 7 and 8 merged (75 runnable problems + large inputs in `stress-8.ts`), design-a-class problems merged (11 problems with C++, Java, JS harnesses), source filter (All, LeetCode, CSES) on `/dsa`.
+- **Plan 0022 (in progress, agent B & A):** Roadmap batches 6, 7, 8 and 9 merged (100 runnable roadmap problems + large inputs in `stress-6.ts` through `stress-9.ts`), design-a-class problems merged (11 problems with C++, Java, JS harnesses), empty-link problems fixed (`c-z-function`, `c-rabin-karp`), CSES Introductory expanded (7 runnable specs + stress tests), source filter (All, LeetCode, CSES) on `/dsa`.
 - **Plan 0023 (implemented, agent C):** Markdown lessons in `content/**`, `build-content.mjs`, `content:build` and `content:check`, section ordering audit, subtopics in TOC and course outline.
 - **Plan 0024 (implemented, agent A):** Content packs v2 with lesson patches (`type: "patch"`) and reset, Mermaid validation, content feed (`zendojo-feed`), OTA update UI in Settings > Content, `pack:check` and `pack:build` scripts, target study areas, download pack export route, safe fetch with redirect and size limits.
 - **Plan 0025 (implemented, agent D):** 11 full Java projects (vending machine + ATM richer, movie booking, splitwise, library, food delivery, cab booking, games, file system, key-value store, hotel reservation, meeting rooms), 11 concept lessons.
 - **Plan 0015 (implemented, agent C):** All core subjects depth (OS, Databases, Networking, and Java Concurrency) reaching 1,200+ words with runnable Java demos and diagrams.
-- **Plan 0014 (in progress, agent C):** System design depth batches A, B and C (15 designs: URL shortener, rate limiter, KV store, notifications, typeahead, news feed, chat, video, file sync, collaborative editing, ride-sharing, maps, crawler, job scheduler, top-k) with runnable Java 17 demos and Mermaid diagrams.
-- **Plan 0008 (in progress, agent D):** Batches 1 to 5 merged: 34 of 68 pattern articles complete (all Arrays/strings, Searching/sorting, Lists/stacks/heaps, Trees, and Graphs part 1).
+- **Plan 0014 (in progress, agent C):** System design depth batches A, B, C and D (20 designs: payments, inventory, ticketing, order management, warehouse, URL shortener, rate limiter, KV store, notifications, typeahead, news feed, chat, video, file sync, collaborative editing, ride-sharing, maps, crawler, job scheduler, top-k) with runnable Java 17 demos and Mermaid diagrams.
+- **Plan 0008 (in progress, agent D):** Batches 1 to 6 merged: 40 of 68 pattern articles complete (all Arrays/strings, Searching/sorting, Lists/stacks/heaps, Trees, Graphs part 1, and Graphs part 2).
 
 What is left:
 
 | # | Plan | What | Status |
 |---|---|---|---|
-| 1 | **0022** | CSES, remaining roadmap problems (batch 9 ~30 problems), other platforms | in progress |
-| 2 | **0014** | System design batches D and E (7 designs remaining in Batch E; Batch D completed with 20 of 27 designs done) | in progress (20 of 27) |
+| 1 | **0022** | CSES remaining sections and logic building from other platforms (AtCoder, Codeforces, Euler) | in progress |
+| 2 | **0014** | System design batch E (7 designs: metrics, Kafka, recommendations, building-blocks, delivery-slots, pricing, catalog) | in progress (20 of 27) |
 | 3 | **0008** | Remaining DSA pattern articles (batches 7 to 10: backtracking, DP, greedy/math; batches 1-6 completed) | in progress (40 of 68) |
 | 4 | **0025** | Batch F new topics (optional future work) | not started |
 
