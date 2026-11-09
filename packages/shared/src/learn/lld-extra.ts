@@ -1,5 +1,16 @@
 import type { LldExtra } from "./types";
 import { URL_SHORTENER_EXTRA } from "./lld-deep-b-url";
+import { VENDING_ATM_EXTRA } from "./lld-deep-c-vending";
+import { BOOKING_EXTRA } from "./lld-deep-c-booking";
+import { SPLITWISE_EXTRA } from "./lld-deep-c-splitwise";
+import { LIBRARY_EXTRA } from "./lld-deep-c-library";
+import { FOOD_EXTRA } from "./lld-deep-d-food";
+import { CAB_EXTRA } from "./lld-deep-d-cab";
+import { GAMES_EXTRA } from "./lld-deep-d-games";
+import { FILESYSTEM_EXTRA } from "./lld-deep-d-filesystem";
+import { KV_EXTRA } from "./lld-deep-d-kv";
+import { HOTEL_EXTRA } from "./lld-deep-e-hotel";
+import { MEETING_EXTRA } from "./lld-deep-e-meeting";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -27,17 +38,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Request for the floor the car is already at with doors open.", "Overweight → doors stay open, refuse to move.", "Car in maintenance excluded from dispatch.", "All cars busy → queue the request.", "Emergency stop / fire mode overrides everything."],
   },
-  "lldp-booking": {
-    recap: ["Show/Room/Book has inventory units (Seat, RoomNight, Copy).", "Hold with expiry → confirm on payment → release on timeout.", "Lock per unit (or optimistic version) to prevent double booking."],
-    flow: [
-      "User selects seats A1, A2 → BookingService.hold(showId, seats, userId).",
-      "For each seat (sorted to avoid deadlock): lock, check AVAILABLE, mark HELD with holdUntil.",
-      "Return Booking(PENDING, expiresAt).",
-      "Payment success → confirm(): seats HELD → BOOKED, booking CONFIRMED.",
-      "Scheduler releases holds past holdUntil → AVAILABLE.",
-    ],
-    edgeCases: ["Partial availability (A1 free, A2 taken) → all or nothing.", "Payment confirms after the hold expired.", "Same user double-clicks confirm (idempotent).", "Cancellation and refund rules by time before show."],
-  },
+  "lldp-booking": BOOKING_EXTRA,
   "lldp-lru-rate-limiter": {
     recap: ["LRU: HashMap<K, Node> + doubly linked list; get/put O(1).", "Rate limiter interface with TokenBucket / SlidingWindow implementations, keyed per client.", "Thread safety: one lock per cache (or segmented), per-key buckets in a ConcurrentHashMap."],
     flow: [
@@ -48,36 +49,9 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Capacity 0 or 1.", "Updating an existing key must not evict.", "Clock injected for tests; monotonic time (nanoTime) not wall clock.", "Buckets for idle clients pile up → expire them."],
   },
-  "lldp-splitwise": {
-    recap: ["Expense(paidBy, amount, splits); Split strategies: equal, exact, percent.", "Balances map user → net amount (or pairwise ledger).", "Simplify debts: greedily match the largest creditor with the largest debtor."],
-    flow: [
-      "addExpense(groupId, paidBy=A, 900, EQUAL among A, B, C).",
-      "SplitStrategy computes shares 300 each (remainder cents to the payer or first users).",
-      "For each participant ≠ payer: balance[participant] −= share, balance[payer] += share.",
-      "showBalances(): non-zero nets; simplify(): two heaps (creditors, debtors) settle max against max.",
-    ],
-    edgeCases: ["Amounts that don't divide evenly (use cents, distribute remainder).", "Percent splits not summing to 100 → reject.", "Payer not among participants.", "Settling up partially.", "Currency: store in minor units."],
-  },
-  "lldp-games": {
-    recap: ["Game holds Board, Players, turn order and status; Move is a value object.", "Rules per piece/game behind an interface (validate move, check win).", "Game loop: get move → validate → apply → check end → next player."],
-    flow: [
-      "Game.start(): board initialized, current player = first.",
-      "Player submits Move(from, to); Game asks the piece's MoveRule if legal on this board.",
-      "Board.apply(move) (capture, promotion); push the move to history for undo.",
-      "WinChecker evaluates (checkmate/stalemate, three in a row); else switch player.",
-    ],
-    edgeCases: ["Move by the wrong player.", "Move leaving own king in check (chess).", "Draw conditions.", "Undo across captures.", "Board size configurable (N×N tic-tac-toe, win in O(1) with row/col/diag counters)."],
-  },
-  "lldp-vending-atm": {
-    recap: ["State pattern: Idle, HasMoney, Dispensing, OutOfService.", "Inventory per slot; cash box with denominations.", "Change-making: greedy with standard denominations; fail if exact change impossible."],
-    flow: [
-      "insertCoin(25) in Idle → credit 25, state HasMoney.",
-      "select('B2') → check stock and price; if credit ≥ price → Dispensing.",
-      "Dispense item, compute change, decrement stock and cash; back to Idle.",
-      "cancel() in HasMoney → refund credit, Idle.",
-    ],
-    edgeCases: ["Item out of stock after money inserted → refund or reselect.", "Can't make change → refuse sale before dispensing.", "Dispense failure (jam) → refund and alert.", "ATM: insufficient balance, daily limit, card retained after wrong PIN attempts."],
-  },
+  "lldp-splitwise": SPLITWISE_EXTRA,
+  "lldp-games": GAMES_EXTRA,
+  "lldp-vending-atm": VENDING_ATM_EXTRA,
   "lldp-logger-notifications": {
     recap: ["Logger: levels, formatters, appenders (Strategy) and a chain by level.", "Notifications: Observer for subscribers; channel senders behind an interface.", "Async: a queue + worker so callers don't block; retries per channel."],
     flow: [
@@ -88,24 +62,11 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Queue full → drop with a counter or block (policy).", "Log file rotation by size/time.", "Channel failure → retry with backoff then fallback channel.", "User opted out / quiet hours."],
   },
-  "lldp-food-cab": {
-    recap: ["Order/Ride lifecycle as a state machine.", "Matching is a Strategy (nearest, rating, batching).", "Assign atomically: driver AVAILABLE → ASSIGNED with compare-and-set."],
-    flow: [
-      "Customer places order → Order(PLACED); restaurant accepts → ACCEPTED.",
-      "MatchingStrategy ranks nearby available couriers by distance/ETA.",
-      "Offer to the best courier with a timeout; accept → atomically mark courier busy, Order ASSIGNED.",
-      "PICKED_UP → DELIVERED; payment captured; courier AVAILABLE again.",
-    ],
-    edgeCases: ["Courier declines or times out → next candidate.", "Restaurant rejects after payment → refund.", "Customer cancels at each state (different refund rules).", "No couriers nearby → widen radius or queue."],
-  },
-  "lldp-file-system-kv": {
-    recap: ["File system: tree of Directory/File nodes (Composite); path resolution by splitting on '/'.", "KV store: HashMap + optional TTL and transactions (stack of change maps).", "Clean API: mkdir, ls, addContent, readContent / get, set, delete, begin, commit, rollback."],
-    flow: [
-      "mkdir('/a/b'): walk from root, create missing directories.",
-      "addContentToFile('/a/b/f', 'x'): resolve parent, create file if absent, append.",
-      "ls('/a'): directory → sorted child names; file → its own name.",
-      "KV begin(): push an empty change map; set writes there; commit merges down; rollback pops.",
-    ],
-    edgeCases: ["Path with trailing slash or '..'.", "File and directory with the same name.", "Nested transactions and rollback with nothing open.", "Expired keys checked lazily on get plus periodic cleanup."],
-  },
+  "lldp-food-cab": FOOD_EXTRA,
+  "lldp-file-system-kv": FILESYSTEM_EXTRA,
+  "lldp-library": LIBRARY_EXTRA,
+  "lldp-cab": CAB_EXTRA,
+  "lldp-kv-store": KV_EXTRA,
+  "lldp-hotel": HOTEL_EXTRA,
+  "lldp-meeting-rooms": MEETING_EXTRA,
 };

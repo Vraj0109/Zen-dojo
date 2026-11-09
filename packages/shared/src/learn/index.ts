@@ -11,6 +11,7 @@ import { DSA_ARTICLES_B } from "./dsa-articles-b";
 import { DSA_ARTICLES_C } from "./dsa-articles-c";
 import { DSA_ARTICLES_D1 } from "./dsa-articles-d";
 import { DSA_ARTICLES_D2 } from "./dsa-articles-d2";
+import { DSA_ARTICLES_E1 } from "./dsa-articles-e";
 import { DSA_GUIDES_A } from "./dsa-a";
 import { DSA_GUIDES_B } from "./dsa-b";
 import { DSA_GUIDES_C } from "./dsa-c";
@@ -24,6 +25,28 @@ import { LLD_DEEP_B_URL } from "./lld-deep-b-url";
 import { LLD_PROJECTS_B_LOG } from "./lld-projects-b-log";
 import { LLD_PROJECTS_B_URL } from "./lld-projects-b-url";
 import { LLD_PROJECTS_B } from "./lld-projects-b";
+import { MEETING_DEEP } from "./lld-deep-e-meeting";
+import { LLD_PROJECTS_E_MEETING } from "./lld-projects-e-meeting";
+import { HOTEL_DEEP } from "./lld-deep-e-hotel";
+import { LLD_PROJECTS_E_HOTEL } from "./lld-projects-e-hotel";
+import { KV_DEEP } from "./lld-deep-d-kv";
+import { LLD_PROJECTS_D_KV } from "./lld-projects-d-kv";
+import { FILESYSTEM_DEEP } from "./lld-deep-d-filesystem";
+import { LLD_PROJECTS_D_FILESYSTEM } from "./lld-projects-d-filesystem";
+import { GAMES_DEEP } from "./lld-deep-d-games";
+import { LLD_PROJECTS_D_GAMES } from "./lld-projects-d-games";
+import { CAB_DEEP } from "./lld-deep-d-cab";
+import { LLD_PROJECTS_D_CAB } from "./lld-projects-d-cab";
+import { FOOD_DEEP } from "./lld-deep-d-food";
+import { LLD_PROJECTS_D_FOOD } from "./lld-projects-d-food";
+import { LIBRARY_DEEP } from "./lld-deep-c-library";
+import { LLD_PROJECTS_C_LIBRARY } from "./lld-projects-c-library";
+import { SPLITWISE_DEEP } from "./lld-deep-c-splitwise";
+import { LLD_PROJECTS_C_SPLITWISE } from "./lld-projects-c-splitwise";
+import { VENDING_ATM_DEEP } from "./lld-deep-c-vending";
+import { LLD_PROJECTS_C_VENDING } from "./lld-projects-c-vending";
+import { BOOKING_DEEP } from "./lld-deep-c-booking";
+import { LLD_PROJECTS_C_BOOKING } from "./lld-projects-c-booking";
 import { MORE_DB } from "./more-db";
 import { MORE_LLD } from "./more-lld";
 import { MORE_NET } from "./more-net";
@@ -47,15 +70,15 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESI
 export { LLD_GUIDES };
 
 /** Full Java projects and their long explanations, by LLD problem id (plan 0013). */
-export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B, ...LLD_PROJECTS_B_URL, ...LLD_PROJECTS_B_LOG };
-export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B, ...LLD_DEEP_B_URL, ...LLD_DEEP_B_LOG };
+export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B, ...LLD_PROJECTS_B_URL, ...LLD_PROJECTS_B_LOG, ...LLD_PROJECTS_C_VENDING, ...LLD_PROJECTS_C_BOOKING, ...LLD_PROJECTS_C_SPLITWISE, ...LLD_PROJECTS_C_LIBRARY, ...LLD_PROJECTS_D_FOOD, ...LLD_PROJECTS_D_CAB, ...LLD_PROJECTS_D_GAMES, ...LLD_PROJECTS_D_FILESYSTEM, ...LLD_PROJECTS_D_KV, ...LLD_PROJECTS_E_HOTEL, ...LLD_PROJECTS_E_MEETING };
+export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B, ...LLD_DEEP_B_URL, ...LLD_DEEP_B_LOG, ...VENDING_ATM_DEEP, ...BOOKING_DEEP, ...SPLITWISE_DEEP, ...LIBRARY_DEEP, ...FOOD_DEEP, ...CAB_DEEP, ...GAMES_DEEP, ...FILESYSTEM_DEEP, ...KV_DEEP, ...HOTEL_DEEP, ...MEETING_DEEP };
 export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 
 /** DSA pattern guides by pattern id (dsa.ts). Templates are C++. */
 export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, ...DSA_GUIDES_B, ...DSA_GUIDES_C, ...DSA_GUIDES_D };
 
 /** Full articles by pattern id. Patterns without one still show the short guide above. */
-export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2 };
+export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2, ...DSA_ARTICLES_E1 };
 
 /** Deeper sections and recap lines per concept id. */
 const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_SD_GAPS, ...DEEP_LLD, ...DEEP_CORE };

@@ -1,5 +1,16 @@
 import { lesson, type LldGuide, type Lesson } from "./types";
 import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
+import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
+import { BOOKING_GUIDE } from "./lld-deep-c-booking";
+import { SPLITWISE_GUIDE } from "./lld-deep-c-splitwise";
+import { LIBRARY_GUIDE } from "./lld-deep-c-library";
+import { FOOD_GUIDE } from "./lld-deep-d-food";
+import { CAB_GUIDE } from "./lld-deep-d-cab";
+import { GAMES_GUIDE } from "./lld-deep-d-games";
+import { FILESYSTEM_GUIDE } from "./lld-deep-d-filesystem";
+import { KV_GUIDE } from "./lld-deep-d-kv";
+import { HOTEL_GUIDE } from "./lld-deep-e-hotel";
+import { MEETING_GUIDE } from "./lld-deep-e-meeting";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -223,78 +234,7 @@ class ElevatorSystem {
       "Thread safety: dispatcher on one thread, each elevator on its own thread consuming a BlockingQueue of commands.",
     ],
   },
-  "lldp-booking": {
-    requirements: [
-      "Movie ticket booking: cities → theatres → screens → shows; each show has a seat map.",
-      "User selects seats, they're held for a few minutes while paying, then confirmed or released.",
-      "Two users must never book the same seat.",
-      "Pricing by seat category; cancellation with refund rules.",
-    ],
-    entities: ["Movie", "Theatre / Screen", "Show (movie, screen, start time)", "Seat (row, number, category)", "ShowSeat (seat state per show: AVAILABLE, HELD, BOOKED; hold expiry; version)", "Booking (user, show, seats, status)", "PaymentService"],
-    patterns: ["State for ShowSeat and Booking status", "Strategy for pricing", "Optimistic locking for holds"],
-    code: `enum SeatState { AVAILABLE, HELD, BOOKED }
-
-class ShowSeat {
-  final String seatId; SeatState state = SeatState.AVAILABLE;
-  String heldBy; Instant holdUntil;
-  ShowSeat(String seatId) { this.seatId = seatId; }
-  boolean isFree(Instant now) {
-    return state == SeatState.AVAILABLE || (state == SeatState.HELD && holdUntil.isBefore(now));
-  }
-}
-
-class Show {
-  final String id; private final Map<String, ShowSeat> seats = new HashMap<>();
-  Show(String id, List<String> seatIds) { this.id = id; seatIds.forEach(s -> seats.put(s, new ShowSeat(s))); }
-
-  /** All-or-nothing hold. Lock per show keeps it simple; a DB would use a conditional update. */
-  synchronized boolean hold(List<String> ids, String userId, Instant now, Duration ttl) {
-    if (!ids.stream().allMatch(id -> seats.get(id).isFree(now))) return false;
-    for (String id : ids) {
-      ShowSeat s = seats.get(id);
-      s.state = SeatState.HELD; s.heldBy = userId; s.holdUntil = now.plus(ttl);
-    }
-    return true;
-  }
-
-  synchronized void confirm(List<String> ids, String userId, Instant now) {
-    for (String id : ids) {
-      ShowSeat s = seats.get(id);
-      if (s.state != SeatState.HELD || !userId.equals(s.heldBy) || s.holdUntil.isBefore(now))
-        throw new IllegalStateException("Hold expired for " + id);
-    }
-    ids.forEach(id -> seats.get(id).state = SeatState.BOOKED);
-  }
-
-  synchronized void release(List<String> ids, String userId) {
-    ids.stream().map(seats::get).filter(s -> userId.equals(s.heldBy) && s.state == SeatState.HELD)
-        .forEach(s -> { s.state = SeatState.AVAILABLE; s.heldBy = null; });
-  }
-}
-
-class BookingService {
-  private final PaymentService payments; private final Clock clock;
-  BookingService(PaymentService p, Clock c) { payments = p; clock = c; }
-
-  Booking book(Show show, List<String> seatIds, String userId, long amount) {
-    if (!show.hold(seatIds, userId, clock.instant(), Duration.ofMinutes(5)))
-      throw new IllegalStateException("Seats no longer available");
-    try {
-      payments.charge(userId, amount, /* idempotency key */ show.id + ":" + userId + ":" + seatIds);
-      show.confirm(seatIds, userId, clock.instant());
-      return new Booking(UUID.randomUUID().toString(), userId, show.id, seatIds);
-    } catch (RuntimeException e) {
-      show.release(seatIds, userId);
-      throw e;
-    }
-  }
-}`,
-    extensions: [
-      "In a database: UPDATE show_seats SET state='HELD', held_by=?, hold_until=? WHERE show_id=? AND seat_id IN (…) AND (state='AVAILABLE' OR hold_until < now()) and check the affected row count.",
-      "A background sweeper (or lazy check, as above) releases expired holds.",
-      "Library or hotel booking: the same hold → pay → confirm flow with date ranges instead of seats.",
-    ],
-  },
+  "lldp-booking": BOOKING_GUIDE,
   "lldp-lru-rate-limiter": {
     requirements: [
       "LRU cache with capacity N: get and put in O(1); evict the least recently used entry when full.",
@@ -360,180 +300,9 @@ class TokenBucketLimiter implements RateLimiter {
       "Distributed limiter: move the bucket into Redis with an atomic Lua script.",
     ],
   },
-  "lldp-splitwise": {
-    requirements: [
-      "Users and groups; add an expense paid by one user, split equally, by exact amounts, or by percentage.",
-      "Show balances: who owes whom, per pair and per user.",
-      "Settle up; simplify debts within a group (minimize transactions).",
-      "Money as integer minor units (paise/cents), never floating point.",
-    ],
-    entities: ["User", "Group", "Expense (payer, amount, splits)", "Split (user, amount)", "SplitStrategy (Equal, Exact, Percent)", "BalanceSheet (net amount per pair or per user)"],
-    patterns: ["Strategy for split types", "Factory to create the right split from input"],
-    code: `interface SplitStrategy { Map<String, Long> split(long amount, List<String> users, List<Long> params); }
-
-class EqualSplit implements SplitStrategy {
-  public Map<String, Long> split(long amount, List<String> users, List<Long> ignored) {
-    long each = amount / users.size(), rem = amount % users.size();
-    Map<String, Long> out = new LinkedHashMap<>();
-    for (int i = 0; i < users.size(); i++) out.put(users.get(i), each + (i < rem ? 1 : 0)); // spread leftover cents
-    return out;
-  }
-}
-
-class ExactSplit implements SplitStrategy {
-  public Map<String, Long> split(long amount, List<String> users, List<Long> amounts) {
-    if (amounts.stream().mapToLong(Long::longValue).sum() != amount) throw new IllegalArgumentException("Splits must add up");
-    Map<String, Long> out = new LinkedHashMap<>();
-    for (int i = 0; i < users.size(); i++) out.put(users.get(i), amounts.get(i));
-    return out;
-  }
-}
-
-class Ledger {
-  /** net.get(u) > 0: u is owed money; < 0: u owes. */
-  private final Map<String, Long> net = new HashMap<>();
-
-  void addExpense(String payer, long amount, Map<String, Long> shares) {
-    net.merge(payer, amount, Long::sum);
-    shares.forEach((user, share) -> net.merge(user, -share, Long::sum));
-  }
-
-  /** Greedy simplification: largest debtor pays largest creditor. At most n-1 transfers. */
-  List<String> simplify() {
-    PriorityQueue<Map.Entry<String, Long>> creditors = new PriorityQueue<>((a, b) -> Long.compare(b.getValue(), a.getValue()));
-    PriorityQueue<Map.Entry<String, Long>> debtors = new PriorityQueue<>(Map.Entry.comparingByValue());
-    net.forEach((u, v) -> { if (v > 0) creditors.add(Map.entry(u, v)); else if (v < 0) debtors.add(Map.entry(u, v)); });
-    List<String> transfers = new ArrayList<>();
-    while (!creditors.isEmpty() && !debtors.isEmpty()) {
-      var c = creditors.poll(); var d = debtors.poll();
-      long amt = Math.min(c.getValue(), -d.getValue());
-      transfers.add(d.getKey() + " pays " + c.getKey() + " " + amt);
-      if (c.getValue() - amt > 0) creditors.add(Map.entry(c.getKey(), c.getValue() - amt));
-      if (d.getValue() + amt < 0) debtors.add(Map.entry(d.getKey(), d.getValue() + amt));
-    }
-    return transfers;
-  }
-}`,
-    extensions: [
-      "Per-group ledgers plus a global view; expense edit and delete (store expenses, recompute or apply reversals).",
-      "Multi-currency with conversion at expense time.",
-      "Optimal minimization is NP-hard in general; greedy is the expected interview answer.",
-      "Concurrency: one lock per group ledger; persistence as an append-only expense log.",
-    ],
-  },
-  "lldp-games": {
-    requirements: [
-      "Tic-tac-toe on an N×N board for 2 players (generalizes to chess / snake): make moves, validate, detect win or draw.",
-      "Players can be human or bot.",
-      "Undo the last move (nice to have).",
-    ],
-    entities: ["Game (board, players, turn, status)", "Board (grid, place, isFull)", "Player interface (Human, Bot)", "Move (row, col, symbol)", "WinningStrategy (rows, cols, diagonals)", "GameStatus enum"],
-    patterns: ["Strategy for players (human input vs bot) and win checks", "Command for moves (enables undo)", "State for game status"],
-    code: `enum Symbol { X, O }
-enum Status { IN_PROGRESS, WON, DRAW }
-
-record Move(int row, int col, Symbol symbol) {}
-
-interface Player { Symbol symbol(); Move nextMove(Board board); }
-
-class Board {
-  final int n; private final Symbol[][] cells;
-  Board(int n) { this.n = n; cells = new Symbol[n][n]; }
-  boolean isEmpty(int r, int c) { return cells[r][c] == null; }
-  void place(Move m) {
-    if (m.row() < 0 || m.row() >= n || m.col() < 0 || m.col() >= n || !isEmpty(m.row(), m.col()))
-      throw new IllegalArgumentException("Invalid move");
-    cells[m.row()][m.col()] = m.symbol();
-  }
-  void clear(Move m) { cells[m.row()][m.col()] = null; }
-}
-
-class Game {
-  private final Board board; private final List<Player> players; private final Deque<Move> history = new ArrayDeque<>();
-  private final int[] rows, cols; private int diag, anti, turn;     // +1 for X, -1 for O: O(1) win check
-  Status status = Status.IN_PROGRESS;
-
-  Game(int n, List<Player> players) { board = new Board(n); this.players = players; rows = new int[n]; cols = new int[n]; }
-
-  void playTurn() {
-    if (status != Status.IN_PROGRESS) throw new IllegalStateException("Game over");
-    Player p = players.get(turn % players.size());
-    Move m = p.nextMove(board);
-    board.place(m); history.push(m);
-    int v = m.symbol() == Symbol.X ? 1 : -1, n = board.n;
-    rows[m.row()] += v; cols[m.col()] += v;
-    if (m.row() == m.col()) diag += v;
-    if (m.row() + m.col() == n - 1) anti += v;
-    if (Math.abs(rows[m.row()]) == n || Math.abs(cols[m.col()]) == n || Math.abs(diag) == n || Math.abs(anti) == n) status = Status.WON;
-    else if (history.size() == n * n) status = Status.DRAW;
-    turn++;
-  }
-}`,
-    extensions: [
-      "Undo: pop the history, clear the cell, reverse the counters and the turn (Command pattern).",
-      "Chess: Piece hierarchy with per-piece move generation (Strategy), check/checkmate validation, special moves.",
-      "Snake: deque for the body, set for O(1) collision checks, food spawning; game loop with ticks.",
-      "Bot difficulty levels as different Player strategies (random, minimax).",
-    ],
-  },
-  "lldp-vending-atm": {
-    requirements: [
-      "Vending machine: select a product, insert coins or notes, dispense the product and change; cancel to refund.",
-      "Inventory per slot; reject when sold out; return correct change or refuse if it can't.",
-      "ATM variant: authenticate card + PIN, check balance, withdraw with denomination dispensing.",
-    ],
-    entities: ["VendingMachine (context)", "State interface (Idle, HasMoney, Dispensing, SoldOut)", "Inventory (slot → product, count)", "Product", "Coin enum", "ChangeMaker"],
-    patterns: ["State for machine behaviour", "Chain of Responsibility for dispensing denominations (ATM)", "Singleton or injected instance per physical machine"],
-    code: `enum Coin { ONE(1), TWO(2), FIVE(5), TEN(10); final int value; Coin(int v) { value = v; } }
-
-interface State {
-  default void select(VendingMachine m, String slot) { throw new IllegalStateException("Not now"); }
-  default void insert(VendingMachine m, Coin c) { throw new IllegalStateException("Select a product first"); }
-  default void cancel(VendingMachine m) {}
-}
-
-class Idle implements State {
-  public void select(VendingMachine m, String slot) {
-    if (!m.inventory.inStock(slot)) throw new IllegalStateException("Sold out");
-    m.selected = slot; m.setState(new HasMoney());
-  }
-}
-
-class HasMoney implements State {
-  public void insert(VendingMachine m, Coin c) {
-    m.balance += c.value;
-    int price = m.inventory.price(m.selected);
-    if (m.balance >= price) { Dispensing d = new Dispensing(); m.setState(d); d.dispense(m, price); }
-  }
-  public void cancel(VendingMachine m) { m.refund(m.balance); m.reset(); }
-}
-
-class Dispensing implements State {
-  void dispense(VendingMachine m, int price) {
-    m.inventory.take(m.selected);
-    m.refund(m.balance - price);          // change
-    m.reset();
-  }
-}
-
-class VendingMachine {
-  final Inventory inventory; String selected; int balance;
-  private State state = new Idle();
-  VendingMachine(Inventory inv) { inventory = inv; }
-  State state() { return state; }
-  void setState(State s) { state = s; }
-  void select(String slot) { state.select(this, slot); }
-  void insert(Coin c) { state.insert(this, c); }
-  void cancel() { state.cancel(this); }
-  void refund(int amount) { /* ChangeMaker: greedy over coin denominations held */ }
-  void reset() { selected = null; balance = 0; state = new Idle(); }
-}`,
-    extensions: [
-      "Change-making with a limited coin stock: greedy works for canonical coin systems; otherwise DP. Refuse the sale up front if exact change can't be made.",
-      "ATM: CashDispenser chain (2000 → 500 → 100 handlers), each taking what it can; transactions logged; card retained after 3 wrong PINs.",
-      "Admin state for restocking; sales reporting via an Observer.",
-    ],
-  },
+  "lldp-splitwise": SPLITWISE_GUIDE,
+  "lldp-games": GAMES_GUIDE,
+  "lldp-vending-atm": VENDING_ATM_GUIDE,
   "lldp-logger-notifications": {
     requirements: [
       "Logger: log(level, message) with levels DEBUG < INFO < WARN < ERROR; per-logger minimum level; multiple sinks (console, file, remote).",
@@ -596,151 +365,11 @@ class NotificationService {
       "Notifications: templates per channel, rate limiting per user, dedup by event id, quiet hours.",
     ],
   },
-  "lldp-food-cab": {
-    requirements: [
-      "Cab booking (small scope): rider requests a ride from A to B; match the nearest available driver; trip lifecycle; fare.",
-      "Driver states: OFFLINE, AVAILABLE, ON_TRIP. Trip states: REQUESTED → ACCEPTED → STARTED → COMPLETED / CANCELLED.",
-      "Pluggable matching and pricing (surge). Food delivery is the same shape with restaurant + order prep.",
-    ],
-    entities: ["Rider", "Driver (location, status)", "Location", "Trip (rider, driver, pickup, drop, status, fare)", "MatchingStrategy", "PricingStrategy", "TripService"],
-    patterns: ["Strategy for matching and pricing", "State for trip lifecycle", "Observer to notify rider and driver"],
-    code: `enum DriverStatus { OFFLINE, AVAILABLE, ON_TRIP }
-enum TripStatus { REQUESTED, ACCEPTED, STARTED, COMPLETED, CANCELLED }
-
-record Location(double lat, double lng) {
-  double distanceTo(Location o) { return Math.hypot(lat - o.lat, lng - o.lng); }   // haversine in real life
-}
-
-class Driver {
-  final String id; volatile Location location; DriverStatus status = DriverStatus.OFFLINE;
-  Driver(String id, Location l) { this.id = id; location = l; }
-}
-
-class Trip {
-  final String id; final String riderId; final Location pickup, drop; Driver driver;
-  TripStatus status = TripStatus.REQUESTED; long fare;
-  Trip(String id, String riderId, Location p, Location d) { this.id = id; this.riderId = riderId; pickup = p; drop = d; }
-
-  void transition(TripStatus next) {
-    boolean ok = switch (status) {
-      case REQUESTED -> next == TripStatus.ACCEPTED || next == TripStatus.CANCELLED;
-      case ACCEPTED -> next == TripStatus.STARTED || next == TripStatus.CANCELLED;
-      case STARTED -> next == TripStatus.COMPLETED;
-      default -> false;
-    };
-    if (!ok) throw new IllegalStateException(status + " -> " + next);
-    status = next;
-  }
-}
-
-interface MatchingStrategy { Optional<Driver> match(Location pickup, Collection<Driver> drivers); }
-
-class NearestDriver implements MatchingStrategy {
-  public Optional<Driver> match(Location pickup, Collection<Driver> drivers) {
-    return drivers.stream().filter(d -> d.status == DriverStatus.AVAILABLE)
-        .min(Comparator.comparingDouble(d -> d.location.distanceTo(pickup)));
-  }
-}
-
-interface PricingStrategy { long fare(Trip t); }
-
-class TripService {
-  private final Map<String, Driver> drivers = new ConcurrentHashMap<>();
-  private final MatchingStrategy matching; private final PricingStrategy pricing;
-  TripService(MatchingStrategy m, PricingStrategy p) { matching = m; pricing = p; }
-
-  synchronized Trip request(String riderId, Location from, Location to) {   // one lock: no driver double-booked
-    Trip t = new Trip(UUID.randomUUID().toString(), riderId, from, to);
-    Driver d = matching.match(from, drivers.values()).orElseThrow(() -> new IllegalStateException("No drivers nearby"));
-    d.status = DriverStatus.ON_TRIP; t.driver = d; t.transition(TripStatus.ACCEPTED);
-    return t;
-  }
-
-  synchronized void complete(Trip t) {
-    t.transition(TripStatus.COMPLETED);
-    t.fare = pricing.fare(t);
-    t.driver.status = DriverStatus.AVAILABLE;
-  }
-}`,
-    extensions: [
-      "Driver acceptance with a timeout: offer to the nearest, fall back to the next.",
-      "Spatial index (grid / geohash cells) instead of scanning all drivers.",
-      "Surge pricing strategy based on demand/supply per cell; ratings after trips.",
-      "Food delivery: Order states (PLACED → PREPARING → PICKED_UP → DELIVERED), assign a rider when the food is nearly ready.",
-    ],
-  },
-  "lldp-file-system-kv": {
-    requirements: [
-      "In-memory file system: mkdir -p, ls, create/append/read file content, by absolute paths like /a/b/c.",
-      "ls on a file returns its name; on a directory returns sorted children.",
-      "Variant: in-memory key-value store with get, set, delete and transactions (begin / commit / rollback, nested).",
-    ],
-    entities: ["Node (abstract: name)", "Directory (children map)", "File (content)", "FileSystem (root, path resolution)", "KVStore (data map + transaction stack)"],
-    patterns: ["Composite for files and directories", "Command or memento-style transaction stack for the KV store"],
-    code: `abstract class Node { final String name; Node(String n) { name = n; } }
-class FileNode extends Node { final StringBuilder content = new StringBuilder(); FileNode(String n) { super(n); } }
-class Dir extends Node { final TreeMap<String, Node> children = new TreeMap<>(); Dir(String n) { super(n); } }
-
-class FileSystem {
-  private final Dir root = new Dir("");
-
-  public List<String> ls(String path) {
-    Node n = resolve(path, false);
-    return n instanceof Dir d ? new ArrayList<>(d.children.keySet()) : List.of(n.name);
-  }
-  public void mkdir(String path) { resolve(path, true); }
-  public void append(String path, String text) {
-    Dir parent = (Dir) resolve(parentOf(path), true);
-    Node n = parent.children.computeIfAbsent(nameOf(path), FileNode::new);
-    if (!(n instanceof FileNode f)) throw new IllegalArgumentException("Is a directory");
-    f.content.append(text);
-  }
-  public String read(String path) {
-    if (!(resolve(path, false) instanceof FileNode f)) throw new IllegalArgumentException("Not a file");
-    return f.content.toString();
-  }
-
-  private Node resolve(String path, boolean create) {
-    Node cur = root;
-    for (String part : path.split("/")) {
-      if (part.isEmpty()) continue;
-      if (!(cur instanceof Dir d)) throw new IllegalArgumentException("Not a directory: " + part);
-      Node next = d.children.get(part);
-      if (next == null) {
-        if (!create) throw new NoSuchElementException(path);
-        next = new Dir(part); d.children.put(part, next);
-      }
-      cur = next;
-    }
-    return cur;
-  }
-  private static String parentOf(String p) { int i = p.lastIndexOf('/'); return i <= 0 ? "/" : p.substring(0, i); }
-  private static String nameOf(String p) { return p.substring(p.lastIndexOf('/') + 1); }
-}
-
-/** Key-value store with nested transactions: each level records the old values it overwrote. */
-class KVStore {
-  private static final Object ABSENT = new Object();
-  private final Map<String, String> data = new HashMap<>();
-  private final Deque<Map<String, Object>> undo = new ArrayDeque<>();
-
-  String get(String k) { return data.get(k); }
-  void set(String k, String v) { remember(k); data.put(k, v); }
-  void delete(String k) { remember(k); data.remove(k); }
-  void begin() { undo.push(new HashMap<>()); }
-  void rollback() {
-    if (undo.isEmpty()) throw new IllegalStateException("No transaction");
-    undo.pop().forEach((k, old) -> { if (old == ABSENT) data.remove(k); else data.put(k, (String) old); });
-  }
-  void commit() { undo.clear(); }                     // commits all levels
-  private void remember(String k) {
-    if (!undo.isEmpty()) undo.peek().putIfAbsent(k, data.containsKey(k) ? data.get(k) : ABSENT);
-  }
-}`,
-    extensions: [
-      "rm, mv, file sizes, permissions; a path cache for deep trees.",
-      "Thread safety: a read-write lock on the tree, or per-directory locks with ordered acquisition for mv.",
-      "KV store: TTL per key (min-heap of expiries), snapshots to disk, count of values (secondary map value → count).",
-    ],
-  },
+  "lldp-food-cab": FOOD_GUIDE,
+  "lldp-file-system-kv": FILESYSTEM_GUIDE,
+  "lldp-library": LIBRARY_GUIDE,
+  "lldp-cab": CAB_GUIDE,
+  "lldp-kv-store": KV_GUIDE,
+  "lldp-hotel": HOTEL_GUIDE,
+  "lldp-meeting-rooms": MEETING_GUIDE,
 };
