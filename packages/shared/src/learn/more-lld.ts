@@ -1,8 +1,9 @@
 import type { Section } from "./types";
+import { MORE_LLD_C } from "./more-lld-c";
 
 // More deeper sections for LLD topics (appended after deep-lld.ts). Code is Java.
 
-export const MORE_LLD: Record<string, Section[]> = {
+const MORE_LLD_BASE: Record<string, Section[]> = {
   "lld-oop": [
     {
       title: "Abstraction, interfaces and abstract classes",
@@ -249,3 +250,8 @@ void only_one_thread_gets_the_last_slot() throws Exception {
     },
   ],
 };
+
+// Plan 0025 step 6 appends lessons that the LLD projects lean on (concurrency, testing, error handling, immutability, events).
+export const MORE_LLD: Record<string, Section[]> = Object.fromEntries(
+  Object.keys({ ...MORE_LLD_BASE, ...MORE_LLD_C }).map((id) => [id, [...(MORE_LLD_BASE[id] ?? []), ...(MORE_LLD_C[id] ?? [])]]),
+);
