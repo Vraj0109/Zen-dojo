@@ -35,7 +35,7 @@ export const DSA_ARTICLES_H: Record<string, PatternArticle> = {
       },
       {
         "title": "Implementation: Combination sum with each number used once",
-        "body": "This is the subsets template with a running remainder and an early break.",
+        "body": "This is the subsets template with a running remainder and an early break. The remainder falls as elements are chosen, and the path is recorded the moment it reaches zero. Because the array is sorted, the first element larger than the remainder ends the loop, since every later element is at least as large. Passing i + 1 to the recursive call lets each element be used at most once, while passing i would allow reuse, which is the difference between Combination Sum and Combination Sum II.",
         "code": "void combDfs(const vector<int>& a, int start, int remain, vector<int>& path, vector<vector<int>>& out) {\n    if (remain == 0) { out.push_back(path); return; }\n    for (int i = start; i < (int)a.size(); i++) {\n        if (a[i] > remain) break;                          // sorted: nothing later fits either\n        if (i > start && a[i] == a[i - 1]) continue;       // same level duplicate\n        path.push_back(a[i]);\n        combDfs(a, i + 1, remain - a[i], path, out);       // i + 1: each element used at most once\n        path.pop_back();\n    }\n}\n\nvector<vector<int>> combinationSum2(vector<int> a, int target) {\n    sort(a.begin(), a.end());\n    vector<vector<int>> out;\n    vector<int> path;\n    combDfs(a, 0, target, path, out);\n    return out;\n}"
       },
       {
