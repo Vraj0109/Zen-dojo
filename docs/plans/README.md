@@ -7,19 +7,26 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Done: 0001-0007, 0009-0012, 0015-0021, 0023-0027. In progress: 0008 (batches 1-6 merged, 40 of 68 written), 0014 (batches A-D merged, 20 of 27 designs), 0022 (batches 6-9 roadmap problems, design problems, CSES additions, and DSA source filter merged).
+Implemented (awaiting Claude Code review): 0008, 0015, 0021, 0023, 0024, 0025, 0026, 0027, 0028, 0029, 0030, 0033, 0034 (Part A).
+Open for depth: 0014 (Batch E depth), 0022 (CSES remaining sections and other platforms), 0034 Part B (Wasm C++ runner).
 
 | Plan | What | Status |
 |---|---|---|
+| [0008](0008-dsa-pattern-articles-batches.md) | All 67 DSA pattern articles complete; short-guide fallback retired | implemented |
 | [0014](0014-system-design-depth.md) | System design depth: walkthroughs, diagrams, Java code | in-progress (batches A-D merged, 20/27 designs) |
-| [0015](0015-core-subjects-depth.md) | Core subjects (OS, DB, networking, concurrency) depth | implemented (by agent C) |
-| [0021](0021-run-button-v2.md) | Run button v2: hide `#include`/imports, last run saved, custom input | implemented (by agent A) |
-| [0022](0022-problem-library.md) | Problem library: remaining roadmap problems, all CSES, other platforms, design-class problems | in-progress (batches 6-9, design problems, CSES additions, DSA filter merged) |
-| [0023](0023-editable-content-and-navigation.md) | Lessons as Markdown, fix SOLID and other ordering, subtopics in navigation, content-editing guide | implemented (by agent C) |
-| [0024](0024-content-packs-v2.md) | Content packs v2: add to existing courses, patch lessons, update feed, pack tools | implemented (by agent A) |
-| [0025](0025-more-lld-topics.md) | More LLD topics, vending machine and ATM as code | implemented (by agent D) |
-| [0026](0026-parallel-agents.md) | Run plans 0021 to 0025 with four Claude agents at once | implemented (all 4 merged) |
-| [0027](0027-round-two-parallel-work.md) | Round two: the rest of the open work for the same four agents | implemented (all 4 merged) |
+| [0015](0015-core-subjects-depth.md) | Core subjects (OS, DB, networking, concurrency) depth | implemented |
+| [0021](0021-run-button-v2.md) | Run button v2: hide `#include`/imports, last run saved, custom input | implemented |
+| [0022](0022-problem-library.md) | Problem library: roadmap problems, CSES logic-building, design-class problems | in-progress |
+| [0023](0023-editable-content-and-navigation.md) | Lessons as Markdown, fix SOLID and other ordering, subtopics in navigation | implemented |
+| [0024](0024-content-packs-v2.md) | Content packs v2: add to existing courses, patch lessons, update feed, pack tools | implemented |
+| [0025](0025-more-lld-topics.md) | More LLD topics, 11 Java projects with tests and diagrams | implemented |
+| [0026](0026-parallel-agents.md) | Run plans 0021 to 0025 with four agents at once | implemented (all merged) |
+| [0027](0027-round-two-parallel-work.md) | Round two parallel work across all four agents | implemented (all merged) |
+| [0028](0028-problem-workspace-polish.md) | Problem workspace polish: slim 28px bar, no clutter, Save button, layout verified | implemented |
+| [0029](0029-logic-building-list.md) | Curated CSES logic-building list and cp-algorithms filter | implemented |
+| [0030](0030-content-without-releases.md) | Add problems, tests and lessons without a release; counts in patterns/roadmap | implemented |
+| [0033](0033-round-three-parallel-work.md) | Round three parallel work across agents | implemented (all merged) |
+| [0034](0034-blocked-programs-and-wasm-cpp.md) | Blocked C++ programs: editor fallback banner, Java/JS switch, Wasm runner plan | ready (Part A implemented) |
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo
@@ -71,7 +78,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0005 | [One focus timer for the whole app, and Simple mode](0005-global-timer-and-simple-mode.md) | implemented (by Claude Code) |
 | 0006 | [Learning pages: one calm reading layout, no summaries inside lessons](0006-learning-pages-declutter.md) | done |
 | 0007 | [Full DSA pattern articles: structure, checks, three exemplars](0007-dsa-pattern-articles.md) | implemented (by Claude Code; C++ not compiled yet) |
-| 0008 | [The remaining 64 DSA pattern articles, one group at a time](0008-dsa-pattern-articles-batches.md) | in-progress (batches 1-3 of 10 done, 22 of 67 articles) |
+| 0008 | [The remaining 64 DSA pattern articles, one group at a time](0008-dsa-pattern-articles-batches.md) | implemented |
 | 0009 | [Reading sources for system design, LLD, core CS, and two gap lessons](0009-reading-sources-and-gap-lessons.md) | implemented (by Claude Code) |
 | 0010 | [No emoji, and LeetCode-style simple lists on the DSA pages](0010-no-emoji-leetcode-style-ui.md) | done |
 | 0011 | [Coloured code everywhere, and a real code editor where you write code](0011-code-highlighting-and-editor.md) | implemented (by Claude Code; waiting for your look) |
@@ -90,10 +97,11 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0024 | [Content packs v2 and over-the-air updates](0024-content-packs-v2.md) | implemented (by agent A) |
 | 0025 | [More LLD topics](0025-more-lld-topics.md) | implemented (by agent D) |
 | 0026 | [Run plans 0021 to 0025 with four Claude agents at once](0026-parallel-agents.md) | implemented (all 4 merged) |
-| 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | in-progress (round 2 merged) |
-| 0028 | [Problem workspace polish: slim bar, no clutter, Save button](0028-problem-workspace-polish.md) | ready |
-| 0029 | [Curated CSES logic-building list and cp-algorithms filter](0029-logic-building-list.md) | ready |
-| 0030 | [Add problems, tests and lessons without a release](0030-content-without-releases.md) | ready |
+| 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | implemented (round 2 merged) |
+| 0028 | [Problem workspace polish: slim bar, no clutter, Save button](0028-problem-workspace-polish.md) | implemented |
+| 0029 | [Curated CSES logic-building list and cp-algorithms filter](0029-logic-building-list.md) | implemented |
+| 0030 | [Add problems, tests and lessons without a release](0030-content-without-releases.md) | implemented |
 | 0031 | [System design as rich as LLD](0031-system-design-parity.md) | ready |
 | 0032 | [Roadmap: hosted site with accounts and sync](0032-hosted-site-roadmap.md) | draft (decisions needed) |
-| 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | ready |
+| 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | implemented (all merged) |
+| 0034 | [Blocked C++ programs and WebAssembly C++ runner](0034-blocked-programs-and-wasm-cpp.md) | ready (Part A implemented) |
