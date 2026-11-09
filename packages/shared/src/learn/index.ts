@@ -32,6 +32,7 @@ import { MORE_SD_A } from "./more-sd-a";
 import { MORE_SD_B } from "./more-sd-b";
 import { MORE_SD_C } from "./more-sd-c";
 import { SD_LESSONS } from "./sd";
+import { SECTION_POINTS } from "./section-points";
 import { DEEP_SD_GAPS, SD_GAP_LESSONS } from "./sd-gaps";
 import type { LessonExtra, LldDeep, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
@@ -60,8 +61,15 @@ export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLE
 /** Deeper sections and recap lines per concept id. */
 const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_SD_GAPS, ...DEEP_LLD, ...DEEP_CORE };
 const MORE: Record<string, Section[]> = { ...MORE_SD_A, ...MORE_SD_B, ...MORE_SD_C, ...MORE_LLD, ...MORE_OS, ...MORE_DB, ...MORE_NET };
+/** Orders sections by the checklist point they belong to (section-points.ts); sections without a point go last. Stable. */
+export function sortSections(conceptId: string, sections: Section[]): Section[] {
+  const points = SECTION_POINTS[conceptId] ?? {};
+  const rank = (s: Section) => points[s.title] ?? Number.POSITIVE_INFINITY;
+  return sections.map((s, i) => ({ s, i })).sort((x, y) => rank(x.s) - rank(y.s) || x.i - y.i).map((x) => x.s);
+}
+
 export const LESSON_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
-  Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: [...x.deeper, ...(MORE[id] ?? [])] }]),
+  Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: sortSections(id, [...x.deeper, ...(MORE[id] ?? [])]) }]),
 );
 
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
