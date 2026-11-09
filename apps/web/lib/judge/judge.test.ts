@@ -52,7 +52,9 @@ describe("problem specs", () => {
   });
 });
 
-describe("large inputs (speed and memory checks)", () => {
+// Building every problem's large inputs takes about 4.5 minutes when several checks run at once (four agents, a busy
+// machine), so this block gets a long explicit timeout instead of the 5-second default.
+describe("large inputs (speed and memory checks)", { timeout: 600_000 }, () => {
   it("every problem has some, and each builds an input with the right number of arguments", () => {
     for (const spec of specs) {
       expect(spec.stress?.length ?? 0, spec.id + ": large inputs").toBeGreaterThanOrEqual(1);

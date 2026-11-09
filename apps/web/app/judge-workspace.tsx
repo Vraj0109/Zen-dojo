@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { RunResult } from "@/lib/judge/run";
+import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
 import { EditorField } from "./code-editor";
+import { editorHelp } from "./editor-help";
 import { Results } from "./judge-panel";
 import { PaneLayout } from "./pane-layout";
 
@@ -48,15 +50,61 @@ export interface SavedRun {
 
 const verdict = (r: SavedRun) => (r.status === "compile_error" ? "compile error" : `${r.passed} of ${r.total} passed`);
 
-const ADDED: Partial<Record<Lang, string>> = {
-  cpp: "Added for you: all C++ standard headers (#include <bits/stdc++.h>) and using namespace std;",
-  java: "Added for you: import java.util.*; java.util.function.*; java.util.stream.*;",
-};
+/** A solution you saved with the Save button (see lib/notes.ts). */
+export interface SavedSolutionView {
+  lang: Lang;
+  code: string;
+  savedOn: string;
+  verified: boolean;
+}
 
+/** The ? button: the small print about the editor (Tab, and what is added for you), on hover, focus or click. */
+function HelpTip({ text, id }: { text: string; id: string }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <span className="group relative">
+      <button
+        type="button"
+        aria-label="About the editor"
+        aria-expanded={shown}
+        aria-controls={id}
+        onClick={() => setShown((v) => !v)}
+        onBlur={() => setShown(false)}
+        className="grid size-6 place-items-center rounded-md border border-line text-xs font-semibold text-muted hover:bg-background hover:text-foreground"
+      >
+        ?
+      </button>
+      <span
+        id={id}
+        role="tooltip"
+        className={`absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-line bg-surface p-2 text-xs leading-snug text-foreground shadow-lg group-focus-within:block group-hover:block ${shown ? "block" : "hidden"}`}
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
 /** The Notes tab starts with your latest run of each language (read-only), above the saved accepted solution. */
-function LastRuns({ runs, children }: { runs: SavedRun[]; children: ReactNode }) {
+function LastRuns({ runs, saved, onLoad, children }: { runs: SavedRun[]; saved: SavedSolutionView[]; onLoad: (s: SavedSolutionView) => void; children: ReactNode }) {
   return (
     <div className="space-y-4">
+      {saved.length > 0 && (
+        <section aria-label="Saved solutions" className="space-y-3">
+          {saved.map((v) => (
+            <div key={v.lang} className="rounded-xl border border-line bg-background p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  Saved solution ({LABEL[v.lang]}), {v.verified ? "verified" : "not verified"}, {v.savedOn}
+                </p>
+                <button type="button" onClick={() => onLoad(v)} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-surface">
+                  Load into editor
+                </button>
+              </div>
+              <pre className="mt-2 max-h-72 overflow-auto text-xs whitespace-pre">{v.code}</pre>
+            </div>
+          ))}
+        </section>
+      )}
       {runs.length > 0 && (
         <section aria-label="Last run" className="space-y-3">
           {runs.map((r) => (
@@ -99,6 +147,8 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const [result, setResult] = useState<RunResult | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [runs, setRuns] = useState<SavedRun[]>([]);
+  const [savedSolutions, setSavedSolutions] = useState<SavedSolutionView[]>([]);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
   const [custom, setCustom] = useState<{ error?: string; output?: string; printed?: string; compile?: string } | null>(null);
@@ -120,6 +170,9 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
     fetch(`/api/judge/run?id=${encodeURIComponent(id)}`)
       .then((res) => (res.ok ? (res.json() as Promise<{ runs: SavedRun[] }>) : null))
       .then((data) => data && setRuns(data.runs))
+      .catch(() => {});
+    getSavedSolutionsAction(id)
+      .then((list) => setSavedSolutions(list as SavedSolutionView[]))
       .catch(() => {});
   }, [id]);
 
@@ -155,6 +208,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
         setResult(data);
         if (data.status === "done" && data.saved) router.refresh(); // the Notes tab now shows the saved solution
         void loadRuns();
+        void getSavedSolutionsAction(id).then((list) => setSavedSolutions(list as SavedSolutionView[])).catch(() => {});
       }
     } catch {
       setFailure("Could not reach the app. Is it still running?");
@@ -195,6 +249,27 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
     }
   }
 
+  async function save() {
+    const code = areaRef.current?.querySelector("textarea")?.value ?? templates[lang];
+    store.set(codeKey(id, lang), code);
+    try {
+      const res = await saveSolutionAction(id, lang, code);
+      setSaveNote(res.ok ? (res.solution.verified ? "Saved (verified)" : "Saved") : res.error);
+      if (res.ok) setSavedSolutions((list) => [...list.filter((x) => x.lang !== lang), res.solution as SavedSolutionView]);
+    } catch {
+      setSaveNote("Could not save. Is the app still running?");
+    }
+    window.setTimeout(() => setSaveNote(null), 2000);
+  }
+
+  function loadSaved(v: SavedSolutionView) {
+    store.set(codeKey(id, v.lang), v.code);
+    store.set(LANG_KEY, v.lang);
+    setPickedLang(v.lang);
+    setResetCount((n) => n + 1);
+    setResult(null);
+  }
+
   function restoreLastRun() {
     if (!lastRun) return;
     store.set(codeKey(id, lang), lastRun.code);
@@ -224,7 +299,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
             role="tab"
             aria-selected={t.id === active.id}
             onClick={() => setTab(t.id)}
-            className={`relative shrink-0 rounded-t-md px-3 py-1.5 text-sm font-medium ${t.id === active.id ? "text-foreground" : "text-muted hover:text-foreground"}`}
+            className={`relative shrink-0 rounded-t-md px-3 py-1 text-sm font-medium ${t.id === active.id ? "text-foreground" : "text-muted hover:text-foreground"}`}
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-muted">{t.count}</span>}
@@ -235,7 +310,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {tabs.map((t) => (
           <div key={t.id} role="tabpanel" hidden={t.id !== active.id} className="anim-fade-up">
-            {t.id === "notes" ? <LastRuns runs={runs}>{t.node}</LastRuns> : t.node}
+            {t.id === "notes" ? <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved}>{t.node}</LastRuns> : t.node}
           </div>
         ))}
       </div>
@@ -272,6 +347,12 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       <button type="button" onClick={reset} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
         Reset
       </button>
+      <button type="button" onClick={() => void save()} title="Save your solution (Ctrl+S)" className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
+        Save
+      </button>
+      <span role="status" aria-live="polite" className="text-xs text-muted">
+        {saveNote}
+      </span>
       <button
         type="button"
         onClick={run}
@@ -281,6 +362,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       >
         {running ? "Running…" : "Run"}
       </button>
+      <HelpTip text={editorHelp(lang)} id={`editor-help-${id}`} />
     </div>
   );
 
@@ -295,12 +377,17 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           e.preventDefault();
           void run();
         }
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          void save();
+        }
       }}
     >
       {/* Remounted when the language changes or the code is reset, so the editor starts from the right text. */}
       <EditorField key={`${lang}-${resetCount}-${hydrated}-${draft === null && lastRun ? "r" : "s"}`} languageSelectId={selectId} rows={16} fill>
         <textarea
           aria-label="Your code"
+          aria-describedby={`editor-help-text-${id}`}
           defaultValue={initial}
           spellCheck={false}
           rows={16}
@@ -308,6 +395,9 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           className="h-full w-full resize-none bg-background p-3 font-mono text-sm"
         />
       </EditorField>
+      <span id={`editor-help-text-${id}`} className="sr-only">
+        {editorHelp(lang)}
+      </span>
       </div>
       <div className="shrink-0 space-y-1 border-t border-line px-3 py-1.5 text-xs text-muted">
         {lastRun && (
@@ -315,7 +405,6 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
             Last run: {verdict(lastRun)}, {lastRun.ranOn}
           </p>
         )}
-        {ADDED[lang] && <p>{ADDED[lang]}</p>}
         <details>
           <summary className="cursor-pointer select-none">Custom input</summary>
           <div className="mt-1.5 space-y-1.5">
