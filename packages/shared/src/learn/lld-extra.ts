@@ -8,6 +8,7 @@ import { FOOD_EXTRA } from "./lld-deep-d-food";
 import { CAB_EXTRA } from "./lld-deep-d-cab";
 import { GAMES_EXTRA } from "./lld-deep-d-games";
 import { FILESYSTEM_EXTRA } from "./lld-deep-d-filesystem";
+import { KV_EXTRA } from "./lld-deep-d-kv";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -63,4 +64,5 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
   "lldp-file-system-kv": FILESYSTEM_EXTRA,
   "lldp-library": LIBRARY_EXTRA,
   "lldp-cab": CAB_EXTRA,
+  "lldp-kv-store": KV_EXTRA,
 };

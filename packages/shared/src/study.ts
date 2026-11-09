@@ -227,6 +227,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("file-system-kv", "In-memory file system", "Composite and visitor, path walking, permissions, links, quotas"),
       lldProblem("library", "Library management", "Loans, renewals, reservation queue with holds, fines, lock order"),
       lldProblem("cab", "Cab booking", "Spatial grid index, parallel offers, metered fare, surge"),
+      lldProblem("kv-store", "Key-value store", "MVCC versions, TTL, snapshots, optimistic transactions, write-ahead log"),
     ],
   },
 };
