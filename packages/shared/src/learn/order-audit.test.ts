@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { ALL_CONCEPTS } from "../study";
 import { LESSON_EXTRA, LESSONS } from "./index";
+import { GENERATED_LESSONS } from "./generated/lessons";
 import { SECTION_POINTS } from "./section-points";
+
+/** The checklist point of a section: from the Markdown lesson ({point: n}) or, for TypeScript lessons, section-points.ts. */
+const pointMap = (id: string): Record<string, number> => {
+  const g = GENERATED_LESSONS[id];
+  if (!g) return SECTION_POINTS[id] ?? {};
+  return Object.fromEntries(g.deeper.filter((d) => d.point !== undefined).map((d) => [d.title, d.point as number]));
+};
 
 // Plan 0023, steps 1 and 2: lessons list their "Go deeper" sections in the order of the concept's checklist.
 
@@ -18,12 +26,9 @@ describe("lesson order audit", () => {
 
   it("section points refer to real sections and real checklist points", () => {
     const problems: string[] = [];
-    for (const [id, map] of Object.entries(SECTION_POINTS)) {
+    for (const id of ids) {
+      const map = pointMap(id);
       const concept = ALL_CONCEPTS[id];
-      if (!concept) {
-        problems.push(`${id}: no such concept`);
-        continue;
-      }
       const titles = new Set((LESSON_EXTRA[id]?.deeper ?? []).map((s) => s.title));
       for (const [title, p] of Object.entries(map)) {
         if (!titles.has(title)) problems.push(`${id}: no section titled "${title}" (renamed? fix section-points.ts)`);
@@ -41,7 +46,7 @@ describe("lesson order audit", () => {
       for (const s of deeper) {
         if (seen.has(s.title)) problems.push(`${id}: duplicate section title "${s.title}"`);
         seen.add(s.title);
-        if (SECTION_POINTS[id]?.[s.title] === undefined) problems.push(`${id}: "${s.title}" has no point (add it to section-points.ts, or accept it as a closing section)`);
+        if (pointMap(id)[s.title] === undefined) problems.push(`${id}: "${s.title}" has no point (add it to section-points.ts, or accept it as a closing section)`);
       }
     }
     // Closing sections (summary, when to use, choosing) are allowed to have no point; keep the count visible.
@@ -51,7 +56,7 @@ describe("lesson order audit", () => {
   it("sections come out in checklist order", () => {
     const problems: string[] = [];
     for (const id of ids) {
-      const map = SECTION_POINTS[id] ?? {};
+      const map = pointMap(id);
       let last = -1;
       let tail = false;
       for (const s of LESSON_EXTRA[id]?.deeper ?? []) {

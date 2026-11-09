@@ -64,6 +64,33 @@ cgroups (control groups) limit and account resources for a group of processes: C
 
 Additional hardening: seccomp filters restrict which syscalls a container can make, capabilities drop root privileges (no CAP_SYS_ADMIN), read-only root file systems, and LSMs (AppArmor, SELinux). For stronger isolation between untrusted tenants, use sandboxed runtimes (gVisor) or lightweight VMs (Firecracker, Kata Containers), since all containers share one kernel and a kernel bug can break isolation.
 
+### How a container starts: clone flags, mounts and cgroup limits {point: 3}
+
+A container is an ordinary Linux process that the kernel has been told to isolate and limit. The runtime (runc, for example) does about five things, and naming them is the clearest answer to "what is a container".
+
+```mermaid
+sequenceDiagram
+  participant R as Container runtime
+  participant K as Linux kernel
+  participant P as Container process
+  R->>K: clone with new PID, mount, UTS, IPC, network namespaces
+  K-->>P: process sees itself as PID 1 in a private view
+  R->>K: put the process in a cgroup, write memory.max, cpu.max, pids.max
+  R->>P: set up network (veth pair) and mount the image layers
+  P->>K: pivot_root into the image filesystem
+  P->>K: drop capabilities, load a seccomp filter
+  P->>P: exec the entrypoint program
+```
+Diagram caption: Isolation comes from namespaces, limits from cgroups, and safety from capabilities and seccomp.
+
+### Namespaces, cgroups and capabilities {point: 3}
+
+**Namespaces** change what a process can see. The runtime calls `clone` (or `unshare`) with flags such as `CLONE_NEWPID` (the process gets its own process ids, starting at 1), `CLONE_NEWNS` (a private mount table), `CLONE_NEWNET` (its own network interfaces and routing), `CLONE_NEWUTS` (its own hostname), `CLONE_NEWIPC` and `CLONE_NEWUSER` (map user ids, so root inside is not root outside). Then it uses `pivot_root` to make the unpacked image the process's root filesystem. The image layers are stacked with an overlay filesystem: read-only layers shared between containers, plus a thin writable layer per container.
+
+**cgroups** (control groups) change what a process can use. In cgroup v2 these are files under `/sys/fs/cgroup/<group>/`: `memory.max` is a hard memory limit, `cpu.max` holds a quota and a period (for example `50000 100000` means 50 ms of CPU time in every 100 ms, which is half a core), and `pids.max` limits the number of processes. Two behaviours are worth knowing. If a container goes over `memory.max` and the kernel cannot reclaim memory, the OOM killer kills a process inside that group, and the orchestrator sees "OOMKilled". And the CPU quota is enforced by **throttling**: once a container has used its quota in a period, all its threads are paused until the next period. A multi-threaded service can burn its quota in the first part of the period and then freeze, which shows up as latency spikes at low average CPU, a common production puzzle.
+
+Finally the runtime drops Linux **capabilities** (so even root inside cannot, say, load kernel modules) and installs a **seccomp** filter that blocks dangerous system calls. Containers share the host kernel, so a kernel bug can cross the boundary, which is the key difference from a virtual machine and the reason sandboxes such as gVisor or Firecracker exist for untrusted code.
+
 ## Interview questions
 
 - Container vs VM?

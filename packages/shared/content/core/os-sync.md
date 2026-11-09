@@ -111,6 +111,62 @@ In Java, happens-before edges create visibility: unlocking a monitor happens-bef
 
 The classic bug: double-checked locking for a lazy singleton without volatile can expose a partially constructed object, because the reference assignment can be reordered before the constructor's writes. Rule: share mutable data only through locks, atomics, volatile, or concurrent collections, or don't share it at all.
 
+### Fixing a race in Java: synchronized, atomics and what they cost {point: 1.5}
+
+Take the race from "Why count++ isn't atomic" and fix it three ways in a runnable Java program. Two threads each add one million times to a shared counter. The first counter is a plain `int`, the second is guarded by `synchronized`, the third is an `AtomicInteger`.
+
+```mermaid
+flowchart TD
+  A[counter++ in source] --> B[read counter into register]
+  B --> C[add 1]
+  C --> D[write register back]
+  B -. other thread reads the same old value .-> X[lost update]
+  D --> E[next iteration]
+```
+Diagram caption: Three machine-level steps. Two threads can both read the old value, and one write is lost.
+
+### The three counters compared {point: 1.5}
+
+The three versions behave like this. The plain counter ends below 2,000,000 on most runs because increments overlap and get lost (the demo run printed 1,871,945, but the exact number changes every run, and on a lucky run it can even be exactly 2,000,000). The `synchronized` counter always ends at 2,000,000: the lock makes read, add and write one indivisible step for everyone who takes the same lock, and it also gives a visibility guarantee, since releasing a lock happens-before the next acquire of it. The `AtomicInteger` also ends at exactly 2,000,000, using a hardware compare-and-swap (or fetch-and-add) in a retry loop with no lock.
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class RaceDemo {
+    static int racy = 0;
+    static int locked = 0;
+    static final Object LOCK = new Object();
+    static final AtomicInteger atomic = new AtomicInteger();
+
+    public static void main(String[] args) throws Exception {
+        int perThread = 1_000_000;
+        Thread[] ts = new Thread[2];
+        for (int i = 0; i < ts.length; i++) {
+            ts[i] = new Thread(() -> {
+                for (int k = 0; k < perThread; k++) {
+                    racy++;
+                    synchronized (LOCK) { locked++; }
+                    atomic.incrementAndGet();
+                }
+            });
+            ts[i].start();
+        }
+        for (Thread t : ts) t.join();
+        System.out.println("expected=" + 2 * perThread);
+        System.out.println("racy=" + racy + (racy < 2 * perThread ? " (lost updates)" : " (got lucky this run)"));
+        System.out.println("synchronized=" + locked);
+        System.out.println("atomic=" + atomic.get());
+    }
+}
+```
+### Which tool to choose {point: 1.5}
+
+Example output: `expected=2000000`, then `racy=` a number below that (typically), then `synchronized=2000000` and `atomic=2000000`.
+
+Which to choose? An atomic variable suits one independent counter or flag, and it never blocks. A lock suits invariants that span several variables ("balance and transaction count change together"), which no single atomic can protect. Under heavy contention, a CAS loop keeps retrying and burns CPU, so for a hot counter updated by many threads, `LongAdder` spreads updates over several cells and sums them on read, trading exactness at a single instant for throughput. And `volatile` alone fixes visibility, not atomicity: `volatile int x; x++` is still a race.
+
+A quick way to explain the guarantee behind all three in an interview is the **happens-before** relation. Releasing a lock happens-before the next acquire of that lock, a write to a volatile variable happens-before later reads of it, and an atomic operation is both an update and a visibility point. If two accesses to the same variable are not ordered by any such edge and one is a write, the program has a data race, and the compiler and CPU are free to reorder or cache in ways that look impossible when you read the source. Tools such as ThreadSanitizer (C and C++, Go) and Java's jcstress harness exist to find these.
+
 ## Interview questions
 
 - Why isn't count++ thread-safe and how do you fix it?

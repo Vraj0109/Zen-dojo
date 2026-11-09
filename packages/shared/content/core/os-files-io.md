@@ -64,6 +64,36 @@ select/poll pass the whole set of descriptors on every call and scan it: O(n) pe
 
 sendfile() sends file bytes to a socket inside the kernel, skipping copies to user space and back; Kafka and static file servers rely on it.
 
+### Following one write() from your program to the disk {point: 1}
+
+Saying "write saves the data" hides several layers, and the gaps between them are where data is lost. Follow a `write(fd, buf, n)` call on Linux with a normal file.
+
+First, if you used a language-level stream (C `fwrite`, Java `BufferedOutputStream`), the bytes may sit in a buffer inside your own process until it fills or you flush. `write()` itself is a system call: the kernel copies the bytes into the **page cache**, marks those pages **dirty**, and returns. At that moment the data is in kernel memory only. A power cut now loses it, but another process that reads the file sees the new data, because reads go through the same cache. Later, a background flusher thread writes dirty pages to the block device (after about 30 seconds by default, or sooner under memory pressure). The block layer queues and merges requests and hands them to the driver, and the disk itself may hold them in a volatile write cache. Only after that is the data durable.
+
+```mermaid
+sequenceDiagram
+  participant App as Your program
+  participant Lib as Library buffer
+  participant PC as Kernel page cache
+  participant Blk as Block layer and driver
+  participant Disk as Disk cache then media
+  App->>Lib: write bytes
+  Lib->>PC: write(fd, buf, n) when flushed
+  PC-->>App: returns, data is dirty in memory
+  Note over PC: a crash here loses the data
+  PC->>Blk: flusher thread, or fsync(fd)
+  Blk->>Disk: write request
+  Disk-->>Blk: acknowledged, after a cache flush for fsync
+  Blk-->>App: fsync returns, data and metadata are durable
+```
+Diagram caption: Four places data can wait. Only a successful fsync means it reached stable storage.
+
+### fsync, journaling and O_DIRECT {point: 1}
+
+`fsync(fd)` asks the kernel to push the file's dirty data (and the metadata needed to find it) to the device and wait, including a cache-flush command so the disk does not just hold the data in volatile memory. `fdatasync` skips metadata that is not needed to read the data back, such as modification time. Creating a file also changes its directory, so a careful program (a database, an editor that saves safely) fsyncs the new file and then the directory that contains it. The usual "safe save" pattern is: write a temporary file, fsync it, rename it over the original (rename is atomic), fsync the directory.
+
+Filesystem journaling protects the filesystem's own structure, not your data. With ext4's default `data=ordered` mode, data blocks are written before the metadata that points to them, so you do not see another file's old contents after a crash, but your latest write may still be missing. `O_DIRECT` bypasses the page cache (databases use it when they manage their own buffer pool), and `O_SYNC` makes every write wait for the device, which is safe and slow. Costs are what a design answer needs: an fsync can take milliseconds on a disk, so databases batch many commits into one fsync (group commit).
+
 ## Interview questions
 
 - Why might data you wrote be lost after a crash even though write() returned?

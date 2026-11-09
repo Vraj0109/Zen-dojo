@@ -72,6 +72,38 @@ Pipes: a one-way byte stream between related processes (shell pipelines); named 
 
 Choosing: shared memory for high-throughput local data (with careful synchronization), Unix sockets for local client-server, TCP or gRPC for anything that may become remote. In system design, microservices are processes communicating over network IPC, which is why serialization and network latency matter.
 
+### A shell runs a command: fork, exec, wait and zombies {point: 2.5}
+
+When you type `ls | wc -l` in a shell, the shell does not run `ls` itself. It creates processes, wires them together and waits. Walking through it shows fork, exec, pipes and process cleanup in one story, and it is the most common way interviewers probe this topic.
+
+First the shell calls `pipe()`, which gives it two file descriptors: one to write into the pipe, one to read from it. Then it calls `fork()` once per command. After a fork there are two nearly identical processes. The child has copies of the parent's file descriptors, but its memory is shared copy-on-write, so the fork itself is cheap even for a large process. In the child for `ls`, the shell uses `dup2()` to make the pipe's write end its standard output (descriptor 1), closes the extra descriptors, then calls `exec("ls")`. Exec throws away the child's memory image and loads the new program; the process id and the open descriptors (with the redirections) stay. The child for `wc` does the same with the read end as standard input. The parent closes its copies of both pipe ends, because a reader only sees end-of-file when every write end is closed, then calls `waitpid()` for each child.
+
+```mermaid
+sequenceDiagram
+  participant Sh as Shell
+  participant K as Kernel
+  participant C1 as Child ls
+  participant C2 as Child wc
+  Sh->>K: pipe()
+  Sh->>K: fork()
+  K-->>C1: new process, copy of descriptors
+  C1->>K: dup2(write end, 1) then exec(ls)
+  Sh->>K: fork()
+  K-->>C2: new process
+  C2->>K: dup2(read end, 0) then exec(wc)
+  Sh->>K: close pipe ends, waitpid()
+  C1->>K: exit(0)
+  C2->>K: exit(0)
+  K-->>Sh: children reaped, status returned
+```
+Diagram caption: Two forks, two execs and one pipe. The shell waits and collects both exit codes.
+
+### Zombies, orphans and process creation on Windows {point: 2.5}
+
+Two states trip people up. A **zombie** is a child that has exited but whose parent has not yet called `wait`. Its memory is gone, but the kernel keeps a small entry (exit status, resource usage) so the parent can still read it. Zombies use no CPU, but each holds a process table slot, so a parent that never waits can eventually exhaust process ids. The fix is in the parent: call `wait`, or handle `SIGCHLD`, or ignore it explicitly. An **orphan** is a child whose parent died first. It is adopted by process 1 (init or systemd, or the container's init), which waits for it. This is why a container whose main process is your app, not a proper init, can accumulate zombies: nobody reaps them.
+
+Windows has no fork. `CreateProcess` builds a fresh process from a program in one call, which is simpler but slower to set up for the "copy and tweak" pattern. On Linux, `posix_spawn` or `vfork` plus exec exists to avoid the cost of duplicating a big address space when you only want to run another program.
+
 ## Interview questions
 
 - Process vs thread: when would you use multiple processes?

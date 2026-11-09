@@ -1,11 +1,7 @@
-import { CORE_LESSONS } from "./core";
 import { GENERATED_LESSONS } from "./generated/lessons";
 import { DESIGNS_A } from "./designs-a";
 import { DESIGNS_B } from "./designs-b";
-import { DEEP_CORE } from "./deep-core";
 import { DEEP_LLD } from "./deep-lld";
-import { DEEP_SD_A } from "./deep-sd-a";
-import { DEEP_SD_B } from "./deep-sd-b";
 import { DESIGN_EXTRA } from "./design-extra";
 import { DSA_ARTICLES_A } from "./dsa-articles-a";
 import { DSA_ARTICLES_B } from "./dsa-articles-b";
@@ -25,16 +21,8 @@ import { LLD_DEEP_B_URL } from "./lld-deep-b-url";
 import { LLD_PROJECTS_B_LOG } from "./lld-projects-b-log";
 import { LLD_PROJECTS_B_URL } from "./lld-projects-b-url";
 import { LLD_PROJECTS_B } from "./lld-projects-b";
-import { MORE_DB } from "./more-db";
 import { MORE_LLD } from "./more-lld";
-import { MORE_NET } from "./more-net";
-import { MORE_OS } from "./more-os";
-import { MORE_SD_A } from "./more-sd-a";
-import { MORE_SD_B } from "./more-sd-b";
-import { MORE_SD_C } from "./more-sd-c";
-import { SD_LESSONS } from "./sd";
 import { SECTION_POINTS } from "./section-points";
-import { DEEP_SD_GAPS, SD_GAP_LESSONS } from "./sd-gaps";
 import type { LessonExtra, LldDeep, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
@@ -43,7 +31,7 @@ export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject
 /** Lessons written as Markdown (content/, built into generated/lessons.ts) win over the older TypeScript ones with the same id. */
 const GENERATED_BASE: Record<string, Lesson> = Object.fromEntries(Object.entries(GENERATED_LESSONS).map(([id, g]) => [id, g.lesson]));
 /** The TypeScript lessons alone (before Markdown ones replace them); a test keeps migrated ones in step. */
-export const TS_LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
+export const TS_LESSONS: Record<string, Lesson> = { ...LLD_LESSONS };
 export const LESSONS: Record<string, Lesson> = { ...TS_LESSONS, ...GENERATED_BASE };
 
 /** Reference walkthroughs by system design exercise id. */
@@ -64,8 +52,8 @@ export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, .
 export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2 };
 
 /** Deeper sections and recap lines per concept id. */
-const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_SD_A, ...DEEP_SD_B, ...DEEP_SD_GAPS, ...DEEP_LLD, ...DEEP_CORE };
-const MORE: Record<string, Section[]> = { ...MORE_SD_A, ...MORE_SD_B, ...MORE_SD_C, ...MORE_LLD, ...MORE_OS, ...MORE_DB, ...MORE_NET };
+const BASE_EXTRA: Record<string, LessonExtra> = { ...DEEP_LLD };
+const MORE: Record<string, Section[]> = { ...MORE_LLD };
 /** Orders sections by the checklist point they belong to (section-points.ts); sections without a point go last. Stable. */
 export function sortSections(conceptId: string, sections: Section[]): Section[] {
   const points = SECTION_POINTS[conceptId] ?? {};

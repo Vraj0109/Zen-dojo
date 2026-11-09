@@ -77,6 +77,68 @@ Databases: two transactions updating the same rows in opposite orders; foreign-k
 
 Diagnosis: thread dumps (jstack) show threads BLOCKED on monitors with 'Found one Java-level deadlock'; database deadlock logs show the two statements involved.
 
+### Finding a deadlock in a running program {point: 3}
+
+Prevention is better, but interviewers also ask how you would find a deadlock in production. The signs are: requests hang, thread pools fill, CPU stays low, and nothing is logged. The tool is a **thread dump**, a snapshot of every thread's stack and which locks it holds or waits for. In Java you take one with `jstack <pid>` or `jcmd <pid> Thread.print`, or by sending `SIGQUIT` (`kill -3`). The JVM also analyses it for you and prints "Found one Java-level deadlock" with the cycle, listing each thread, the lock it waits for and the thread that holds that lock.
+
+```mermaid
+flowchart LR
+  T1((Thread T1)) -- holds --> A[lock A]
+  T2((Thread T2)) -- holds --> B[lock B]
+  T1 -- waits for --> B
+  T2 -- waits for --> A
+```
+Diagram caption: A wait-for cycle. T1 waits for B (held by T2) while T2 waits for A (held by T1). Any cycle in this graph is a deadlock when each lock has one holder.
+
+### Detecting it from inside the program {point: 3}
+
+The same detection runs inside a program. `ThreadMXBean.findDeadlockedThreads()` returns the ids of threads stuck in a cycle of monitors or ownable synchronizers, which a health check or watchdog can report. The demo creates the classic two-lock cycle on purpose, waits, then asks the JVM:
+
+```java
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
+import java.util.concurrent.CountDownLatch;
+
+public class DeadlockDetect {
+    static final Object A = new Object();
+    static final Object B = new Object();
+
+    static Thread worker(String name, Object first, Object second, CountDownLatch bothHoldFirst) {
+        Thread t = new Thread(() -> {
+            synchronized (first) {
+                bothHoldFirst.countDown();
+                try { bothHoldFirst.await(); } catch (InterruptedException e) { return; }
+                synchronized (second) { System.out.println(name + " got both"); }
+            }
+        }, name);
+        t.setDaemon(true); // lets the JVM exit even though these two never finish
+        return t;
+    }
+
+    public static void main(String[] args) throws Exception {
+        CountDownLatch latch = new CountDownLatch(2);
+        worker("T1", A, B, latch).start();
+        worker("T2", B, A, latch).start();
+        Thread.sleep(300);
+        ThreadMXBean mx = ManagementFactory.getThreadMXBean();
+        long[] ids = mx.findDeadlockedThreads();
+        System.out.println("deadlocked threads: " + (ids == null ? 0 : ids.length));
+        if (ids != null) {
+            for (var info : mx.getThreadInfo(ids)) {
+                System.out.println(info.getThreadName() + " waits for a lock held by " + info.getLockOwnerName());
+            }
+        }
+    }
+}
+```
+### Recovering from a deadlock {point: 3}
+
+It prints `deadlocked threads: 2`, then `T1 waits for a lock held by T2` and `T2 waits for a lock held by T1` (in some order). The latch makes sure both threads hold their first lock before asking for the second, so the deadlock is certain, not a matter of timing.
+
+Recovery options, in order of preference: restart the stuck process (the usual production answer, with the thread dump saved for the post-mortem), fix the lock order in code, or switch the risky acquisition to `tryLock(timeout)` so a thread gives up and retries. Databases do this automatically: they detect cycles in the wait-for graph, pick a victim transaction and roll it back, which is why applications must be ready to retry a transaction that fails with a deadlock error.
+
+Two habits make deadlocks easier to diagnose afterwards. Name your threads (a pool thread called `pool-3-thread-7` says little, one called `payment-worker-7` says a lot), and log the order in which a code path takes locks when you add a new one. A team that keeps a short written lock-order list (for example, always account before ledger, always lower id before higher id) turns a mysterious production hang into a code review comment. Also remember the cousin of deadlock, **livelock**: threads keep reacting to each other and keep running, so a thread dump looks busy while no progress is made. The usual cure is randomised backoff, which is the same trick used by Ethernet and by retry loops with jitter.
+
 ## Interview questions
 
 - Two threads transfer money between the same two accounts in opposite directions. How do you avoid deadlock?

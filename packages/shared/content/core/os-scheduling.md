@@ -58,6 +58,33 @@ Metrics: turnaround time (completion − arrival), waiting time (time in the rea
 
 The schedulers trade these off. FCFS is non-preemptive and simple but suffers the convoy effect (short jobs stuck behind a long one). Shortest Job First minimizes average waiting time (provably optimal when all jobs are known), and its preemptive form Shortest Remaining Time First adapts to arrivals, but both need burst predictions (exponential averaging of past bursts) and can starve long jobs. Round robin gives each ready job a quantum in turn: response time is bounded by (n − 1) × quantum, but a quantum too small wastes time in context switches and one too large degrades into FCFS. Priority scheduling picks the highest priority; starvation is fixed by aging (raising priority of waiting jobs).
 
+### Priority inversion, aging and priority inheritance {point: 2.5}
+
+Priority scheduling has two classic failure modes. The first is starvation: a steady flow of high-priority work means a low-priority process never runs. The usual fix is **aging**: the longer a process waits, the more its effective priority rises, until it gets a turn. The second is subtler and has crashed real systems.
+
+**Priority inversion** happens when a high-priority task needs a resource that a low-priority task holds, and a medium-priority task keeps the low one off the CPU. Take three tasks, H (high), M (medium) and L (low). L takes a lock and starts working. H becomes ready, preempts L, and then blocks on the same lock. Now H waits for L. But M becomes ready, and because M outranks L, the scheduler runs M. L cannot run to release the lock, so H, the most important task, is effectively waiting for M, a task it should outrank. The delay is unbounded: M can run as long as it likes.
+
+```mermaid
+sequenceDiagram
+  participant L as L low
+  participant M as M medium
+  participant H as H high
+  L->>L: takes the lock, starts work
+  H->>H: becomes ready, preempts L
+  H->>L: needs the lock, blocks
+  M->>M: becomes ready, runs ahead of L
+  Note over H,M: H waits for L, L waits for M. H is stuck behind M.
+  M-->>L: finishes much later
+  L->>H: releases the lock, H resumes
+```
+Diagram caption: Priority inversion. With priority inheritance, L would run at H's priority while it holds the lock, and M could not delay it.
+
+### Mars Pathfinder and priority inheritance {point: 2.5}
+
+The 1997 Mars Pathfinder lander hit exactly this: a low-priority meteorological task held a shared bus lock, a medium-priority task starved it, and a high-priority bus management task missed its deadline, which triggered watchdog resets. The fix, uploaded from Earth, was enabling **priority inheritance** on the mutex: while a low-priority task holds a lock that a higher-priority task waits for, it temporarily runs at the higher priority. Once it releases the lock it drops back. A related protocol, **priority ceiling**, gives each lock a ceiling equal to the highest priority of any task that uses it, and any holder runs at that ceiling.
+
+Where it matters today: real-time operating systems and drivers use these protocols. Linux has priority-inheriting mutexes for real-time tasks (`PTHREAD_PRIO_INHERIT`). For ordinary server code, inversion shows up in a milder form: a low-priority background job holding a database lock that blocks latency-sensitive requests. The interview-ready answer is the same idea in application terms: keep critical sections short, do not hold locks across slow calls, and give background work its own resources.
+
 ## Interview questions
 
 - Why does round robin's quantum size matter?

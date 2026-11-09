@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 import { lessonToMarkdown, writeLessonFiles } from "../../../../../scripts/build-content.mjs";
 import { ALL_CONCEPTS } from "../../study";
-import { LESSON_EXTRA, LESSONS } from "../index";
+import { TS_EXTRA, TS_LESSONS } from "../index";
 import { SECTION_POINTS } from "../section-points";
 
 // Migration helper, not a real test: it does nothing unless MIGRATE is set. It writes the Markdown file for every
@@ -19,9 +19,10 @@ describe.skipIf(want.length === 0)("migrate lessons to Markdown", () => {
     const files: { area: string; id: string; md: string }[] = [];
     for (const [id, concept] of Object.entries(ALL_CONCEPTS)) {
       if (!want.includes(id) && !want.includes(concept.area)) continue;
-      const extra = LESSON_EXTRA[id];
+      if (!TS_LESSONS[id]) continue; // already Markdown
+      const extra = TS_EXTRA[id];
       const deeper = (extra?.deeper ?? []).map((s) => ({ ...s, point: SECTION_POINTS[id]?.[s.title] }));
-      const md: string = lessonToMarkdown({ id, title: concept.title, area: concept.area, section: concept.section, points: concept.points, lesson: LESSONS[id], recap: extra?.recap, deeper });
+      const md: string = lessonToMarkdown({ id, title: concept.title, area: concept.area, section: concept.section, points: concept.points, lesson: TS_LESSONS[id], recap: extra?.recap, deeper });
       files.push({ area: concept.area, id, md });
     }
     console.log(`Wrote ${writeLessonFiles(files)} lesson files`);

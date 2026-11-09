@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { lessonToMarkdown, parseLesson } from "../../../../../scripts/build-content.mjs";
 import { ALL_CONCEPTS } from "../../study";
-import { LESSON_EXTRA, LESSONS } from "../index";
+import { TS_EXTRA, TS_LESSONS } from "../index";
 import { SECTION_POINTS } from "../section-points";
 
-// Every existing lesson must survive TypeScript -> Markdown -> parse unchanged. This is what makes the migration safe
+// Every remaining TypeScript lesson (LLD) must survive TypeScript -> Markdown -> parse unchanged. This is what makes the migration safe
 // (plan 0023, step 4) and keeps the serializer honest.
 
 const trim = (s: string) => s.trim();
 
 describe("lessons round-trip through Markdown", () => {
-  for (const [id, concept] of Object.entries(ALL_CONCEPTS)) {
+  for (const [id, concept] of Object.entries(ALL_CONCEPTS).filter(([id]) => TS_LESSONS[id])) {
     it(id, () => {
-      const lesson = LESSONS[id];
-      const extra = LESSON_EXTRA[id];
+      const lesson = TS_LESSONS[id];
+      const extra = TS_EXTRA[id];
       const deeper = (extra?.deeper ?? []).map((s) => ({ ...s, point: SECTION_POINTS[id]?.[s.title] }));
       const md = lessonToMarkdown({ id, title: concept.title, area: concept.area, section: concept.section, points: concept.points, lesson, recap: extra?.recap, deeper });
       const back = parseLesson(md, `${id}.md`);

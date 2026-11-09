@@ -62,6 +62,34 @@ Every memory access needs a translation. The TLB is a small, fast cache of recen
 
 Segmentation, the older approach, divided memory into variable-size segments (code, data, stack) with base and limit; it causes external fragmentation and survives in x86 mostly vestigially. Paging won because fixed-size frames make allocation trivial.
 
+### How malloc finds a block: free lists, buddy and slab allocators {point: 1}
+
+`malloc(n)` looks like one call, but it is a small allocator program that sits between your code and the kernel. The kernel only hands out whole pages, through `brk` (grow the heap) or `mmap` (map a fresh region). The allocator cuts those pages into the variable-sized blocks your program asks for, and the way it does that decides speed and fragmentation.
+
+The simplest design is a **free list**: blocks carry a small header with their size, and free blocks are linked together. To allocate, the allocator searches the list. **First fit** takes the first block big enough (fast, but it leaves small leftovers at the front). **Best fit** takes the smallest block that fits (less waste per request, but it scans more and tends to leave many tiny unusable slivers). **Worst fit** takes the largest block, which sounds clever but performs badly. On `free`, the allocator merges the block with free neighbours (**coalescing**) so that external fragmentation does not grow forever.
+
+Real allocators use **size classes**. Requests are rounded up to a class (16, 32, 48, 64 bytes, and so on) and each class has its own free list, so allocation is popping a list head and free is pushing one: constant time. Rounding wastes a few bytes per object, which is internal fragmentation, but it makes fragmentation predictable. Modern allocators (glibc ptmalloc, jemalloc, tcmalloc, mimalloc) also keep a **per-thread cache** of free blocks, so most allocations take no lock at all.
+
+```mermaid
+flowchart TD
+  R[malloc of n bytes] --> S{small request?}
+  S -- yes --> T{thread cache has a block of this size class?}
+  T -- yes --> U[pop it, no lock taken]
+  T -- no --> V[refill from the shared arena, takes a lock]
+  S -- no --> W{very large?}
+  W -- yes --> X[mmap a dedicated region, munmap on free]
+  W -- no --> Y[search the arena free lists, split a block]
+  V --> U
+  Y --> U
+```
+Diagram caption: The common path is a lock-free pop from a per-thread cache. Huge blocks go straight to the kernel.
+
+### Buddy and slab allocators {point: 1}
+
+Two other designs come up. The **buddy system** keeps blocks in power-of-two sizes: to allocate 20 KB it takes a 32 KB block, splitting a larger one in halves if needed; when a block is freed and its "buddy" (the other half it was split from) is also free, they merge. Merging is quick because the buddy's address is computed with an XOR, but rounding up to powers of two wastes up to half a block. The Linux kernel uses buddy allocation for physical pages. A **slab allocator** keeps pools of identical objects (for example, inode structures) that are already initialised, so allocating one is cheap and there is no fragmentation inside the pool. The kernel's slab and slub allocators sit on top of the buddy allocator.
+
+What to say in an interview: a long-running service can show growing memory even though live data is stable, because of fragmentation or because the allocator keeps freed pages for reuse instead of returning them to the OS. Switching to jemalloc or tuning arenas is a real fix teams make, and so is allocating fewer short-lived objects.
+
 ## Interview questions
 
 - Where do local variables live vs objects created with new?

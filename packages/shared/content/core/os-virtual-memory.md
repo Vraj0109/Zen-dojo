@@ -60,6 +60,95 @@ Copy-on-write (COW): after fork(), parent and child share all pages marked read-
 
 mmap maps a file into the address space: reading the memory triggers page faults that load file pages through the page cache; writes dirty pages that the kernel writes back later (or on msync). Advantages: no explicit read/write copies, the OS handles caching, and many processes can share the mapping. Used by databases (LMDB, older MongoDB engine), Kafka's index files, and loading large models or datasets. Downsides: I/O errors arrive as signals, and you give up control over when data is flushed, so many databases prefer their own buffer pool with direct I/O.
 
+### Counting page faults: FIFO, LRU and optimal on one reference string {point: 1.7}
+
+The best way to see replacement algorithms is to run them on the same input. Take the reference string `7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1` (the pages a program touches, in order) and a machine with 3 frames. Each algorithm decides which resident page to evict when a new page faults and memory is full.
+
+```mermaid
+flowchart TD
+  A[reference to page p] --> B{p in a frame?}
+  B -- yes --> C[hit, update recency info]
+  B -- no --> D[page fault]
+  D --> E{free frame?}
+  E -- yes --> F[load p into it]
+  E -- no --> G[policy picks a victim: FIFO oldest, LRU least recently used, OPT used farthest in the future]
+  G --> H[evict victim, write back if dirty]
+  H --> F
+```
+Diagram caption: The only difference between the algorithms is how node G picks the victim.
+
+### The three policies {point: 1.7}
+
+- **FIFO** evicts the page that has been resident longest. It is simple but ignores use: a page loaded early and used constantly is still thrown out.
+- **LRU** evicts the page unused for the longest time. It exploits locality: pages touched recently tend to be touched again.
+- **OPT** (Belady's optimal) evicts the page whose next use is farthest away. It needs the future, so it cannot be built, but it gives the lower bound to compare against.
+
+On the string above with 3 frames the counts are FIFO 15 faults, LRU 12 and OPT 9. LRU lands between the other two, which is typical. The program also shows **Belady's anomaly**: on the string `1 2 3 4 1 2 5 1 2 3 4 5`, FIFO with 3 frames faults 9 times, but with 4 frames it faults 10 times. More memory made it worse. LRU and OPT never do that (they are "stack algorithms"), which is one reason FIFO is rarely used alone.
+
+```java
+import java.util.*;
+
+public class PageFaults {
+    static int fifo(int[] refs, int frames) {
+        Deque<Integer> q = new ArrayDeque<>();
+        Set<Integer> in = new HashSet<>();
+        int faults = 0;
+        for (int p : refs) {
+            if (in.contains(p)) continue;
+            faults++;
+            if (q.size() == frames) in.remove(q.pollFirst());
+            q.addLast(p);
+            in.add(p);
+        }
+        return faults;
+    }
+
+    static int lru(int[] refs, int frames) {
+        LinkedHashSet<Integer> set = new LinkedHashSet<>(); // oldest use first
+        int faults = 0;
+        for (int p : refs) {
+            if (set.remove(p)) { set.add(p); continue; }
+            faults++;
+            if (set.size() == frames) set.remove(set.iterator().next());
+            set.add(p);
+        }
+        return faults;
+    }
+
+    static int optimal(int[] refs, int frames) {
+        List<Integer> mem = new ArrayList<>();
+        int faults = 0;
+        for (int i = 0; i < refs.length; i++) {
+            int p = refs[i];
+            if (mem.contains(p)) continue;
+            faults++;
+            if (mem.size() < frames) { mem.add(p); continue; }
+            int victim = -1, farthest = -1;
+            for (int q : mem) {
+                int next = Integer.MAX_VALUE;
+                for (int j = i + 1; j < refs.length; j++) if (refs[j] == q) { next = j; break; }
+                if (next > farthest) { farthest = next; victim = q; }
+            }
+            mem.remove(Integer.valueOf(victim));
+            mem.add(p);
+        }
+        return faults;
+    }
+
+    public static void main(String[] args) {
+        int[] refs = {7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 2, 0, 1, 7, 0, 1};
+        System.out.println("FIFO faults=" + fifo(refs, 3));
+        System.out.println("LRU faults=" + lru(refs, 3));
+        System.out.println("OPT faults=" + optimal(refs, 3));
+        int[] belady = {1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5};
+        System.out.println("Belady FIFO 3 frames=" + fifo(belady, 3) + ", 4 frames=" + fifo(belady, 4));
+    }
+}
+```
+### What the program prints {point: 1.7}
+
+It prints `FIFO faults=15`, `LRU faults=12`, `OPT faults=9` and `Belady FIFO 3 frames=9, 4 frames=10`. Real kernels cannot afford exact LRU on every memory access, so they approximate it with reference bits, the clock algorithm and active/inactive lists.
+
 ## Interview questions
 
 - What happens on a page fault?
