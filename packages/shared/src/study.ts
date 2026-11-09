@@ -229,6 +229,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("cab", "Cab booking", "Spatial grid index, parallel offers, metered fare, surge"),
       lldProblem("kv-store", "Key-value store", "MVCC versions, TTL, snapshots, optimistic transactions, write-ahead log"),
       lldProblem("hotel", "Hotel reservation", "Inventory per night, rate rules, overbooking, cancellation, room assignment"),
+      lldProblem("meeting-rooms", "Meeting room scheduler", "Interval conflicts, recurring events, room search, lock order"),
     ],
   },
 };
