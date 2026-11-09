@@ -2,6 +2,7 @@ import type { LldExtra } from "./types";
 import { URL_SHORTENER_EXTRA } from "./lld-deep-b-url";
 import { VENDING_ATM_EXTRA } from "./lld-deep-c-vending";
 import { BOOKING_EXTRA } from "./lld-deep-c-booking";
+import { SPLITWISE_EXTRA } from "./lld-deep-c-splitwise";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -40,16 +41,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Capacity 0 or 1.", "Updating an existing key must not evict.", "Clock injected for tests; monotonic time (nanoTime) not wall clock.", "Buckets for idle clients pile up → expire them."],
   },
-  "lldp-splitwise": {
-    recap: ["Expense(paidBy, amount, splits); Split strategies: equal, exact, percent.", "Balances map user → net amount (or pairwise ledger).", "Simplify debts: greedily match the largest creditor with the largest debtor."],
-    flow: [
-      "addExpense(groupId, paidBy=A, 900, EQUAL among A, B, C).",
-      "SplitStrategy computes shares 300 each (remainder cents to the payer or first users).",
-      "For each participant ≠ payer: balance[participant] −= share, balance[payer] += share.",
-      "showBalances(): non-zero nets; simplify(): two heaps (creditors, debtors) settle max against max.",
-    ],
-    edgeCases: ["Amounts that don't divide evenly (use cents, distribute remainder).", "Percent splits not summing to 100 → reject.", "Payer not among participants.", "Settling up partially.", "Currency: store in minor units."],
-  },
+  "lldp-splitwise": SPLITWISE_EXTRA,
   "lldp-games": {
     recap: ["Game holds Board, Players, turn order and status; Move is a value object.", "Rules per piece/game behind an interface (validate move, check win).", "Game loop: get move → validate → apply → check end → next player."],
     flow: [

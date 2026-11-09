@@ -2,6 +2,7 @@ import { lesson, type LldGuide, type Lesson } from "./types";
 import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
 import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
 import { BOOKING_GUIDE } from "./lld-deep-c-booking";
+import { SPLITWISE_GUIDE } from "./lld-deep-c-splitwise";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -291,67 +292,7 @@ class TokenBucketLimiter implements RateLimiter {
       "Distributed limiter: move the bucket into Redis with an atomic Lua script.",
     ],
   },
-  "lldp-splitwise": {
-    requirements: [
-      "Users and groups; add an expense paid by one user, split equally, by exact amounts, or by percentage.",
-      "Show balances: who owes whom, per pair and per user.",
-      "Settle up; simplify debts within a group (minimize transactions).",
-      "Money as integer minor units (paise/cents), never floating point.",
-    ],
-    entities: ["User", "Group", "Expense (payer, amount, splits)", "Split (user, amount)", "SplitStrategy (Equal, Exact, Percent)", "BalanceSheet (net amount per pair or per user)"],
-    patterns: ["Strategy for split types", "Factory to create the right split from input"],
-    code: `interface SplitStrategy { Map<String, Long> split(long amount, List<String> users, List<Long> params); }
-
-class EqualSplit implements SplitStrategy {
-  public Map<String, Long> split(long amount, List<String> users, List<Long> ignored) {
-    long each = amount / users.size(), rem = amount % users.size();
-    Map<String, Long> out = new LinkedHashMap<>();
-    for (int i = 0; i < users.size(); i++) out.put(users.get(i), each + (i < rem ? 1 : 0)); // spread leftover cents
-    return out;
-  }
-}
-
-class ExactSplit implements SplitStrategy {
-  public Map<String, Long> split(long amount, List<String> users, List<Long> amounts) {
-    if (amounts.stream().mapToLong(Long::longValue).sum() != amount) throw new IllegalArgumentException("Splits must add up");
-    Map<String, Long> out = new LinkedHashMap<>();
-    for (int i = 0; i < users.size(); i++) out.put(users.get(i), amounts.get(i));
-    return out;
-  }
-}
-
-class Ledger {
-  /** net.get(u) > 0: u is owed money; < 0: u owes. */
-  private final Map<String, Long> net = new HashMap<>();
-
-  void addExpense(String payer, long amount, Map<String, Long> shares) {
-    net.merge(payer, amount, Long::sum);
-    shares.forEach((user, share) -> net.merge(user, -share, Long::sum));
-  }
-
-  /** Greedy simplification: largest debtor pays largest creditor. At most n-1 transfers. */
-  List<String> simplify() {
-    PriorityQueue<Map.Entry<String, Long>> creditors = new PriorityQueue<>((a, b) -> Long.compare(b.getValue(), a.getValue()));
-    PriorityQueue<Map.Entry<String, Long>> debtors = new PriorityQueue<>(Map.Entry.comparingByValue());
-    net.forEach((u, v) -> { if (v > 0) creditors.add(Map.entry(u, v)); else if (v < 0) debtors.add(Map.entry(u, v)); });
-    List<String> transfers = new ArrayList<>();
-    while (!creditors.isEmpty() && !debtors.isEmpty()) {
-      var c = creditors.poll(); var d = debtors.poll();
-      long amt = Math.min(c.getValue(), -d.getValue());
-      transfers.add(d.getKey() + " pays " + c.getKey() + " " + amt);
-      if (c.getValue() - amt > 0) creditors.add(Map.entry(c.getKey(), c.getValue() - amt));
-      if (d.getValue() + amt < 0) debtors.add(Map.entry(d.getKey(), d.getValue() + amt));
-    }
-    return transfers;
-  }
-}`,
-    extensions: [
-      "Per-group ledgers plus a global view; expense edit and delete (store expenses, recompute or apply reversals).",
-      "Multi-currency with conversion at expense time.",
-      "Optimal minimization is NP-hard in general; greedy is the expected interview answer.",
-      "Concurrency: one lock per group ledger; persistence as an append-only expense log.",
-    ],
-  },
+  "lldp-splitwise": SPLITWISE_GUIDE,
   "lldp-games": {
     requirements: [
       "Tic-tac-toe on an N×N board for 2 players (generalizes to chess / snake): make moves, validate, detect win or draw.",
