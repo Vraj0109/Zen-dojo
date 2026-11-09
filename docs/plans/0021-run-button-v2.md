@@ -82,7 +82,7 @@ it back after a reload, on another window or after a backup restore. You can als
 - [x] A solution with or without includes passes; compile errors show editor line numbers.
 - [x] Running code saves it; reload, another window or a restored backup bring back the last run.
 - [x] Custom input works for every type the judge supports (including list and tree).
-- [ ] `pnpm check` passes.
+- [x] `pnpm check` passes.
 
 ## Open questions
 

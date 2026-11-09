@@ -66,7 +66,7 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
   - Done when: the pattern pages list the new problems and the totals on `/dsa` are right (`dsa.test.ts` counts updated).
 - [ ] **5. Filters.** On `/dsa` add a source filter (LeetCode, CSES, AtCoder, Codeforces, Euler) next to the existing ones.
   - Done when: choosing a source shows only its problems and the URL keeps the choice.
-- [ ] **6. A "design a class" problem type.** Extend `ProblemSpec` with `kind: "design"`: `{ className, ctor: params, methods:
+- [x] **6. A "design a class" problem type.** Extend `ProblemSpec` with `kind: "design"`: `{ className, ctor: params, methods:
   [{name, params, returns}] }` and test cases as operation lists, written like LeetCode's:
   `ops: ["LRUCache","put","get"]`, `args: [[2],[1,1],[1]]`, `expected: [null,null,1]`. Add harnesses for C++, Java and
   JavaScript in `harness.ts` (create the object, call each method, serialize the return) and a `templateFor` branch (class
@@ -83,7 +83,7 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 - [ ] All CSES tasks are in the list, with a runnable spec for each one that fits the function format.
 - [ ] The remaining non-premium roadmap problems that fit have specs; the exceptions are listed with reasons.
 - [ ] At least 150 logic-building problems from other platforms, each credited and in the problem's own words.
-- [ ] Design-class problems run (step 6).
+- [x] Design-class problems run (step 6).
 - [ ] Every problem has a description, constraints, examples, 6+ tests, 3+ hints and a solution.
 - [ ] `pnpm check` passes.
 

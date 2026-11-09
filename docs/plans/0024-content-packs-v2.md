@@ -39,7 +39,7 @@ that checks the result.
   Markdown with ` ```mermaid ` diagrams), and `patch` (step 3); problem `stress` (step 5); `tags`, `source` and `sourceUrl`
   on problems.
   - Done when: v1 packs still validate unchanged and `docs/content-packs.md` documents v2 with an example per item type.
-- [ ] **2. Put content into an existing course.** `target: { area: "lld", section: "SOLID", after: "lld-solid" }` inserts the
+- [x] **2. Put content into an existing course.** `target: { area: "lld", section: "SOLID", after: "lld-solid" }` inserts the
   pack's lessons into that built-in area/section (and its problems into a practice list) instead of making a new course.
   `lib/study.ts` / `getStudyView` and `app/study/[area]/page.tsx` merge installed pack items into the area views (the
   items show a small "added" tag). A pack without `target` stays its own course.
@@ -77,7 +77,7 @@ that checks the result.
   never run pack code except through the judge's existing sandbox limits (time, memory, output cap). Add tests for each
   rejection. Document the rules in `docs/content-packs.md`.
   - Done when: `<script>` in a lesson shows as text and a 3 MB feed is refused.
-- [ ] **9. Export and share.** On a pack's page add **Download this pack** (the stored JSON) so a pack can be handed to a friend.
+- [x] **9. Export and share.** On a pack's page add **Download this pack** (the stored JSON) so a pack can be handed to a friend.
   - Done when: the downloaded file re-imports on a fresh database.
 - [ ] **10. Docs and the agent prompt.** Update `docs/content-packs.md` (v2 format, tools, the feed, the prompt for converting
   any source into a pack, the rule to write in your own words) and link it from `AGENTS.md`.

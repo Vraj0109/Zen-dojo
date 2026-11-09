@@ -86,11 +86,11 @@
 
 ## Acceptance criteria
 
-- [ ] SOLID and every other lesson show their sections in the intended order; the audit test guards it.
-- [ ] LLD lessons come from Markdown files; an agent can edit one with the guide alone.
-- [ ] "On this page" lists sub-sections; the course outline lets you jump between lessons and sections.
-- [ ] `docs/content-editing.md` exists and is linked from `AGENTS.md`.
-- [ ] `pnpm check` passes.
+- [x] SOLID and every other lesson show their sections in the intended order; the audit test guards it.
+- [x] LLD lessons come from Markdown files; an agent can edit one with the guide alone.
+- [x] "On this page" lists sub-sections; the course outline lets you jump between lessons and sections.
+- [x] `docs/content-editing.md` exists and is linked from `AGENTS.md`.
+- [x] `pnpm check` passes.
 
 ## Open questions
 
