@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "productName": "Zen Dojo",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Zen Dojo desktop app (Windows, macOS, Linux)",
   "author": "Vraj Limbachiya",
