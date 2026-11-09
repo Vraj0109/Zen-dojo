@@ -1,6 +1,7 @@
-import { JUDGE_LANGS, JUDGE_LANG_LABEL, JUDGE_PROBLEMS, matchesTy, type JudgeLang, type ProblemSpec } from "@habit/shared";
+import { JUDGE_LANGS, JUDGE_LANG_LABEL, matchesTy, type JudgeLang, type ProblemSpec } from "@habit/shared";
 import { JUDGE_LIMITS, runCode, runCustom } from "@/lib/judge/run";
 import { saveSolution } from "@/lib/notes";
+import { resolveProblemSpec } from "@/lib/content";
 import { getPackProblemSpec, setPackItemDone } from "@/lib/packs";
 import { getRuns, saveRun } from "@/lib/solution-runs";
 
@@ -23,7 +24,8 @@ function sameOrigin(request: Request): boolean {
 
 async function specFor(id: unknown): Promise<ProblemSpec | undefined> {
   if (typeof id !== "string") return undefined;
-  return id.startsWith("pack:") ? ((await getPackProblemSpec(id)) ?? undefined) : JUDGE_PROBLEMS[id];
+  // stored content first (a seeded copy, extra test cases), then the built-in problems and the pack problems
+  return resolveProblemSpec(id, getPackProblemSpec);
 }
 
 /** Your latest run of each language for a problem (for the editor and the Notes tab). */

@@ -5,6 +5,7 @@ import { DESIGN_DEPTH_A } from "./design-depth-a";
 import { DESIGN_DEPTH_B } from "./design-depth-b";
 import { DESIGN_DEPTH_C } from "./design-depth-c";
 import { DESIGN_DEPTH_D } from "./design-depth-d";
+import { DESIGN_DEPTH_E } from "./design-depth-e";
 import { DESIGN_EXTRA } from "./design-extra";
 import { DSA_ARTICLES_A } from "./dsa-articles-a";
 import { DSA_ARTICLES_B } from "./dsa-articles-b";
@@ -14,6 +15,10 @@ import { DSA_ARTICLES_D2 } from "./dsa-articles-d2";
 import { DSA_ARTICLES_E1, DSA_ARTICLES_E } from "./dsa-articles-e";
 import { DSA_ARTICLES_F } from "./dsa-articles-f";
 import { DSA_ARTICLES_G } from "./dsa-articles-g";
+import { DSA_ARTICLES_H } from "./dsa-articles-h";
+import { DSA_ARTICLES_I } from "./dsa-articles-i";
+import { DSA_ARTICLES_J } from "./dsa-articles-j";
+import { DSA_ARTICLES_K } from "./dsa-articles-k";
 import { DSA_GUIDES_A } from "./dsa-a";
 import { DSA_GUIDES_B } from "./dsa-b";
 import { DSA_GUIDES_C } from "./dsa-c";
@@ -74,7 +79,7 @@ export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, ...DSA_GUIDES_B, ...DSA_GUIDES_C, ...DSA_GUIDES_D };
 
 /** Full articles by pattern id. Patterns without one still show the short guide above. */
-export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2, ...DSA_ARTICLES_E, ...DSA_ARTICLES_F, ...DSA_ARTICLES_G };
+export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2, ...DSA_ARTICLES_E, ...DSA_ARTICLES_F, ...DSA_ARTICLES_G, ...DSA_ARTICLES_H, ...DSA_ARTICLES_I, ...DSA_ARTICLES_J, ...DSA_ARTICLES_K };
 
 /** Deeper sections and recap lines per concept id. */
 const GENERATED_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
@@ -95,7 +100,7 @@ export function readingMinutes(id: string): number {
 }
 
 /** Diagrams, deeper sections and Java for system design walkthroughs, by design id (plan 0014). */
-export const DESIGN_DEEP: Record<string, WalkthroughDeep> = { ...DESIGN_DEPTH_A, ...DESIGN_DEPTH_B, ...DESIGN_DEPTH_C, ...DESIGN_DEPTH_D };
+export const DESIGN_DEEP: Record<string, WalkthroughDeep> = { ...DESIGN_DEPTH_A, ...DESIGN_DEPTH_B, ...DESIGN_DEPTH_C, ...DESIGN_DEPTH_D, ...DESIGN_DEPTH_E };
 export type { WalkthroughDeep } from "./design-depth-types";
 
 /** Recap and follow-up Q&A per system design exercise id. */

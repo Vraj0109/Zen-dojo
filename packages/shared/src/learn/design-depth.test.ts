@@ -8,6 +8,12 @@ import { DESIGN_DEEP } from "./index";
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 
 describe("system design depth", () => {
+  it("covers every system design exercise (27)", () => {
+    const designs = Object.keys(ALL_EXERCISES).filter((id) => id.startsWith("sdd-"));
+    expect(designs.length).toBe(27);
+    expect(designs.filter((id) => !DESIGN_DEEP[id])).toEqual([]);
+  });
+
   it("only covers real designs", () => {
     for (const id of Object.keys(DESIGN_DEEP)) expect(ALL_EXERCISES[id], `${id} is not an exercise in study.ts`).toBeDefined();
   });

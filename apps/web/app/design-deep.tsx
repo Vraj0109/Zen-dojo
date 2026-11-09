@@ -1,5 +1,6 @@
 import type { WalkthroughDeep } from "@habit/shared";
-import { ArticleSection, CodeBlock, DeeperSections } from "./learn-blocks";
+import { ArticleSection, DeeperSections } from "./learn-blocks";
+import { Code } from "./code";
 import { Diagram } from "./diagram";
 
 /**
@@ -25,12 +26,10 @@ export function DesignDeepView({ deep }: { deep: WalkthroughDeep }) {
       </ArticleSection>
       {deep.code && deep.code.length > 0 && (
         <ArticleSection id="design-code" title="Key parts in Java">
+          <p className="mb-3 text-sm text-muted">Standard library only. Save each file, compile with <code>javac</code> and run it with <code>java</code> and the class name. The checks in this app compile and run exactly this code.</p>
           <div className="space-y-6">
             {deep.code.map((c) => (
-              <div key={c.name} className="space-y-2">
-                <h3 className="font-mono text-sm font-semibold">{c.name}</h3>
-                <CodeBlock code={c.code} lang="Java" />
-              </div>
+              <Code key={c.name} code={c.code} lang="Java" label={c.name} maxHeight="32rem" />
             ))}
           </div>
         </ArticleSection>

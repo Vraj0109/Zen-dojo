@@ -15,6 +15,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Tests that compile code or install packs take more than the 5 s default when the machine is busy.
+    testTimeout: 30_000,
     include: ["packages/**/*.test.ts", "apps/**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/.next/**", "apps/desktop/server/**", "apps/desktop/dist/**"],
   },

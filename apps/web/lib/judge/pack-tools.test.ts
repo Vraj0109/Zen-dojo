@@ -50,7 +50,7 @@ describe("pack:check", () => {
     expect(d.stderr).toContain('needs "input"');
     expect(d.stderr).toContain("pnpm pack:build");
     expect(run("pack-check.mjs", ["docs/examples/does-not-exist.json"]).status).toBe(2);
-  });
+  }, 60_000); // three node start-ups; slow when several checks run at once
 });
 
 describe.skipIf(!GPP)("pack:build", () => {

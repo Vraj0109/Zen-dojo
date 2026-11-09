@@ -9,6 +9,7 @@ import {
   CONFIDENCE_LABELS,
   COVERED_CONFIDENCE,
   LESSON_EXTRA,
+  DESIGN_DEEP,
   LLD_DEEP,
   LLD_PROJECTS,
   LESSONS,
@@ -33,7 +34,8 @@ import { SubmitButton } from "../../../submit-button";
 import { PageMain, SimpleHint } from "../../../ui";
 import { ArticleLayout, ArticleSection, DeeperSections } from "../../../learn-blocks";
 import { CourseOutline } from "../../../course-outline";
-import { conceptToc } from "../../../toc-items";
+import { DesignDeepView } from "../../../design-deep";
+import { conceptToc, designDeepToc } from "../../../toc-items";
 import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, LldProjectView, ReadingSection, WalkthroughView } from "../../learn-ui";
 import { Confidence, fmtDate } from "../../study-ui";
 
@@ -213,6 +215,7 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
 
   const hasWalkthrough = isDesign && !!WALKTHROUGHS[id];
   const hasLldGuide = !isDesign && !!LLD_GUIDES[id];
+  const designDeep = isDesign ? DESIGN_DEEP[id] : undefined;
   const hasFollowUps = isDesign && !!WALKTHROUGH_EXTRA[id]?.followUps?.length;
   const hasLldProject = !isDesign && (!!LLD_PROJECTS[id] || !!LLD_DEEP[id]);
   const hasFlow = !isDesign && !!LLD_EXTRA[id]?.flow?.length;
@@ -221,6 +224,7 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
   const toc = [
     ...(hasWalkthrough ? [{ id: "reference", title: "Reference walkthrough" }] : []),
     ...(hasLldGuide ? [{ id: "reference", title: "Reference answer" }] : []),
+    ...(designDeep ? designDeepToc(designDeep) : []),
     ...(hasLldProject
       ? [
           ...(LLD_DEEP[id] ? [{ id: "walkthrough", title: "Full design walkthrough" }, { id: "lld-diagrams", title: "Diagrams" }] : []),
@@ -269,6 +273,8 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
         </p>
 
         {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
+
+        {designDeep && <DesignDeepView deep={designDeep} />}
 
         {!isDesign && hasLldProject && <LldProjectView project={LLD_PROJECTS[id]} deep={LLD_DEEP[id]} />}
 

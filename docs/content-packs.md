@@ -1,5 +1,7 @@
 # Content packs: add lessons and problems without changing the code
 
+> To add just one problem, one lesson or extra test cases without a whole pack, see `docs/content-editing.md`, section "Add one thing" (`pnpm content:add`).
+
 A **content pack** is one JSON file. Import it in **Profile → Settings → Content** (paste it, choose the file, or give a
 web address) and it becomes a course in **Learn**, or inserts its content into an existing study area. Its problems open
 in the same editor with the Run button, and finishing items tracks progress. Installing a pack with the same `id` again

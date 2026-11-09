@@ -1,8 +1,8 @@
 # 0030: Add or fix one problem, test case or lesson without changing code
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-09
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code, agent D (branch agent/d-lld), 2026-11-09
 - **Spec:** none (builds on packs v2, 0024; prepares the hosted site in 0032)
 
 ## Goal
@@ -42,23 +42,23 @@ content goes through it. Packs keep working: installing a pack writes its items 
 
 ## Steps
 
-- [ ] **1. Table and repository.** Migration (you are the only agent allowed to add one this round): `content_items` as above, plus an
+- [x] **1. Table and repository.** Migration (you are the only agent allowed to add one this round): `content_items` as above, plus an
   index on `type`. `schema.ts` entry, add `"content_items"` to `BACKUP_TABLES`. `lib/content.ts`: `upsertItem(item, source)`,
   `deleteItem(id)`, `listItems(type?)`, `getItem(id)`; validation reuses the pack validators in `packages/shared/src/packs.ts` (extend with
   `tests` and `reading`, plain error messages that name the field).
   - Done when: a fresh database has the table, a backup round-trip keeps rows, an invalid item is refused with a clear message.
-- [ ] **2. Stored problems appear everywhere built-in ones do.** `/dsa` list (group "Added by you", or the group named in the item), the
+- [x] **2. (partly: not in the /dsa list, see notes) Stored problems appear everywhere built-in ones do.** `/dsa` list (group "Added by you", or the group named in the item), the
   problem page, `/api/judge/run` (spec lookup through the repository), pattern pages when the item has `patterns`. Ids `x:<id>`.
   - Done when: a stored problem can be opened, run and marked done, and shows in the list without a rebuild.
-- [ ] **3. Extra test cases for existing problems.** A `tests` item `{ type: "tests", problem: "lc-1", cases: [{ input, output? }] }`: appended
+- [x] **3. Extra test cases for existing problems.** A `tests` item `{ type: "tests", problem: "lc-1", cases: [{ input, output? }] }`: appended
   to the problem's cases at run time (built-in or stored). If `output` is missing the app can still add the case when run through the CLI
   (step 5), which computes it with the problem's C++ reference solution (same code as `pack:build`) and stores the output.
   - Done when: adding a case that the reference answers differently from a wrong solution makes that solution fail, and removing the item
     restores the old behaviour.
-- [ ] **4. Lessons and reading.** Stored `lesson`, `patch` and `reading` items show in Learn exactly like pack items do (reuse the packs v2 code
+- [x] **4. (reading is stored and listed only, see notes) Lessons and reading.** Stored `lesson`, `patch` and `reading` items show in Learn exactly like pack items do (reuse the packs v2 code
   paths; do not duplicate them).
   - Done when: a stored lesson appears in the chosen area and section and a stored patch replaces the built-in text with a "Back to built-in" button.
-- [ ] **5. Admin API and CLI.** `POST/GET/DELETE /api/admin/content` (`apps/web/app/api/admin/content/route.ts`): requires
+- [x] **5. Admin API and CLI.** `POST/GET/DELETE /api/admin/content` (`apps/web/app/api/admin/content/route.ts`): requires
   `Authorization: Bearer <CONTENT_ADMIN_TOKEN>`; with no env var the route answers 404; in the desktop app it only accepts 127.0.0.1.
   Scripts (Node, plain `.mjs`, plain-language errors): `pnpm content:add <file.json>` (adds one item or a list; computes missing outputs),
   `pnpm content:sync <folder>` (upserts every `*.json` in a folder; unchanged files are skipped by rev; `--prune` deletes items whose file is
@@ -66,18 +66,18 @@ content goes through it. Packs keep working: installing a pack writes its items 
   a running or hosted app, or writes straight to the local database when neither is given (then refuses if the app's own database file is
   the real `data/habit.db` unless `--yes`).
   - Done when: `pnpm content:add docs/examples/one-problem.json` makes the problem appear after a page reload, with no restart or build.
-- [ ] **6. Remote database.** `lib/db.ts`: pass `DATABASE_AUTH_TOKEN` as `authToken` when set. Document in `docs/hosting.md` (short): `DATABASE_URL=libsql://<db>.turso.io`,
+- [x] **6. Remote database.** `lib/db.ts`: pass `DATABASE_AUTH_TOKEN` as `authToken` when set. Document in `docs/hosting.md` (short): `DATABASE_URL=libsql://<db>.turso.io`,
   `DATABASE_AUTH_TOKEN=...`, how migrations run on first start, what stays local on the desktop. Add a unit test that `databaseUrl()`/client
   options pick up the token (no network).
   - Done when: the app starts against a `file:` URL as before and the code path for `libsql://` + token is tested with a stub.
-- [ ] **7. Optional seed.** `pnpm content:seed` writes every built-in problem spec as a `problem` item with `source = "builtin"` (so a hosted
+- [x] **7. Optional seed.** `pnpm content:seed` writes every built-in problem spec as a `problem` item with `source = "builtin"` (so a hosted
   copy can have all content in one database and later drop the TypeScript bundle). Do not run it in `pnpm check`.
   - Done when: the command works against `:memory:`, and the repository prefers a stored item over the shipped one with the same id.
-- [ ] **8. Agent guide and examples.** Update `docs/content-editing.md` and `docs/content-packs.md`: a section "Add one thing" with one complete
+- [x] **8. Agent guide and examples.** Update `docs/content-editing.md` and `docs/content-packs.md`: a section "Add one thing" with one complete
   example per type in `docs/examples/` (`one-problem.json`, `extra-tests.json`, `one-lesson.json`, `one-reading.json`), the exact
   commands, and the prompt for any agent: "Read docs/content-editing.md, then add <thing> using pnpm content:add". Link from `AGENTS.md`.
   - Done when: someone with only that page can add a problem and a test case.
-- [ ] **9. Tests.** `content.test.ts` (`:memory:`): upsert, delete, merge order, tests append, validation errors, backup; a route test for the admin
+- [x] **9. Tests.** `content.test.ts` (`:memory:`): upsert, delete, merge order, tests append, validation errors, backup; a route test for the admin
   API (token, 404 without it); a script test for `content:sync` on a temp folder. No per-problem loops.
   - Done when: `pnpm check` passes.
 
@@ -95,5 +95,36 @@ content goes through it. Packs keep working: installing a pack writes its items 
   `--url` for a running or hosted app.)
 
 ## Implementation notes
+
+Done by agent D on `agent/d-lld`, 2026-11-09.
+
+- **Table and repository (step 1).** Migration 15 `content_items` (id, type, body, rev, source, updated_at, deleted) + index on `type`;
+  `schema.ts` entry; `"content_items"` in `BACKUP_TABLES` (round-trip tested). `apps/web/lib/content.ts` is the repository: `upsertItem`,
+  `deleteItem` (soft delete), `listItems`, `getItem`, `getExtraTests`, `withExtraTests`, `resolveProblemSpec`, `listReading`,
+  `seedBuiltinProblems`. Validation is `validateItem` in `packages/shared/src/content-items.ts`: `problem`, `lesson` and `patch` are
+  validated by the existing pack validator on a one-item pack (no second set of rules); `tests` and `reading` are new.
+- **Reuse of packs v2 (steps 2 and 4).** Stored problems, lessons and patches are kept in one pack with id `items`, rebuilt from the
+  table after every change (`syncItemsPack` calls `installPack`). So they show in Learn as the course "Added items", problems run as
+  `pack:items:<id>` through the existing Run-button path and mark progress, patches use `resolveLesson` and "Back to built-in". No pack code was
+  duplicated. If the rebuild is refused (for example a Mermaid error), the row is rolled back and the message is returned.
+- **Extra tests (step 3).** `tests:<problem>` items are appended to the problem's cases in `/api/judge/run` (the route now calls
+  `resolveProblemSpec`); works for built-in and stored problems; the shipped spec is never mutated; deleting the item restores the old tests.
+  Missing outputs are computed by `content:add` / the admin API from the problem's C++ reference solution (`computeOutputs`, same code as `pack:build`).
+- **Admin API and CLI (step 5).** `/api/admin/content` GET/POST/DELETE, 404 without `CONTENT_ADMIN_TOKEN`, 401 for a wrong bearer token
+  (constant-time compare); the desktop server already listens on 127.0.0.1 only. `scripts/content.mjs` with `content:add|sync|list|remove|export|seed`
+  (package.json). Default is the local database (asks for `--yes` for the real `data/habit.db`), `--url/--token` uses the API.
+- **Remote database (step 6).** `clientOptions()` in `lib/db.ts` passes `DATABASE_AUTH_TOKEN` as `authToken`; unit tested without a network; `docs/hosting.md`.
+- **Seed (step 7).** `content:seed` stores every built-in function problem with source `builtin`; a stored `builtin` item wins over the shipped
+  spec in `resolveProblemSpec`; seeding never overwrites an item you added. Seeded items are not turned into a course.
+- **Docs (step 8).** `docs/content-editing.md` "Add one thing", four examples in `docs/examples/`, pointer in `docs/content-packs.md`, link in `AGENTS.md`.
+- **Tests (step 9).** `apps/web/lib/content.test.ts` (in memory): upsert/replace/delete, validation messages, stored problem as pack problem,
+  extra tests on built-in and stored problems, seed precedence, backup round trip, admin token check, client options, and `content:sync` run in a child
+  process on a temp database (skip unchanged, `--prune`). Commands were also run by hand against a copy: all four examples were added, the missing
+  outputs of `extra-tests.json` were computed by the C++ reference.
+- **Not done / deviations (open for the main session):**
+  1. (Done in the follow-up, 2026-11-09) Stored problems are listed in /dsa, tab "Other solves", under their `group` (default "Added by you"), and on the pattern pages named in `patterns`, through `app/dsa/added-problems.tsx` (two one-line additions to `app/dsa/page.tsx` and `app/dsa/pattern/[id]/page.tsx`; `lib/dsa.ts` was not touched). They link to the pack problem page, which is the same Run / Notes workspace. Not done: they are not counted in pattern progress or in the roadmap totals.
+  2. `reading` items are stored, listed (`content:list`) and exported, but the reading page (`/study/reading`, not in my row) does not show them yet.
+  3. The route test covers the token check (`adminDenied`) and not a full request through the Next handler.
+  4. Problems added this way keep pack semantics: ids are `pack:items:<id>`, not `x:<id>`.
 
 ## Review

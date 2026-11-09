@@ -15,6 +15,7 @@ import { Diagram } from "../../../diagram";
 import { ArticleLayout, ArticleSection, CodeBlock } from "../../../learn-blocks";
 import { Tabs } from "../../../tabs";
 import { PageMain, ProgressBar, SimpleHint } from "../../../ui";
+import { AddedProblems } from "../../added-problems";
 import { CheatSheet, ProblemRow } from "../../problem-ui";
 
 /** One page per pattern, known at build time. */
@@ -256,6 +257,7 @@ async function Practice({ id }: { id: string }) {
           </ul>
           <p className="mt-2 text-xs text-muted">Easy to hard. Solve, then re-solve cold two weeks later.</p>
         </section>
+        <AddedProblems patternId={id} />
         {simple ? <SimpleHint /> : <CheatSheet p={p} />}
       </div>
       <aside className="xl:sticky xl:top-6 self-start">

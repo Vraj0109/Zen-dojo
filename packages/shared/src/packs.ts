@@ -2,6 +2,7 @@
 // (format "prepwise-pack"); the app validates it here, stores it, and shows it as a course in Learn. Pure code, no I/O.
 // The format is written up in docs/content-packs.md, with a prompt another AI can follow to produce a pack.
 
+import { ALL_PATTERNS } from "./dsa";
 import { ALL_CONCEPTS, STUDY_AREAS } from "./study";
 import { checkStress, expandStress, type PackStress } from "./judge/stress-gen";
 import type { Case, ProblemSpec, Ty } from "./judge/types";
@@ -37,6 +38,10 @@ export type PackProblem = Omit<ProblemSpec, "source" | "solution" | "stress" | "
   /** Large inputs (speed and memory checks) written as data; see judge/stress-gen.ts. Needs solution.cpp for expected answers. */
   stress?: PackStress[];
   difficulty?: "easy" | "medium" | "hard";
+  /** Heading in the /dsa list (default "Added by you") */
+  group?: string;
+  /** Ids of roadmap patterns this problem belongs to; it is listed on those pattern pages */
+  patterns?: string[];
   /** Where the original problem lives, if anywhere (shown as a link) */
   url?: string;
   solution?: { idea: string[]; complexity: string; cpp?: string };
@@ -202,6 +207,17 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
     if (!Array.isArray(o.tags) || o.tags.length > 10 || !o.tags.every((t) => isStr(t, 30))) errs.push(`${where}.tags must be a list of up to 10 short labels.`);
     else tags = o.tags as string[];
   }
+  let group: string | undefined;
+  if (o.group !== undefined) {
+    if (!isStr(o.group, 60)) errs.push(`${where}.group must be a heading of up to 60 characters.`);
+    else group = o.group;
+  }
+  let patterns: string[] | undefined;
+  if (o.patterns !== undefined) {
+    const known = new Set(ALL_PATTERNS.map((x) => x.id));
+    if (!Array.isArray(o.patterns) || o.patterns.length > 5 || !o.patterns.every((x) => typeof x === "string" && known.has(x))) errs.push(`${where}.patterns must be a list of up to 5 pattern ids, for example ["bs-index"]. Unknown ids are refused.`);
+    else patterns = o.patterns as string[];
+  }
   if (o.source !== undefined && !isStr(o.source, 80)) errs.push(`${where}.source must be text of up to 80 characters.`);
   if (o.sourceUrl !== undefined && !(typeof o.sourceUrl === "string" && /^https?:\/\/\S+$/.test(o.sourceUrl) && o.sourceUrl.length <= 300)) errs.push(`${where}.sourceUrl must be an http or https address.`);
   if (errs.length > before) return null;
@@ -221,6 +237,8 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
     ...(difficulty ? { difficulty } : {}),
     ...(url ? { url } : {}),
     ...(tags && tags.length > 0 ? { tags } : {}),
+    ...(group ? { group } : {}),
+    ...(patterns && patterns.length > 0 ? { patterns } : {}),
     ...(typeof o.source === "string" ? { source: o.source } : {}),
     ...(typeof o.sourceUrl === "string" ? { sourceUrl: o.sourceUrl } : {}),
   };

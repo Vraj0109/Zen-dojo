@@ -14,14 +14,12 @@ import { toLang, type Lang } from "@/lib/code-lang";
 export function EditorField({ children, languageSelectId, rows = 14, fill = false }: { children: ReactNode; languageSelectId?: string; rows?: number; fill?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
-  const hintRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
     const host = hostRef.current;
-    const hint = hintRef.current;
     const textarea = wrap?.querySelector("textarea");
-    if (!wrap || !host || !hint || !textarea) return;
+    if (!wrap || !host || !textarea) return;
     const select = languageSelectId ? (document.getElementById(languageSelectId) as HTMLSelectElement | null) : null;
 
     let cancelled = false;
@@ -142,7 +140,6 @@ export function EditorField({ children, languageSelectId, rows = 14, fill = fals
 
       textarea.hidden = true;
       host.hidden = false;
-      hint.hidden = false;
 
       destroy = () => {
         select?.removeEventListener("change", onLanguage);
@@ -150,7 +147,6 @@ export function EditorField({ children, languageSelectId, rows = 14, fill = fals
         editor.destroy();
         textarea.hidden = false;
         host.hidden = true;
-        hint.hidden = true;
       };
     })();
 
@@ -164,9 +160,6 @@ export function EditorField({ children, languageSelectId, rows = 14, fill = fals
     <div ref={wrapRef} className={fill ? "flex h-full min-h-0 flex-col" : undefined}>
       {children}
       <div ref={hostRef} hidden className={fill ? "min-h-0 flex-1 [&>.cm-editor]:h-full" : undefined} />
-      <p ref={hintRef} hidden className={fill ? "shrink-0 border-t border-line px-2 py-0.5 text-xs text-muted" : "mt-1 text-xs text-muted"}>
-        Tab indents. Press Esc, then Tab, to leave the editor.
-      </p>
     </div>
   );
 }

@@ -178,7 +178,7 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
       <div className="space-y-4">
         {saved.order.map((id) => (
           <section key={id} aria-label={panes[id].title} className="overflow-hidden rounded-xl border border-line bg-surface">
-            <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-1.5">
+            <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-1">
               <h3 className="text-sm font-semibold">{panes[id].title}</h3>
               {panes[id].actions}
             </header>
@@ -350,7 +350,7 @@ function PaneFrame({
         isOver ? "border-accent ring-2 ring-accent/40" : "border-line"
       } ${isDragging ? "opacity-50" : ""}`}
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-line bg-background/60 px-2 py-1">
+      <header className="flex h-7 shrink-0 items-center justify-between gap-2 border-b border-line bg-background/60 px-2">
         <div
           draggable={draggable}
           onDragStart={(e) => {
