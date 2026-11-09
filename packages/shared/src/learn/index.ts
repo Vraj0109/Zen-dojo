@@ -1,4 +1,5 @@
 import { CORE_LESSONS } from "./core";
+import { GENERATED_LESSONS } from "./generated/lessons";
 import { DESIGNS_A } from "./designs-a";
 import { DESIGNS_B } from "./designs-b";
 import { DEEP_CORE } from "./deep-core";
@@ -39,7 +40,9 @@ import type { LessonExtra, LldDeep, LldGuide, LldProject, Lesson, PatternArticle
 export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 /** Concept lessons by concept id (system design, LLD, core CS). */
-export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS };
+/** Lessons written as Markdown (content/, built into generated/lessons.ts) win over the older TypeScript ones with the same id. */
+const GENERATED_BASE: Record<string, Lesson> = Object.fromEntries(Object.entries(GENERATED_LESSONS).map(([id, g]) => [id, g.lesson]));
+export const LESSONS: Record<string, Lesson> = { ...SD_LESSONS, ...SD_GAP_LESSONS, ...LLD_LESSONS, ...CORE_LESSONS, ...GENERATED_BASE };
 
 /** Reference walkthroughs by system design exercise id. */
 export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESIGNS_B };
@@ -68,9 +71,13 @@ export function sortSections(conceptId: string, sections: Section[]): Section[] 
   return sections.map((s, i) => ({ s, i })).sort((x, y) => rank(x.s) - rank(y.s) || x.i - y.i).map((x) => x.s);
 }
 
-export const LESSON_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
+const TS_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
   Object.entries(BASE_EXTRA).map(([id, x]) => [id, { ...x, deeper: sortSections(id, [...x.deeper, ...(MORE[id] ?? [])]) }]),
 );
+const GENERATED_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
+  Object.entries(GENERATED_LESSONS).map(([id, g]) => [id, { recap: g.recap, deeper: g.deeper.map(({ point: _point, ...s }) => s) }]),
+);
+export const LESSON_EXTRA: Record<string, LessonExtra> = { ...TS_EXTRA, ...GENERATED_EXTRA };
 
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 

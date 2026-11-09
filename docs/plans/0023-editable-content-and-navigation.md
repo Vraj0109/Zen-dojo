@@ -46,7 +46,7 @@
   Also check the other order problems found while auditing: numbering, "Interview questions" before "Common mistakes",
   consistent section titles (sentence case), lessons with an empty overview.
   - Done when: the audit test passes and `/study/lld/lld-solid` shows Single responsibility first.
-- [ ] **3. A Markdown format for a lesson.** Folder `packages/shared/content/<area>/<concept-id>.md`:
+- [x] **3. A Markdown format for a lesson.** Folder `packages/shared/content/<area>/<concept-id>.md`:
   front matter `id`, `title`, `area`, `section` (as in `study.ts`), then fixed headings:
   `## Overview`, `## What to know` (a numbered list: each item is the checklist point followed by its explanation after
   ` :: `), `## Go deeper` with `### <title>` sub-sections (optional `{point: 2}` after the title to attach it to a point),
@@ -108,6 +108,20 @@
   (stable, unplaced sections last). Step 3's Markdown format will carry `{point: n}` itself.
 - `learn/order-audit.test.ts`: lessons exist with overviews, every point entry names a real section and a valid point,
   titles unique, sections come out in checklist order, sentence-case titles.
+**Step 3 (Markdown format and build).**
+- `scripts/build-content.mjs` (plain Node): `parseLesson`, `readAll`, `renderGenerated`, and `lessonToMarkdown` (the inverse, used by the
+  migration). `pnpm content:build` writes `learn/generated/lessons.ts`; `pnpm content:check` validates and fails when the
+  generated file is stale. Typed by `scripts/build-content.d.mts`.
+- Format beyond the plan: optional `## Recap` (list, feeds Quick revise); in a `###` section the order is prose, then one
+  mermaid block (optional `Diagram caption: ...` line after it), then one code block (```java etc.). Fractions work in
+  `{point: 0.5}`. Errors give file:line, what is wrong, how to fix.
+- `learn/index.ts`: `LESSONS` and `LESSON_EXTRA` take generated entries over the TypeScript ones with the same id.
+- `lld-solid` is migrated as the sample (`content/lld/lld-solid.md`).
+- Tests in `learn/generated/`: `content-build.test.ts` (parser, errors, generated file current, generated lessons match
+  study.ts), `lesson-md.test.ts` (all 62 lessons round-trip TypeScript -> Markdown -> parse unchanged),
+  `migrate.test.ts` (does nothing unless `MIGRATE=lld` or a concept id is set; writes the .md files).
+- Open question: tests that need Node's `fs` cannot live in `packages/shared` (no @types/node), so the file work sits in the .mjs.
+
 - Not changed: the page order of "Interview questions" and "Common mistakes" (they already render in that order).
 
 ## Review
