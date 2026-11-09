@@ -40,7 +40,7 @@ resolution, page replacement.
 - [x] B. Databases: indexes and B+trees, transactions and isolation levels, MVCC, locking, query planning,
   replication, sharding
 - [x] C. Networking: TCP, UDP, HTTP/1.1-2-3, TLS, DNS, load balancing, CDN, WebSockets
-- [ ] D. Concurrency in Java: memory model, synchronized and locks, executors, concurrent collections,
+- [x] D. Concurrency in Java: memory model, synchronized and locks, executors, concurrent collections,
   CompletableFuture
 
 ## Acceptance criteria
