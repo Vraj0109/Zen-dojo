@@ -79,6 +79,26 @@ interface Exec {
   timedOut: boolean;
   tooMuchOutput: boolean;
   missing: boolean;
+  /** The operating system refused to start the program (Windows Smart App Control blocks unsigned programs that g++ just built) */
+  blocked: boolean;
+}
+
+/** True when a failed start means the OS blocked the program, not that the tool is missing. */
+export function isBlockedSpawnError(e: unknown): boolean {
+  const code = (e as NodeJS.ErrnoException | null)?.code;
+  const text = String((e as Error | null)?.message ?? "");
+  return code === "UNKNOWN" || code === "EPERM" || code === "EACCES" || /spawn (UNKNOWN|EPERM|EACCES)/.test(text);
+}
+
+/** What to tell the learner when the compiled program was blocked. */
+function blockedMessage(lang: JudgeLang): string {
+  const where = lang === "cpp" ? "the program that g++ built from your code" : "a program the judge needs";
+  return (
+    `The operating system refused to start ${where}. On Windows this is usually Smart App Control (or Defender reputation protection), ` +
+    "which blocks unsigned programs that were just built. Options: run this problem in Java or JavaScript (they start through the signed java and node programs), " +
+    "or turn Smart App Control off (Windows Security > App & browser control > Smart App Control settings; it cannot be turned back on without reinstalling Windows), " +
+    "or allow the folder in Windows Security. Answers for the large inputs come from a C++ reference, so they are skipped while C++ programs are blocked."
+  );
 }
 
 /**
@@ -93,8 +113,17 @@ function runProcess(file: string, args: string[], opts: { cwd: string; timeout: 
     let timedOut = false;
     let tooMuchOutput = false;
     let missing = false;
+    let blocked = false;
     let finished = false;
-    const child = spawn(file, args, { cwd: opts.cwd, windowsHide: true, stdio: ["pipe", fd, fd] });
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(file, args, { cwd: opts.cwd, windowsHide: true, stdio: ["pipe", fd, fd] });
+    } catch (e) {
+      // Some failures (Windows "spawn UNKNOWN") are thrown instead of sent as an error event.
+      closeSync(fd);
+      resolve({ code: null, signal: null, output: "", timedOut: false, tooMuchOutput: false, missing: (e as NodeJS.ErrnoException).code === "ENOENT", blocked: isBlockedSpawnError(e) });
+      return;
+    }
     const watcher = setInterval(() => {
       try {
         if (statSync(outPath).size > JUDGE_LIMITS.output) {
@@ -121,10 +150,11 @@ function runProcess(file: string, args: string[], opts: { cwd: string; timeout: 
       } catch {
         // no output file: treat as no output
       }
-      resolve({ code, signal, output, timedOut, tooMuchOutput, missing });
+      resolve({ code, signal, output, timedOut, tooMuchOutput, missing, blocked });
     };
     child.on("error", (e: NodeJS.ErrnoException) => {
       missing = e.code === "ENOENT";
+      blocked = isBlockedSpawnError(e);
       finish(null, null);
     });
     child.on("close", (code, signal) => finish(code, signal));
@@ -249,6 +279,7 @@ async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indic
   let pending = [...indices];
   let budget = budgetMs;
   let unavailable = false;
+  let blocked = false;
 
   while (pending.length > 0 && budget > 200) {
     await rm(path.join(dir, "results.txt"), { force: true });
@@ -259,6 +290,10 @@ async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indic
     budget -= Date.now() - started;
     if (r.missing) {
       unavailable = true;
+      break;
+    }
+    if (r.blocked) {
+      blocked = true;
       break;
     }
 
@@ -300,7 +335,7 @@ async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indic
   }
 
   for (const i of pending) outcomes.set(i, { problem: "not-run", error: "Not run: the time for this run was used up by earlier cases.", output: "" });
-  return { outcomes, beforeTests, unavailable };
+  return { outcomes, beforeTests, unavailable, blocked };
 }
 
 // ---- answers for the large inputs: computed by the reference solution once, kept while the app runs
@@ -321,8 +356,8 @@ export function referenceAnswers(spec: ProblemSpec): Promise<(unknown | undefine
         const prepared = await prepare(spec, "cpp", spec.solution.cpp, dir, false);
         if (!prepared.ok) return null;
         const cases = stress.map((s) => ({ input: s.make() }));
-        const { outcomes, unavailable } = await runSet(dir, prepared.value.run, cases, cases.map((_, i) => i), 30_000, 120_000);
-        if (unavailable) return null;
+        const { outcomes, unavailable, blocked } = await runSet(dir, prepared.value.run, cases, cases.map((_, i) => i), 30_000, 120_000);
+        if (unavailable || blocked) return null;
         return cases.map((_, i) => outcomes.get(i)?.actual);
       } finally {
         await rm(dir, { recursive: true, force: true }).catch(() => {});
@@ -354,6 +389,7 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
 
     const first = await runSet(dir, run, cases, known.map((_, i) => i), JUDGE_LIMITS.batchMs, JUDGE_LIMITS.totalMs);
     if (first.unavailable) return { status: "unavailable", message: MISSING[lang] };
+    if (first.blocked) return { status: "unavailable", message: blockedMessage(lang) };
     const outcomes = first.outcomes;
     let beforeTests = first.beforeTests;
 
@@ -421,6 +457,7 @@ export async function runCustom(spec: ProblemSpec, lang: JudgeLang, code: string
     if (!prepared.ok) return prepared.result as CustomResult;
     const r = await runSet(dir, prepared.value.run, [{ input }], [0], JUDGE_LIMITS.batchMs, JUDGE_LIMITS.batchMs);
     if (r.unavailable) return { status: "unavailable", message: MISSING[lang] };
+    if (r.blocked) return { status: "unavailable", message: blockedMessage(lang) };
     const o = r.outcomes.get(0);
     const printed = (r.beforeTests + (o?.output ?? "")).replace(/\r\n/g, "\n");
     return {
@@ -452,6 +489,7 @@ export async function computeOutputs(spec: ProblemSpec, lang: JudgeLang, code: s
     const cases = inputs.map((input) => ({ input }));
     const r = await runSet(dir, prepared.value.run, cases, cases.map((_, i) => i), 30_000, 120_000);
     if (r.unavailable) return { status: "unavailable", message: MISSING[lang] };
+    if (r.blocked) return { status: "unavailable", message: blockedMessage(lang) };
     return {
       status: "done",
       results: cases.map((_, i) => {
