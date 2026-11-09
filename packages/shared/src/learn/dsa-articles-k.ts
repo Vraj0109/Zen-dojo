@@ -1,6 +1,6 @@
 import type { PatternArticle } from "./types";
 
-// Full pattern articles, group "Greedy, math, advanced" (step 10): greedy-proof, exchange-argument, number-theory, combinatorics, geometry (part 1 of 2) (plan 0008). Format and rules: plan 0007. Code is C++17. Blocks of one article are
+// Full pattern articles, group "Greedy, math, advanced" (step 10): greedy-proof, exchange-argument, number-theory, combinatorics, geometry, segment-tree, sparse-table, ordered-set, randomized, design-ds (plan 0008). Format and rules: plan 0007. Code is C++17. Blocks of one article are
 // concatenated and compiled together, so helper names are unique per article.
 
 export const DSA_ARTICLES_K: Record<string, PatternArticle> = {
@@ -568,6 +568,648 @@ bool segmentsIntersect(Pt a, Pt b, Pt c, Pt d) {
       {
         title: "Practice order",
         body: `Start with Rectangle Area, which needs only the interval overlap idea and teaches you to clamp at zero. Then Max Points on a Line, which introduces the canonical direction and the idea of an anchor point; first write the version with doubles, find an input that breaks it, then replace it with the reduced integer pair. After these, implement the orientation test and the segment intersection function on your own and test them against the degenerate cases listed above, since those are what interviewers like to probe.`,
+      },
+    ],
+  },
+  "segment-tree": {
+    intro:
+      "A segment tree or a Fenwick tree (binary indexed tree) answers range queries such as the sum or the minimum of a stretch of an array while the array is being changed. A plain prefix-sum array answers queries in constant time but needs linear time per update; these trees make both operations logarithmic. You reach for them whenever a problem mixes point or range updates with range queries, or asks you to count elements in a value range while scanning.",
+    sections: [
+      {
+        title: "The intuition",
+        body: `Suppose you keep an array of numbers and must answer many questions of the form what is the sum of positions l to r, interleaved with updates that change one position. Recomputing the sum for each query costs O(n). A prefix-sum array makes queries O(1) but an update changes every prefix after it, costing O(n). With a hundred thousand operations either choice is too slow.
+
+The fix is to store partial sums over blocks of different sizes, so that any range can be assembled from a few blocks and any update touches only a few blocks. A segment tree stores the sum of the whole array at the root, the sums of the two halves in its children, the sums of the four quarters in the next level, and so on down to single elements. A query for a range descends from the root and takes whole blocks that fit inside the range: at most two blocks per level, so about 2 log n blocks. An update changes one leaf and recomputes the sums of its ancestors, log n of them.
+
+The Fenwick tree is a more compact cousin for prefix sums. Position i stores the sum of a block that ends at i and whose length is the lowest set bit of i. So position 6 (binary 110) stores positions 5 to 6, position 4 (100) stores positions 1 to 4, position 8 stores positions 1 to 8. A prefix sum up to 6 adds the block at 6 and then the block at 4, because removing the lowest bit of 6 gives 4. An update at position 3 adds to the block at 3, then at 4 (3 plus its lowest bit), then at 8. The code is a few lines and the constant factor is tiny.
+
+Pick the Fenwick tree when the operation is invertible (sum, xor, count) and the updates are point updates; pick the segment tree when the operation is min, max, gcd or something that cannot be subtracted, or when you need range updates with lazy propagation.`,
+      },
+      {
+        title: "Why it works",
+        body: `Both structures rest on the same decomposition: any prefix, and therefore any range, is a union of a small number of precomputed blocks, and any position belongs to a small number of blocks.
+
+For the Fenwick tree, write the prefix length i in binary. Removing the lowest set bit repeatedly splits the prefix 1..i into blocks, one per set bit, each block (j - lowbit(j), j] ending at a value j along the way. For i = 6 the blocks are (4, 6] and (0, 4]. They are disjoint and cover the prefix exactly, and there are at most log n of them, one per set bit. The update goes the other way: position p is contained in the blocks stored at p, p + lowbit(p), and so on, each larger by the lowest bit, until the index exceeds n. Each step at least doubles the lowest bit, so there are at most log n steps. A range sum is a prefix sum minus another prefix sum.
+
+For the segment tree, the invariant is that each node stores the combination of its two children, for example the sum. A query asks for the combination over [l, r). Whenever a node's segment lies completely inside the query range you can use its stored value; if it lies completely outside you skip it; if it partly overlaps you recurse into both children. At each level at most two nodes are partially overlapped, those containing the boundaries l and r, so only O(log n) nodes are visited. The iterative bottom-up version stores the leaves at positions n to 2n - 1 and each internal node i has children 2i and 2i + 1; moving the two boundaries up one level at a time and collecting the nodes they step over visits the same canonical blocks without recursion.
+
+The operation must be associative, so that combining blocks in any grouping gives the same answer. It does not need to be invertible for the segment tree, which is why min and max work there and not in a Fenwick tree. Lazy propagation extends the idea to range updates: a node stores a pending change for its whole segment and applies it to the children only when a later operation needs to look inside.`,
+      },
+      {
+        title: "A worked example",
+        body: `Trace a Fenwick tree over a = [3, 2, -1, 6, 5, 4, -3, 3], positions 1 to 8. The tree stores t[i] = the sum of the block ending at i with length lowbit(i).
+t[1] = 3 (block 1..1). t[2] = 3 + 2 = 5 (1..2). t[3] = -1 (3..3). t[4] = 3 + 2 - 1 + 6 = 10 (1..4). t[5] = 5 (5..5). t[6] = 5 + 4 = 9 (5..6). t[7] = -3 (7..7). t[8] = 19 (1..8, the total of all eight numbers).
+
+Prefix sum of the first 6 elements: start at i = 6, add t[6] = 9, remove the lowest bit to get i = 4, add t[4] = 10, remove the lowest bit to get 0 and stop. The sum is 19, which matches 3 + 2 - 1 + 6 + 5 + 4 = 19.
+
+Add 4 to position 3. Start at i = 3: t[3] becomes 3. Add the lowest bit: i = 4, t[4] becomes 14. Add the lowest bit: i = 8, t[8] becomes 23. Next would be 16, beyond n, so stop. Now the prefix sum of 6 elements is t[6] + t[4] = 9 + 14 = 23, which is the old 19 plus 4. A range sum from 3 to 6 is prefix(6) - prefix(2) = 23 - 5 = 18; check: -1 + 4 + 6 + 5 + 4 = 18.
+
+Three block reads and three block writes replaced a scan of eight elements. For a million elements the same operations touch about twenty blocks.
+
+A second use is counting. Count of Range Sum asks how many ranges of the array have a sum between two bounds. With prefix sums p, a range (j, i] has sum p[i] - p[j], so for each i you count earlier prefix sums in the interval [p[i] - upper, p[i] - lower]. A Fenwick tree indexed by the rank of each prefix sum answers "how many earlier values fall in this interval" in logarithmic time as you scan.`,
+      },
+      {
+        title: "Implementation",
+        body: `A Fenwick tree with zero-based public indices and a one-based internal array, which is what makes the lowest-bit trick work (index 0 would loop forever). The methods are add at a position, the prefix sum up to a position, and the sum of a range. The lowest set bit of i is i & -i. It stores 64-bit values because sums of many elements overflow 32 bits.`,
+        code: `class FenwickTree {
+    vector<long long> t;
+
+public:
+    explicit FenwickTree(int n) : t(n + 1, 0) {}
+
+    void add(int index, long long delta) {  // index is zero-based
+        for (int i = index + 1; i < (int)t.size(); i += i & -i) t[i] += delta;
+    }
+
+    long long prefix(int index) const {  // sum of positions 0..index
+        long long sum = 0;
+        for (int i = index + 1; i > 0; i -= i & -i) sum += t[i];
+        return sum;
+    }
+
+    long long range(int left, int right) const {  // sum of positions left..right
+        if (left > right) return 0;
+        return prefix(right) - (left > 0 ? prefix(left - 1) : 0);
+    }
+};`,
+      },
+      {
+        title: "Implementation: an iterative segment tree",
+        body: `The bottom-up segment tree for sums with point updates, the shape of Range Sum Query - Mutable. The leaves live at positions n to 2n - 1 of one array, and each internal node holds the sum of its two children. A point update overwrites a leaf and walks up, recomputing parents. A query over the half-open range [l, r) lifts both ends up the tree: when the left end is a right child it is taken and moved right, when the right end is a right child its left sibling is taken. Replace the addition with min, max or gcd to get those queries; only the identity value changes.`,
+        code: `class SumSegmentTree {
+    int n;
+    vector<long long> t;
+
+public:
+    explicit SumSegmentTree(const vector<int>& a) : n(a.size()), t(2 * a.size()) {
+        for (int i = 0; i < n; i++) t[n + i] = a[i];
+        for (int i = n - 1; i > 0; i--) t[i] = t[2 * i] + t[2 * i + 1];
+    }
+
+    void set(int index, int value) {
+        int i = index + n;
+        t[i] = value;
+        for (; i > 1; i >>= 1) t[i >> 1] = t[i] + t[i ^ 1];
+    }
+
+    long long query(int left, int right) const {  // sum of positions in [left, right)
+        long long sum = 0;
+        for (int l = left + n, r = right + n; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) sum += t[l++];
+            if (r & 1) sum += t[--r];
+        }
+        return sum;
+    }
+};`,
+      },
+      {
+        title: "Implementation: counting with a Fenwick tree",
+        body: `Count of Range Sum. Build the prefix sums, sort and deduplicate them to give each value a rank, and keep a Fenwick tree of how many earlier prefix sums have each rank. For each prefix sum, the number of earlier ones in [p - upper, p - lower] is a range sum over ranks found with two binary searches; then insert the current prefix sum. The same coordinate compression plus Fenwick idea counts inversions and solves many "how many earlier elements are smaller" problems.`,
+        code: `int countRangeSum(const vector<int>& nums, int lower, int upper) {
+    int n = nums.size();
+    vector<long long> prefix(n + 1, 0);
+    for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + nums[i];
+    vector<long long> sorted(prefix);
+    sort(sorted.begin(), sorted.end());
+    sorted.erase(unique(sorted.begin(), sorted.end()), sorted.end());
+    FenwickTree seen(sorted.size());
+    int count = 0;
+    for (int i = 0; i <= n; i++) {
+        int from = lower_bound(sorted.begin(), sorted.end(), prefix[i] - upper) - sorted.begin();
+        int to = int(upper_bound(sorted.begin(), sorted.end(), prefix[i] - lower) - sorted.begin()) - 1;
+        count += (int)seen.range(from, to);
+        int rank = lower_bound(sorted.begin(), sorted.end(), prefix[i]) - sorted.begin();
+        seen.add(rank, 1);
+    }
+    return count;
+}`,
+      },
+      {
+        title: "Variants",
+        body: `Range updates with range queries use lazy propagation: each node carries a pending addition or assignment that is pushed down only when needed, which is the tool for Falling Squares (assign a height over a range, query the maximum). A Fenwick tree can support range add with point query by storing differences, and range add with range sum with two trees. A segment tree can store tuples, such as the best prefix, best suffix, total and best subarray sum of a segment, to answer maximum subarray queries. Dynamic or sparse segment trees create nodes on demand for coordinates up to 10^9. Persistent segment trees keep every version and answer queries on old versions, for k-th smallest in a range. Merge sort trees and wavelet trees answer more complex counting queries. A two-dimensional Fenwick tree handles rectangle sums with point updates. If you only need static queries, a sparse table or a prefix array is simpler and faster.`,
+      },
+      {
+        title: "Complexity",
+        body: `Both structures build in O(n) (the Fenwick tree can also be built by n updates in O(n log n)), answer queries in O(log n) and apply point updates in O(log n). Memory is O(n): one array of n + 1 values for the Fenwick tree and two arrays' worth, 2n values, for the iterative segment tree. A recursive segment tree is usually allocated with 4n entries for safety. Lazy propagation keeps the logarithmic bounds but increases the constant. The counting application above costs O(n log n) in total: the sort, the binary searches and the Fenwick operations are each logarithmic per element. Compared with a plain array, which offers O(1) updates and O(n) queries, or a prefix array with the opposite trade-off, the trees balance the two to O(log n) each, which is what a mixed workload needs.`,
+      },
+      {
+        title: "Pitfalls and edge cases",
+        body: `A Fenwick tree is one-indexed: index zero makes i & -i equal to zero and the loop never ends, so convert at the boundary. Decide once whether ranges are inclusive or half-open and keep it consistent between the two structures. Use 64-bit sums, because the total of many 32-bit values overflows. In the iterative segment tree the array size is exactly 2n and n need not be a power of two for commutative operations; for non-commutative ones (such as string concatenation) the order of combining matters and needs care. Remember the identity element for min and max queries (a very large or very small value), and do not initialise empty nodes to zero for those. Coordinate compression requires sorting and removing duplicates before ranking, and the ranks must be found with lower_bound on the same array. Finally, an empty array must not build a tree, and a query with the left end beyond the right end should return the identity value.`,
+      },
+      {
+        title: "Practice order",
+        body: `Begin with Range Sum Query - Mutable, solving it twice: with a Fenwick tree and with the iterative segment tree, and compare the code. Then Count of Range Sum, which combines prefix sums, coordinate compression and a Fenwick tree and is the best exercise for seeing the structure as a counting tool. Falling Squares needs a segment tree with range assignment and range maximum, so it introduces lazy propagation; do it last, and write a brute-force version first to test against.`,
+      },
+    ],
+  },
+  "sparse-table": {
+    intro:
+      "A sparse table answers range minimum or maximum queries on an array that never changes, in constant time per query after an O(n log n) preparation. Sqrt decomposition is the more flexible sibling: it splits the array into blocks of about the square root of n and answers queries and updates in O(sqrt n). You reach for them when queries vastly outnumber updates (sparse table), or when the operation is awkward for a segment tree and a simple blocked scan is enough (sqrt decomposition).",
+    sections: [
+      {
+        title: "The intuition",
+        body: `Imagine a long array and a million questions of the form what is the smallest value between positions l and r. Scanning the range for each question costs O(n). A segment tree answers in O(log n). But if the array is fixed, we can do better by paying up front.
+
+Precompute, for every position i and every power of two 2^k, the minimum of the block of length 2^k that starts at i. Call it table[k][i]. The blocks of length one are the array itself. A block of length two is the minimum of two blocks of length one, a block of length four is the minimum of two blocks of length two, and so on: table[k][i] = min(table[k - 1][i], table[k - 1][i + 2^(k-1)]). There are about log n levels of n entries each.
+
+Now any query range [l, r] of length len can be covered by two blocks of length 2^k, where 2^k is the largest power of two not exceeding len: one starting at l and one ending at r. They overlap in the middle, and the overlap does not matter, because the minimum of a value counted twice is the same as counted once. So the answer is min(table[k][l], table[k][r - 2^k + 1]), two lookups. The overlap trick only works for operations where counting an element twice is harmless (min, max, gcd, bitwise and or), which are called idempotent. For sums you cannot overlap, and the sparse table loses its constant-time property.
+
+Sqrt decomposition takes a different route: cut the array into blocks of size about the square root of n, store one summary per block, and answer a query by combining whole blocks in the middle with a scan of the partial blocks at the two ends. An update recomputes one block's summary. Each operation touches at most about 3 * sqrt(n) items, which for n = 10^5 is under a thousand.`,
+      },
+      {
+        title: "Why it works",
+        body: `The sparse table has two facts to check: the table is built correctly, and two overlapping blocks suffice for any range.
+
+Construction. The block of length 2^k starting at i is the concatenation of two adjacent blocks of length 2^(k-1): the one starting at i and the one starting at i + 2^(k-1). The minimum of a union of two parts is the minimum of their minima, so the recurrence is exact. Levels are filled in increasing k, and a block of level k exists only if i + 2^k <= n, so row k has n - 2^k + 1 entries. The total is less than n log n entries.
+
+Query. Let len = r - l + 1 and let k be the largest integer with 2^k <= len, that is k = floor(log2(len)). Then 2^k <= len < 2^(k+1), so two blocks of length 2^k starting at l and at r - 2^k + 1 together cover the whole range: the first covers positions l to l + 2^k - 1, the second covers r - 2^k + 1 to r, and since 2^(k+1) > len the second starts no later than the position right after the first ends. Every position in [l, r] is in at least one of them, and no position outside [l, r] is in either. For an idempotent operation min(a, a) = a, so the double-covered middle is harmless. To get k quickly, precompute floor(log2) for all lengths in a small array, or use the number of leading zeros of the length.
+
+Sqrt decomposition. A block size of B gives n / B blocks. A query takes at most two partial blocks of up to B elements each and up to n / B whole blocks, so the cost is about 2B + n / B, which is minimised at B near sqrt(n) giving O(sqrt n). A point update changes one element and recomputes its block summary: for a sum you can adjust the summary by the difference in O(1), for a min you may need to rescan the block in O(B). The structure is easy to adapt to unusual operations, such as counting how many values in a range are below a threshold (keep each block sorted and binary search), where a segment tree would be awkward.
+
+Offline alternatives such as Mo's algorithm reorder the queries so that a sliding window moves little, with a similar square root bound.`,
+      },
+      {
+        title: "A worked example",
+        body: `Build a sparse table for minimum over a = [5, 2, 4, 7, 6, 3, 1, 2], eight elements, positions 0 to 7.
+Level 0 (blocks of length 1): [5, 2, 4, 7, 6, 3, 1, 2].
+Level 1 (length 2): min of neighbouring pairs: [2, 2, 4, 6, 3, 1, 1]. For example the entry at position 3 is min(7, 6) = 6.
+Level 2 (length 4): min of two level-1 blocks two apart: position 0 is min(2, 4) = 2, position 1 is min(2, 6) = 2, position 2 is min(4, 3) = 3, position 3 is min(6, 1) = 1, position 4 is min(3, 1) = 1. So the level is [2, 2, 3, 1, 1].
+Level 3 (length 8): position 0 is min(level-2 at 0, level-2 at 4) = min(2, 1) = 1.
+
+Query the minimum of positions 1 to 6. The length is 6, and the largest power of two not exceeding 6 is 4, so k = 2. The two blocks are level 2 at position 1 (covering positions 1 to 4) and level 2 at position 6 - 4 + 1 = 3 (covering positions 3 to 6). Their values are 2 and 1, so the answer is min(2, 1) = 1. The positions 3 and 4 were covered twice, which does not change a minimum. The true minimum of 2, 4, 7, 6, 3, 1 is 1, as expected.
+
+A query for positions 0 to 2 has length 3 and k = 1: min(level 1 at 0, level 1 at 1) = min(2, 2) = 2, again covering position 1 twice.
+
+For sqrt decomposition on ten numbers 1 to 10 with blocks of size 3 the block sums are 6, 15, 24 and 10. The sum of positions 2 to 8 (values 3 to 9) takes the tail of block 0 (value 3), the whole of blocks 1 and 2 (15 + 24), and nothing more: 3 + 15 + 24 = 42, which equals 3 + 4 + ... + 9.`,
+      },
+      {
+        title: "Implementation",
+        body: `A sparse table for range minimum. The log table stores floor(log2) for every length so that a query does no floating point. The table has one vector per level. The constructor fills level 0 with the array and each next level from the previous one, stopping when the block length exceeds n. The query function expects zero-based inclusive bounds with left <= right.`,
+        code: `class SparseTableMin {
+    vector<vector<int>> table;
+    vector<int> logOf;
+
+public:
+    explicit SparseTableMin(const vector<int>& a) {
+        int n = a.size();
+        logOf.assign(n + 2, 0);
+        for (int i = 2; i <= n + 1; i++) logOf[i] = logOf[i / 2] + 1;
+        int levels = n > 0 ? logOf[n] + 1 : 0;
+        table.assign(levels, vector<int>());
+        if (n == 0) return;
+        table[0] = a;
+        for (int k = 1; k < levels; k++) {
+            int half = 1 << (k - 1);
+            table[k].resize(n - (1 << k) + 1);
+            for (int i = 0; i + (1 << k) <= n; i++) {
+                table[k][i] = min(table[k - 1][i], table[k - 1][i + half]);
+            }
+        }
+    }
+
+    int query(int left, int right) const {  // minimum of positions left..right
+        int k = logOf[right - left + 1];
+        return min(table[k][left], table[k][right - (1 << k) + 1]);
+    }
+};`,
+      },
+      {
+        title: "Implementation: sqrt decomposition with updates",
+        body: `A blocked array for range sums with point updates. The block size is the integer square root of n rounded up. A query adds single elements while the left end is not at a block start, then whole blocks, then single elements again. An update changes the element and adjusts its block's sum by the difference. This structure is slower than a Fenwick tree for sums, but the same layout works for operations where a Fenwick tree does not, such as keeping each block sorted to count values below a limit.`,
+        code: `class SqrtSum {
+    int n, blockSize;
+    vector<long long> value, blockSum;
+
+public:
+    explicit SqrtSum(const vector<int>& a) : n(a.size()) {
+        blockSize = max(1, (int)ceil(sqrt((double)max(1, n))));
+        value.assign(a.begin(), a.end());
+        blockSum.assign(n / blockSize + 1, 0);
+        for (int i = 0; i < n; i++) blockSum[i / blockSize] += a[i];
+    }
+
+    void update(int index, long long newValue) {
+        blockSum[index / blockSize] += newValue - value[index];
+        value[index] = newValue;
+    }
+
+    long long query(int left, int right) const {  // sum of positions left..right
+        long long sum = 0;
+        int i = left;
+        while (i <= right && i % blockSize != 0) sum += value[i++];
+        while (i + blockSize - 1 <= right) {
+            sum += blockSum[i / blockSize];
+            i += blockSize;
+        }
+        while (i <= right) sum += value[i++];
+        return sum;
+    }
+};`,
+      },
+      {
+        title: "Variants",
+        body: `The same table works for any idempotent operation: maximum, gcd, bitwise and, bitwise or. For non-idempotent operations such as sum you can still use a sparse table with a different query that splits the range into disjoint power-of-two blocks along the binary representation of the length, at O(log n) per query, or use the disjoint sparse table, which restores O(1) queries with a different layout. To return the position of the minimum, store indices and compare by the value at each index. A two-dimensional sparse table answers rectangle minimum queries in constant time with O(n m log n log m) memory. Sqrt decomposition has several cousins: Mo's algorithm for offline range queries, sqrt decomposition on queries (rebuild every sqrt(q) operations), and sqrt on values to count frequencies. It is also a practical fallback when a problem needs an operation a segment tree makes hard, such as range assignment combined with counting distinct values.`,
+      },
+      {
+        title: "Complexity",
+        body: `The sparse table takes O(n log n) time and memory to build and O(1) per query, so it wins when there are many queries and no updates; for n = 10^6 the table has about twenty million entries, which is 80 MB of 32-bit integers, so check the memory limit. Sqrt decomposition takes O(n) to build, O(sqrt n) per query, and O(1) to O(sqrt n) per update depending on the operation. A segment tree gives O(log n) for both and is the usual choice when updates exist. In practice the ordering from fastest queries to slowest is sparse table, segment tree, sqrt decomposition, but the simplest code is often the blocked array, which is why it is popular in contests for tricky operations.`,
+      },
+      {
+        title: "Pitfalls and edge cases",
+        body: `The sparse table is for static arrays: after any update the table is invalid and must be rebuilt, so check that the problem has no updates. It only gives O(1) for idempotent operations. Mind the bounds: the query is inclusive of both ends here, with left <= right, and a reversed range must be swapped or rejected. The log table must be indexed by the length, which can be n, so size it n + 1 or more. For n = 0 do not build any level. In sqrt decomposition, the block size must be at least 1, and the last block may be partial, so the number of blocks is n / blockSize + 1 and the loops must stop at the array end. When updating a block summary for a min, adjusting by a difference is wrong; recompute the block. Finally, test both structures against a plain loop on random arrays and random ranges, because off-by-one errors in the partial blocks are easy to make and hard to see.`,
+      },
+      {
+        title: "Practice order",
+        body: `Start with Sparse table: O(1) static range min/max. Implement it, test it against brute force on random ranges, and make sure you can explain the overlapping two-block trick without notes. Then do Sqrt decomposition: write the blocked sum with updates, and afterwards change it to answer minimum queries to feel the difference between adjusting a summary and recomputing it. If you want a third exercise, compare both with a segment tree on the same random workload and measure which is fastest for a read-heavy mix.`,
+      },
+    ],
+  },
+  "ordered-set": {
+    intro:
+      "An ordered set or ordered map keeps its elements sorted at all times and finds the nearest element above or below any value in logarithmic time: in C++ std::set, std::map and std::multiset, in Java TreeSet and TreeMap. You reach for it when a problem needs floor and ceiling queries on a changing collection: the closest booked slot, the nearest earlier value within a window, the smallest element larger than x, or a sorted window with deletions.",
+    sections: [
+      {
+        title: "The intuition",
+        body: `A hash set answers whether a value is present in constant time, but it knows nothing about order. A sorted array answers nearest-neighbour questions by binary search, but inserting into the middle costs O(n). Many problems need both at once: insert a value, remove a value, and ask for the closest value above or below x.
+
+A balanced binary search tree does all three in O(log n). Elements are kept in sorted order, and the library exposes the order through iterators. In C++, lower_bound(x) returns the first element not less than x, which is the ceiling of x, and upper_bound(x) returns the first element greater than x. The floor of x, the largest element not greater than x, is the element just before upper_bound(x) (if there is one). The same queries in Java are ceiling, floor, higher and lower.
+
+My Calendar I shows the pattern. You hold a set of booked intervals that never overlap, so they are ordered by start time and also by end time. A new interval [s, e) conflicts only with its neighbours in this order: the first booking that starts at or after s, and the booking just before it. If the next booking starts before e, there is an overlap; if the previous booking ends after s, there is an overlap. Two neighbour checks replace a scan of all bookings. The set gives you the neighbours in O(log n).
+
+Contains Duplicate III asks whether some pair of indices at most k apart has values at most t apart. Keep a sorted window of the last k values. For a new value x, ask for the smallest window value that is at least x - t; if it exists and is at most x + t, you found a pair. Then insert x and drop the value that left the window. The ordered set provides the one query a hash set cannot: the nearest value in a range.`,
+      },
+      {
+        title: "Why it works",
+        body: `The correctness of these solutions depends on two facts: the tree keeps its order after every update, and the nearest-neighbour query is enough to decide the question.
+
+The balance guarantee. A red-black tree (behind std::set and TreeMap) or another self-balancing tree keeps its height at O(log n) through rotations after insertions and deletions, so every operation walks one root-to-leaf path. The in-order traversal always lists the elements in sorted order, and the library's iterators step along that order, which is why the predecessor and successor of any element are found by moving one step. The key must define a strict weak ordering, otherwise the tree structure is meaningless.
+
+Sufficiency of the nearest neighbour. For the window problem, a pair with values differing by at most t exists for the new value x exactly when some window value lies in [x - t, x + t]. If any value lies in that interval, then the smallest value that is at least x - t also lies in it (it is no larger than that value and no smaller than x - t). So checking one candidate, the ceiling of x - t, is both necessary and sufficient. For the calendar, a new interval overlaps some booking exactly when it overlaps one of its two neighbours in start order: any booking that overlaps it and starts before s must end after s, and the one just before s in start order has the largest end among the bookings that start before s because they are disjoint and sorted; any booking that overlaps it and starts at or after s must start before e, and the first one at or after s has the smallest start. So looking at the two neighbours decides the question.
+
+Multisets allow equal keys and need extra care in deletion: erase(value) removes all copies, while erase(find(value)) removes one. This distinction is crucial in sliding window problems with duplicates.`,
+      },
+      {
+        title: "A worked example",
+        body: `Trace Contains Duplicate III on nums = [1, 5, 9, 1, 5, 9] with index distance k = 2 and value distance t = 3. Keep a set of the last k values. For each x, find the first set element that is at least x - t and check whether it is at most x + t.
+
+i = 0, x = 1: the set is empty, no candidate. Insert: {1}.
+i = 1, x = 5: first element at least 5 - 3 = 2: none (1 is too small). Insert: {1, 5}.
+i = 2, x = 9: first at least 6: none. Insert: {1, 5, 9}. The set has 3 elements, more than k = 2, so remove nums[0] = 1: {5, 9}.
+i = 3, x = 1: first at least -2 is 5, and 5 is not at most 1 + 3 = 4. No pair. Insert: {1, 5, 9}, remove nums[1] = 5: {1, 9}.
+i = 4, x = 5: first at least 2 is 9, which is greater than 8. No pair. Insert and remove nums[2] = 9: {1, 5}.
+i = 5, x = 9: first at least 6: none. No pair.
+
+The answer is false. With nums = [1, 2, 3, 1], k = 3, t = 0: at i = 3, x = 1, the set holds {1, 2, 3}, the first element at least 1 is 1, which is at most 1, so the answer is true.
+
+My Calendar I with bookings (10, 20), (15, 25), (20, 30). The first is accepted. For (15, 25): the first booking starting at or after 15 does not exist; the previous booking (10, 20) ends at 20, which is after 15, so it overlaps: rejected. For (20, 30): the first booking at or after 20 does not exist; the previous one ends at 20, not after 20, so it is accepted. The results are true, false, true.`,
+      },
+      {
+        title: "Implementation",
+        body: `Contains Duplicate III with a std::set of 64-bit values, since x + t may overflow a 32-bit integer. For each element, lower_bound finds the ceiling of x - t, and the pair exists if that element is at most x + t. After the check, insert x and, if the window is larger than k, erase the element that fell out. With distinct values in the set this is correct because a pair of equal values would have been found before the second one was inserted, so the set never holds duplicates when the answer is still false.`,
+        code: `bool containsNearbyAlmostDuplicate(const vector<int>& nums, int indexDiff, int valueDiff) {
+    set<long long> window;
+    for (int i = 0; i < (int)nums.size(); i++) {
+        long long x = nums[i];
+        auto it = window.lower_bound(x - valueDiff);  // smallest value >= x - t
+        if (it != window.end() && *it <= x + valueDiff) return true;
+        window.insert(x);
+        if ((int)window.size() > indexDiff) window.erase((long long)nums[i - indexDiff]);
+    }
+    return false;
+}`,
+      },
+      {
+        title: "Implementation: a calendar and a sorted window",
+        body: `The calendar keeps bookings in a map from start to end. The ceiling lookup finds the next booking, and stepping back one gives the previous. A multiset is the natural container for a sliding window maximum when you also need to remove elements by value: it allows duplicates, its largest element is the last one, and erasing a single copy needs the iterator returned by find. The window function below returns the maximum of every window of k consecutive elements.`,
+        code: `class CalendarOne {
+    map<int, int> booked;  // start -> end
+
+public:
+    bool book(int start, int end) {
+        auto next = booked.lower_bound(start);
+        if (next != booked.end() && next->first < end) return false;
+        if (next != booked.begin() && prev(next)->second > start) return false;
+        booked[start] = end;
+        return true;
+    }
+};
+
+vector<int> windowMaximums(const vector<int>& nums, int k) {
+    multiset<int> window;
+    vector<int> result;
+    for (int i = 0; i < (int)nums.size(); i++) {
+        window.insert(nums[i]);
+        if (i >= k) window.erase(window.find(nums[i - k]));  // remove one copy only
+        if (i >= k - 1) result.push_back(*window.rbegin());
+    }
+    return result;
+}`,
+      },
+      {
+        title: "Variants",
+        body: `Ordered maps store a value for each key and answer floor and ceiling by key; they back interval maps (merging adjacent intervals as in Data Stream as Disjoint Intervals), event counting for My Calendar II and III (map of boundary changes with a running sum), and time-based stores. A multiset gives sliding window medians with two sets or with one set and a moving iterator. Order-statistic trees also answer the k-th smallest and the rank of an element in logarithmic time; in C++ they are available as a policy-based data structure in GNU extensions, and in Java you can build them on a Fenwick tree over compressed values. A Fenwick tree over ranks does the work of an ordered set offline, with smaller constants. In Python there is no built-in ordered set, so people use a sorted list with bisect, which has O(n) insertion but a small constant, or the sortedcontainers library. When values are small integers, a bitset or a Fenwick tree beats a balanced tree.`,
+      },
+      {
+        title: "Complexity",
+        body: `Insertion, deletion, lower_bound and upper_bound all take O(log n) in a balanced tree, and stepping to the next or previous element takes amortised O(1). A solution that does one such operation per element runs in O(n log n) total. Memory is O(n) with a larger constant than an array, because each node stores pointers and colour information, so for tens of millions of elements a sorted array or a Fenwick tree is a better fit. In the window problem the set holds at most k + 1 elements, so the time is O(n log k). Comparing with the alternatives: a hash set cannot answer nearest queries, a sorted array has O(n) insertion, a heap supports only the extreme element, and a balanced tree is the only one that supports all of them.`,
+      },
+      {
+        title: "Pitfalls and edge cases",
+        body: `Use a wide integer type for x - t and x + t, because the sums overflow 32 bits for values near the limits. In a multiset, erase(value) removes every copy, which silently breaks sliding windows with duplicates; erase the iterator from find instead. Check for end() before dereferencing the result of lower_bound, and before stepping back from it. The comparison for a set or map must be a strict weak ordering; a comparator that uses less-or-equal causes undefined behaviour. Iterators to erased elements are invalid, so read what you need first. Decide whether the booking intervals are half-open: touching intervals do not overlap when the end is exclusive. When the window size k is zero the set should stay empty and the answer is false. And remember that the problem may want the index difference to be at most k, so the window holds k previous elements, not k + 1.`,
+      },
+      {
+        title: "Practice order",
+        body: `Start with My Calendar I, which needs only the two-neighbour check and a map. Then My Calendar II and My Calendar III, which use the same ordered structure for event counting: record plus one at the start and minus one at the end, and scan the running total. Contains Duplicate III is the best test of the ceiling query inside a sliding window and the first problem where overflow matters. All three calendar problems are runnable in the Practice section of this app, so you can check your solutions against large inputs.`,
+      },
+    ],
+  },
+  randomized: {
+    intro:
+      "Randomised and probabilistic techniques use chance on purpose: to sample fairly from data too big or too unpredictable to hold, to break the worst case of an algorithm, or to trade a tiny chance of error for a large saving in memory. The ones worth knowing are reservoir sampling, the Fisher-Yates shuffle, the Bloom filter and consistent hashing. You reach for them when a problem says pick uniformly at random from a stream, test membership with almost no memory, or spread keys over servers that come and go.",
+    sections: [
+      {
+        title: "The intuition",
+        body: `Four small problems, one idea each.
+
+Pick a random node of a linked list whose length you do not know, using constant memory and one pass. You cannot pick an index in advance, because you do not know the length. Instead keep a current choice and, as you read the k-th node, replace the choice with it with probability 1 / k. The first node is chosen at once, the second replaces it half the time, the third replaces the current choice a third of the time, and so on. At the end every node had the same chance of being the survivor. This is reservoir sampling, and it works on streams that never fit in memory.
+
+Shuffle an array so that every ordering is equally likely. Walk from the last position down to the second, and swap each position with a uniformly random position at or before it. Each position is fixed once and never touched again, and the number of possible outcomes of the n - 1 random choices is n * (n - 1) * ... * 2 = n!, one per permutation. That is the Fisher-Yates shuffle. A tempting shortcut, swapping every position with a random position anywhere in the array, produces n^n equally likely sequences of swaps, which cannot divide evenly among n! permutations, so it is biased.
+
+Test whether a word is in a huge set using a few bits per word. A Bloom filter keeps a bit array and several hash functions. To add a key, set the bits at its hash positions. To test a key, check that all its bits are set. If some bit is clear, the key is certainly absent. If all are set, the key is probably present, with a false positive rate you can tune. It never gives false negatives.
+
+Assign keys to servers so that adding or removing a server moves only a small share of the keys. Place the servers on a circle by hashing their names, hash each key onto the same circle, and give the key to the first server clockwise. When a server leaves, only its keys move, to the next server. This is consistent hashing, the basis of distributed caches and storage systems.`,
+      },
+      {
+        title: "Why it works",
+        body: `Each technique comes with a short probabilistic argument.
+
+Reservoir sampling. Claim: after k elements, each has probability 1 / k of being the current choice. For k = 1 it is true. Suppose it holds for k. The new element becomes the choice with probability 1 / (k + 1). An earlier element stays the choice if it was the choice (probability 1 / k) and the new element did not replace it (probability k / (k + 1)); the product is 1 / (k + 1). So the claim holds for k + 1 and, by induction, for any length. For k items instead of one, keep the first k, then replace a random reservoir slot with probability k / i for the i-th element.
+
+Fisher-Yates. Count outcomes: the last position has n choices, the next n - 1, and so on, so there are n! equally likely sequences of random choices, and each leads to a different permutation, since the position assigned at each step is different. Therefore every permutation has probability 1 / n!.
+
+Bloom filter. After inserting m keys with k hash functions into a filter of b bits, a given bit is still zero with probability about (1 - 1 / b)^(k * m), which is close to e^(-k * m / b). A key that was never inserted looks present only if all its k bits are set, with probability about (1 - e^(-k * m / b))^k. Minimising this over k gives k near (b / m) * ln 2, which makes about half of the bits set and a false positive rate near 0.6185^(b / m). At 10 bits per key and 7 hashes the rate is about one percent. There are no false negatives, because bits are never cleared.
+
+Consistent hashing. With the points spread evenly, each of n servers owns about 1 / n of the circle. Removing one server affects only the arcs it owned, which are taken over by its clockwise neighbour, so about 1 / n of the keys move; a plain hash modulo n would move almost all keys. A single point per server gives an uneven split, so each server is hashed many times as virtual nodes, which smooths the shares towards 1 / n each.
+
+Randomised algorithms in general (random pivots in quickselect and quicksort) rest on expectation: a random pivot lands in the middle half of the data with probability one half, so the expected recursion depth is logarithmic regardless of the input order.`,
+      },
+      {
+        title: "A worked example",
+        body: `Reservoir sampling over the stream a, b, c. Read a: choice = a (probability 1). Read b: replace with probability 1/2. Read c: replace with probability 1/3. The probability that the final choice is a: a is chosen at step 1, survives step 2 with probability 1/2, survives step 3 with probability 2/3: (1)(1/2)(2/3) = 1/3. For b: chosen at step 2 with probability 1/2, survives step 3 with probability 2/3: 1/3. For c: chosen at step 3 with probability 1/3. All three are 1/3.
+
+A Bloom filter with 16 bits and two hash functions. Add "cat": its hashes give positions 3 and 9, so those bits become 1. Add "dog": positions 9 and 14, so bit 14 becomes 1 and bit 9 stays 1. The array now has ones at 3, 9, 14. Query "cat": bits 3 and 9 are set, answer probably present (correct). Query "emu" with positions 3 and 14: both are set, answer probably present, which is a false positive caused by the other keys. Query "owl" with positions 5 and 9: bit 5 is clear, answer certainly absent. Increasing the number of bits makes false positives rarer.
+
+Consistent hashing with servers A, B, C placed at positions 10, 40 and 70 on a ring of size 100. A key hashed to 25 goes to the first server clockwise, B at 40. A key at 75 wraps around to A at 10. If B is removed, the keys that were assigned to B (those hashed into 11 to 40) now go to C at 70; keys that belonged to A or C do not move. Only the removed server's keys changed owner.
+
+Fisher-Yates on [1, 2, 3]: i = 2, pick j in 0..2, say 0, swap positions 2 and 0 to get [3, 2, 1]. i = 1, pick j in 0..1, say 1, no change. The result [3, 2, 1] was one of 3 * 2 = 6 equally likely outcomes.`,
+      },
+      {
+        title: "Implementation",
+        body: `The shuffle and the sampler. fisherYatesShuffle walks from the end and swaps with a uniform index in the range from zero to the current position inclusive; the inclusive upper bound is essential, because excluding the position itself makes certain permutations impossible. reservoirSample keeps the first k items and then, for the i-th item, draws a random number in 1..i and replaces a slot if the number is at most k. A small mixing function, mix64, turns a hash into a well spread 64-bit value and is used by the structures that follow.`,
+        code: `unsigned long long mix64(unsigned long long x) {
+    x += 0x9e3779b97f4a7c15ULL;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
+}
+
+void fisherYatesShuffle(vector<int>& a, mt19937& rng) {
+    for (int i = (int)a.size() - 1; i > 0; i--) {
+        int j = uniform_int_distribution<int>(0, i)(rng);  // inclusive: j may equal i
+        swap(a[i], a[j]);
+    }
+}
+
+vector<int> reservoirSample(const vector<int>& stream, int k, mt19937& rng) {
+    vector<int> reservoir;
+    for (int i = 0; i < (int)stream.size(); i++) {
+        if (i < k) {
+            reservoir.push_back(stream[i]);
+        } else {
+            int j = uniform_int_distribution<int>(0, i)(rng);  // uniform over the i + 1 items seen
+            if (j < k) reservoir[j] = stream[i];
+        }
+    }
+    return reservoir;
+}`,
+      },
+      {
+        title: "Implementation: a Bloom filter",
+        body: `A Bloom filter with a bit vector and k hash positions derived from two base hashes by double hashing: position i is h1 + i * h2 modulo the size, which gives k well-spread positions from two hash computations. The second hash is forced odd so that it is never zero. The class offers add and mightContain; there is no remove, because clearing a bit could erase the evidence of other keys.`,
+        code: `class BloomFilter {
+    vector<bool> bits;
+    int hashes;
+
+    size_t slot(const string& key, int i) const {
+        unsigned long long h1 = mix64(hash<string>{}(key));
+        unsigned long long h2 = mix64(h1 ^ 0xabcdefULL) | 1ULL;
+        return (size_t)((h1 + (unsigned long long)i * h2) % bits.size());
+    }
+
+public:
+    BloomFilter(size_t bitCount, int hashCount) : bits(bitCount, false), hashes(hashCount) {}
+
+    void add(const string& key) {
+        for (int i = 0; i < hashes; i++) bits[slot(key, i)] = true;
+    }
+
+    bool mightContain(const string& key) const {
+        for (int i = 0; i < hashes; i++) {
+            if (!bits[slot(key, i)]) return false;  // certainly absent
+        }
+        return true;  // probably present
+    }
+};`,
+      },
+      {
+        title: "Implementation: consistent hashing",
+        body: `The ring is an ordered map from a position to a server name. Each server is inserted at many positions, one per virtual node, named by the server name plus a counter. A lookup hashes the key and takes the first position at or after it, wrapping to the beginning of the map when it falls past the last position. Removing a server erases exactly its virtual nodes, which leaves every other key where it was.`,
+        code: `class HashRing {
+    map<unsigned long long, string> ring;
+    int replicas;
+
+    static unsigned long long point(const string& s) { return mix64(hash<string>{}(s)); }
+
+public:
+    explicit HashRing(int virtualNodes) : replicas(virtualNodes) {}
+
+    void addServer(const string& name) {
+        for (int r = 0; r < replicas; r++) ring[point(name + "#" + to_string(r))] = name;
+    }
+
+    void removeServer(const string& name) {
+        for (int r = 0; r < replicas; r++) ring.erase(point(name + "#" + to_string(r)));
+    }
+
+    string serverFor(const string& key) const {
+        if (ring.empty()) return "";
+        auto it = ring.lower_bound(point(key));
+        if (it == ring.end()) it = ring.begin();  // wrap around the circle
+        return it->second;
+    }
+};`,
+      },
+      {
+        title: "Variants",
+        body: `Reservoir sampling with weights picks items with probability proportional to their weights from a stream, using random keys raised to the inverse weight. Random Pick with Weight, covered under combinatorics, uses prefix sums when the data fits in memory. Randomised quickselect and quicksort choose a random pivot to defeat adversarial inputs. Hash tables with random seeds resist attackers who craft colliding keys. Counting Bloom filters keep small counters instead of bits to allow deletion; cuckoo filters give deletion with better space; HyperLogLog estimates the number of distinct elements with a few kilobytes; count-min sketch estimates frequencies. Monte Carlo methods estimate quantities by simulation, such as pi by random points, with error shrinking like one over the square root of the number of samples. Skip lists and treaps use random levels or priorities to stay balanced in expectation. Rendezvous hashing is an alternative to the ring: each key picks the server with the highest hash of the pair.`,
+      },
+      {
+        title: "Complexity",
+        body: `Reservoir sampling reads the stream once in O(n) time with O(k) memory, which does not depend on the length of the stream. Fisher-Yates runs in O(n) time and O(1) extra memory. A Bloom filter with b bits and k hashes adds and tests in O(k) time and uses b bits in total; at ten bits per element it is about ten times smaller than storing small keys, and far smaller than long ones. A consistent hash lookup is O(log(n * replicas)) in an ordered map, and adding or removing a server costs O(replicas * log(n * replicas)). The numbers worth remembering are the Bloom filter trade-off, about 1 percent false positives at 10 bits per key with 7 hashes, and the consistent hashing guarantee, that only about 1 / n of the keys move when a server is added or removed.`,
+      },
+      {
+        title: "Pitfalls and edge cases",
+        body: `The shuffle must draw from the inclusive range zero to i. Drawing from zero to n - 1 for every position, or excluding i, gives a biased result that looks random on small tests; verify by counting the outcomes over many runs for an array of three elements. In reservoir sampling the probabilities are 1 / k for the k-th item with k counting from one; an off-by-one makes the first elements more likely. Use a proper random generator, seeded once, and use the standard distributions rather than the remainder operator, which is biased when the range does not divide the generator range. A Bloom filter has no deletion and its false positive rate rises as it fills, so size it for the largest expected number of keys. Never use a bad hash with identical low bits, which the mixing function above avoids. With consistent hashing, too few virtual nodes give uneven load; a hundred or more per server is typical. Finally, for tests, fix the seed so failures can be reproduced, and check distributions statistically with generous tolerances rather than exact counts.`,
+      },
+      {
+        title: "Practice order",
+        body: `Begin with Linked List Random Node: implement reservoir sampling and prove the one-over-k invariant by induction, then test it by sampling a short list many times and counting. Then Bloom filter idea: write the filter above, measure the false positive rate for several sizes and compare it with the formula. Finish with Consistent hashing (links to system design): build the ring with virtual nodes, add and remove servers, and measure how many keys move; this is the version of the idea that interviewers expect you to describe when a distributed cache comes up in a design question.`,
+      },
+    ],
+  },
+  "design-ds": {
+    intro:
+      "A data-structure design question describes a class with a few operations and a complexity target, and asks you to build it from standard parts. The skill is not a new algorithm but a method: write down the operations, ask which one is the bottleneck, and choose the structures so that every operation meets its bound. You reach for it on questions that start with design a class that supports insert, remove and get in constant time, or that keeps recent events, versions or a cache.",
+    sections: [
+      {
+        title: "The intuition",
+        body: `Every design problem is a table: a list of operations on the left and the cost you need for each on the right. The structures you know each have a strength and a weakness, and a design is a combination whose weaknesses are covered by another part.
+
+A hash map finds a key in O(1) but has no order. A dynamic array gives O(1) random access and O(1) append but slow removal from the middle. A linked list removes a known node in O(1) but cannot find one. A heap gives the smallest element in O(1) and removal in O(log n), but cannot find an arbitrary element. A queue gives first-in first-out access. A balanced tree gives everything in O(log n) including order. A sorted array supports binary search.
+
+Insert Delete GetRandom O(1) asks for insert, remove and getRandom, all in constant time. getRandom needs random access by index, so an array. Remove by value needs to find the value, so a hash map from value to index. The array cannot delete from the middle in O(1), but it can delete the last element in O(1), so swap the doomed element with the last one, update the moved element's index in the map and pop the end. Two structures, each covering the other's weakness.
+
+Design Hit Counter asks for the number of hits in the last five minutes. Hits arrive in time order, so a queue of timestamps works: add at the back, drop from the front what is older than five minutes, and the size is the answer. If many hits can share a second, store one counter per second in a circular buffer of 300 slots, which has fixed memory.
+
+A time-based key-value store needs the value at the latest time not after a given time. Per key, values arrive with increasing timestamps, so a sorted vector with binary search answers in O(log n). Snapshot Array stores only the changes per index for the same reason. The recurring pattern: identify what is ordered, and use that order.`,
+      },
+      {
+        title: "Why it works",
+        body: `A design is correct when it keeps an invariant that ties its parts together, and fast when each operation touches a constant or logarithmic number of items. Writing the invariant explicitly is what separates a design that works from one that works until the first edge case.
+
+For the randomised set the invariant is: the hash map holds exactly the values in the array, and map[v] is the index of v. Insert appends and records the index: the invariant holds. Remove of v with index i and last element w: copy w into slot i, set map[w] = i, pop the array, erase v from the map. After the copy, the array holds every value except v, in some order, and the map is correct for every element, including w. When v is the last element itself, w equals v, and the order of the two map updates matters: set the index first, then erase v, so the map does not keep a dangling entry. getRandom picks a uniform index of the array, so each stored value has equal probability.
+
+For the hit counter the invariant is: the circular buffer holds, for each of the last 300 seconds, a timestamp and a count; a slot is valid only if its stored timestamp is within the last 300 seconds. A hit at time t uses slot t modulo 300. If the slot holds an older timestamp, the old count is discarded and replaced by 1 and the new timestamp; otherwise the count increases. getHits sums the counts of slots whose timestamp is in the window. Memory is constant and both operations take O(300), which is O(1) in the input size.
+
+For the key-value store with time, the invariant is: for each key, the list is sorted by timestamp because sets arrive in increasing time. get uses the position after the last timestamp not greater than the query time, found by binary search; the entry before it is the answer. Without the increasing-time promise you would need a sorted insert, which costs more.
+
+Always check each operation against the table of required costs, and for every operation list which parts of the invariant it can break. That list is the proof.`,
+      },
+      {
+        title: "A worked example",
+        body: `Trace Design Hit Counter, which counts hits in the past 300 seconds, using a queue of timestamps. The window for a query at time t is the timestamps greater than t - 300 and at most t.
+
+hit(1), hit(2), hit(3): the queue holds 1, 2, 3.
+getHits(4): drop timestamps that are at most 4 - 300 = -296: none. The queue size is 3. Answer 3.
+hit(300): the queue holds 1, 2, 3, 300.
+getHits(300): drop timestamps at most 0: none. The queue size is 4. Answer 4.
+getHits(301): drop timestamps at most 1: the 1 is removed. The queue holds 2, 3, 300, size 3. Answer 3.
+
+The oldest hit expired exactly when it left the window. Each timestamp was added once and removed at most once, so the amortised cost of an operation is constant.
+
+Trace the randomised set: insert(5), insert(7), insert(9). The array is [5, 7, 9] and the map is {5: 0, 7: 1, 9: 2}. remove(5): the last element is 9, copy it into slot 0: [9, 7, 9]; set map[9] = 0; pop: [9, 7]; erase 5 from the map: {7: 1, 9: 0}. The array and the map agree. getRandom picks index 0 or 1 with equal chance, returning 9 or 7. remove(7) now removes the last element: the last element is 7 itself, so set map[7] = 1 (unchanged), pop, erase 7: array [9], map {9: 0}.
+
+The same two traces show the method: write the state after each operation and check the invariant against it.`,
+      },
+      {
+        title: "Implementation",
+        body: `A hit counter as a circular buffer of 300 one-second slots. Each slot stores the timestamp it was last written for and a count. A hit at time t goes to slot t % 300, resetting the slot if it still holds a different second. getHits adds the counts of slots whose timestamp lies within the last 300 seconds of the query time. The memory does not grow with the number of hits, so it also works when millions of hits arrive each second.`,
+        code: `class HitCounter {
+    static const int WINDOW = 300;
+    int stamp[WINDOW];
+    int count[WINDOW];
+
+public:
+    HitCounter() {
+        for (int i = 0; i < WINDOW; i++) stamp[i] = count[i] = 0;
+    }
+
+    void hit(int timestamp) {
+        int slot = timestamp % WINDOW;
+        if (stamp[slot] != timestamp) {  // the slot still holds an old second
+            stamp[slot] = timestamp;
+            count[slot] = 0;
+        }
+        count[slot]++;
+    }
+
+    int getHits(int timestamp) const {
+        int total = 0;
+        for (int i = 0; i < WINDOW; i++) {
+            if (count[i] > 0 && timestamp - stamp[i] < WINDOW) total += count[i];
+        }
+        return total;
+    }
+};`,
+      },
+      {
+        title: "Implementation: a hash map with an array",
+        body: `The randomised set from the intuition. The array holds the values and the map holds each value's position. Removal swaps the removed value with the last one and pops, in the order that stays correct when the removed value is the last one: set the moved element's position, then erase. The time-based store uses a sorted vector of pairs per key and binary search to find the last entry at or before the query time. Both classes use the same recipe: say what each part is responsible for and what the invariant is.`,
+        code: `class IndexedSet {
+    vector<int> items;
+    unordered_map<int, int> where;  // value -> position in items
+
+public:
+    bool insert(int value) {
+        if (where.count(value)) return false;
+        where[value] = items.size();
+        items.push_back(value);
+        return true;
+    }
+
+    bool remove(int value) {
+        auto it = where.find(value);
+        if (it == where.end()) return false;
+        int last = items.back();
+        items[it->second] = last;
+        where[last] = it->second;  // before erasing, so removing the last element works too
+        items.pop_back();
+        where.erase(value);
+        return true;
+    }
+
+    int randomItem(mt19937& rng) const {
+        return items[uniform_int_distribution<size_t>(0, items.size() - 1)(rng)];
+    }
+};
+
+class TimedStore {
+    unordered_map<string, vector<pair<int, string>>> data;
+
+public:
+    void set(const string& key, const string& value, int timestamp) {
+        data[key].push_back({timestamp, value});  // timestamps for a key only increase
+    }
+
+    string get(const string& key, int timestamp) const {
+        auto it = data.find(key);
+        if (it == data.end()) return "";
+        const auto& v = it->second;
+        int lo = 0, hi = v.size();
+        while (lo < hi) {
+            int mid = (lo + hi) / 2;
+            if (v[mid].first <= timestamp) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo == 0 ? "" : v[lo - 1].second;
+    }
+};`,
+      },
+      {
+        title: "Variants",
+        body: `The same method covers the classic designs. An LRU cache combines a hash map with a doubly linked list so that lookup and eviction of the oldest are constant time. An LFU cache adds a list per use count. A min stack stores the running minimum next to each element. A queue from two stacks has amortised constant cost. A twitter feed merges the recent tweets of followed users with a heap. A rate limiter keeps a window of timestamps or counters, as in the hit counter. An autocomplete system is a trie with ranked completions. A snapshot array keeps per-index change lists. A phone directory or an iterator over nested lists is a pointer plus a stack. Time-ordered data is almost always best served by a sorted list with binary search, and key-ordered data by a tree map. Most of these appear as runnable problems in the Practice section: Design Twitter, Time Based Key-Value Store, Snapshot Array and Insert Delete GetRandom O(1) have class-style judges here.`,
+      },
+      {
+        title: "Complexity",
+        body: `State the complexity of every operation separately, because the interviewer will ask. The randomised set is O(1) average for all three operations (the hash map is average case) and O(n) space. The hit counter is O(1) time per hit and O(300) time per query with fixed memory, or amortised O(1) with a queue and O(h) memory for h hits in the window. The time-based store is O(1) per set and O(log m) per get, with O(total sets) memory. A heap-based news feed is O(f log f) per read for f followed accounts. A trade-off is often explicit: you can make a query faster by storing more, as when caching a running total, at the cost of making every update maintain it. When two operations compete, say which one you optimise and why, based on the expected mix of operations.`,
+      },
+      {
+        title: "Pitfalls and edge cases",
+        body: `The first pitfall is solving only the happy path: define the behaviour for an empty structure, a missing key, a duplicate insert and a removal of the last element. Second, keep the parts consistent: every operation must update every structure that holds the same information, and the order of updates can matter, as in the swap-and-pop removal. Third, say what happens to ties and to equal timestamps. Fourth, constants: a circular buffer has fixed memory, a queue of timestamps does not, so ask about the rate of hits. Fifth, average versus worst case: hash maps are constant on average only; say so. Sixth, thread safety and persistence are out of scope unless the interviewer raises them, but name them as extensions. Seventh, randomness must be uniform: use the library's distribution, not the remainder of a random integer. Finally, write a short list of invariants before the code, and test the invariants by hand on a three-operation trace.`,
+      },
+      {
+        title: "Practice order",
+        body: `Start with Insert Delete GetRandom O(1), the cleanest example of two structures covering each other's weakness. Then Time Based Key-Value Store, where the key is noticing that sets arrive in order so that binary search applies, and Snapshot Array, which stores only the changes. Design Hit Counter introduces the sliding window and the choice between a queue and a circular buffer. Design Twitter combines several parts: per-user tweet lists, follow sets and a merge for the feed. For each one, write the table of operations and required costs before choosing a structure, and say the invariant aloud.`,
       },
     ],
   },
