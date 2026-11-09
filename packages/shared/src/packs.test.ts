@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inlineParts, matchesTy, packItems, packProblemSpec, parseMarkdown, validatePack } from "./packs";
+import { inlineParts, matchesTy, packItems, packProblemSpec, parseMarkdown, validateFeed, validateMermaid, validatePack } from "./packs";
 
 // A small pack written inline (the full example in docs/examples is checked in apps/web/lib/packs.test.ts).
 const sample = () => ({
@@ -124,5 +124,126 @@ describe("lesson markdown", () => {
       { kind: "text", text: " and " },
       { kind: "code", text: "c" },
     ]);
+  });
+});
+
+describe("Mermaid validation in packs", () => {
+  it("accepts valid Mermaid diagrams across supported types", () => {
+    expect(validateMermaid("flowchart TD\n  A[Start] --> B(End)").ok).toBe(true);
+    expect(validateMermaid("graph LR\n  A --> B").ok).toBe(true);
+    expect(validateMermaid("sequenceDiagram\n  Alice->>Bob: Hello").ok).toBe(true);
+    expect(validateMermaid("classDiagram\n  class Animal").ok).toBe(true);
+    expect(validateMermaid("stateDiagram-v2\n  [*] --> Still").ok).toBe(true);
+    expect(validateMermaid("erDiagram\n  CUSTOMER ||--o{ ORDER : places").ok).toBe(true);
+  });
+
+  it("rejects empty, headerless or unclosed Mermaid blocks", () => {
+    expect(validateMermaid("").ok).toBe(false);
+    expect(validateMermaid("   \n%% just a comment\n").ok).toBe(false);
+    const noHeader = validateMermaid("just some random text\nA --> B");
+    expect(noHeader.ok).toBe(false);
+    if (!noHeader.ok) expect(noHeader.error).toContain("unknown diagram type or missing header");
+
+    const unclosed = validateMermaid("flowchart TD\n  A[Broken node --> B");
+    expect(unclosed.ok).toBe(false);
+    if (!unclosed.ok) expect(unclosed.error).toContain('unclosed "["');
+
+    const mismatched = validateMermaid("flowchart TD\n  A[Broken node) --> B");
+    expect(mismatched.ok).toBe(false);
+    if (!mismatched.ok) expect(mismatched.error).toContain('unmatched closing ")"');
+  });
+
+  it("lesson with invalid Mermaid diagram fails pack validation", () => {
+    const p = sample();
+    p.sections[0].items[0] = {
+      type: "lesson",
+      id: "diagram-lesson",
+      title: "Diagram Lesson",
+      markdown: "Here is a lesson.\n\n```mermaid\nnot-a-diagram\n```\n",
+    };
+    const r = validatePack(p);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join("\n")).toContain("invalid Mermaid diagram");
+  });
+});
+
+describe("patch items in packs", () => {
+  const patchItem = () => ({
+    type: "patch",
+    concept: "lld-solid",
+    replace: {
+      overview: "Updated SOLID overview with modern principles.",
+      explain: ["SRP explanation", "OCP explanation", "LSP explanation", "ISP explanation", "DIP explanation"],
+      questions: ["How do you apply OCP in plugin architectures?"],
+      pitfalls: ["Over-engineering interfaces too early."],
+    },
+  });
+
+  it("accepts a valid patch item for a known concept", () => {
+    const p: Loose = sample();
+    p.sections[0].items.push(patchItem());
+    const r = validatePack(p);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const patch = packItems(r.pack).find((i) => i.type === "patch");
+      expect(patch).toMatchObject({
+        type: "patch",
+        id: "lld-solid",
+        concept: "lld-solid",
+        replace: { overview: "Updated SOLID overview with modern principles." },
+      });
+    }
+  });
+
+  it("rejects patches for unknown concepts or with invalid replace fields", () => {
+    const badConcept: Loose = sample();
+    badConcept.sections[0].items.push({ ...patchItem(), concept: "not-a-real-concept" });
+    const r1 = validatePack(badConcept);
+    expect(r1.ok).toBe(false);
+    if (!r1.ok) expect(r1.errors.join("\n")).toContain("not a recognized built-in concept");
+
+    const badReplace: Loose = sample();
+    badReplace.sections[0].items.push({ type: "patch", concept: "lld-solid", replace: { overview: "" } });
+    const r2 = validatePack(badReplace);
+    expect(r2.ok).toBe(false);
+    if (!r2.ok) expect(r2.errors.join("\n")).toContain("overview must be non-empty text");
+  });
+});
+
+describe("content feed format", () => {
+  const validFeed = () => ({
+    format: "zendojo-feed",
+    version: 1,
+    packs: [
+      {
+        id: "system-design-case-studies",
+        title: "System Design Case Studies",
+        version: "1.2.0",
+        url: "https://example.com/packs/sd.json",
+        sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        description: "10 new real-world system design cases.",
+      },
+    ],
+  });
+
+  it("validates a proper zendojo-feed", () => {
+    const r = validateFeed(validFeed());
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.feed.packs[0].id).toBe("system-design-case-studies");
+      expect(r.feed.packs[0].version).toBe("1.2.0");
+    }
+  });
+
+  it("rejects invalid format, version, URLs and checksums", () => {
+    expect(validateFeed(null).ok).toBe(false);
+    expect(validateFeed({ ...validFeed(), format: "other" }).ok).toBe(false);
+    expect(validateFeed({ ...validFeed(), version: 2 }).ok).toBe(false);
+    const badUrl = validFeed();
+    badUrl.packs[0].url = "ftp://invalid";
+    expect(validateFeed(badUrl).ok).toBe(false);
+    const badSha = validFeed();
+    badSha.packs[0].sha256 = "not-a-sha256";
+    expect(validateFeed(badSha).ok).toBe(false);
   });
 });
