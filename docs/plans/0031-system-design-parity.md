@@ -52,7 +52,7 @@ thin walkthroughs.
 
 - [x] Every system design page shows the deep write-up, diagrams and code, in one sensible order.
 - [x] All 27 designs have depth; Java parts compiled (list them in the notes).
-- [ ] `pnpm check` passes.
+- [x] `pnpm check` passes.
 
 ## Open questions
 

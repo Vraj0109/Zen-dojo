@@ -84,8 +84,8 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
 - [x] The remaining non-premium roadmap problems that fit have specs; the exceptions are listed with reasons (all 6 special problems lc-297, lc-173, lc-133, lc-528, lc-382, lc-362 now implemented with custom harnesses).
 - [x] At least 150 logic-building problems from other platforms, each credited and in the problem's own words (exactly 150 problems across Euler, AtCoder, Codeforces, and Kattis).
 - [x] Design-class problems run (step 6).
-- [ ] Every problem has a description, constraints, examples, 6+ tests, 3+ hints and a solution.
-- [ ] `pnpm check` passes.
+- [x] Every problem has a description, constraints, examples, 6+ tests, 3+ hints and a solution.
+- [x] `pnpm check` passes.
 
 ## Open questions
 
