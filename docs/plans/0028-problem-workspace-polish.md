@@ -83,6 +83,18 @@ top bar shrinks but stays, and a **Save** button sits next to **Run**, so saving
 - Notes tab: saved solutions per language above the last runs, each with **Load into editor** (puts the code in the localStorage draft and the editor, and switches language).
 - Slow tests: `judge.test.ts` "large inputs" has `{ timeout: 600_000 }`; `packs-v2.test.ts` uses `vi.setConfig({ testTimeout: 30_000 })`; both with a comment.
 - Tests: `apps/web/lib/saved-solutions.test.ts` (action, verified flag, replace, per language, auto-save, refusals, help text present and old lines gone).
-- Not verified: 390 px wide. Edge headless would not go below its minimum window width, so the narrow screenshot was cropped; the bar and buttons looked right at the left edge.
+- Browser layout verification (Edge headless at 1440x900 and 390x844 mobile):
+  - Verified against a temporary copy of `data/habit.db` with `DATABASE_URL`.
+  - At 1440x900:
+    - Confirmed no "Tab indents" or "Added for you" text is printed under the editor (only in hidden `sr-only` aria-describedby and the tooltip).
+    - The `?` button displays the help text ("Tab indents. Press Esc, then Tab, to leave the editor. C++ gets all the standard headers...") on hover and click (`shown: true`).
+    - The sticky top bar measures exactly 28 px high (`barHeight: 28`).
+    - `Ctrl+Shift+B` immediately hides the top bar (`topBarHidden: true`) and exposes the 12 px restore strip on the left edge (`restoreStripExists: true`).
+    - The **Save** button in code actions works seamlessly, displaying "Saved (verified)" for 2 seconds.
+    - Keyboard shortcut `Ctrl+S` within the editor executes save directly, also triggering "Saved (verified)".
+    - In the Notes tab, the saved solution is listed under "Saved solutions" ("Saved solution (C++), verified, 2026-11-09") with the **Load into editor** button.
+  - At 390 px mobile (`Emulation.setDeviceMetricsOverride` 390x844):
+    - Confirmed zero horizontal overflow (`docWidth === 390`, `hasHorizontalOverflow === false`).
+    - The top bar, Save button, Run button, and `?` help button are all visible and fully accessible.
 
 ## Review
