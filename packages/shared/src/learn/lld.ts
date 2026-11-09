@@ -4,6 +4,7 @@ import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
 import { BOOKING_GUIDE } from "./lld-deep-c-booking";
 import { SPLITWISE_GUIDE } from "./lld-deep-c-splitwise";
 import { LIBRARY_GUIDE } from "./lld-deep-c-library";
+import { FOOD_GUIDE } from "./lld-deep-d-food";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -412,79 +413,7 @@ class NotificationService {
       "Notifications: templates per channel, rate limiting per user, dedup by event id, quiet hours.",
     ],
   },
-  "lldp-food-cab": {
-    requirements: [
-      "Cab booking (small scope): rider requests a ride from A to B; match the nearest available driver; trip lifecycle; fare.",
-      "Driver states: OFFLINE, AVAILABLE, ON_TRIP. Trip states: REQUESTED → ACCEPTED → STARTED → COMPLETED / CANCELLED.",
-      "Pluggable matching and pricing (surge). Food delivery is the same shape with restaurant + order prep.",
-    ],
-    entities: ["Rider", "Driver (location, status)", "Location", "Trip (rider, driver, pickup, drop, status, fare)", "MatchingStrategy", "PricingStrategy", "TripService"],
-    patterns: ["Strategy for matching and pricing", "State for trip lifecycle", "Observer to notify rider and driver"],
-    code: `enum DriverStatus { OFFLINE, AVAILABLE, ON_TRIP }
-enum TripStatus { REQUESTED, ACCEPTED, STARTED, COMPLETED, CANCELLED }
-
-record Location(double lat, double lng) {
-  double distanceTo(Location o) { return Math.hypot(lat - o.lat, lng - o.lng); }   // haversine in real life
-}
-
-class Driver {
-  final String id; volatile Location location; DriverStatus status = DriverStatus.OFFLINE;
-  Driver(String id, Location l) { this.id = id; location = l; }
-}
-
-class Trip {
-  final String id; final String riderId; final Location pickup, drop; Driver driver;
-  TripStatus status = TripStatus.REQUESTED; long fare;
-  Trip(String id, String riderId, Location p, Location d) { this.id = id; this.riderId = riderId; pickup = p; drop = d; }
-
-  void transition(TripStatus next) {
-    boolean ok = switch (status) {
-      case REQUESTED -> next == TripStatus.ACCEPTED || next == TripStatus.CANCELLED;
-      case ACCEPTED -> next == TripStatus.STARTED || next == TripStatus.CANCELLED;
-      case STARTED -> next == TripStatus.COMPLETED;
-      default -> false;
-    };
-    if (!ok) throw new IllegalStateException(status + " -> " + next);
-    status = next;
-  }
-}
-
-interface MatchingStrategy { Optional<Driver> match(Location pickup, Collection<Driver> drivers); }
-
-class NearestDriver implements MatchingStrategy {
-  public Optional<Driver> match(Location pickup, Collection<Driver> drivers) {
-    return drivers.stream().filter(d -> d.status == DriverStatus.AVAILABLE)
-        .min(Comparator.comparingDouble(d -> d.location.distanceTo(pickup)));
-  }
-}
-
-interface PricingStrategy { long fare(Trip t); }
-
-class TripService {
-  private final Map<String, Driver> drivers = new ConcurrentHashMap<>();
-  private final MatchingStrategy matching; private final PricingStrategy pricing;
-  TripService(MatchingStrategy m, PricingStrategy p) { matching = m; pricing = p; }
-
-  synchronized Trip request(String riderId, Location from, Location to) {   // one lock: no driver double-booked
-    Trip t = new Trip(UUID.randomUUID().toString(), riderId, from, to);
-    Driver d = matching.match(from, drivers.values()).orElseThrow(() -> new IllegalStateException("No drivers nearby"));
-    d.status = DriverStatus.ON_TRIP; t.driver = d; t.transition(TripStatus.ACCEPTED);
-    return t;
-  }
-
-  synchronized void complete(Trip t) {
-    t.transition(TripStatus.COMPLETED);
-    t.fare = pricing.fare(t);
-    t.driver.status = DriverStatus.AVAILABLE;
-  }
-}`,
-    extensions: [
-      "Driver acceptance with a timeout: offer to the nearest, fall back to the next.",
-      "Spatial index (grid / geohash cells) instead of scanning all drivers.",
-      "Surge pricing strategy based on demand/supply per cell; ratings after trips.",
-      "Food delivery: Order states (PLACED → PREPARING → PICKED_UP → DELIVERED), assign a rider when the food is nearly ready.",
-    ],
-  },
+  "lldp-food-cab": FOOD_GUIDE,
   "lldp-file-system-kv": {
     requirements: [
       "In-memory file system: mkdir -p, ls, create/append/read file content, by absolute paths like /a/b/c.",

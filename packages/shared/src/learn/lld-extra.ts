@@ -4,6 +4,7 @@ import { VENDING_ATM_EXTRA } from "./lld-deep-c-vending";
 import { BOOKING_EXTRA } from "./lld-deep-c-booking";
 import { SPLITWISE_EXTRA } from "./lld-deep-c-splitwise";
 import { LIBRARY_EXTRA } from "./lld-deep-c-library";
+import { FOOD_EXTRA } from "./lld-deep-d-food";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -64,16 +65,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Queue full → drop with a counter or block (policy).", "Log file rotation by size/time.", "Channel failure → retry with backoff then fallback channel.", "User opted out / quiet hours."],
   },
-  "lldp-food-cab": {
-    recap: ["Order/Ride lifecycle as a state machine.", "Matching is a Strategy (nearest, rating, batching).", "Assign atomically: driver AVAILABLE → ASSIGNED with compare-and-set."],
-    flow: [
-      "Customer places order → Order(PLACED); restaurant accepts → ACCEPTED.",
-      "MatchingStrategy ranks nearby available couriers by distance/ETA.",
-      "Offer to the best courier with a timeout; accept → atomically mark courier busy, Order ASSIGNED.",
-      "PICKED_UP → DELIVERED; payment captured; courier AVAILABLE again.",
-    ],
-    edgeCases: ["Courier declines or times out → next candidate.", "Restaurant rejects after payment → refund.", "Customer cancels at each state (different refund rules).", "No couriers nearby → widen radius or queue."],
-  },
+  "lldp-food-cab": FOOD_EXTRA,
   "lldp-file-system-kv": {
     recap: ["File system: tree of Directory/File nodes (Composite); path resolution by splitting on '/'.", "KV store: HashMap + optional TTL and transactions (stack of change maps).", "Clean API: mkdir, ls, addContent, readContent / get, set, delete, begin, commit, rollback."],
     flow: [
