@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { getDsaView, type PatternView } from "@/lib/dsa";
 import { getSimpleMode } from "@/lib/ui-prefs";
-import { HAS_FILTERS, STATUS_FILTERS, filterProblems, hasActiveFilters, parseDsaFilters, parseDsaTab, type DsaFilters } from "@/lib/dsa-filters";
+import { HAS_FILTERS, SOURCE_FILTERS, STATUS_FILTERS, filterProblems, matchesSource, parseSource, hasActiveFilters, parseDsaFilters, parseDsaTab, type DsaFilters } from "@/lib/dsa-filters";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
@@ -15,21 +15,6 @@ import { Tabs } from "../tabs";
 import { Difficulty, PageMain, ProgressBar, SimpleHint, Stat, StatusMark } from "../ui";
 
 export const metadata: Metadata = { title: "DSA" };
-
-const SOURCE_FILTERS = [
-  { value: "", label: "All" },
-  { value: "leetcode", label: "LeetCode" },
-  { value: "cses", label: "CSES" },
-] as const;
-
-type DsaSource = (typeof SOURCE_FILTERS)[number]["value"];
-
-function parseSource(v: string | string[] | undefined): DsaSource {
-  const s = (Array.isArray(v) ? v[0] : v)?.trim().toLowerCase() ?? "";
-  if (s === "leetcode") return "leetcode";
-  if (s === "cses") return "cses";
-  return "";
-}
 
 export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
   return (
@@ -65,11 +50,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   const source = parseSource(params.source);
   const filtering = hasActiveFilters(filters) || Boolean(source);
   let results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
-  if (source === "leetcode") {
-    results = results.filter(({ problem }) => problem.id.startsWith("lc-"));
-  } else if (source === "cses") {
-    results = results.filter(({ problem }) => problem.id.startsWith("cses-"));
-  }
+  results = results.filter(({ problem }) => matchesSource(problem, source));
   // Only the open group's problems are rendered (keeps the page small); ?group=none closes all.
   const openGroup = typeof params.group === "string" ? params.group : groups[0]?.id;
 

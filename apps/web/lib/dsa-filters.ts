@@ -95,3 +95,25 @@ export function filterProblems(patterns: PatternView[], f: DsaFilters): { proble
   }
   return [...byId.values()];
 }
+
+/** The sources the DSA page can be limited to. The choice lives in the URL (?source=cses). */
+export const SOURCE_FILTERS = [
+  { value: "", label: "All" },
+  { value: "leetcode", label: "LeetCode" },
+  { value: "cses", label: "CSES" },
+  { value: "cp-algorithms", label: "cp-algorithms" },
+] as const;
+export type DsaSource = (typeof SOURCE_FILTERS)[number]["value"];
+
+export function parseSource(v: string | string[] | undefined): DsaSource {
+  const s = (Array.isArray(v) ? v[0] : v)?.trim().toLowerCase() ?? "";
+  return SOURCE_FILTERS.some((x) => x.value === s) ? (s as DsaSource) : "";
+}
+
+/** Whether a problem belongs to a source: LeetCode and CSES by id prefix, cp-algorithms by its link. An empty source matches everything. */
+export function matchesSource(problem: { id: string; url?: string }, source: DsaSource): boolean {
+  if (source === "leetcode") return problem.id.startsWith("lc-");
+  if (source === "cses") return problem.id.startsWith("cses-");
+  if (source === "cp-algorithms") return (problem.url ?? "").includes("cp-algorithms.com");
+  return true;
+}
