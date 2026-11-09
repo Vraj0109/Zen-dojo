@@ -63,3 +63,12 @@ describe("courseOutline", () => {
     expect(solid.children.map((c) => c.id)).toEqual(deeperIds(LESSON_EXTRA["lld-solid"].deeper.map((s) => s.title)));
   });
 });
+
+describe("designDeepToc", () => {
+  it("lists diagrams, the depth sections as children, and code", async () => {
+    const { designDeepToc } = await import("./toc-items");
+    const toc = designDeepToc({ diagrams: [{ title: "A" }], sections: [{ title: "Sizing, with the arithmetic" }, { title: "Failure modes" }], code: [{ name: "X.java" }] });
+    expect(toc.map((t) => t.id)).toEqual(["design-diagrams", "design-depth", "design-code"]);
+    expect(toc[1].children?.map((c) => c.id)).toEqual(["deeper-sizing-with-the-arithmetic", "deeper-failure-modes"]);
+  });
+});

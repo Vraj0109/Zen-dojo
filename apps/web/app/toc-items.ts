@@ -123,3 +123,13 @@ export function courseOutline(opts: {
     return { id: s.id, title: s.title, open: lessons.some((l) => l.current), lessons };
   });
 }
+
+/** Table of contents entries for DesignDeepView: diagrams, the depth sections as children, and the Java code. */
+export function designDeepToc(deep: { diagrams: { title: string }[]; sections: { title: string }[]; code?: { name: string }[] }): TocEntry[] {
+  const ids = deeperIds(deep.sections.map((s) => s.title));
+  return [
+    { id: "design-diagrams", title: "Diagrams" },
+    { id: "design-depth", title: "Why it is built this way", children: deep.sections.map((s, i) => ({ id: ids[i], title: s.title })) },
+    ...(deep.code && deep.code.length > 0 ? [{ id: "design-code", title: "Key parts in Java" }] : []),
+  ];
+}

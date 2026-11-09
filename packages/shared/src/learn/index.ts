@@ -2,6 +2,7 @@ import { GENERATED_LESSONS } from "./generated/lessons";
 import { DESIGNS_A } from "./designs-a";
 import { DESIGNS_B } from "./designs-b";
 import { DEEP_LLD } from "./deep-lld";
+import { DESIGN_DEPTH_A } from "./design-depth-a";
 import { DESIGN_EXTRA } from "./design-extra";
 import { DSA_ARTICLES_A } from "./dsa-articles-a";
 import { DSA_ARTICLES_B } from "./dsa-articles-b";
@@ -23,6 +24,7 @@ import { LLD_PROJECTS_B_URL } from "./lld-projects-b-url";
 import { LLD_PROJECTS_B } from "./lld-projects-b";
 import { MORE_LLD } from "./more-lld";
 import { SECTION_POINTS } from "./section-points";
+import type { WalkthroughDeep } from "./design-depth-types";
 import type { LessonExtra, LldDeep, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
 
 export type { DiagramBlock, LessonExtra, LldDeep, LldExtra, LldGuide, LldProject, Lesson, PatternArticle, PatternGuide, Section, Walkthrough, WalkthroughExtra } from "./types";
@@ -80,6 +82,10 @@ export function readingMinutes(id: string): number {
   const code = x?.deeper.map((s) => s.code ?? "") ?? [];
   return Math.max(1, Math.round((prose.reduce((a, t) => a + words(t), 0) + code.reduce((a, t) => a + words(t), 0) * 2) / 200));
 }
+
+/** Diagrams, deeper sections and Java for system design walkthroughs, by design id (plan 0014). */
+export const DESIGN_DEEP: Record<string, WalkthroughDeep> = { ...DESIGN_DEPTH_A };
+export type { WalkthroughDeep } from "./design-depth-types";
 
 /** Recap and follow-up Q&A per system design exercise id. */
 export const WALKTHROUGH_EXTRA: Record<string, WalkthroughExtra> = DESIGN_EXTRA;

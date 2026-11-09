@@ -37,7 +37,7 @@ desktop app. Plans 0013-0015 depend on this.
   `diagram`, before the code. `ArticleView` in `dsa/pattern/[id]/page.tsx` and the study lesson/design/LLD pages pass
   it through.
   - Done when: a section with `diagram` shows it everywhere sections are rendered.
-- [ ] **4. Offline and build.** Confirm `pnpm build` and `pnpm --filter desktop prepare-server` include the mermaid
+- [x] **4. Offline and build.** Confirm `pnpm build` and `pnpm --filter desktop prepare-server` include the mermaid
   chunks (check the standalone output).
   - Done when: the built app shows a diagram with the network disabled.
 - [x] **5. Tests.** `packages/shared/src/learn/diagrams.test.ts`: every `diagram` string in all learn content starts
@@ -55,6 +55,8 @@ desktop app. Plans 0013-0015 depend on this.
 ## Open questions
 
 ## Implementation notes
+
+**Step 4 (round two, agent C).** `pnpm --filter desktop prepare-server` ran to the end (exit 0, server folder 63-70 MB). Mermaid is imported lazily in `app/diagram.tsx` (`await import("mermaid")`), so Next bundles it as static client chunks; the packaged copy at `apps/desktop/server/apps/web/.next/static/chunks/` holds the chunks with the Mermaid diagram parsers (the sequence and ER diagram code is in them, the biggest chunk is 430 KB). There is no CDN or network URL for Mermaid, so the diagrams load from the local server. Not tested: opening the installed app with the network switched off (needs a built installer; `pnpm desktop:build` is not run in this round). `pnpm check` (which runs `pnpm build`) passes.
 
 - `mermaid` 11.4.1 added to `apps/web`; `jsdom` 25.0.1 added at the root (dev only) so Mermaid can parse in tests.
 - `Section.diagram` / `diagramCaption` and `DiagramBlock` in `learn/types.ts`. `app/diagram.tsx` loads Mermaid lazily, reads the app's colour tokens (light and dark), redraws when the OS theme changes, shows the source as a fallback and has a Source toggle. Wired into `DeeperSections` (`learn-blocks.tsx`) and the pattern article view.
