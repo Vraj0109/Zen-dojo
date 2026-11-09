@@ -6,6 +6,7 @@ import { SPLITWISE_EXTRA } from "./lld-deep-c-splitwise";
 import { LIBRARY_EXTRA } from "./lld-deep-c-library";
 import { FOOD_EXTRA } from "./lld-deep-d-food";
 import { CAB_EXTRA } from "./lld-deep-d-cab";
+import { GAMES_EXTRA } from "./lld-deep-d-games";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -45,16 +46,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     edgeCases: ["Capacity 0 or 1.", "Updating an existing key must not evict.", "Clock injected for tests; monotonic time (nanoTime) not wall clock.", "Buckets for idle clients pile up → expire them."],
   },
   "lldp-splitwise": SPLITWISE_EXTRA,
-  "lldp-games": {
-    recap: ["Game holds Board, Players, turn order and status; Move is a value object.", "Rules per piece/game behind an interface (validate move, check win).", "Game loop: get move → validate → apply → check end → next player."],
-    flow: [
-      "Game.start(): board initialized, current player = first.",
-      "Player submits Move(from, to); Game asks the piece's MoveRule if legal on this board.",
-      "Board.apply(move) (capture, promotion); push the move to history for undo.",
-      "WinChecker evaluates (checkmate/stalemate, three in a row); else switch player.",
-    ],
-    edgeCases: ["Move by the wrong player.", "Move leaving own king in check (chess).", "Draw conditions.", "Undo across captures.", "Board size configurable (N×N tic-tac-toe, win in O(1) with row/col/diag counters)."],
-  },
+  "lldp-games": GAMES_EXTRA,
   "lldp-vending-atm": VENDING_ATM_EXTRA,
   "lldp-logger-notifications": {
     recap: ["Logger: levels, formatters, appenders (Strategy) and a chain by level.", "Notifications: Observer for subscribers; channel senders behind an interface.", "Async: a queue + worker so callers don't block; retries per channel."],

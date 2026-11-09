@@ -220,7 +220,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("lru-rate-limiter", "LRU cache, rate limiter (as classes)", "Data structure choice, thread safety"),
       lldProblem("url-shortener", "URL shortener (as classes)", "Code generation, collisions, validation, expiry"),
       lldProblem("splitwise", "Splitwise / expense sharing", "Exact splits, debt ledger, simplify debts"),
-      lldProblem("games", "Chess / tic-tac-toe / snake game", "Game loop, rules engine, extensibility"),
+      lldProblem("games", "Games framework: tic-tac-toe, snakes and ladders, chess", "One Game interface, session, memento undo, rules engine, bots"),
       lldProblem("vending-atm", "Vending machine / ATM", "State pattern, inventory, error handling"),
       lldProblem("logger-notifications", "Logger / notification system", "Observer, strategy for channels"),
       lldProblem("food-cab", "Food delivery", "Order state machine, courier matching with offers, atomic claims"),

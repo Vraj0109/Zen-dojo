@@ -6,6 +6,7 @@ import { SPLITWISE_GUIDE } from "./lld-deep-c-splitwise";
 import { LIBRARY_GUIDE } from "./lld-deep-c-library";
 import { FOOD_GUIDE } from "./lld-deep-d-food";
 import { CAB_GUIDE } from "./lld-deep-d-cab";
+import { GAMES_GUIDE } from "./lld-deep-d-games";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -296,61 +297,7 @@ class TokenBucketLimiter implements RateLimiter {
     ],
   },
   "lldp-splitwise": SPLITWISE_GUIDE,
-  "lldp-games": {
-    requirements: [
-      "Tic-tac-toe on an N×N board for 2 players (generalizes to chess / snake): make moves, validate, detect win or draw.",
-      "Players can be human or bot.",
-      "Undo the last move (nice to have).",
-    ],
-    entities: ["Game (board, players, turn, status)", "Board (grid, place, isFull)", "Player interface (Human, Bot)", "Move (row, col, symbol)", "WinningStrategy (rows, cols, diagonals)", "GameStatus enum"],
-    patterns: ["Strategy for players (human input vs bot) and win checks", "Command for moves (enables undo)", "State for game status"],
-    code: `enum Symbol { X, O }
-enum Status { IN_PROGRESS, WON, DRAW }
-
-record Move(int row, int col, Symbol symbol) {}
-
-interface Player { Symbol symbol(); Move nextMove(Board board); }
-
-class Board {
-  final int n; private final Symbol[][] cells;
-  Board(int n) { this.n = n; cells = new Symbol[n][n]; }
-  boolean isEmpty(int r, int c) { return cells[r][c] == null; }
-  void place(Move m) {
-    if (m.row() < 0 || m.row() >= n || m.col() < 0 || m.col() >= n || !isEmpty(m.row(), m.col()))
-      throw new IllegalArgumentException("Invalid move");
-    cells[m.row()][m.col()] = m.symbol();
-  }
-  void clear(Move m) { cells[m.row()][m.col()] = null; }
-}
-
-class Game {
-  private final Board board; private final List<Player> players; private final Deque<Move> history = new ArrayDeque<>();
-  private final int[] rows, cols; private int diag, anti, turn;     // +1 for X, -1 for O: O(1) win check
-  Status status = Status.IN_PROGRESS;
-
-  Game(int n, List<Player> players) { board = new Board(n); this.players = players; rows = new int[n]; cols = new int[n]; }
-
-  void playTurn() {
-    if (status != Status.IN_PROGRESS) throw new IllegalStateException("Game over");
-    Player p = players.get(turn % players.size());
-    Move m = p.nextMove(board);
-    board.place(m); history.push(m);
-    int v = m.symbol() == Symbol.X ? 1 : -1, n = board.n;
-    rows[m.row()] += v; cols[m.col()] += v;
-    if (m.row() == m.col()) diag += v;
-    if (m.row() + m.col() == n - 1) anti += v;
-    if (Math.abs(rows[m.row()]) == n || Math.abs(cols[m.col()]) == n || Math.abs(diag) == n || Math.abs(anti) == n) status = Status.WON;
-    else if (history.size() == n * n) status = Status.DRAW;
-    turn++;
-  }
-}`,
-    extensions: [
-      "Undo: pop the history, clear the cell, reverse the counters and the turn (Command pattern).",
-      "Chess: Piece hierarchy with per-piece move generation (Strategy), check/checkmate validation, special moves.",
-      "Snake: deque for the body, set for O(1) collision checks, food spawning; game loop with ticks.",
-      "Bot difficulty levels as different Player strategies (random, minimax).",
-    ],
-  },
+  "lldp-games": GAMES_GUIDE,
   "lldp-vending-atm": VENDING_ATM_GUIDE,
   "lldp-logger-notifications": {
     requirements: [
