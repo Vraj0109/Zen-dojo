@@ -1,5 +1,6 @@
 import { lesson, type LldGuide, type Lesson } from "./types";
 import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
+import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -476,64 +477,7 @@ class Game {
       "Bot difficulty levels as different Player strategies (random, minimax).",
     ],
   },
-  "lldp-vending-atm": {
-    requirements: [
-      "Vending machine: select a product, insert coins or notes, dispense the product and change; cancel to refund.",
-      "Inventory per slot; reject when sold out; return correct change or refuse if it can't.",
-      "ATM variant: authenticate card + PIN, check balance, withdraw with denomination dispensing.",
-    ],
-    entities: ["VendingMachine (context)", "State interface (Idle, HasMoney, Dispensing, SoldOut)", "Inventory (slot → product, count)", "Product", "Coin enum", "ChangeMaker"],
-    patterns: ["State for machine behaviour", "Chain of Responsibility for dispensing denominations (ATM)", "Singleton or injected instance per physical machine"],
-    code: `enum Coin { ONE(1), TWO(2), FIVE(5), TEN(10); final int value; Coin(int v) { value = v; } }
-
-interface State {
-  default void select(VendingMachine m, String slot) { throw new IllegalStateException("Not now"); }
-  default void insert(VendingMachine m, Coin c) { throw new IllegalStateException("Select a product first"); }
-  default void cancel(VendingMachine m) {}
-}
-
-class Idle implements State {
-  public void select(VendingMachine m, String slot) {
-    if (!m.inventory.inStock(slot)) throw new IllegalStateException("Sold out");
-    m.selected = slot; m.setState(new HasMoney());
-  }
-}
-
-class HasMoney implements State {
-  public void insert(VendingMachine m, Coin c) {
-    m.balance += c.value;
-    int price = m.inventory.price(m.selected);
-    if (m.balance >= price) { Dispensing d = new Dispensing(); m.setState(d); d.dispense(m, price); }
-  }
-  public void cancel(VendingMachine m) { m.refund(m.balance); m.reset(); }
-}
-
-class Dispensing implements State {
-  void dispense(VendingMachine m, int price) {
-    m.inventory.take(m.selected);
-    m.refund(m.balance - price);          // change
-    m.reset();
-  }
-}
-
-class VendingMachine {
-  final Inventory inventory; String selected; int balance;
-  private State state = new Idle();
-  VendingMachine(Inventory inv) { inventory = inv; }
-  State state() { return state; }
-  void setState(State s) { state = s; }
-  void select(String slot) { state.select(this, slot); }
-  void insert(Coin c) { state.insert(this, c); }
-  void cancel() { state.cancel(this); }
-  void refund(int amount) { /* ChangeMaker: greedy over coin denominations held */ }
-  void reset() { selected = null; balance = 0; state = new Idle(); }
-}`,
-    extensions: [
-      "Change-making with a limited coin stock: greedy works for canonical coin systems; otherwise DP. Refuse the sale up front if exact change can't be made.",
-      "ATM: CashDispenser chain (2000 → 500 → 100 handlers), each taking what it can; transactions logged; card retained after 3 wrong PINs.",
-      "Admin state for restocking; sales reporting via an Observer.",
-    ],
-  },
+  "lldp-vending-atm": VENDING_ATM_GUIDE,
   "lldp-logger-notifications": {
     requirements: [
       "Logger: log(level, message) with levels DEBUG < INFO < WARN < ERROR; per-logger minimum level; multiple sinks (console, file, remote).",

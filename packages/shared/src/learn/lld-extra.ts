@@ -1,5 +1,6 @@
 import type { LldExtra } from "./types";
 import { URL_SHORTENER_EXTRA } from "./lld-deep-b-url";
+import { VENDING_ATM_EXTRA } from "./lld-deep-c-vending";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -68,16 +69,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     ],
     edgeCases: ["Move by the wrong player.", "Move leaving own king in check (chess).", "Draw conditions.", "Undo across captures.", "Board size configurable (N×N tic-tac-toe, win in O(1) with row/col/diag counters)."],
   },
-  "lldp-vending-atm": {
-    recap: ["State pattern: Idle, HasMoney, Dispensing, OutOfService.", "Inventory per slot; cash box with denominations.", "Change-making: greedy with standard denominations; fail if exact change impossible."],
-    flow: [
-      "insertCoin(25) in Idle → credit 25, state HasMoney.",
-      "select('B2') → check stock and price; if credit ≥ price → Dispensing.",
-      "Dispense item, compute change, decrement stock and cash; back to Idle.",
-      "cancel() in HasMoney → refund credit, Idle.",
-    ],
-    edgeCases: ["Item out of stock after money inserted → refund or reselect.", "Can't make change → refuse sale before dispensing.", "Dispense failure (jam) → refund and alert.", "ATM: insufficient balance, daily limit, card retained after wrong PIN attempts."],
-  },
+  "lldp-vending-atm": VENDING_ATM_EXTRA,
   "lldp-logger-notifications": {
     recap: ["Logger: levels, formatters, appenders (Strategy) and a chain by level.", "Notifications: Observer for subscribers; channel senders behind an interface.", "Async: a queue + worker so callers don't block; retries per channel."],
     flow: [
