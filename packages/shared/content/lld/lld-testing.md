@@ -105,6 +105,89 @@ List 4-6 named cases for your design: 'park when full returns empty', 'exit comp
 
 That shows the design is testable, which is usually the real point of the question.
 
+### Inject the clock and the other edges, then fake them
+
+Most hard-to-test code is hard to test because it reaches out for something it should have been given: the current time, a random number, a payment provider, a file. The fix is the same each time. Define a small interface for what the class needs (TimeSource with nowMillis, PaymentGateway with charge and refund, Dice with roll), pass an implementation in through the constructor, and use a fake in tests.
+
+The clock is the most valuable one. Code that calls System.currentTimeMillis cannot be tested for expiry, timeouts, refund windows or daily limits without sleeping, and sleeping makes tests slow and flaky. With an injected clock, a test creates a ManualClock, calls advance(60_000), and the next line asserts the result. Every project in this section does it: holds expire, offers time out, fines grow, leases lapse, and none of the tests waits.
+
+Fakes beat mocks for these edges. A FakePayments class that can be told to decline and that records its calls is a few lines, reads like a specification, and does not break when the implementation is refactored. A mocking library that checks which methods were called in which order ties the test to the implementation.
+
+Write the fake so that it can misbehave on demand: decline the next charge, jam the next dispense, fail the next send. The tests worth writing are the ones for failure, and the failure paths are where most designs are wrong. A hook that runs in the middle of a call (the payment provider advancing the clock while a charge is in flight) lets you test an interleaving without any threads.
+
+Name what you do not fake: the classes under test and their close collaborators run for real. Only the edges are replaced.
+
+```
+interface TimeSource { long nowMillis(); }
+
+final class ManualClock implements TimeSource {
+    private long now;
+    ManualClock(long start) { now = start; }
+    public synchronized long nowMillis() { return now; }
+    synchronized void advance(long millis) { now += millis; }
+}
+
+final class FakePayments implements PaymentGateway {
+    private boolean decline;
+    synchronized void declineNext(boolean value) { decline = value; }
+    public synchronized String charge(String user, int cents, String key) { return decline ? null : "pay-1"; }
+    public synchronized void refund(String ref, int cents) { refunds.add(ref + ":" + cents); }
+}
+```
+
+### In-memory repositories and testing through the public API
+
+A class that talks to a database is tested with an in-memory version of the same interface. A Repository interface with find, save and putIfAbsent has two implementations: the real one (SQL, a key-value store) and an in-memory one backed by a ConcurrentHashMap. The tests use the in-memory one, run in microseconds, and still exercise all the logic of the class that uses it. A small number of integration tests then check that the real implementation behaves like the in-memory one.
+
+Keep the interface honest. If the real database can fail, or return nothing, or refuse a duplicate key, the interface must say so (an Optional, a boolean from putIfAbsent), so that the in-memory version and the tests can produce those cases.
+
+Test through the public API of the class, the way a caller would, and not through its private helpers. Book a seat, pay, cancel, and assert what a user could see. When the behaviour is right, you are free to refactor the inside. When you feel the need to test a private method, it often wants to be its own small class with its own tests: ChangeMaker, Allocator and DebtSimplifier were extracted this way, and each is tested directly with the cases that are hard to reach from the outside (30 cents from one quarter and three dimes).
+
+Name tests as sentences that state the rule: a refused stay leaves no night counted, a declined card returns the booking to held, an answer at the deadline is too late. A failing test then tells you which rule broke.
+
+Table of what to cover for each class: the normal path; each refusal code; each boundary (one before, exactly at, one after); idempotency (doing it twice); and the invariant after a failure (nothing was changed).
+
+```
+interface UrlRepository {
+    boolean putIfAbsent(ShortLink link);          // false when the code is taken
+    Optional<ShortLink> find(String code);
+    void delete(String code);
+}
+
+final class InMemoryUrlRepository implements UrlRepository {
+    private final ConcurrentHashMap<String, ShortLink> links = new ConcurrentHashMap<>();
+    public boolean putIfAbsent(ShortLink link) { return links.putIfAbsent(link.code(), link) == null; }
+    public Optional<ShortLink> find(String code) { return Optional.ofNullable(links.get(code)); }
+    public void delete(String code) { links.remove(code); }
+}
+```
+
+### Properties, invariants and seeded randomness
+
+Examples test the cases you thought of. Properties test the ones you did not. A property is a statement that must hold for any input, and a test generates many inputs and checks it. With a seeded Random the inputs are the same on every run, so a failure can be reproduced.
+
+Good properties for the LLD problems. The parts of a split always add up to the total, for 2000 random totals and weights (expense sharing), and nobody is more than one cent from their exact share. A fast check agrees with a slow, obviously right one: the two-neighbour overlap check against comparing with every booking, the grid index against checking every driver, chess move generation against the published perft numbers (20, 400, 8902). Round trips: recovering a store from its log gives the same content. Conservation: after random transfers between accounts the total is unchanged. Ordering: the optimal debt simplification is never longer than the greedy one. No-overlap: after a mixed workload no room has two meetings at the same time.
+
+The pattern is always the same: build a reference that is too slow or too simple to ship but easy to trust, generate inputs, and compare. The reference is often a plain loop.
+
+Seeds matter. Print the seed when a test fails, or use a fixed one, because a random test that fails once and never again is worse than no test. Keep generated sizes small enough to finish in a second or two.
+
+Finally, invariants are not only for tests. A method such as netBalances can assert that the sum is zero in a debug build, and a reconciliation job in production can check the same property over real data. Writing the invariant down is the design activity, and the test is a by-product.
+
+```
+Random random = new Random(42);                      // fixed seed: failures repeat
+for (int round = 0; round < 2000; round++) {
+    long total = random.nextInt(1_000_000);
+    Map<String, Long> weights = randomWeights(random);
+    Map<String, Long> parts = Allocator.allocate(total, weights);
+    assertEquals(total, sum(parts));                 // property: parts add up to the total
+    for (String id : parts.keySet()) {
+        double ideal = (double) total * weights.get(id) / sumOf(weights);
+        assertTrue(Math.abs(parts.get(id) - ideal) < 1.0);   // property: within one cent
+    }
+}
+```
+
 ## Interview questions
 
 - How would you test fee calculation that depends on the current time?
