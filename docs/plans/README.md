@@ -108,3 +108,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0035 | [ADHD helper, accountability buddy, and cognitive pacing](0035-adhd-accountability-and-pacing.md) | implemented |
 | 0036 | [Schedule shifting, review backlog management, and theme database persistence](0036-schedule-shifting-backlog-and-theme-persistence.md) | implemented |
 | 0037 | [Learning navigation deduplication](0037-learning-navigation-deduplication.md) | implemented |
+| 0038 | [Round four: who does what (plans 0014, 0022, 0025, 0031, 0012)](0038-round-four-parallel-work.md) | ready |
