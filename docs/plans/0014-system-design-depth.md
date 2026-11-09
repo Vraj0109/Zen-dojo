@@ -43,7 +43,7 @@ trie.
 
 - [x] A. url-shortener, rate-limiter, kv-store, notifications, typeahead
 - [x] B. news-feed, chat, video, file-sync, collab-editing
-- [ ] C. ride-sharing, maps, crawler, job-scheduler, top-k
+- [x] C. ride-sharing, maps, crawler, job-scheduler, top-k
 - [ ] D. payments, inventory, ticketing, order-management, warehouse
 - [ ] E. metrics, kafka, recommendations, building-blocks, delivery-slots, pricing, catalog
 
