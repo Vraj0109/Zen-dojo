@@ -17,6 +17,7 @@ import { DSA_ARTICLES_F } from "./dsa-articles-f";
 import { DSA_ARTICLES_G } from "./dsa-articles-g";
 import { DSA_ARTICLES_I } from "./dsa-articles-i";
 import { DSA_ARTICLES_J } from "./dsa-articles-j";
+import { DSA_ARTICLES_K } from "./dsa-articles-k";
 import { DSA_GUIDES_A } from "./dsa-a";
 import { DSA_GUIDES_B } from "./dsa-b";
 import { DSA_GUIDES_C } from "./dsa-c";
@@ -77,7 +78,7 @@ export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 export const PATTERN_GUIDES: Record<string, PatternGuide> = { ...DSA_GUIDES_A, ...DSA_GUIDES_B, ...DSA_GUIDES_C, ...DSA_GUIDES_D };
 
 /** Full articles by pattern id. Patterns without one still show the short guide above. */
-export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2, ...DSA_ARTICLES_E, ...DSA_ARTICLES_F, ...DSA_ARTICLES_G, ...DSA_ARTICLES_I, ...DSA_ARTICLES_J };
+export const PATTERN_ARTICLES: Record<string, PatternArticle> = { ...DSA_ARTICLES_A, ...DSA_ARTICLES_B, ...DSA_ARTICLES_C, ...DSA_ARTICLES_D1, ...DSA_ARTICLES_D2, ...DSA_ARTICLES_E, ...DSA_ARTICLES_F, ...DSA_ARTICLES_G, ...DSA_ARTICLES_I, ...DSA_ARTICLES_J, ...DSA_ARTICLES_K };
 
 /** Deeper sections and recap lines per concept id. */
 const GENERATED_EXTRA: Record<string, LessonExtra> = Object.fromEntries(
