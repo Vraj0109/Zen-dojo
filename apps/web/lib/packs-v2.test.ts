@@ -21,6 +21,10 @@ import {
   setPackItemDone,
 } from "./packs";
 
+// These tests open a fresh in-memory database and (for packs) validate Mermaid diagrams, which can take longer than the
+// 5-second default when several checks run at the same time.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 const sample = () => JSON.parse(readFileSync(new URL("../../../docs/examples/sample-pack.json", import.meta.url), "utf8"));
 
 beforeEach(() => {

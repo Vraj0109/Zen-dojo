@@ -3,10 +3,10 @@
 import { refresh } from "next/cache";
 import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
 import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
-import { saveNote } from "@/lib/notes";
+import { getSavedSolutions, saveNote, saveSolutionFor, type SavedSolution, type SolutionLang } from "@/lib/notes";
 import { applyFreeze } from "@/lib/progress";
 import { toggleFavouriteCourse } from "@/lib/courses";
-import { fetchPackText, installPack, removePack, setPackItemDone } from "@/lib/packs";
+import { getPackProblemSpec, fetchPackText, installPack, removePack, setPackItemDone } from "@/lib/packs";
 import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
@@ -242,6 +242,27 @@ export async function savePatternNoteAction(formData: FormData) {
     language: String(formData.get("language") ?? ""),
   });
   refresh();
+}
+
+// ---- saved solutions (the Save button next to Run)
+
+export type SaveSolutionResult = { ok: true; solution: SavedSolution } | { ok: false; error: string };
+
+/** Keeps the code as your solution for one language of a problem. `verified` is true when the last run of exactly this code passed every case. */
+export async function saveSolutionAction(problemId: string, lang: string, code: string): Promise<SaveSolutionResult> {
+  if (lang !== "cpp" && lang !== "java" && lang !== "javascript") return { ok: false, error: "Unknown language." };
+  if (typeof code !== "string" || code.length > 50_000) return { ok: false, error: "The code is too long to save (over 50,000 characters)." };
+  const { JUDGE_PROBLEMS } = await import("@habit/shared");
+  const known = typeof problemId === "string" && (problemId.startsWith("pack:") ? Boolean(await getPackProblemSpec(problemId)) : Boolean(JUDGE_PROBLEMS[problemId]));
+  if (!known) return { ok: false, error: "Unknown problem." };
+  const solution = await saveSolutionFor(problemId, lang as SolutionLang, code);
+  refresh();
+  return { ok: true, solution };
+}
+
+/** The solutions you saved for a problem, one per language (for the Notes tab). */
+export async function getSavedSolutionsAction(problemId: string): Promise<SavedSolution[]> {
+  return typeof problemId === "string" && problemId.length < 200 ? getSavedSolutions(problemId) : [];
 }
 
 // ---- content packs (docs/content-packs.md)
