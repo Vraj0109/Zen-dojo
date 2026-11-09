@@ -35,7 +35,7 @@ describe("system design depth", () => {
   }
 
   // Plan 0031 round five: batches A and B (the first ten designs) also have architecture cards and a scorecard.
-  const BATCH_AB = ["url-shortener", "rate-limiter", "kv-store", "notifications", "typeahead", "news-feed", "chat", "video", "file-sync", "collab-editing"].map((n) => "sdd-" + n);
+  const BATCH_AB = ["url-shortener", "rate-limiter", "kv-store", "notifications", "typeahead", "news-feed", "chat", "video", "file-sync", "collab-editing", "payments", "inventory", "ticketing", "order-management", "warehouse"].map((n) => "sdd-" + n);
   for (const id of BATCH_AB) {
     it(id + " has architecture cards and evaluation criteria", () => {
       const d = DESIGN_DEEP[id];

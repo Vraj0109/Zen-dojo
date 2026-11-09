@@ -4,6 +4,65 @@ import type { WalkthroughDeep } from "./design-depth-types";
 
 export const DESIGN_DEPTH_D: Record<string, WalkthroughDeep> = {
   "sdd-payments": {
+    architecture: [
+      {
+        name: "Payment API gateway and idempotency store",
+        role: "Authenticates callers and does an atomic conditional insert of the Idempotency-Key before any work starts. A completed key returns the stored response; an in-progress key returns 409.",
+        scale: "Sized for about 580 payments per second on average and 8,000 at a promotion peak. A key lookup is a single indexed read, so it adds a few milliseconds.",
+        failure: "If the store is down the gateway must refuse new payments rather than skip the check, because skipping it allows double charges. Keys expire after a fixed window such as 24 hours.",
+      },
+      {
+        name: "Payment orchestration service",
+        role: "Saves the payment as PENDING, calls the PSP with a derived idempotency key, then writes the ledger entries, status change and outbox row in one local transaction.",
+        scale: "Stateless, scaled out behind the gateway. The PSP call is the slow step, around 1 to 3 seconds, so thread pools and timeouts are sized for it.",
+        failure: "A PSP timeout leaves the payment unknown, so it moves to PENDING_VERIFICATION and a worker queries the PSP. It never guesses success or failure.",
+      },
+      {
+        name: "Tokenized card vault",
+        role: "Stores card numbers inside the PCI-DSS boundary and hands every other service an opaque token. Only the vault and the PSP adapter ever see real card data.",
+        scale: "Lookups are by token, so reads spread evenly across shards. Keeping the vault small keeps the audit scope small.",
+        failure: "If the vault is down, new card payments fail. Keys live in an HSM and the vault is replicated across zones so one zone loss does not stop it.",
+      },
+      {
+        name: "Double-entry ledger",
+        role: "Append-only journal where every transaction has two or more postings and debits equal credits. A $100 charge posts DR $100 clearing, CR $97 merchant payable, CR $3 fee revenue.",
+        scale: "About 4 postings per payment and roughly 2 KB per payment in total. At 50 million payments a day that is about 100 GB per day, 36.5 TB per year before replication, partitioned by posting date.",
+        failure: "A primary crash mid-commit leaves no partial rows because the commit is atomic. A balance check job alerts if any transaction does not sum to zero.",
+      },
+      {
+        name: "Outbox and reconciliation service",
+        role: "The outbox streams PaymentSucceeded events to Kafka by change data capture. Reconciliation matches ledger, processor report and bank deposit every night.",
+        scale: "Outbox events are at-least-once, so consumers dedupe by event id. Reconciliation reads one settlement file set per day per processor and finishes in minutes.",
+        failure: "A mismatch goes to a suspense account and a break ticket. A daily variance above 0.005% of volume, about $5,000 on $100M, pages the treasury on-call.",
+      },
+    ],
+    criteria: [
+      {
+        area: "Money representation",
+        strong: "Stores money as integer cents in a 64-bit field with an ISO 4217 currency code, and explains why float and double drift.",
+        weak: "Uses a floating-point column or a decimal with no currency, and does not say how rounding of fees is handled.",
+      },
+      {
+        area: "Idempotency end to end",
+        strong: "Uses a client idempotency key with an atomic insert, handles the in-progress case, and passes a derived key to the PSP so retries cannot double charge.",
+        weak: "Says retries are fine, or dedupes only in the gateway, so a PSP retry can still charge twice.",
+      },
+      {
+        area: "Ledger design",
+        strong: "Append-only double-entry postings that sum to zero, refunds as compensating entries, balances derived from postings or signed snapshots.",
+        weak: "One mutable balance column updated in place, with no audit trail and heavy row lock contention.",
+      },
+      {
+        area: "Unknown outcomes and dual writes",
+        strong: "Treats a PSP timeout as unknown, polls with the idempotency key, and uses a transactional outbox so the database and Kafka cannot disagree.",
+        weak: "Treats a timeout as failure and retries a new charge, or writes to the database and Kafka separately.",
+      },
+      {
+        area: "Reconciliation and operations",
+        strong: "Describes three-way matching, a suspense account for breaks, a variance alert threshold and seven-year retention.",
+        weak: "Stops at the successful charge and has no plan for settlement files, disputes or breaks.",
+      },
+    ],
     diagrams: [
       {
         title: "Components",
@@ -268,6 +327,65 @@ public class PaymentLedger {
     ],
   },
   "sdd-inventory": {
+    architecture: [
+      {
+        name: "Edge WAF and CDN",
+        role: "Serves product pages from cache and screens reservation traffic with bot checks such as proof-of-work or a CAPTCHA before it reaches the gateway.",
+        scale: "Page views are about 1,200 per second on average and absorbed by cache. The edge drops about 94% of bot traffic in the scenario.",
+        failure: "If the edge rules are too loose, scalper bots reach Redis and take the stock. Rate limits per account and per card are the second line.",
+      },
+      {
+        name: "Inventory API gateway",
+        role: "Validates the request, runs the reservation script and returns a reservation id with an expiry, or a 409 sold out.",
+        scale: "The reservation endpoint sees up to 100,000 writes per second on one SKU during a drop. It is stateless and scales out.",
+        failure: "Overload returns fast 429 or 409 responses. It must not queue unbounded work against Redis.",
+      },
+      {
+        name: "Redis stock counters",
+        role: "Hold available stock per SKU and run a Lua script that checks, decrements and records the reservation as one atomic step.",
+        scale: "One instance handles about 80,000 to 120,000 scripts per second. 10,000 units are split into 20 bucket keys across shards to go past one node.",
+        failure: "A failover can lose a few milliseconds of writes, so 5 to 10 units may be oversold. Loading only 9,900 of 10,000 units leaves a 1% buffer.",
+      },
+      {
+        name: "Inventory database",
+        role: "PostgreSQL holds the real stock and the orders. The physical decrement happens in the order transaction after payment.",
+        scale: "Only about 2,500 order writes per second are safe on one hot row, so it sits behind a queue rather than the 100,000 per second spike.",
+        failure: "If it is slow, Kafka buffers orders. A 50,000-order burst drains in about 25 seconds at 2,000 inserts per second.",
+      },
+      {
+        name: "Reservation expiry sweeper",
+        role: "Every second it finds ACTIVE reservations past expires_at, marks them EXPIRED and returns stock to Redis with INCRBY, then publishes StockReleased.",
+        scale: "One query per second with an index on status and expires_at. Work per run is the number of holds that expired in that second.",
+        failure: "If the sweeper is down, stock stays locked, so reads also treat a past-due hold as expired. A late payment on an expired hold is refunded automatically.",
+      },
+    ],
+    criteria: [
+      {
+        area: "Why the database row is the limit",
+        strong: "Explains that one hot row serializes on its lock and tops out near 1,500 to 2,500 updates per second, so 100,000 per second cannot go there.",
+        weak: "Says to add database replicas or a bigger instance, which does nothing for a single contended row.",
+      },
+      {
+        area: "Preventing oversell",
+        strong: "Uses an atomic Lua check-and-decrement in Redis and notes that optimistic version checks cause a retry storm at this contention.",
+        weak: "Reads the stock, checks it in application code, then writes, which allows two buyers to take the last unit.",
+      },
+      {
+        area: "Scaling the hot key",
+        strong: "Splits stock into buckets across shards and routes requests across them, and says what happens when one bucket empties.",
+        weak: "Leaves one key on one node and has no plan when that node is the bottleneck.",
+      },
+      {
+        area: "Reservation lifecycle",
+        strong: "Has a TTL hold, a commit step after payment, a sweeper plus lazy expiry, and handles a payment that lands after expiry.",
+        weak: "Decrements stock permanently at add to cart, or relies only on Redis expiry notifications that can be missed.",
+      },
+      {
+        area: "Failure and abuse handling",
+        strong: "Plans a safety buffer for failover lag, a queue in front of the database, and bot filtering at the edge.",
+        weak: "Assumes Redis never fails and does not discuss bots or a database backlog.",
+      },
+    ],
     diagrams: [
       {
         title: "Components",
@@ -551,6 +669,65 @@ public class FlashSaleInventory {
     ],
   },
   "sdd-ticketing": {
+    architecture: [
+      {
+        name: "Edge gate and virtual waiting room",
+        role: "Checks for a signed admission pass at the CDN edge. Without one the fan is sent to the queue, which admits users at the rate the backend can handle.",
+        scale: "Holds millions of waiting fans at 250,000 to 400,000 requests per second at the edge. Admits about 2,000 per second to match checkout capacity.",
+        failure: "If the queue store fails, signed cookies carrying the entry time let edge workers admit in arrival order without Redis.",
+      },
+      {
+        name: "Queue state in Redis",
+        role: "A sorted set keyed by queue number holds each fan. The engine pops the head each second and issues a signed JWT valid for 15 minutes.",
+        scale: "Fans poll every 5 seconds, so 3 million fans means about 600,000 polls per second, served from edge cache where possible.",
+        failure: "A partition would drop queue positions, which is why the position is also in a signed cookie.",
+      },
+      {
+        name: "Static seat map on the CDN",
+        role: "The stadium geometry is cached as immutable tiles with a 30-day header. Only seat status is dynamic.",
+        scale: "Status for 80,000 seats at 2 bits each is 20 KB, sent as deltas over WebSocket or SSE. This avoids about 1 TB of 2 MB maps per burst.",
+        failure: "A stale map only shows old status. The hold request is the source of truth, so the worst case is a 409 on a seat that looked free.",
+      },
+      {
+        name: "Seat reservation engine",
+        role: "Sorts the requested seat ids, then runs one conditional UPDATE that sets HELD for all seats or none, and rolls back if the affected rows are fewer than requested.",
+        scale: "Seat rows are sharded by event. Sorting seat ids removes circular waits, so deadlocks do not occur between buyers.",
+        failure: "A conflict returns 409 naming the seat. An expired hold counts as available inside the WHERE clause, so a dead sweeper does not block sales.",
+      },
+      {
+        name: "Checkout and payment step",
+        role: "Verifies the hold is valid, extends the lease by 3 minutes when payment is submitted, charges, then marks the seats BOOKED.",
+        scale: "Capacity is about 2,000 checkouts per second. The payment call is the long step, with 3-D Secure adding 20 seconds or more.",
+        failure: "If the hold already expired the charge is not attempted. If the lease expires during a charge, the booking is refused and the charge is voided.",
+      },
+    ],
+    criteria: [
+      {
+        area: "Traffic and bandwidth estimates",
+        strong: "Estimates 250,000 to 400,000 requests per second, works out the seat map egress, and splits static geometry from a 20 KB status bitset.",
+        weak: "Gives no numbers and sends a large seat map to every browser on every update.",
+      },
+      {
+        area: "Waiting room fairness",
+        strong: "Meters admission to backend capacity, uses a pre-queue lottery then FIFO, and signs the admission pass so it cannot be forged.",
+        weak: "Lets everyone through and relies on autoscaling, or admits first-come at the exact on-sale second so bots win.",
+      },
+      {
+        area: "Atomic multi-seat holds",
+        strong: "One conditional update affecting exactly N rows or a rollback, with seat ids sorted to prevent deadlocks.",
+        weak: "Holds seats one at a time, so a buyer can end up with half of a pair, and does not discuss lock order.",
+      },
+      {
+        area: "Hold expiry and payment race",
+        strong: "Uses lazy expiry in the query, a lease extension when payment starts, and aborts the charge if the hold is gone.",
+        weak: "Uses a fixed timer with no extension, so a slow 3-D Secure can charge a card for seats that were resold.",
+      },
+      {
+        area: "Abuse controls",
+        strong: "Caps tickets per card, address and verified phone, blocks datacenter IP ranges, and limits what one admission pass can do.",
+        weak: "Ignores scalpers or relies only on a CAPTCHA.",
+      },
+    ],
     diagrams: [
       {
         title: "Components",
@@ -825,6 +1002,65 @@ public class TicketReservationSystem {
     ],
   },
   "sdd-order-management": {
+    architecture: [
+      {
+        name: "Order API gateway",
+        role: "Accepts the order, assigns an order id, and starts the saga. The client gets the id back quickly while the work continues asynchronously.",
+        scale: "About 60 orders per second on average and 10,000 to 15,000 at a promotion peak. Stateless.",
+        failure: "Requests are deduped on a client key, so a retried POST returns the same order.",
+      },
+      {
+        name: "Saga orchestrator",
+        role: "Owns the state machine CREATED, INVENTORY_RESERVED, PAYMENT_CAPTURED, ALLOCATED, SHIPPED, DELIVERED, and logs each step before sending the next command.",
+        scale: "Orders are sharded by order id. Orders run for seconds to weeks, so state is in the database, not in memory.",
+        failure: "A crashed worker is recovered by a standby that finds sagas with expired leases (30 seconds) and resumes from the log.",
+      },
+      {
+        name: "Saga execution log",
+        role: "An append-only PostgreSQL table of every step and outcome per order. It is the audit trail and the recovery source.",
+        scale: "Each order is about 4 KB, so 5 million orders a day is 20 GB per day and 7.3 TB per year, sharded by order id with a customer index in a separate store.",
+        failure: "Losing it would lose where each order stands, so it is replicated synchronously and backed up.",
+      },
+      {
+        name: "Inventory, payment and warehouse services",
+        role: "Each does one local transaction and returns an event. Each stores the processed command key so a redelivered command returns the saved answer.",
+        scale: "Each scales on its own. Payment is the slowest, at 1 to 3 seconds per authorization.",
+        failure: "If a step fails, the orchestrator runs compensations in reverse order, such as refund then release inventory. Repeated failure goes to a dead-letter queue and a manual queue.",
+      },
+      {
+        name: "Transactional outbox and event bus",
+        role: "State change and event are written in one local transaction. Change data capture then streams outbox rows to Kafka for notifications and other consumers.",
+        scale: "The outbox is split into 16 partitions by order id with parallel connector tasks, keeping lag under about 250 ms at peak.",
+        failure: "If capture lags, emails and warehouse notices are late but nothing is lost or duplicated at the source. Consumers dedupe by event id.",
+      },
+    ],
+    criteria: [
+      {
+        area: "Why not a distributed transaction",
+        strong: "Explains that two-phase commit would hold locks across services for the whole payment call, and that a saga with compensations replaces it.",
+        weak: "Proposes 2PC across inventory, payment and warehouse, or ignores partial failure.",
+      },
+      {
+        area: "Orchestration versus choreography",
+        strong: "Picks orchestration for visibility and ordered compensation, and names the cost, a central component that must itself be durable.",
+        weak: "Picks choreography without saying how anyone sees order state or guarantees compensation order.",
+      },
+      {
+        area: "Idempotency and the outbox",
+        strong: "Gives each command a business key, stores processed keys with the response, and uses an outbox instead of writing to the database and Kafka separately.",
+        weak: "Assumes exactly-once delivery, or writes to the database then calls the broker, so a crash between them loses the event.",
+      },
+      {
+        area: "Physical-world limits",
+        strong: "Notes that a shipped order cannot be rolled back, so cancel becomes an intercept request with a return label as fallback.",
+        weak: "Treats cancel as a database status change that always succeeds.",
+      },
+      {
+        area: "Recovery and operations",
+        strong: "Uses leases to resume stuck sagas, backoff with jitter on compensation, a dead-letter queue and an ops dashboard.",
+        weak: "Has no answer for a crashed orchestrator or a refund call that keeps failing.",
+      },
+    ],
     diagrams: [
       {
         title: "Components",
@@ -1085,6 +1321,65 @@ public class OrderFulfillmentSaga {
     ],
   },
   "sdd-warehouse": {
+    architecture: [
+      {
+        name: "Wave and batch planning engine",
+        role: "Every 10 to 15 minutes it groups 100 to 300 orders into a wave by carrier cutoff and clusters orders whose items sit on the same or nearby pods.",
+        scale: "Sized for about 500,000 items a day, rising to 1.2 million at peak. Planning a wave takes seconds.",
+        failure: "If a wave is late, the next wave includes its orders with priority. A cutoff miss is the real cost, not a lost order.",
+      },
+      {
+        name: "Bin slotting and chaotic storage engine",
+        role: "Chooses where each incoming unit is stowed: fast movers near stations, heavy items low, items that look alike kept in separate bins, volume matched to the bin.",
+        scale: "Spreads 15 million units across 500,000 SKUs and 200,000 pods. Chaotic storage lifts space use from about 50% to over 85%.",
+        failure: "A wrong or unscanned stow creates phantom stock, so every stow is a scan. A mismatch locks the bin and queues a cycle count.",
+      },
+      {
+        name: "Robot fleet manager and route optimizer",
+        role: "Plans collision-free paths for about 1,000 robots using space-time reservations, so each cell is reserved for a time step.",
+        scale: "Each robot moves up to 1.5 m/s with pods up to 600 kg. Replanning around an obstacle takes under 100 ms.",
+        failure: "A stuck robot becomes an obstacle in the map and about 40 routes are replanned. A tow unit clears it in about 90 seconds.",
+      },
+      {
+        name: "Real-time space-time map",
+        role: "A Redis store of which cells are reserved by which robot at which step, plus fault markers and charging state.",
+        scale: "Updated at robot rates, with small records per cell, so memory is modest. Reads must be fast enough to plan in well under a second.",
+        failure: "If it is lost, robots hold position under onboard control and the map is rebuilt from robot reports.",
+      },
+      {
+        name: "Inventory movement ledger and bin store",
+        role: "Every scan is an appended movement, and PostgreSQL holds the current bin contents derived from it.",
+        scale: "Each pick and stow writes one row, so volume tracks the item rate of about 500,000 to 1.2 million movements a day.",
+        failure: "Scanner or network failure drops events, so scans are queued on the device and replayed with their original ids, and duplicates are ignored.",
+      },
+    ],
+    criteria: [
+      {
+        area: "Throughput and layout numbers",
+        strong: "Gives items per day, robot count and speed, and compares 70 to 90 picks per hour on foot with about 350 to 450 goods-to-person.",
+        weak: "Describes robots and shelves with no throughput figures or comparison with manual picking.",
+      },
+      {
+        area: "Storage strategy",
+        strong: "Explains chaotic storage, why it spreads load and improves cube use, and the rules for slotting such as weight and similar items.",
+        weak: "Stores by category in aisles, which creates traffic jams around popular items.",
+      },
+      {
+        area: "Batching and wave planning",
+        strong: "Groups orders by carrier cutoff and shared pods, and uses put-walls so a station serves several orders from one pod visit.",
+        weak: "Sends one robot per order line, which wastes trips and congests the grid.",
+      },
+      {
+        area: "Multi-robot path planning",
+        strong: "Names multi-agent path finding with space-time reservations and says why plain A-star treats robots as static and deadlocks.",
+        weak: "Uses shortest path for each robot independently, with no answer for head-on conflicts.",
+      },
+      {
+        area: "Physical failure handling",
+        strong: "Covers robot breakdown, an empty bin that should have stock, Wi-Fi loss with controlled stopping, and charging during peak.",
+        weak: "Assumes hardware and inventory counts are always correct.",
+      },
+    ],
     diagrams: [
       {
         title: "Components",
