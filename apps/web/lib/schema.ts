@@ -231,3 +231,18 @@ export const packProgress = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.packId, t.itemId] })],
 );
+
+/** The latest run of your code per problem and language (the Run button), so it comes back after a reload. */
+export const solutionRuns = sqliteTable(
+  "solution_runs",
+  {
+    problemId: text("problem_id").notNull(),
+    lang: text("lang").notNull(),
+    code: text("code").notNull(),
+    ranOn: text("ran_on").notNull(),
+    status: text("status").notNull(),
+    passed: integer("passed").notNull(),
+    total: integer("total").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.problemId, t.lang] })],
+);

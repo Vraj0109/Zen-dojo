@@ -7,12 +7,9 @@ import { usesNodes, type ProblemSpec } from "@habit/shared";
 /** C++: includes and the node structs, placed BEFORE your code (your code uses them). */
 export function cppPrelude(spec: ProblemSpec): string {
   const n = usesNodes(spec);
-  if (!n.list && !n.tree) return "";
+  // The headers and `using namespace std;` are always added, so the editor does not have to show them.
   return (
-    String.raw`
-#include <bits/stdc++.h>
-using namespace std;
-` +
+    "#include <bits/stdc++.h>\nusing namespace std;\n" +
     (n.list
       ? String.raw`
 struct ListNode {
@@ -36,7 +33,7 @@ struct TreeNode {
 };
 `
       : "") +
-    "\n"
+    (n.list || n.tree ? "\n" : "")
   );
 }
 

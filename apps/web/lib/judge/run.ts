@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import type { JudgeLang, ProblemSpec } from "@habit/shared";
 import { sameAnswer } from "./compare";
-import { MEMORY_LIMIT_MB, cppProgram, javaProgram, javaSupportFiles, javascriptProgram } from "./harness";
+import { CPP_PRELUDE_LINES, JAVA_PRELUDE, JAVA_PRELUDE_LINES, MEMORY_LIMIT_MB, cppProgram, javaProgram, javaSupportFiles, javascriptProgram } from "./harness";
 
 // Runs your code on a problem's test cases, on this computer, like LeetCode's Run button. It compiles with the
 // compilers installed here (g++, a JDK, Node) and runs the program with time, memory and output limits. Nothing leaves
@@ -150,6 +150,21 @@ const MISSING: Record<JudgeLang, string> = {
 /** Hide the temporary folder name in compiler messages. */
 const clean = (text: string, dir: string) => text.split(dir).join(".").replaceAll(dir.replaceAll("\\", "/"), ".").slice(0, 6000);
 
+/**
+ * The compiler reports lines of the whole file (headers, your code, harness). Your editor shows only your code, so
+ * "main.cpp:12:" becomes "line 3:" (minus the lines the judge added), and anything outside your code is named as such.
+ */
+export function shiftLines(text: string, preludeLines: number, userLines: number): string {
+  const inUser = (n: number) => n > preludeLines && n <= preludeLines + userLines;
+  const lined = text.replace(/(?:\.\/)?(main\.cpp|Solution\.java|[A-Za-z]+\.java):(\d+)(?::\d+)?/g, (_m, file: string, n: string) => {
+    const k = Number(n);
+    if (file === "main.cpp" || file === "Solution.java") return inUser(k) ? `line ${k - preludeLines}` : "code added by the judge";
+    return "code added by the judge";
+  });
+  // gcc also quotes the source line with its number: "   12 | int x"
+  return lined.replace(/^(\s*)(\d+)( \|)/gm, (m, sp: string, n: string, bar: string) => (inUser(Number(n)) ? `${sp}${Number(n) - preludeLines}${bar}` : m));
+}
+
 /** A plain-words reason for a program that ended without finishing its cases. */
 export function describeExit(code: number | null, signal: string | null): string {
   if (signal === "SIGSEGV" || code === 3221225477 || code === -1073741819) return "invalid memory access (segmentation fault). Check array and vector indexes and null pointers.";
@@ -179,8 +194,9 @@ interface Prepared {
 }
 
 /** Writes the program into `dir` and compiles it. Returns how to start it, or the result to report instead. */
-async function prepare(spec: ProblemSpec, lang: JudgeLang, code: string, dir: string): Promise<{ ok: true; value: Prepared } | { ok: false; result: RunResult }> {
+async function prepare(spec: ProblemSpec, lang: JudgeLang, code: string, dir: string, shift = true): Promise<{ ok: true; value: Prepared } | { ok: false; result: RunResult }> {
   if (lang === "cpp") {
+    const cppLines = { pre: CPP_PRELUDE_LINES(spec), user: code.split("\n").length };
     await writeFile(path.join(dir, "main.cpp"), cppProgram(spec, code));
     const exe = process.platform === "win32" ? "main.exe" : "main";
     // _GLIBCXX_ASSERTIONS makes an out-of-range vector index stop with a message instead of reading garbage.
@@ -189,18 +205,18 @@ async function prepare(spec: ProblemSpec, lang: JudgeLang, code: string, dir: st
     const c = await runCompiler(tool("HABIT_GPP", "g++"), flags, dir);
     if (c.missing) return { ok: false, result: { status: "unavailable", message: MISSING.cpp } };
     if (c.timedOut) return { ok: false, result: { status: "compile_error", message: "The compiler took too long." } };
-    if (!c.ok) return { ok: false, result: { status: "compile_error", message: clean(c.text, dir) } };
+    if (!c.ok) return { ok: false, result: { status: "compile_error", message: shift ? shiftLines(clean(c.text, dir), cppLines.pre, cppLines.user) : clean(c.text, dir) } };
     return { ok: true, value: { run: { file: path.join(dir, exe), args: [] } } };
   }
   if (lang === "java") {
-    await writeFile(path.join(dir, "Solution.java"), code);
+    await writeFile(path.join(dir, "Solution.java"), JAVA_PRELUDE + code);
     await writeFile(path.join(dir, "Main.java"), javaProgram(spec));
     const support = javaSupportFiles(spec);
     for (const [file, text] of Object.entries(support)) await writeFile(path.join(dir, file), text);
     const c = await runCompiler(tool("HABIT_JAVAC", "javac"), ["-encoding", "UTF-8", "Solution.java", "Main.java", ...Object.keys(support)], dir);
     if (c.missing) return { ok: false, result: { status: "unavailable", message: MISSING.java } };
     if (c.timedOut) return { ok: false, result: { status: "compile_error", message: "The compiler took too long." } };
-    if (!c.ok) return { ok: false, result: { status: "compile_error", message: clean(c.text, dir) } };
+    if (!c.ok) return { ok: false, result: { status: "compile_error", message: shift ? shiftLines(clean(c.text, dir), JAVA_PRELUDE_LINES, code.split("\n").length) : clean(c.text, dir) } };
     return { ok: true, value: { run: { file: tool("HABIT_JAVA", "java"), args: [`-Xmx${MEMORY_LIMIT_MB}m`, "-Xss64m", "-cp", ".", "Main"] } } };
   }
   await writeFile(path.join(dir, "main.js"), javascriptProgram(spec, code));
@@ -298,7 +314,7 @@ export function referenceAnswers(spec: ProblemSpec): Promise<(unknown | undefine
     cached = (async () => {
       const dir = await mkdtemp(path.join(os.tmpdir(), "habit-ref-"));
       try {
-        const prepared = await prepare(spec, "cpp", spec.solution.cpp, dir);
+        const prepared = await prepare(spec, "cpp", spec.solution.cpp, dir, false);
         if (!prepared.ok) return null;
         const cases = stress.map((s) => ({ input: s.make() }));
         const { outcomes, unavailable } = await runSet(dir, prepared.value.run, cases, cases.map((_, i) => i), 30_000, 120_000);
@@ -385,4 +401,31 @@ function slow(base: CaseResult, o: Outcome, limitMs: number, lang: JudgeLang, pr
   const limit = limitMs * TIME_MULTIPLIER[lang];
   const took = Math.round((o.micros ?? 0) / 1000);
   return { ...base, problem: "timeout", actual: brief(JSON.stringify(o.actual)), error: `Right answer, but too slow: ${took} ms, the limit here is ${limit} ms. Look for a faster algorithm.`, ...printed };
+}
+
+export type CustomResult =
+  | { status: "unavailable" | "compile_error"; message: string }
+  | { status: "done"; output?: string; error?: string; printed?: string; micros?: number };
+
+/** Runs your code once on an input you typed (one JSON value per parameter). There is no expected answer. */
+export async function runCustom(spec: ProblemSpec, lang: JudgeLang, code: string, input: unknown[]): Promise<CustomResult> {
+  if (code.length > JUDGE_LIMITS.code) return { status: "compile_error", message: "The code is too long." };
+  const dir = await mkdtemp(path.join(os.tmpdir(), "habit-judge-"));
+  try {
+    const prepared = await prepare(spec, lang, code, dir);
+    if (!prepared.ok) return prepared.result as CustomResult;
+    const r = await runSet(dir, prepared.value.run, [{ input }], [0], JUDGE_LIMITS.batchMs, JUDGE_LIMITS.batchMs);
+    if (r.unavailable) return { status: "unavailable", message: MISSING[lang] };
+    const o = r.outcomes.get(0);
+    const printed = (r.beforeTests + (o?.output ?? "")).replace(/\r\n/g, "\n");
+    return {
+      status: "done",
+      ...(o?.error ? { error: o.error } : {}),
+      ...(o && !o.problem ? { output: JSON.stringify(o.actual), micros: o.micros } : {}),
+      ...(o?.rawActual !== undefined ? { output: o.rawActual } : {}),
+      ...(printed.trim() ? { printed: cap(printed) } : {}),
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
 }

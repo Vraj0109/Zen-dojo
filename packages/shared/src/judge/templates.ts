@@ -81,10 +81,7 @@ export function templateFor(spec: ProblemSpec, lang: JudgeLang): string {
   const javaDocs = (nodes.list ? JAVA_LIST_DOC : "") + (nodes.tree ? JAVA_TREE_DOC : "");
   switch (lang) {
     case "cpp":
-      return `#include <bits/stdc++.h>
-using namespace std;
-
-${cppDocs}class Solution {
+      return `${cppDocs}class Solution {
 public:
     ${CPP[returns]} ${name}(${params.map((p) => `${cppParam(p.type)} ${p.name}`).join(", ")}) {
         // Write your code here
@@ -93,9 +90,7 @@ public:
 };
 `;
     case "java":
-      return `import java.util.*;
-
-${javaDocs}class Solution {
+      return `${javaDocs}class Solution {
     public ${JAVA[returns]} ${name}(${params.map((p) => `${JAVA[p.type]} ${p.name}`).join(", ")}) {
         // Write your code here
 

@@ -1,7 +1,8 @@
-import { JUDGE_LANGS, JUDGE_LANG_LABEL, JUDGE_PROBLEMS, type JudgeLang } from "@habit/shared";
-import { JUDGE_LIMITS, runCode } from "@/lib/judge/run";
+import { JUDGE_LANGS, JUDGE_LANG_LABEL, JUDGE_PROBLEMS, matchesTy, type JudgeLang, type ProblemSpec } from "@habit/shared";
+import { JUDGE_LIMITS, runCode, runCustom } from "@/lib/judge/run";
 import { saveSolution } from "@/lib/notes";
 import { getPackProblemSpec, setPackItemDone } from "@/lib/packs";
+import { getRuns, saveRun } from "@/lib/solution-runs";
 
 // Runs your code on a problem's tests (the Run button). This executes code on this computer, so it only accepts
 // requests made by this app's own pages: same origin, and a JSON body (which a plain cross-site form cannot send).
@@ -20,23 +21,55 @@ function sameOrigin(request: Request): boolean {
   }
 }
 
+async function specFor(id: unknown): Promise<ProblemSpec | undefined> {
+  if (typeof id !== "string") return undefined;
+  return id.startsWith("pack:") ? ((await getPackProblemSpec(id)) ?? undefined) : JUDGE_PROBLEMS[id];
+}
+
+/** Your latest run of each language for a problem (for the editor and the Notes tab). */
+export async function GET(request: Request) {
+  if (!sameOrigin(request)) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const id = new URL(request.url).searchParams.get("id");
+  if (!(await specFor(id))) return Response.json({ error: "Unknown problem." }, { status: 400 });
+  return Response.json({ runs: await getRuns(id as string) });
+}
+
+/** Checks one typed value per parameter. Returns the values, or a plain message for the first one that does not fit. */
+function checkInput(spec: ProblemSpec, input: unknown): { ok: true; values: unknown[] } | { ok: false; message: string } {
+  const params = spec.fn.params;
+  if (!Array.isArray(input) || input.length !== params.length) return { ok: false, message: `The function takes ${params.length} value${params.length === 1 ? "" : "s"}, one per line.` };
+  for (let k = 0; k < params.length; k++) {
+    if (!matchesTy(input[k], params[k].type)) return { ok: false, message: `${params[k].name} must be ${/^[aeiou]/.test(params[k].type) ? "an" : "a"} ${params[k].type}.` };
+  }
+  return { ok: true, values: input };
+}
+
 export async function POST(request: Request) {
   if (!sameOrigin(request) || !(request.headers.get("content-type") ?? "").startsWith("application/json")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   const text = await request.text();
   if (text.length > JUDGE_LIMITS.code + 1000) return Response.json({ error: "The code is too long." }, { status: 413 });
-  let body: { id?: unknown; lang?: unknown; code?: unknown; save?: unknown };
+  let body: { id?: unknown; lang?: unknown; code?: unknown; save?: unknown; input?: unknown };
   try {
     body = JSON.parse(text);
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
   const isPack = typeof body.id === "string" && body.id.startsWith("pack:");
-  const spec = typeof body.id === "string" ? (isPack ? ((await getPackProblemSpec(body.id)) ?? undefined) : JUDGE_PROBLEMS[body.id]) : undefined;
+  const spec = await specFor(body.id);
   const lang = JUDGE_LANGS.find((l) => l === body.lang) as JudgeLang | undefined;
   if (!spec || !lang || typeof body.code !== "string") return Response.json({ error: "Unknown problem, language or code." }, { status: 400 });
+  // Your own input: one run, no expected answer, nothing saved.
+  if (body.input !== undefined) {
+    const checked = checkInput(spec, body.input);
+    if (!checked.ok) return Response.json({ error: checked.message }, { status: 400 });
+    return Response.json(await runCustom(spec, lang, body.code, checked.values));
+  }
   const result = await runCode(spec, lang, body.code);
+  // Keep the code of every run (a compile error is a run too) so it comes back after a reload.
+  if (result.status === "done") await saveRun(spec.id, lang, body.code, { status: "done", passed: result.passed, total: result.total });
+  else if (result.status === "compile_error") await saveRun(spec.id, lang, body.code, { status: "compile_error", passed: 0, total: 0 });
   // Imported (pack) problems: passing every test marks the problem done in its course.
   if (isPack && result.status === "done" && result.total > 0 && result.passed === result.total) {
     const [, packId, itemId] = spec.id.split(":");

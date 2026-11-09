@@ -97,6 +97,13 @@ static void habitLimitMemory() {
 #endif
 `.split("${MEM}").join(String(MEMORY_LIMIT_MB));
 
+/** Lines the judge puts before your C++ code (headers and node structs), so compiler line numbers can be shifted back. */
+export const CPP_PRELUDE_LINES = (spec: ProblemSpec) => cppPrelude(spec).split("\n").length - 1;
+
+/** Added before your Java code in Solution.java. */
+export const JAVA_PRELUDE = "import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.*;\n";
+export const JAVA_PRELUDE_LINES = JAVA_PRELUDE.split("\n").length - 1;
+
 export function cppProgram(spec: ProblemSpec, userCode: string): string {
   const { name, params } = spec.fn;
   const cppTy = (t: Ty) => ({ list: "ListNode*", tree: "TreeNode*", int: "int", long: "long long", double: "double", bool: "bool", string: "std::string", "int[]": "std::vector<int>", "long[]": "std::vector<long long>", "bool[]": "std::vector<bool>", "string[]": "std::vector<std::string>", "int[][]": "std::vector<std::vector<int>>", "string[][]": "std::vector<std::vector<std::string>>" })[t];
