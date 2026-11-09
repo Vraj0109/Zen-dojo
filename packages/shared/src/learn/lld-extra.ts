@@ -7,6 +7,7 @@ import { LIBRARY_EXTRA } from "./lld-deep-c-library";
 import { FOOD_EXTRA } from "./lld-deep-d-food";
 import { CAB_EXTRA } from "./lld-deep-d-cab";
 import { GAMES_EXTRA } from "./lld-deep-d-games";
+import { FILESYSTEM_EXTRA } from "./lld-deep-d-filesystem";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -59,16 +60,7 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
     edgeCases: ["Queue full → drop with a counter or block (policy).", "Log file rotation by size/time.", "Channel failure → retry with backoff then fallback channel.", "User opted out / quiet hours."],
   },
   "lldp-food-cab": FOOD_EXTRA,
-  "lldp-file-system-kv": {
-    recap: ["File system: tree of Directory/File nodes (Composite); path resolution by splitting on '/'.", "KV store: HashMap + optional TTL and transactions (stack of change maps).", "Clean API: mkdir, ls, addContent, readContent / get, set, delete, begin, commit, rollback."],
-    flow: [
-      "mkdir('/a/b'): walk from root, create missing directories.",
-      "addContentToFile('/a/b/f', 'x'): resolve parent, create file if absent, append.",
-      "ls('/a'): directory → sorted child names; file → its own name.",
-      "KV begin(): push an empty change map; set writes there; commit merges down; rollback pops.",
-    ],
-    edgeCases: ["Path with trailing slash or '..'.", "File and directory with the same name.", "Nested transactions and rollback with nothing open.", "Expired keys checked lazily on get plus periodic cleanup."],
-  },
+  "lldp-file-system-kv": FILESYSTEM_EXTRA,
   "lldp-library": LIBRARY_EXTRA,
   "lldp-cab": CAB_EXTRA,
 };

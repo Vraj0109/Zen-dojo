@@ -7,6 +7,7 @@ import { LIBRARY_GUIDE } from "./lld-deep-c-library";
 import { FOOD_GUIDE } from "./lld-deep-d-food";
 import { CAB_GUIDE } from "./lld-deep-d-cab";
 import { GAMES_GUIDE } from "./lld-deep-d-games";
+import { FILESYSTEM_GUIDE } from "./lld-deep-d-filesystem";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -362,80 +363,7 @@ class NotificationService {
     ],
   },
   "lldp-food-cab": FOOD_GUIDE,
-  "lldp-file-system-kv": {
-    requirements: [
-      "In-memory file system: mkdir -p, ls, create/append/read file content, by absolute paths like /a/b/c.",
-      "ls on a file returns its name; on a directory returns sorted children.",
-      "Variant: in-memory key-value store with get, set, delete and transactions (begin / commit / rollback, nested).",
-    ],
-    entities: ["Node (abstract: name)", "Directory (children map)", "File (content)", "FileSystem (root, path resolution)", "KVStore (data map + transaction stack)"],
-    patterns: ["Composite for files and directories", "Command or memento-style transaction stack for the KV store"],
-    code: `abstract class Node { final String name; Node(String n) { name = n; } }
-class FileNode extends Node { final StringBuilder content = new StringBuilder(); FileNode(String n) { super(n); } }
-class Dir extends Node { final TreeMap<String, Node> children = new TreeMap<>(); Dir(String n) { super(n); } }
-
-class FileSystem {
-  private final Dir root = new Dir("");
-
-  public List<String> ls(String path) {
-    Node n = resolve(path, false);
-    return n instanceof Dir d ? new ArrayList<>(d.children.keySet()) : List.of(n.name);
-  }
-  public void mkdir(String path) { resolve(path, true); }
-  public void append(String path, String text) {
-    Dir parent = (Dir) resolve(parentOf(path), true);
-    Node n = parent.children.computeIfAbsent(nameOf(path), FileNode::new);
-    if (!(n instanceof FileNode f)) throw new IllegalArgumentException("Is a directory");
-    f.content.append(text);
-  }
-  public String read(String path) {
-    if (!(resolve(path, false) instanceof FileNode f)) throw new IllegalArgumentException("Not a file");
-    return f.content.toString();
-  }
-
-  private Node resolve(String path, boolean create) {
-    Node cur = root;
-    for (String part : path.split("/")) {
-      if (part.isEmpty()) continue;
-      if (!(cur instanceof Dir d)) throw new IllegalArgumentException("Not a directory: " + part);
-      Node next = d.children.get(part);
-      if (next == null) {
-        if (!create) throw new NoSuchElementException(path);
-        next = new Dir(part); d.children.put(part, next);
-      }
-      cur = next;
-    }
-    return cur;
-  }
-  private static String parentOf(String p) { int i = p.lastIndexOf('/'); return i <= 0 ? "/" : p.substring(0, i); }
-  private static String nameOf(String p) { return p.substring(p.lastIndexOf('/') + 1); }
-}
-
-/** Key-value store with nested transactions: each level records the old values it overwrote. */
-class KVStore {
-  private static final Object ABSENT = new Object();
-  private final Map<String, String> data = new HashMap<>();
-  private final Deque<Map<String, Object>> undo = new ArrayDeque<>();
-
-  String get(String k) { return data.get(k); }
-  void set(String k, String v) { remember(k); data.put(k, v); }
-  void delete(String k) { remember(k); data.remove(k); }
-  void begin() { undo.push(new HashMap<>()); }
-  void rollback() {
-    if (undo.isEmpty()) throw new IllegalStateException("No transaction");
-    undo.pop().forEach((k, old) -> { if (old == ABSENT) data.remove(k); else data.put(k, (String) old); });
-  }
-  void commit() { undo.clear(); }                     // commits all levels
-  private void remember(String k) {
-    if (!undo.isEmpty()) undo.peek().putIfAbsent(k, data.containsKey(k) ? data.get(k) : ABSENT);
-  }
-}`,
-    extensions: [
-      "rm, mv, file sizes, permissions; a path cache for deep trees.",
-      "Thread safety: a read-write lock on the tree, or per-directory locks with ordered acquisition for mv.",
-      "KV store: TTL per key (min-heap of expiries), snapshots to disk, count of values (secondary map value → count).",
-    ],
-  },
+  "lldp-file-system-kv": FILESYSTEM_GUIDE,
   "lldp-library": LIBRARY_GUIDE,
   "lldp-cab": CAB_GUIDE,
 };

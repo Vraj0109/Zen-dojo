@@ -224,7 +224,7 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("vending-atm", "Vending machine / ATM", "State pattern, inventory, error handling"),
       lldProblem("logger-notifications", "Logger / notification system", "Observer, strategy for channels"),
       lldProblem("food-cab", "Food delivery", "Order state machine, courier matching with offers, atomic claims"),
-      lldProblem("file-system-kv", "In-memory file system / key-value store", "Trie or map design, API cleanliness"),
+      lldProblem("file-system-kv", "In-memory file system", "Composite and visitor, path walking, permissions, links, quotas"),
       lldProblem("library", "Library management", "Loans, renewals, reservation queue with holds, fines, lock order"),
       lldProblem("cab", "Cab booking", "Spatial grid index, parallel offers, metered fare, surge"),
     ],
