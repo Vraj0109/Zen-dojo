@@ -1,8 +1,8 @@
 # 0024: Content packs v2 and over-the-air content updates
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-09
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (agent A), round two
 - **Spec:** none (builds on content packs v1, shipped in 0.4.0)
 
 ## Goal
@@ -33,7 +33,7 @@ that checks the result.
 
 ## Steps
 
-- [ ] **1. Pack format v2 (backwards compatible).** In `packs.ts` accept `version` 1 or 2. v2 adds, all optional:
+- [x] **1. Pack format v2 (backwards compatible).** In `packs.ts` accept `version` 1 or 2. v2 adds, all optional:
   `target` (where the pack's content goes, see step 2), item types `project` (a Java project: files, tests, expected output;
   the shape of `LldProject` in `packages/shared/src/learn/types`), `walkthrough` (a system design or LLD write-up as
   Markdown with ` ```mermaid ` diagrams), and `patch` (step 3); problem `stress` (step 5); `tags`, `source` and `sourceUrl`
@@ -45,7 +45,7 @@ that checks the result.
   items show a small "added" tag). A pack without `target` stays its own course.
   - Done when: a sample pack with `target.area = "lld"` shows its lesson on `/study/lld` in the right section and removing the
     pack removes it.
-- [ ] **3. Patch built-in lessons.** Item type `patch`: `{ type: "patch", concept: "lld-solid", replace: {...} }` where the replacement
+- [x] **3. Patch built-in lessons.** Item type `patch`: `{ type: "patch", concept: "lld-solid", replace: {...} }` where the replacement
   is the same Markdown lesson format as plan 0023 step 3. Stored overrides win over built-in text and can be reset with
   one button ("Back to the built-in lesson"). This is how a wrong or scrambled lesson is fixed without a release.
   - Done when: a patch changes the SOLID page and removing it restores the original.
@@ -60,11 +60,11 @@ that checks the result.
   by a small interpreter in `packages/shared/src/judge/stress-gen.ts` and run with expected answers from the pack's C++
   solution (same path as built-in problems in `lib/judge/run.ts`, which already computes them from the reference).
   - Done when: a pack problem with a 100000-int generator reports "too slow" for a quadratic solution.
-- [ ] **6. Mermaid in pack lessons.** ` ```mermaid ` blocks in lesson Markdown render with the existing `app/diagram.tsx`
+- [x] **6. Mermaid in pack lessons.** ` ```mermaid ` blocks in lesson Markdown render with the existing `app/diagram.tsx`
   (lazy-loaded). Validate them at install time with the same parser the diagrams test uses (`apps/web/lib/diagrams-parse.test.ts`
   shows how).
   - Done when: a pack lesson with a flowchart renders it and an invalid diagram is a clear install error.
-- [ ] **7. Content feed and updates.** A **feed** is a JSON file listing packs:
+- [x] **7. Content feed and updates.** A **feed** is a JSON file listing packs:
   `{ "format": "zendojo-feed", "version": 1, "packs": [{ "id", "title", "version": "1.2.0", "url", "sha256", "description" }] }`.
   In Settings > Content: add a feed address (stored in `settings`), **Check for updates** (fetch the feed, compare versions
   with installed packs, list new and updated packs), **Install** / **Update** per pack (download, verify SHA-256, validate,
@@ -72,28 +72,28 @@ that checks the result.
   `lib/packs.ts` (2 MB cap, 15 s timeout). Show what changed (title and counts) before installing.
   - Done when: against a feed file served from a local static server, a new pack appears as "Available", installs, and a
     bumped version shows "Update" and keeps progress.
-- [ ] **8. Safety pass.** Imported text is rendered as text (the Markdown renderer builds elements, never HTML); restrict
+- [x] **8. Safety pass.** Imported text is rendered as text (the Markdown renderer builds elements, never HTML); restrict
   downloads to `http(s)`, follow at most 3 redirects, reject files over 2 MB, reject ids/URLs with unusual characters, and
   never run pack code except through the judge's existing sandbox limits (time, memory, output cap). Add tests for each
   rejection. Document the rules in `docs/content-packs.md`.
   - Done when: `<script>` in a lesson shows as text and a 3 MB feed is refused.
 - [x] **9. Export and share.** On a pack's page add **Download this pack** (the stored JSON) so a pack can be handed to a friend.
   - Done when: the downloaded file re-imports on a fresh database.
-- [ ] **10. Docs and the agent prompt.** Update `docs/content-packs.md` (v2 format, tools, the feed, the prompt for converting
+- [x] **10. Docs and the agent prompt.** Update `docs/content-packs.md` (v2 format, tools, the feed, the prompt for converting
   any source into a pack, the rule to write in your own words) and link it from `AGENTS.md`.
   - Done when: following the page alone, an agent can turn a list of problems into a pack that passes `pack:check`.
-- [ ] **11. Tests.** `packs.test.ts` (v2 items, target, patch, generators, errors), `lib/packs.test.ts` (targets merge into an area, patch
+- [x] **11. Tests.** `packs.test.ts` (v2 items, target, patch, generators, errors), `lib/packs.test.ts` (targets merge into an area, patch
   overrides and reset, feed update keeps progress, rejections), a `scripts` test for `pack:build` with a tiny C++ solution.
   - Done when: `pnpm check` passes.
 
 ## Acceptance criteria
 
-- [ ] A pack can add lessons and problems into LLD, system design or core CS, or be its own course.
-- [ ] A pack can replace a built-in lesson, and the replacement can be undone.
-- [ ] `pnpm pack:build` produces correct expected outputs; `pnpm pack:check` validates any pack with plain messages.
-- [ ] A feed can be checked, and new or updated packs installed without a new app version.
-- [ ] Packs from version 0.4.0 still import.
-- [ ] `pnpm check` passes.
+- [x] A pack can add lessons and problems into LLD, system design or core CS, or be its own course.
+- [x] A pack can replace a built-in lesson, and the replacement can be undone.
+- [x] `pnpm pack:build` produces correct expected outputs; `pnpm pack:check` validates any pack with plain messages.
+- [x] A feed can be checked, and new or updated packs installed without a new app version.
+- [x] Packs from version 0.4.0 still import.
+- [x] `pnpm check` passes.
 
 ## Open questions
 

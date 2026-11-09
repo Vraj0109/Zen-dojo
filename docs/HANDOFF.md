@@ -49,27 +49,27 @@ What exists (all in 0.4.0):
   `/study/packs/...`). Pack format name is `prepwise-pack` (keep accepting it).
 - **Other:** streak freeze, weekly review, LeetCode extension (icons and name updated), desktop back/forward gestures, backup/restore.
 
-## 4. What is done and what is left (after parallel agents merge)
+## 4. What is done and what is left (after parallel agents merge - round two)
 
 Merged from parallel worktrees (`agent/a-judge`, `agent/b-problems`, `agent/c-lessons`, `agent/d-lld`):
 
 - **Plan 0021 (implemented, agent A):** Run button v2 with hidden prelude boilerplate, compiler line number shift, `solution_runs` table saving the last run, custom input.
-- **Plan 0022 (in progress, agent B & A):** Roadmap batches 6 and 7 merged (50 problems), design-a-class problems merged (11 problems with C++, Java, JS harnesses). Batch 8 draft in `packages/shared/src/judge/problems-leetcode-8.ts`.
+- **Plan 0022 (in progress, agent B & A):** Roadmap batches 6, 7 and 8 merged (75 runnable problems + large inputs in `stress-8.ts`), design-a-class problems merged (11 problems with C++, Java, JS harnesses), source filter (All, LeetCode, CSES) on `/dsa`.
 - **Plan 0023 (implemented, agent C):** Markdown lessons in `content/**`, `build-content.mjs`, `content:build` and `content:check`, section ordering audit, subtopics in TOC and course outline.
-- **Plan 0024 (in progress, agent A):** `pack:check` and `pack:build` scripts, declarative stress generators, pack target study areas, download pack JSON export route, safe fetch with redirect and size limits.
+- **Plan 0024 (implemented, agent A):** Content packs v2 with lesson patches (`type: "patch"`) and reset, Mermaid validation, content feed (`zendojo-feed`), OTA update UI in Settings > Content, `pack:check` and `pack:build` scripts, target study areas, download pack export route, safe fetch with redirect and size limits.
 - **Plan 0025 (implemented, agent D):** 11 full Java projects (vending machine + ATM richer, movie booking, splitwise, library, food delivery, cab booking, games, file system, key-value store, hotel reservation, meeting rooms), 11 concept lessons.
-- **Plan 0014 / 0015 (in progress, agent C):** Core subjects (OS, DB, networking depth) and System design depth (batches A and B, 10 designs with Java code and diagrams).
-- **Plan 0008 (in progress, agent D):** Trees part 1 (`dsa-articles-e.ts`) merged.
+- **Plan 0015 (implemented, agent C):** All core subjects depth (OS, Databases, Networking, and Java Concurrency) reaching 1,200+ words with runnable Java demos and diagrams.
+- **Plan 0014 (in progress, agent C):** System design depth batches A, B and C (15 designs: URL shortener, rate limiter, KV store, notifications, typeahead, news feed, chat, video, file sync, collaborative editing, ride-sharing, maps, crawler, job scheduler, top-k) with runnable Java 17 demos and Mermaid diagrams.
+- **Plan 0008 (in progress, agent D):** Batches 1 to 5 merged: 34 of 68 pattern articles complete (all Arrays/strings, Searching/sorting, Lists/stacks/heaps, Trees, and Graphs part 1).
 
 What is left:
 
 | # | Plan | What | Status |
 |---|---|---|---|
-| 1 | **0022** | CSES, remaining roadmap problems (batch 8 stress + remaining), other platforms | in progress |
-| 2 | **0024** | Mermaid in packs, update feed UI, patch built-in lessons | in progress |
-| 3 | **0014, 0015** | System design batches C to E; Java concurrency core depth | in progress |
-| 4 | **0008** | Remaining DSA pattern articles (batches 5 to 10) | in progress (25 of 67) |
-| 5 | **0025** | Batch F new topics (optional future work) | not started |
+| 1 | **0022** | CSES, remaining roadmap problems (batch 9 ~30 problems), other platforms | in progress |
+| 2 | **0014** | System design batches D and E (12 designs remaining: payments, metrics, Kafka, etc.) | in progress |
+| 3 | **0008** | Remaining DSA pattern articles (batches 6 to 10: graphs part 2, backtracking, DP, greedy/math) | in progress (34 of 68) |
+| 4 | **0025** | Batch F new topics (optional future work) | not started |
 
 Why this order: 0021 is small and fixes daily friction. 0023 makes content cheap to edit (so a cheaper agent can do 0022, 0025,
 0014, 0015 and 0008 afterwards). 0024 lets content ship without releases. Then the content volume.

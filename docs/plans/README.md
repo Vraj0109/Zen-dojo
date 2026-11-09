@@ -7,17 +7,19 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Done: 0001-0007, 0009-0012, 0016-0021, 0023, 0025, 0026. In progress: 0008 (trees part 1 added), 0014 (batches A and B merged), 0015 (batches A-C merged), 0022 (batches 6-7 merged, design problems merged), 0024 (tools, generators, target areas merged).
+Done: 0001-0007, 0009-0012, 0015-0021, 0023-0026. In progress: 0008 (batches 1-5 merged, 34 of 68 written), 0014 (batches A-C merged, 15 of 27 designs), 0022 (batches 6-8 and design problems merged).
 
 | Plan | What | Status |
 |---|---|---|
+| [0014](0014-system-design-depth.md) | System design depth: walkthroughs, diagrams, Java code | in-progress (batches A-C merged) |
+| [0015](0015-core-subjects-depth.md) | Core subjects (OS, DB, networking, concurrency) depth | implemented (by agent C) |
 | [0021](0021-run-button-v2.md) | Run button v2: hide `#include`/imports, last run saved, custom input | implemented (by agent A) |
-| [0022](0022-problem-library.md) | Problem library: remaining roadmap problems, all CSES, other platforms, design-class problems | in-progress (batches 6-7 and design problems merged) |
+| [0022](0022-problem-library.md) | Problem library: remaining roadmap problems, all CSES, other platforms, design-class problems | in-progress (batches 6-8, design problems, DSA filter merged) |
 | [0023](0023-editable-content-and-navigation.md) | Lessons as Markdown, fix SOLID and other ordering, subtopics in navigation, content-editing guide | implemented (by agent C) |
-| [0024](0024-content-packs-v2.md) | Content packs v2: add to existing courses, patch lessons, update feed, pack tools | in-progress (tools, target areas, safe fetch merged) |
+| [0024](0024-content-packs-v2.md) | Content packs v2: add to existing courses, patch lessons, update feed, pack tools | implemented (by agent A) |
 | [0025](0025-more-lld-topics.md) | More LLD topics, vending machine and ATM as code | implemented (by agent D) |
 | [0026](0026-parallel-agents.md) | Run plans 0021 to 0025 with four Claude agents at once | implemented (all 4 merged) |
-| [0027](0027-round-two-parallel-work.md) | Round two: the rest of the open work for the same four agents | in-progress |
+| [0027](0027-round-two-parallel-work.md) | Round two: the rest of the open work for the same four agents | in-progress (round 2 merged) |
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo
@@ -75,17 +77,17 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0011 | [Coloured code everywhere, and a real code editor where you write code](0011-code-highlighting-and-editor.md) | implemented (by Claude Code; waiting for your look) |
 | 0012 | [Diagrams (Mermaid) in lessons, designs and articles](0012-diagrams.md) | in-progress (step 4 open) |
 | 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | in-progress (batch A of 5 written; parking lot and elevator enriched and compiled, vending/ATM still simple; batch B complete: LRU + rate limiter, URL shortener, logger + notifications, all compiled; vending/ATM richer code and batches C-E open) |
-| 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | ready |
-| 0015 | [Core subjects: more explanation, diagrams, Java demos](0015-core-subjects-depth.md) | ready |
+| 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | in-progress (batches A-C merged) |
+| 0015 | [Core subjects: more explanation, diagrams, Java demos](0015-core-subjects-depth.md) | implemented (by agent C) |
 | 0016 | [Themes: Light, Dark, System and accent colours](0016-themes.md) | implemented (by Claude Code) |
 | 0017 | [Streak freeze, weekly review, time on LeetCode pages](0017-streak-freeze-weekly-review-site-time.md) | implemented (by Claude Code) |
 | 0018 | [Problem statements, hints, solutions and a Run button (roadmap + CSES)](0018-in-app-problems-and-judge.md) | in-progress (engine, lists and trees, 53 problems done) |
 | 0019 | [Focus styles, reading aids, game switch, desktop back/forward](0019-focus-themes-game-switch-desktop-navigation.md) | implemented (by Claude Code) |
 | 0020 | [Problem workspace, CSES in the main list, Learn hub, animations, reading tracker](0020-problem-workspace-learn-hub-motion.md) | implemented (by Claude Code) |
 | 0021 | [Run button v2: hidden boilerplate, last run saved, custom input](0021-run-button-v2.md) | implemented (by agent A) |
-| 0022 | [A much bigger problem library](0022-problem-library.md) | in-progress (batches 6-7 and design problems merged) |
+| 0022 | [A much bigger problem library](0022-problem-library.md) | in-progress (batches 6-8, design problems, DSA filter merged) |
 | 0023 | [Lessons as plain, editable files; ordering; subtopic navigation](0023-editable-content-and-navigation.md) | implemented (by agent C) |
-| 0024 | [Content packs v2 and over-the-air updates](0024-content-packs-v2.md) | in-progress (tools, target areas, safe fetch merged) |
+| 0024 | [Content packs v2 and over-the-air updates](0024-content-packs-v2.md) | implemented (by agent A) |
 | 0025 | [More LLD topics](0025-more-lld-topics.md) | implemented (by agent D) |
 | 0026 | [Run plans 0021 to 0025 with four Claude agents at once](0026-parallel-agents.md) | implemented (all 4 merged) |
-| 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | in-progress |
+| 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | in-progress (round 2 merged) |

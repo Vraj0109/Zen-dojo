@@ -1,6 +1,6 @@
 # 0015: Core subjects (OS, databases, networking, concurrency) with more explanation, diagrams and Java demos
 
-- **Status:** in-progress
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-07
 - **Implemented by:** Claude Code (agent C, branch agent/c-lessons), round two
 
@@ -45,8 +45,8 @@ resolution, page replacement.
 
 ## Acceptance criteria
 
-- [ ] Every core concept reaches the word target; diagrams render; Java demos compile and print what the text says.
-- [ ] `pnpm check` passes.
+- [x] Every core concept reaches the word target; diagrams render; Java demos compile and print what the text says.
+- [x] `pnpm check` passes.
 
 ## Open questions
 

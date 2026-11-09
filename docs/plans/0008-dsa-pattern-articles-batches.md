@@ -38,8 +38,8 @@ Batches (ids from `DSA_GROUPS` in `packages/shared/src/dsa.ts`; check the file i
 - [x] **3. Lists, stacks, heaps** → `dsa-articles-d.ts` (fast-slow, list-reversal, monotonic-stack, monotonic-deque) and `dsa-articles-d2.ts` (the other four): fast-slow, list-reversal, monotonic-stack, monotonic-deque,
   stack-parsing, heap-top-k, two-heaps, lru-lfu. Include the pointer diagrams as text and the amortised argument for
   monotonic stacks.
-- [ ] **4. Trees** → `dsa-articles-e.ts`: tree-dfs, tree-bfs, tree-construct, bst, tree-dp, binary-lifting, trie.
-- [ ] **5. Graphs, part 1** → `dsa-articles-f.ts`: graph-bfs, graph-dfs, topo-sort, union-find, state-space-bfs,
+- [x] **4. Trees** → `dsa-articles-e.ts`: tree-dfs, tree-bfs, tree-construct, bst, tree-dp, binary-lifting, trie.
+- [x] **5. Graphs, part 1** → `dsa-articles-f.ts`: graph-bfs, graph-dfs, topo-sort, union-find, state-space-bfs,
   bipartite. Union-find: path compression and union by size with the near-constant bound explained.
 - [ ] **6. Graphs, part 2** → `dsa-articles-g.ts`: dijkstra, bellman-ford, floyd-warshall, mst, tarjan, eulerian.
   Dijkstra needs the correctness proof (why non-negative weights matter) and the lazy-deletion heap version.
