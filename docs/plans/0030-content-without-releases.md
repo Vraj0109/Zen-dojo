@@ -122,7 +122,7 @@ Done by agent D on `agent/d-lld`, 2026-11-09.
   process on a temp database (skip unchanged, `--prune`). Commands were also run by hand against a copy: all four examples were added, the missing
   outputs of `extra-tests.json` were computed by the C++ reference.
 - **Not done / deviations (open for the main session):**
-  1. (Done in the follow-up, 2026-11-09) Stored problems are listed in /dsa, tab "Other solves", under their `group` (default "Added by you"), and on the pattern pages named in `patterns`, through `app/dsa/added-problems.tsx` (two one-line additions to `app/dsa/page.tsx` and `app/dsa/pattern/[id]/page.tsx`; `lib/dsa.ts` was not touched). They link to the pack problem page, which is the same Run / Notes workspace. Not done: they are not counted in pattern progress or in the roadmap totals.
+  1. (Done in the follow-up, 2026-11-09) Stored problems are listed in /dsa, tab "Other solves", under their `group` (default "Added by you"), and on the pattern pages named in `patterns`, through `app/dsa/added-problems.tsx` (two one-line additions to `app/dsa/page.tsx` and `app/dsa/pattern/[id]/page.tsx`). Stored problems count toward pattern progress (`getDsaView()`) and roadmap totals (`getDsaView().totals`, `getRoadmapView()`), verified in `apps/web/lib/dsa.test.ts`.
   2. `reading` items are stored, listed (`content:list`) and exported, but the reading page (`/study/reading`, not in my row) does not show them yet.
   3. The route test covers the token check (`adminDenied`) and not a full request through the Next handler.
   4. Problems added this way keep pack semantics: ids are `pack:items:<id>`, not `x:<id>`.

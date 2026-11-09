@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PROBLEMS } from "@habit/shared";
+import { upsertItem } from "./content";
+import { setPackItemDone } from "./packs";
 import { getDsaView, getResolveDueCount, markSolved, undoSolve } from "./dsa";
 import { getRoadmapView } from "./roadmap";
 import { getTodayView, setPlanStart, toggleTask } from "./tasks";
@@ -137,5 +140,47 @@ describe("plan start", () => {
   it("snaps to the Monday of the chosen week", async () => {
     await setPlanStart("2026-11-12"); // Thursday
     expect((await getRoadmapView()).planStart).toBe("2026-11-09");
+  });
+});
+
+describe("stored problems (content items)", () => {
+  it("count toward pattern progress and roadmap totals", async () => {
+    const res = await upsertItem({
+      type: "problem",
+      id: "count-vowels-test",
+      title: "Count the vowels test",
+      difficulty: "easy",
+      patterns: ["hash-map"],
+      statement: ["Count vowels"],
+      constraints: ["0 <= word.length <= 100"],
+      fn: { name: "countVowels", params: [{ name: "word", type: "string" }], returns: "int" },
+      examples: [{ input: ["a"], output: 1 }],
+      tests: [{ input: ["b"], output: 0 }],
+      hints: ["Check vowels"],
+      solution: {
+        idea: ["Loop"],
+        complexity: "O(n)",
+        cpp: "class Solution { public: int countVowels(string s) { return 0; } };",
+      },
+    });
+    expect(res.ok ? null : res.errors).toBeNull();
+    expect(res).toMatchObject({ ok: true });
+
+    let view = await getDsaView();
+    let hm = view.groups[0].patterns.find((p) => p.id === "hash-map")!;
+    expect(hm.solved).toBe(0);
+    expect(view.totals.problems).toBe(Object.keys(PROBLEMS).length + 1);
+    expect(view.totals.solved).toBe(0);
+
+    await setPackItemDone("items", "count-vowels-test", true);
+
+    view = await getDsaView();
+    hm = view.groups[0].patterns.find((p) => p.id === "hash-map")!;
+    expect(hm.solved).toBe(1);
+    expect(view.totals.solved).toBe(1);
+    expect(view.totals.allSolved).toBe(1);
+
+    const r = await getRoadmapView();
+    expect(r.weeks[0].problemsSolved).toBe(1);
   });
 });

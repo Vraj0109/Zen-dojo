@@ -17,6 +17,7 @@ import {
 import { getDb } from "./db";
 import { getNote, getNotedIds, type ProblemNote } from "./notes";
 import { getPatternNotes, type PatternNote } from "./pattern-notes";
+import { listAddedProblems } from "./content";
 import { leetcodeProblems, leetcodeTopics, leetcodeUserSubmissions, problemSolves } from "./schema";
 import { openStruggles } from "./struggles";
 
@@ -109,13 +110,14 @@ export interface PatternView extends Pattern {
 
 export async function getDsaView() {
   const today = toLocalDate();
-  const [{ rows, first, resolved, auto }, extraRows, noted, lc, struggles, patternNotes] = await Promise.all([
+  const [{ rows, first, resolved, auto }, extraRows, noted, lc, struggles, patternNotes, addedProblems] = await Promise.all([
     solveIndex(),
     getExtraSolves(),
     getNotedIds(),
     leetcodeIndex(),
     openStruggles(today),
     getPatternNotes(),
+    listAddedProblems(),
   ]);
   const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), struggling: struggles.has(e.problemId), ...lc(e.slug) }));
   const view = (id: string): ProblemView => ({
@@ -130,7 +132,9 @@ export async function getDsaView() {
   const groups = DSA_GROUPS.map((g) => {
     const patterns: PatternView[] = g.patterns.map((p) => {
       const items = p.problems.map(view);
-      const solved = items.filter((i) => i.status.state !== "unsolved").length;
+      const addedForPattern = addedProblems.filter((ap) => ap.patterns.includes(p.id));
+      const addedSolved = addedForPattern.filter((ap) => ap.done).length;
+      const solved = items.filter((i) => i.status.state !== "unsolved").length + addedSolved;
       const target = patternTarget(p);
       return { ...p, items, solved, target, covered: solved >= target, note: patternNotes.get(p.id) ?? null };
     });
@@ -152,11 +156,11 @@ export async function getDsaView() {
     totals: {
       patterns: patterns.length,
       patternsCovered: patterns.filter((p) => p.covered).length,
-      problems: allIds.length,
-      solved: first.size,
+      problems: allIds.length + addedProblems.length,
+      solved: first.size + addedProblems.filter((p) => p.done).length,
       resolved: resolved.size,
       /** Every distinct problem solved, roadmap or not (roadmap checklist: 150+). */
-      allSolved: first.size + extras.length,
+      allSolved: first.size + extras.length + addedProblems.filter((p) => p.done).length,
       xp: rows.reduce((sum, r) => sum + r.xp, 0),
     },
   };
