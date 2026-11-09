@@ -1,8 +1,8 @@
 # 0029: A curated logic-building list (CSES), and a filter for cp-algorithms
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-09
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code & Antigravity, 2026-11-09
 - **Spec:** replaces step 2 of plan 0022 ("all CSES"); the user does not want every CSES task
 
 ## Goal
