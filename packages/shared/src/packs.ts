@@ -2,7 +2,10 @@
 // (format "prepwise-pack"); the app validates it here, stores it, and shows it as a course in Learn. Pure code, no I/O.
 // The format is written up in docs/content-packs.md, with a prompt another AI can follow to produce a pack.
 
+import { checkStress, expandStress, type PackStress } from "./judge/stress-gen";
 import type { Case, ProblemSpec, Ty } from "./judge/types";
+
+export type { Gen, PackStress } from "./judge/stress-gen";
 
 export const PACK_FORMAT = "prepwise-pack";
 export const PACK_VERSION = 1;
@@ -19,6 +22,8 @@ export interface PackLesson {
 }
 export type PackProblem = Omit<ProblemSpec, "source" | "solution" | "stress" | "url"> & {
   type: "problem";
+  /** Large inputs (speed and memory checks) written as data; see judge/stress-gen.ts. Needs solution.cpp for expected answers. */
+  stress?: PackStress[];
   difficulty?: "easy" | "medium" | "hard";
   /** Where the original problem lives, if anywhere (shown as a link) */
   url?: string;
@@ -133,6 +138,10 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
     else solution = { idea: s.idea.filter((x): x is string => typeof x === "string"), complexity: String(s.complexity), ...(typeof s.cpp === "string" ? { cpp: s.cpp.slice(0, PACK_LIMITS.text) } : {}) };
   } else warnings.push(`${where}: no solution given, so the Solution section will be empty.`);
   if (errs.length > before) return null;
+  const checked = checkStress(o.stress, f.params, `${where}.stress`, matchesTy);
+  errs.push(...checked.errors);
+  if (checked.stress.length > 0 && !solution?.cpp) warnings.push(`${where}: large inputs without a C++ solution can only check speed, not the answer.`);
+  if (errs.length > before) return null;
   const difficulty = o.difficulty === "easy" || o.difficulty === "medium" || o.difficulty === "hard" ? o.difficulty : undefined;
   const url = typeof o.url === "string" && /^https?:\/\//.test(o.url) && o.url.length <= 300 ? o.url : undefined;
   return {
@@ -147,6 +156,7 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
     hints,
     ...(o.unordered === true ? { unordered: true } : {}),
     ...(solution ? { solution } : {}),
+    ...(checked.stress.length > 0 ? { stress: checked.stress } : {}),
     ...(difficulty ? { difficulty } : {}),
     ...(url ? { url } : {}),
   };
@@ -197,7 +207,7 @@ export function validatePack(input: unknown): PackCheck {
 
 export const packItems = (p: Pack): PackItem[] => p.sections.flatMap((s) => s.items);
 
-/** The runnable spec for a pack problem (judge format). Pack problems have no large-input checks. */
+/** The runnable spec for a pack problem (judge format), with its large inputs expanded from the generators. */
 export function packProblemSpec(p: PackProblem, packId: string): ProblemSpec {
   return {
     id: `pack:${packId}:${p.id}`,
@@ -212,6 +222,7 @@ export function packProblemSpec(p: PackProblem, packId: string): ProblemSpec {
     ...(p.unordered ? { unordered: true } : {}),
     solution: { idea: p.solution?.idea ?? [], complexity: p.solution?.complexity ?? "", cpp: p.solution?.cpp ?? "" },
     ...(p.url ? { url: p.url } : {}),
+    ...(p.stress?.length ? { stress: expandStress(p.fn.params, p.stress) } : {}),
   };
 }
 

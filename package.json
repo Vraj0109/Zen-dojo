@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "import:cp-algorithms": "node scripts/import-cp-algorithms.mjs"
+    "import:cp-algorithms": "node scripts/import-cp-algorithms.mjs",
+    "pack:check": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/pack-check.mjs",
+    "pack:build": "node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs scripts/pack-build.mjs"
   },
   "packageManager": "pnpm@12.18.0",
   "engines": {

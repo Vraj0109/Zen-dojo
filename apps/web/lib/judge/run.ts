@@ -311,7 +311,9 @@ const referenceCache = new Map<string, Promise<(unknown | undefined)[] | null>>(
 export function referenceAnswers(spec: ProblemSpec): Promise<(unknown | undefined)[] | null> {
   const stress = spec.stress ?? [];
   if (stress.length === 0) return Promise.resolve([]);
-  let cached = referenceCache.get(spec.id);
+  // Keyed by the solution too, so an updated pack problem does not keep the old answers.
+  const cacheKey = spec.id + "|" + spec.solution.cpp;
+  let cached = referenceCache.get(cacheKey);
   if (!cached) {
     cached = (async () => {
       const dir = await mkdtemp(path.join(os.tmpdir(), "habit-ref-"));
@@ -326,10 +328,10 @@ export function referenceAnswers(spec: ProblemSpec): Promise<(unknown | undefine
         await rm(dir, { recursive: true, force: true }).catch(() => {});
       }
     })();
-    referenceCache.set(spec.id, cached);
+    referenceCache.set(cacheKey, cached);
     // A failed attempt (for example no compiler yet) must not stick: try again on the next Run.
     cached.then((v) => {
-      if (v === null) referenceCache.delete(spec.id);
+      if (v === null) referenceCache.delete(cacheKey);
     });
   }
   return cached;
@@ -427,6 +429,36 @@ export async function runCustom(spec: ProblemSpec, lang: JudgeLang, code: string
       ...(o && !o.problem ? { output: JSON.stringify(o.actual), micros: o.micros } : {}),
       ...(o?.rawActual !== undefined ? { output: o.rawActual } : {}),
       ...(printed.trim() ? { printed: cap(printed) } : {}),
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+export type ComputedOutputs =
+  | { status: "unavailable" | "compile_error"; message: string }
+  | { status: "done"; results: ({ ok: true; value: unknown; micros?: number } | { ok: false; error: string })[] };
+
+/**
+ * Runs a solution on inputs and returns what it answered for each (no expected answers needed). Used by pack:build to
+ * write the expected outputs of a draft pack. One compile, all inputs in as few runs as possible.
+ */
+export async function computeOutputs(spec: ProblemSpec, lang: JudgeLang, code: string, inputs: unknown[][]): Promise<ComputedOutputs> {
+  if (code.length > JUDGE_LIMITS.code) return { status: "compile_error", message: "The code is too long." };
+  const dir = await mkdtemp(path.join(os.tmpdir(), "habit-build-"));
+  try {
+    const prepared = await prepare(spec, lang, code, dir);
+    if (!prepared.ok) return prepared.result as ComputedOutputs;
+    const cases = inputs.map((input) => ({ input }));
+    const r = await runSet(dir, prepared.value.run, cases, cases.map((_, i) => i), 30_000, 120_000);
+    if (r.unavailable) return { status: "unavailable", message: MISSING[lang] };
+    return {
+      status: "done",
+      results: cases.map((_, i) => {
+        const o = r.outcomes.get(i);
+        if (!o || o.problem) return { ok: false as const, error: o?.error ?? "not run" };
+        return { ok: true as const, value: o.actual, micros: o.micros };
+      }),
     };
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
