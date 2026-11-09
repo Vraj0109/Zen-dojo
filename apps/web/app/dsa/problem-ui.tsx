@@ -26,12 +26,14 @@ export function ProblemTitle(props: {
   lcNotes?: boolean;
   submissions?: number;
   auto?: boolean;
+  /** What the problem teaches: shown as a tooltip */
+  why?: string;
 }) {
   const tag = props.struggling ? "stuck" : props.premium ? "premium" : null;
 
   return (
     <span className="min-w-0 truncate">
-      <Link href={`/dsa/${encodeURIComponent(props.id)}`} prefetch={false} className="hit-link hover:underline">
+      <Link href={`/dsa/${encodeURIComponent(props.id)}`} prefetch={false} title={props.why} className="hit-link hover:underline">
         {props.label}
       </Link>
       {props.url && (
@@ -75,6 +77,7 @@ export function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[
           url={p.url}
           premium={p.premium}
           struggling={p.struggling}
+          why={p.why}
         />
       </div>
 

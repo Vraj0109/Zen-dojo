@@ -885,4 +885,194 @@ int main() {
     ],
     recap: ["Do the arithmetic on the limits first.", "long long for sums, products and counts.", "Test n = 1 and all-equal inputs before submitting."],
   },
+  "cses-sorting": {
+    idea: "Sorting and searching problems in CSES teach core algorithmic patterns: two pointers on sorted arrays, binary search on answers, sweep-line algorithms over coordinate-compressed intervals, and multiset or tree-map lookups. They form the backbone of interview and competitive programming logic.",
+    signals: [
+      "Problems asking to minimize maximum values or maximize minimums often permit monotonic feasibility checks with binary search.",
+      "Finding matching pairs or closest elements across arrays after sorting indicates two pointers.",
+      "Interval overlaps or event processing point to sorting by start/end points and sweeping.",
+    ],
+    steps: [
+      "Decide whether the problem requires sorting the inputs directly or binary searching the answer space.",
+      "Use two pointers for linear scans on sorted arrays or ordered sets (std::multiset / std::map) when dynamic inserts and deletes are needed.",
+      "Carefully check 0-based versus 1-based indexing in outputs.",
+      "Test boundary cases: empty or single elements, all duplicates, and large constraints.",
+    ],
+    template: `#include <bits/stdc++.h>
+using namespace std;
+
+// Two pointers or binary search on sorted sequences:
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, target;
+    cin >> n >> target;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+    sort(a.begin(), a.end());
+    int l = 0, r = n - 1;
+    while (l < r) {
+        int sum = a[l] + a[r];
+        if (sum == target) { /* found */ break; }
+        else if (sum < target) l++;
+        else r--;
+    }
+    return 0;
+}`,
+    complexity: "Typically O(n log n) time due to sorting or binary search, and O(n) or O(1) extra space.",
+    variations: [
+      "Concert Tickets: binary search on multiset with upper_bound.",
+      "Restaurant Customers: sweep line on arrival and departure events.",
+      "Sum of Two Values: sort and two pointers.",
+      "Ferris Wheel: greedy pairing of lightest and heaviest.",
+    ],
+    pitfalls: [
+      "Using std::multiset::erase(val) which erases all duplicates instead of ms.erase(ms.find(val)).",
+      "Integer overflow in binary search mid calculation: use lo + (hi - lo) / 2.",
+    ],
+    recap: ["Sort first when order doesn't matter.", "Binary search the monotonic answer.", "Two pointers reduce quadratic pair searches to O(n)."],
+  },
+  "cses-dp": {
+    idea: "Dynamic programming on CSES structures logic around state definition and transitions: 1D linear recurrences, unbounded and 0/1 knapsacks, 2D grid path counting, interval splitting, and minimax game theory. Each task teaches how to eliminate redundant subproblems by storing optimal substructure.",
+    signals: [
+      "Problems asking for the number of ways modulo 10^9+7 or the minimum/maximum cost to achieve a target value.",
+      "Decisions at each step only depend on previous choices (optimal substructure and overlapping subproblems).",
+      "Constraints on n or targets up to 10^5 indicate O(n) or O(n * target) DP with space-optimized arrays.",
+    ],
+    steps: [
+      "Identify the state: what minimal information determines future choices?",
+      "Formulate the base cases and the recurrence transition equation.",
+      "Check the loop ordering: outer loop vs inner loop distinction between ordered and unordered combinations.",
+      "Apply modulo 10^9+7 at each addition step to prevent integer overflow.",
+    ],
+    template: `#include <bits/stdc++.h>
+using namespace std;
+
+// 1D rolling knapsack or combination DP:
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, x;
+    cin >> n >> x;
+    const int MOD = 1e9 + 7;
+    vector<int> dp(x + 1, 0);
+    dp[0] = 1;
+    // loop ordering determines permutations vs combinations
+    for (int i = 1; i <= x; i++) {
+        // transitions
+    }
+    return 0;
+}`,
+    complexity: "O(n * x) time where x is the target, with O(x) space using 1D rolling array optimization.",
+    variations: [
+      "Dice Combinations: 1D recurrence summing previous 6 states.",
+      "Coin Combinations: loop ordering determining permutations vs combinations.",
+      "Book Shop: 0/1 knapsack with reverse loop space optimization.",
+      "Removal Game: interval minimax DP dp[i][j].",
+    ],
+    pitfalls: [
+      "Looping in forward order in 0/1 knapsack instead of reverse, causing multiple usage of items.",
+      "Missing modulo on additions or subtraction resulting in negative numbers (add MOD before % MOD).",
+    ],
+    recap: ["Define state precisely.", "Ordered vs unordered combinations depend on loop nesting.", "Space optimize to 1D when only the previous row/state is needed."],
+  },
+  "cses-graph": {
+    idea: "Graph algorithms on CSES build mastery over fundamental traversals and pathfinding: BFS for unweighted shortest paths and multi-source propagation, DFS for connected components and cycle detection, Dijkstra for weighted shortest paths, Bellman-Ford for negative cycles, and Kahn's algorithm or DFS for topological sorting.",
+    signals: [
+      "Grid grids with walls and open cells represent unweighted graphs where edges connect adjacent cells.",
+      "Directed dependencies without cycles require topological sorting or DAG dynamic programming.",
+      "Shortest paths on non-negative weighted graphs indicate Dijkstra with a priority queue.",
+    ],
+    steps: [
+      "Build an adjacency list representation from edges or implicit grid neighbor transitions.",
+      "Choose the appropriate traversal: queue for BFS, recursion or stack for DFS, min-heap for Dijkstra.",
+      "Track visited states or distance arrays carefully to avoid infinite loops and redundant processing.",
+      "Verify 1-based vs 0-based node indexing across problem inputs and outputs.",
+    ],
+    template: `#include <bits/stdc++.h>
+using namespace std;
+
+// Dijkstra with min-heap on non-negative weighted graph:
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m;
+    cin >> n >> m;
+    vector<vector<pair<int, long long>>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v; long long w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+    }
+    vector<long long> dist(n + 1, 1e18);
+    priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<>> pq;
+    dist[1] = 0;
+    pq.push({0, 1});
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d > dist[u]) continue;
+        for (auto [v, w] : adj[u]) {
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+    return 0;
+}`,
+    complexity: "O(V + E) for BFS/DFS, O((V + E) log V) for Dijkstra with a binary heap.",
+    variations: [
+      "Counting Rooms: connected components via grid DFS/BFS.",
+      "Message Route: unweighted shortest path with parent pointers.",
+      "Course Schedule: topological sort detecting cycles.",
+      "Flight Discount: Dijkstra on a 2-layer state graph.",
+    ],
+    pitfalls: [
+      "Using 32-bit int for accumulated path weights: use long long in Dijkstra.",
+      "Not checking if a node is already processed in Dijkstra before expanding neighbors.",
+    ],
+    recap: ["Adjacency lists over matrices for sparse graphs.", "BFS for fewest edges, Dijkstra for non-negative weights.", "Topological sort requires DAGs."],
+  },
+  "cses-misc": {
+    idea: "The CSES range queries, tree, mathematics, and string sections cover specialized structures and number-theoretic tools: prefix sums and sparse tables for O(1) static queries, Fenwick and segment trees for dynamic updates, tree traversals for subtree aggregations, fast binary exponentiation, prime sieving, and linear pattern matching with KMP.",
+    signals: [
+      "Static range minimum/maximum queries indicate sparse tables; range sums with point updates require Fenwick trees or segment trees.",
+      "Computing powers or factorials modulo a prime requires binary exponentiation and Fermat's Little Theorem.",
+      "Substring search and pattern matching in linear time require prefix functions (KMP) or Z-algorithm.",
+    ],
+    steps: [
+      "Identify query vs update frequency: static vs dynamic updates.",
+      "For range queries, choose between prefix sums (static sums), Sparse Table (static RMQ in O(1)), and Fenwick tree (dynamic point update in O(log n)).",
+      "Precompute factorials and modular inverses up to N in O(N) to answer binomial queries in O(1).",
+      "Construct KMP pi array or Z array to match patterns in linear time O(|s| + |p|).",
+    ],
+    template: `#include <bits/stdc++.h>
+using namespace std;
+
+// Fenwick tree (Binary Indexed Tree) for dynamic range sum queries:
+struct Fenwick {
+    int n; vector<long long> tree;
+    Fenwick(int n): n(n), tree(n + 1, 0) {}
+    void add(int i, long long delta) {
+        for (; i <= n; i += i & -i) tree[i] += delta;
+    }
+    long long query(int i) {
+        long long sum = 0;
+        for (; i > 0; i -= i & -i) sum += tree[i];
+        return sum;
+    }
+};`,
+    complexity: "O(log n) per point update / range sum query; O(log b) for exponentiation; O(n + m) for KMP string matching.",
+    variations: [
+      "Static Range Minimum Queries: Sparse Table with precomputed powers of 2.",
+      "Dynamic Range Sum Queries: Fenwick tree (BIT) with 1-based bit manipulation.",
+      "Binomial Coefficients: precomputed factorials and modular inverse via Fermat's Little Theorem.",
+      "String Matching: KMP prefix-function automaton.",
+    ],
+    pitfalls: [
+      "Off-by-one errors in Fenwick tree indexing: Fenwick trees are naturally 1-based.",
+      "0^0 corner case in exponentiation (conventionally 1).",
+    ],
+    recap: ["Sparse table gives O(1) idempotent range min/max.", "Fenwick trees are concise and fast for range sums.", "Fast exponentiation computes a^b in O(log b)."],
+  },
 };

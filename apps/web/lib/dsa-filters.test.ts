@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDsaView, markSolved } from "./dsa";
-import { filterProblems, hasActiveFilters, parseDsaFilters, parseDsaTab, parseProblemTab } from "./dsa-filters";
+import { filterProblems, hasActiveFilters, matchesSource, parseSource, parseDsaFilters, parseDsaTab, parseProblemTab } from "./dsa-filters";
 import { importFromExtension } from "./leetcode/extension";
 import { saveNote } from "./notes";
 
@@ -106,5 +106,25 @@ describe("filterProblems", () => {
     await markSolved("lc-1");
     vi.setSystemTime(new Date(2026, 10, 6, 12));
     expect(ids(await run({ status: "due" }))).toEqual(["lc-1"]);
+  });
+});
+
+describe("source filter", () => {
+  it("parses the source and keeps only known values", () => {
+    expect(parseSource("cp-algorithms")).toBe("cp-algorithms");
+    expect(parseSource(["CSES"])).toBe("cses");
+    expect(parseSource("codeforces")).toBe("");
+    expect(parseSource(undefined)).toBe("");
+  });
+
+  it("matches LeetCode and CSES by id, cp-algorithms by link, and everything for an empty source", () => {
+    const lc = { id: "lc-1" };
+    const cses = { id: "cses-weird-algorithm", url: "https://cses.fi/problemset/task/1068" };
+    const cp = { id: "c-z-function", url: "https://cp-algorithms.com/string/z-function.html" };
+    const plain = { id: "c-other" };
+    expect([lc, cses, cp, plain].filter((p) => matchesSource(p, "leetcode"))).toEqual([lc]);
+    expect([lc, cses, cp, plain].filter((p) => matchesSource(p, "cses"))).toEqual([cses]);
+    expect([lc, cses, cp, plain].filter((p) => matchesSource(p, "cp-algorithms"))).toEqual([cp]);
+    expect([lc, cses, cp, plain].filter((p) => matchesSource(p, ""))).toHaveLength(4);
   });
 });
