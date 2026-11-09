@@ -13,7 +13,7 @@ Open for depth: 0014 (Batch E depth), 0022 (CSES remaining sections and other pl
 | Plan | What | Status |
 |---|---|---|
 | [0008](0008-dsa-pattern-articles-batches.md) | All 67 DSA pattern articles complete; short-guide fallback retired | implemented |
-| [0014](0014-system-design-depth.md) | System design depth: walkthroughs, diagrams, Java code | in-progress (batches A-D merged, 20/27 designs) |
+| [0014](0014-system-design-depth.md) | System design depth: walkthroughs, diagrams, Java code | implemented (all 27 designs) |
 | [0015](0015-core-subjects-depth.md) | Core subjects (OS, DB, networking, concurrency) depth | implemented |
 | [0021](0021-run-button-v2.md) | Run button v2: hide `#include`/imports, last run saved, custom input | implemented |
 | [0022](0022-problem-library.md) | Problem library: roadmap problems, CSES logic-building, design-class problems | in-progress |
@@ -83,7 +83,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0010 | [No emoji, and LeetCode-style simple lists on the DSA pages](0010-no-emoji-leetcode-style-ui.md) | done |
 | 0011 | [Coloured code everywhere, and a real code editor where you write code](0011-code-highlighting-and-editor.md) | implemented (by Claude Code; waiting for your look) |
 | 0012 | [Diagrams (Mermaid) in lessons, designs and articles](0012-diagrams.md) | implemented |
-| 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | in-progress (batch A of 5 written; parking lot and elevator enriched and compiled, vending/ATM still simple; batch B complete: LRU + rate limiter, URL shortener, logger + notifications, all compiled; vending/ATM richer code and batches C-E open) |
+| 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | implemented (completed via Plan 0025 batches A-F) |
 | 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | implemented |
 | 0015 | [Core subjects: more explanation, diagrams, Java demos](0015-core-subjects-depth.md) | implemented (by agent C) |
 | 0016 | [Themes: Light, Dark, System and accent colours](0016-themes.md) | implemented (by Claude Code) |
