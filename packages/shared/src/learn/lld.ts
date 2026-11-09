@@ -9,6 +9,7 @@ import { CAB_GUIDE } from "./lld-deep-d-cab";
 import { GAMES_GUIDE } from "./lld-deep-d-games";
 import { FILESYSTEM_GUIDE } from "./lld-deep-d-filesystem";
 import { KV_GUIDE } from "./lld-deep-d-kv";
+import { HOTEL_GUIDE } from "./lld-deep-e-hotel";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -368,4 +369,5 @@ class NotificationService {
   "lldp-library": LIBRARY_GUIDE,
   "lldp-cab": CAB_GUIDE,
   "lldp-kv-store": KV_GUIDE,
+  "lldp-hotel": HOTEL_GUIDE,
 };
