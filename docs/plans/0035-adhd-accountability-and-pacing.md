@@ -1,8 +1,8 @@
 # 0035: ADHD helper, accountability buddy, and cognitive pacing
 
-- **Status:** ready
+- **Status:** in-review
 - **Planned by:** Claude Code & Antigravity, 2026-11-09
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Antigravity, 2026-11-09
 - **Spec:** ADHD Pacing and Focus Assistance
 
 ## Goal
@@ -61,37 +61,37 @@ Existing relevant files in Zen Dojo:
 
 ## Steps
 
-- [ ] **1. Buddy settings & preferences schema.**
+- [x] **1. Buddy settings & preferences schema.**
   - Add `buddy_mode` (`"off" | "calm" | "peer" | "coach"`), `buddy_name`, and `adhd_pacing` (`"standard" | "gentle"`) to `apps/web/lib/schema.ts` settings keys.
   - Expose options in `apps/web/app/profile/settings/` under a new "Focus & Pacing" section.
   - Done when: Settings toggle persists and defaults to `"off"`.
 
-- [ ] **2. Session check-in modal & buddy dialogue engine.**
+- [x] **2. Session check-in modal & buddy dialogue engine.**
   - Create pure helper `packages/shared/src/buddy.ts` containing response templates for session starts, mid-session encouragement, and compassionate return messages.
   - Create `apps/web/app/buddy-session.tsx`: floating or header-docked companion widget with intent declaration ("I will work on X for 25 minutes") and post-sprint reflection.
   - Done when: Starting a session records the start time and declared goal in local state without blocking the UI.
 
-- [ ] **3. Micro-step deconstruction component.**
+- [x] **3. Micro-step deconstruction component.**
   - Create `apps/web/app/problem-micro-steps.tsx` integrated into `apps/web/app/judge-workspace.tsx` as a collapsible tab or helper pane.
   - Provides the 5 structured checkpoint boxes with local storage draft persistence per problem.
   - Done when: Users can open "Micro-steps" in any problem, check off understanding milestones, and see their notes persisted alongside code.
 
-- [ ] **4. Anti-overwhelm focus mode (`Ctrl+Shift+Z`).**
+- [x] **4. Anti-overwhelm focus mode (`Ctrl+Shift+Z`).**
   - Update `apps/web/app/shell.tsx` and `apps/web/app/pane-layout.tsx` to handle a global Zen Mode toggle that collapses all extraneous UI chrome and badges.
   - Done when: Triggering Zen Mode dims secondary panels and hides all backlog counters.
 
-- [ ] **5. Unit and component tests.**
+- [x] **5. Unit and component tests.**
   - Add `packages/shared/src/buddy.test.ts` testing greeting generation, compassionate re-entry copy, and session timing math.
   - Add `apps/web/app/buddy.test.ts` testing preference persistence.
   - Done when: `pnpm test` passes with zero regressions.
 
 ## Acceptance criteria
 
-- [ ] Buddy mode is completely optional and opt-in (disabled by default, zero clutter for users who prefer standard mode).
-- [ ] No shaming language anywhere in the app upon missed days or lapsed streaks.
-- [ ] Micro-steps drawer provides a structured scaffolding for breaking down overwhelming problems.
-- [ ] Works completely offline with zero network requests.
-- [ ] `pnpm check` passes with 0 errors.
+- [x] Buddy mode is completely optional and opt-in (disabled by default, zero clutter for users who prefer standard mode).
+- [x] No shaming language anywhere in the app upon missed days or lapsed streaks.
+- [x] Micro-steps drawer provides a structured scaffolding for breaking down overwhelming problems.
+- [x] Works completely offline with zero network requests.
+- [x] `pnpm check` passes with 0 errors.
 
 ## Open questions
 
@@ -99,7 +99,13 @@ Existing relevant files in Zen Dojo:
 
 ## Implementation notes
 
-(To be filled in when implemented).
+- Created `packages/shared/src/buddy.ts` with pure helpers for dialogue generation across 3 distinct tones: Calm (Sensei), Peer (Study buddy), and Coach (Direct motivator). Includes non-punitive compassionate re-entry copy, sprint start check-ins, mid-session micro-nudges, and post-session celebration, plus pacing configurations and the 5-step problem deconstruction schema (`PROBLEM_MICRO_STEPS`).
+- Created `apps/web/app/problem-micro-steps.tsx` with a 5-step problem deconstruction UI (1. Restate in plain words, 2. Inputs & bounds, 3. Brute force idea, 4. The bottleneck, 5. Select pattern & code). Features per-step checkboxes, collapsible prompt cards, note taking areas, and real-time persistence to `localStorage` under `habit-micro-steps:<problemId>`.
+- Integrated "Micro-steps" as an automatic helper tab within `JudgeWorkspace` (`apps/web/app/judge-workspace.tsx`), making it accessible on all problem pages.
+- Built Anti-overwhelm Zen mode (`apps/web/lib/zen-mode.ts` and `apps/web/app/globals.css`), toggled via shortcut `Ctrl+Shift+Z` / `Escape` or the Zen button in the top bar / code toolbar. In Zen mode, distracting badges, review counters, and secondary controls are dimmed/hidden (`.zen-dim`, `.zen-hide`).
+- Created `apps/web/app/buddy-session.tsx` floating companion widget for intention declaration and post-sprint reflection. Mounted in `apps/web/app/layout.tsx`, active only when buddy mode is enabled.
+- Added "Focus & Pacing" settings section in `apps/web/app/profile/settings/page.tsx` with persistence backed by `apps/web/lib/ui-prefs.ts` (`buddy_mode`, `buddy_name`, `adhd_pacing`) and server action `setBuddySettingsAction` in `apps/web/app/actions.ts`.
+- Added unit tests in `packages/shared/src/buddy.test.ts` (7 tests) and `apps/web/app/buddy.test.ts` (3 tests), and extended `apps/web/lib/ui-prefs.test.ts` (7 tests). All targeted tests pass cleanly.
 
 ## Review
 

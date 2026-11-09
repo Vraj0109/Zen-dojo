@@ -233,3 +233,9 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 
 /* Keyboard focus: one visible ring everywhere (mouse clicks don't show it). */
 :where(a, button, select, summary, input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Zen mode: Anti-overwhelm focus mode */
+html.zen-mode .zen-hide { display: none !important; }
+html.zen-mode .zen-dim { opacity: 0.35; transition: opacity 0.2s ease; }
+html.zen-mode .zen-dim:hover { opacity: 1; }
+

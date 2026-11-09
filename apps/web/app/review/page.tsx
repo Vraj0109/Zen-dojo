@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { CONFIDENCE_LABELS } from "@habit/shared";
-import { REVIEW_KIND_LABELS, applySkips, getReviewQueue, type ReviewItem } from "@/lib/review";
+import { REVIEW_KIND_LABELS, applySkips, getReviewQueue, splitReviewQueue, type ReviewItem } from "@/lib/review";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, rateConceptAction } from "../actions";
 import { ReviewTabs } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
@@ -29,7 +29,9 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
   await connection();
   const params = await searchParams;
   const skipped = (Array.isArray(params.skip) ? params.skip[0] : params.skip ?? "").split(",").filter(Boolean).slice(0, 200);
-  const items = applySkips(await getReviewQueue(), skipped);
+  const queue = await getReviewQueue();
+  const { dueToday, backlog } = splitReviewQueue(queue);
+  const items = applySkips(dueToday, skipped);
   const [next, ...rest] = items;
   const skipHref = (i: ReviewItem) => `/review?skip=${encodeURIComponent([...skipped.filter((s) => s !== keyOf(i)), keyOf(i)].join(","))}`;
 
@@ -95,6 +97,39 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {backlog.length > 0 && (
+            <section className="mt-8">
+              <details className="group rounded-xl border border-line bg-surface p-4">
+                <summary className="flex cursor-pointer items-center justify-between font-semibold">
+                  <span>Catch-up backlog ({backlog.length} more)</span>
+                  <span className="text-xs text-muted transition-transform group-open:rotate-180">▼</span>
+                </summary>
+                <p className="mt-2 text-xs text-muted">
+                  Overflow items from past days. Work through these at your own pace without streak stress.
+                </p>
+                <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line bg-background">
+                  {backlog.map((i) => (
+                    <li key={keyOf(i)} className="hit flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                      <span className="w-16 shrink-0 text-xs text-muted">{KIND_LABEL[i.kind]}</span>
+                      <div className="min-w-0 flex-1">
+                        <Link href={itemHref(i)} className="hit-link font-medium">
+                          {i.title}
+                        </Link>
+                        <p className="truncate text-xs text-muted">
+                          {REVIEW_KIND_LABELS[i.kind]}
+                          {i.detail && ` · ${i.detail}`}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Actions item={i} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             </section>
           )}
         </>

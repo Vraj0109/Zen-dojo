@@ -205,6 +205,58 @@ export interface Appearance {
   motion: MotionSetting;
 }
 
+export const DEFAULT_APPEARANCE: Appearance = {
+  mode: "system",
+  accent: DEFAULT_ACCENT,
+  style: DEFAULT_STYLE,
+  font: DEFAULT_FONT,
+  gamify: false,
+  bionic: "off",
+  motion: "auto",
+};
+
+export function parseAppearance(raw: unknown): Appearance {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_APPEARANCE };
+  const obj = raw as Record<string, unknown>;
+  return {
+    mode: parseMode(obj.mode),
+    accent: parseAccent(obj.accent),
+    style: parseStyle(obj.style),
+    font: parseFont(obj.font),
+    gamify: Boolean(obj.gamify),
+    bionic: parseBionic(obj.bionic),
+    motion: parseMotion(obj.motion),
+  };
+}
+
+export function readStoredAppearance(): Appearance | null {
+  try {
+    const mode = localStorage.getItem(THEME_KEY);
+    const accent = localStorage.getItem(ACCENT_KEY);
+    const style = localStorage.getItem(STYLE_KEY);
+    const font = localStorage.getItem(FONT_KEY);
+    const gamify = localStorage.getItem(GAMIFY_KEY);
+    const bionic = localStorage.getItem(BIONIC_KEY);
+    const motion = localStorage.getItem(MOTION_KEY);
+
+    if (mode === null && accent === null && style === null && font === null && gamify === null && bionic === null && motion === null) {
+      return null;
+    }
+
+    return {
+      mode: parseMode(mode),
+      accent: parseAccent(accent),
+      style: parseStyle(style),
+      font: parseFont(font),
+      gamify: gamify === "on",
+      bionic: parseBionic(bionic),
+      motion: parseMotion(motion),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Browser only: saves the choice and applies it right away. */
 export function applyTheme({ mode, accent, style, font, gamify, bionic, motion }: Appearance): void {
   const root = document.documentElement;

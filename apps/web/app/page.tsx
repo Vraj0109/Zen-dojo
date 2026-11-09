@@ -6,12 +6,13 @@ import { getResolveDueCount } from "@/lib/dsa";
 import { getWeekFocus, taskLink, type FocusItem, type TaskLink, type WeekFocusView } from "@/lib/focus";
 import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import type { Task } from "@/lib/schema";
-import { REVIEW_KIND_LABELS, getReviewQueue } from "@/lib/review";
+import { REVIEW_KIND_LABELS, getReviewQueue, splitReviewQueue } from "@/lib/review";
 import { getContinue } from "@/lib/courses";
 import { getCountdown } from "@/lib/revise";
 import { getTodayView } from "@/lib/tasks";
 import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
+import { CatchUpDrawer } from "./today/today-ui";
 import { PageMain, ProgressBar, StatusMark } from "./ui";
 
 /** Rows shown in "Up next" before "+N more". */
@@ -38,6 +39,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
   after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
   const params = await searchParams;
   const [v, resolveDue, reviews, countdown, keepLearning] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue(), getCountdown(), getContinue()]);
+  const { dueToday, backlog } = splitReviewQueue(reviews);
   const beforeStart = v.weekNo < 1;
   const finished = v.weekNo > TOTAL_WEEKS;
   const currentWeek = Math.min(Math.max(v.weekNo, 1), TOTAL_WEEKS);
@@ -50,7 +52,7 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
     shownWeek === currentWeek ? null : getWeekFocus(shownWeek),
   ]);
 
-  const due = { resolve: resolveDue, reviews: reviews.length };
+  const due = { resolve: resolveDue, reviews: dueToday.length };
   const link = (t: Task) => taskLink(t, focus, due);
   const doneTasks = v.dayTasks.filter((t) => t.status === "done");
   const undoneTasks = v.dayTasks.filter((t) => t.status !== "done");
@@ -67,13 +69,13 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
       href: "/revise",
     });
   }
-  if (reviews.length > 0) {
+  if (dueToday.length > 0) {
     const kinds = Object.entries(
-      reviews.reduce<Record<string, number>>((acc, r) => ({ ...acc, [REVIEW_KIND_LABELS[r.kind]]: (acc[REVIEW_KIND_LABELS[r.kind]] ?? 0) + 1 }), {}),
+      dueToday.reduce<Record<string, number>>((acc, r) => ({ ...acc, [REVIEW_KIND_LABELS[r.kind]]: (acc[REVIEW_KIND_LABELS[r.kind]] ?? 0) + 1 }), {}),
     )
       .map(([label, n]) => `${n} ${label.toLowerCase()}`)
       .join(" · ");
-    rows.push({ kind: "link", key: "reviews", label: "Review", title: `${reviews.length} review${reviews.length === 1 ? "" : "s"} due today`, detail: kinds, href: "/review" });
+    rows.push({ kind: "link", key: "reviews", label: "Review", title: `${dueToday.length} review${dueToday.length === 1 ? "" : "s"} due today`, detail: kinds, href: "/review" });
   }
   if (!beforeStart && !finished) for (const t of undoneTasks) rows.push({ kind: "task", key: `task-${t.id}`, task: t });
 
@@ -130,9 +132,12 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
       {showUpNext && (
         <section aria-labelledby="up-next" className="rounded-xl border border-line bg-surface">
           <div className="flex items-center justify-between gap-3 border-b border-line p-4">
-            <h3 id="up-next" className="font-semibold">
-              Up next
-            </h3>
+            <div className="flex items-center gap-3">
+              <h3 id="up-next" className="font-semibold">
+                Up next
+              </h3>
+              <CatchUpDrawer backlog={backlog} />
+            </div>
             {!beforeStart && !finished && v.dayTasks.length > 0 && (
               <span className="flex items-center gap-3 text-sm text-muted">
                 <span className="hidden w-28 sm:block">

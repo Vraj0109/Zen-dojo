@@ -1,7 +1,9 @@
 // Integration tests for task generation, ticking, XP and streaks against a real
 // in-memory SQLite database (same libSQL driver the app uses).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addCustomTask, deleteCustomTask, getTodayView, setPlanStart, toggleTask } from "./tasks";
+import { getDb } from "./db";
+import { problemSolves } from "./schema";
+import { addCustomTask, deleteCustomTask, getPlanStart, getTodayView, setPlanStart, shiftPlanSchedule, toggleTask } from "./tasks";
 
 /** Set the clock to a local date at noon. Only Date is faked so the DB driver's timers still work. */
 function setToday(date: string) {
@@ -139,5 +141,53 @@ describe("plan start date", () => {
     const v = await getTodayView();
     expect(v.weekNo).toBeGreaterThan(16);
     expect(v.dayTasks).toHaveLength(0);
+  });
+});
+
+describe("schedule shifting", () => {
+  it("shifts plan_start by N days and regenerates open tasks", async () => {
+    const v = await getTodayView();
+    expect(v.planStart).toBe("2026-11-02");
+    expect(v.weekNo).toBe(1);
+
+    await shiftPlanSchedule(7);
+    expect(await getPlanStart()).toBe("2026-11-09");
+    const after = await getTodayView();
+    expect(after.planStart).toBe("2026-11-09");
+    expect(after.weekNo).toBe(0); // Today is 2026-11-06, so plan starts in future
+  });
+
+  it("offsets pending problemSolves re-solve dates but keeps already resolved ones intact", async () => {
+    const db = await getDb();
+    // Problem 1: solved on Nov 1, not yet resolved (pending re-solve)
+    await db.insert(problemSolves).values({
+      problemId: "lc-1",
+      kind: "solve",
+      solvedOn: "2026-11-01",
+      xp: 10,
+    });
+
+    // Problem 2: solved on Oct 10 and resolved on Oct 24 (completed re-solve)
+    await db.insert(problemSolves).values([
+      { problemId: "lc-2", kind: "solve", solvedOn: "2026-10-10", xp: 10 },
+      { problemId: "lc-2", kind: "resolve", solvedOn: "2026-10-24", xp: 15 },
+    ]);
+
+    await shiftPlanSchedule(7);
+
+    const rows = await db.select().from(problemSolves);
+    const p1Solve = rows.find((r) => r.problemId === "lc-1" && r.kind === "solve")!;
+    expect(p1Solve.solvedOn).toBe("2026-11-08"); // 2026-11-01 + 7 days
+
+    const p2Solve = rows.find((r) => r.problemId === "lc-2" && r.kind === "solve")!;
+    const p2Resolve = rows.find((r) => r.problemId === "lc-2" && r.kind === "resolve")!;
+    expect(p2Solve.solvedOn).toBe("2026-10-10"); // unchanged because already resolved
+    expect(p2Resolve.solvedOn).toBe("2026-10-24"); // unchanged
+  });
+
+  it("ignores zero or invalid days", async () => {
+    const before = await getPlanStart();
+    await shiftPlanSchedule(0);
+    expect(await getPlanStart()).toBe(before);
   });
 });

@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { RunResult } from "@/lib/judge/run";
 import { blockedBannerMessage, isBlockedRunMessage, pickFallbackLanguage } from "@/lib/judge/blocked";
+import { getZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
 import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
 import { EditorField } from "./code-editor";
 import { editorHelp } from "./editor-help";
 import { Results } from "./judge-panel";
 import { PaneLayout } from "./pane-layout";
+import { ProblemMicroSteps } from "./problem-micro-steps";
 
 type Lang = "cpp" | "java" | "javascript";
 const LABEL: Record<Lang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript" };
@@ -143,6 +145,20 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const router = useRouter();
   // False while rendering on the server and during hydration, so saved code is read only in the browser.
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const zen = useSyncExternalStore(subscribeZen, getZenMode, () => false);
+
+  const effectiveTabs: ProblemTab[] = useMemo(() => {
+    if (tabs.some((t) => t.id === "micro-steps")) return tabs;
+    return [
+      ...tabs,
+      {
+        id: "micro-steps",
+        label: "Micro-steps",
+        node: <ProblemMicroSteps problemId={id} />,
+      },
+    ];
+  }, [id, tabs]);
+
   const [pickedLang, setPickedLang] = useState<Lang | null>(null);
   const [resetCount, setResetCount] = useState(0);
   const [running, setRunning] = useState(false);
@@ -155,7 +171,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const [customBusy, setCustomBusy] = useState(false);
   const [custom, setCustom] = useState<{ error?: string; output?: string; printed?: string; compile?: string } | null>(null);
   const [blockedBanner, setBlockedBanner] = useState<string | null>(null);
-  const [tab, setTab] = useState(tabs.some((t) => t.id === initialTab) ? initialTab! : tabs[0].id);
+  const [tab, setTab] = useState(effectiveTabs.some((t) => t.id === initialTab) ? initialTab! : effectiveTabs[0].id);
   const areaRef = useRef<HTMLDivElement>(null);
 
   const savedLang = hydrated ? (store.get(problemLangKey(id)) ?? store.get(LANG_KEY)) : null;
@@ -306,12 +322,12 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   // Your draft first, else the code you last ran, else the starter.
   const initial = hydrated ? (draft ?? lastRun?.code ?? templates[lang]) : templates[lang];
   const selectId = `judge-lang-${id}`;
-  const active = tabs.find((t) => t.id === tab) ?? tabs[0];
+  const active = effectiveTabs.find((t) => t.id === tab) ?? effectiveTabs[0];
 
   const problemPane = (
     <div className="flex h-full min-h-0 flex-col">
       <div role="tablist" aria-label="Problem sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {tabs.map((t) => (
+        {effectiveTabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -327,7 +343,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-4">
-        {tabs.map((t) => (
+        {effectiveTabs.map((t) => (
           <div key={t.id} role="tabpanel" hidden={t.id !== active.id} className="anim-fade-up">
             {t.id === "notes" ? <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved}>{t.node}</LastRuns> : t.node}
           </div>
@@ -353,6 +369,17 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           </option>
         ))}
       </select>
+      <button
+        type="button"
+        onClick={toggleZenMode}
+        aria-pressed={zen}
+        title="Zen mode: anti-overwhelm focus (Ctrl+Shift+Z)"
+        className={`rounded-md border px-2 py-1 text-xs transition-colors ${
+          zen ? "border-accent bg-accent text-on-accent font-medium" : "border-line hover:bg-background"
+        }`}
+      >
+        Zen
+      </button>
       {lastRun && (
         <button
           type="button"

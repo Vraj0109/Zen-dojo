@@ -56,16 +56,15 @@ export function ArticleSection({
 export function ArticleLayout({
   toc,
   rail,
-  outline,
   children,
 }: {
   toc: TocItem[];
   rail?: React.ReactNode;
-  /** The course outline (app/course-outline.tsx), shown under the table of contents. */
+  /** @deprecated Course outline moved to header breadcrumb navigation. */
   outline?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const hasAside = toc.length > 0 || !!rail || !!outline;
+  const hasAside = toc.length > 0 || !!rail;
   return (
     <div className={`grid gap-6 ${hasAside ? "xl:grid-cols-[minmax(0,1fr)_16rem]" : ""}`}>
       {hasAside && (
@@ -84,7 +83,6 @@ export function ArticleLayout({
               </nav>
             </>
           )}
-          {outline}
           {rail}
         </aside>
       )}

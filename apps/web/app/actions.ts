@@ -10,7 +10,7 @@ import { getPackProblemSpec, fetchPackText, installPack, removePack, setPackItem
 import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
-import { addCustomTask, deleteCustomTask, setPlanStart, toggleTask } from "@/lib/tasks";
+import { addCustomTask, deleteCustomTask, setPlanStart, shiftPlanSchedule, toggleTask } from "@/lib/tasks";
 import { deletePractice, logPractice, rateConcept, saveConcept } from "@/lib/study";
 import { saveBossFight } from "@/lib/boss";
 import { deleteDiagram } from "@/lib/diagrams";
@@ -19,7 +19,9 @@ import { addCustomReading, deleteCustomReading, setReadingDone } from "@/lib/rea
 import { clearStruggles, logStruggle } from "@/lib/struggles";
 import { logFocus } from "@/lib/timer";
 import { setInterviewDate } from "@/lib/revise";
-import { setSimpleMode } from "@/lib/ui-prefs";
+import { getAppearanceSetting, setAppearanceSetting, setBuddySettings, setSimpleMode } from "@/lib/ui-prefs";
+import type { Appearance } from "@/lib/theme";
+import type { AdhdPacing, BuddyMode } from "@habit/shared";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
 // beyond localhost (see SPEC.md "Hosted mode").
@@ -100,6 +102,14 @@ export async function setPlanStartAction(formData: FormData) {
   refresh();
 }
 
+export async function shiftPlanScheduleAction(formData: FormData) {
+  const days = Number(formData.get("days"));
+  if (Number.isInteger(days) && days !== 0) {
+    await shiftPlanSchedule(days);
+    refresh();
+  }
+}
+
 /** Star or un-star a course on the Learn page. */
 export async function toggleFavouriteCourseAction(formData: FormData) {
   await toggleFavouriteCourse(String(formData.get("course") ?? ""));
@@ -130,6 +140,22 @@ export async function setInterviewDateAction(formData: FormData) {
 /** Simple mode on or off (Profile, Settings). */
 export async function setSimpleModeAction(formData: FormData) {
   await setSimpleMode(formData.get("simple") === "1");
+  refresh();
+}
+
+export async function getAppearanceAction(): Promise<Appearance | null> {
+  return await getAppearanceSetting();
+}
+
+export async function setAppearanceAction(prefs: Appearance): Promise<void> {
+  await setAppearanceSetting(prefs);
+}
+
+export async function setBuddySettingsAction(formData: FormData) {
+  const mode = formData.get("buddyMode") as BuddyMode;
+  const name = String(formData.get("buddyName") ?? "").trim();
+  const pacing = formData.get("adhdPacing") as AdhdPacing;
+  await setBuddySettings({ mode, name, pacing });
   refresh();
 }
 

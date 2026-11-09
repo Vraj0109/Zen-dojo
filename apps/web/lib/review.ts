@@ -114,3 +114,28 @@ export function applySkips<T extends { kind: string; id: string }>(items: T[], s
   const key = (i: T) => `${i.kind}:${i.id}`;
   return [...items.filter((i) => !skip.has(key(i))), ...items.filter((i) => skip.has(key(i)))];
 }
+
+export const DAILY_REVIEW_CAP = 5;
+
+const KIND_PRIORITY: Record<ReviewItem["kind"], number> = {
+  struggle: 0,
+  resolve: 1,
+  concept: 2,
+  exercise: 3,
+};
+
+/**
+ * Split review items into a capped list for today and an overflow backlog drawer.
+ * Priority order: open struggles > earliest due re-solves > concepts > exercises.
+ */
+export function splitReviewQueue(
+  items: ReviewItem[],
+  cap: number = DAILY_REVIEW_CAP,
+): { dueToday: ReviewItem[]; backlog: ReviewItem[] } {
+  const safeCap = Math.max(0, cap);
+  const sorted = [...items].sort((a, b) => KIND_PRIORITY[a.kind] - KIND_PRIORITY[b.kind]);
+  return {
+    dueToday: sorted.slice(0, safeCap),
+    backlog: sorted.slice(safeCap),
+  };
+}

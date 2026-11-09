@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { THEME_EVENT, applyTheme, readStoredAppearance } from "@/lib/theme";
+import { getZenMode, initZenMode, setZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
+import { getAppearanceAction, setAppearanceAction } from "./actions";
 import { HistoryButtons } from "./history-buttons";
 
 // Whether the slim top bar is hidden on focus pages (Ctrl+Shift+B), remembered in this browser.
@@ -68,10 +71,61 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
   // The drawer belongs to one page: moving to another page closes it without an effect.
   const open = openFor === pathname;
   const hiddenBar = useSyncExternalStore(subscribeBar, barHidden, () => false);
+  const zen = useSyncExternalStore(subscribeZen, getZenMode, () => false);
+
+  useEffect(() => {
+    initZenMode();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function syncAppearance() {
+      try {
+        const local = readStoredAppearance();
+        const server = await getAppearanceAction();
+        if (cancelled) return;
+        if (!local && server) {
+          applyTheme(server);
+        } else if (local && !server) {
+          await setAppearanceAction(local);
+        } else if (local && server) {
+          const diff =
+            local.mode !== server.mode ||
+            local.accent !== server.accent ||
+            local.style !== server.style ||
+            local.font !== server.font ||
+            local.gamify !== server.gamify ||
+            local.bionic !== server.bionic ||
+            local.motion !== server.motion;
+          if (diff) {
+            applyTheme(server);
+          }
+        }
+      } catch {
+        // storage or network error
+      }
+    }
+    syncAppearance();
+
+    const onThemeChange = () => {
+      const cur = readStoredAppearance();
+      if (cur) {
+        setAppearanceAction(cur).catch(() => {});
+      }
+    };
+    window.addEventListener(THEME_EVENT, onThemeChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(THEME_EVENT, onThemeChange);
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenFor(null);
+      if (e.key === "Escape") {
+        setOpenFor(null);
+        if (getZenMode()) setZenMode(false);
+      }
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "b") {
         e.preventDefault();
         setOpenFor((o) => (o === pathname ? null : pathname));
@@ -79,6 +133,10 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "b") {
         e.preventDefault();
         setBarHidden(!barHidden());
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        toggleZenMode();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -124,6 +182,20 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
           >
             <span aria-hidden>↩</span>
           </Link>
+          <button
+            type="button"
+            onClick={toggleZenMode}
+            aria-pressed={zen}
+            aria-label="Zen mode"
+            title="Zen mode: focus purely on problem and code (Ctrl+Shift+Z)"
+            className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
+              zen ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
+            }`}
+          >
+            <span aria-hidden className="inline-block size-1.5 rounded-full bg-current" />
+            <span>Zen</span>
+          </button>
+          {zen && <span className="text-[11px] text-muted italic ml-1">focus mode (Esc to exit)</span>}
           <button
             type="button"
             onClick={() => setBarHidden(true)}

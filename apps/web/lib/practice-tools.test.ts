@@ -5,7 +5,7 @@ import { getDsaView, markSolved } from "./dsa";
 import { filterProblems, parseDsaFilters } from "./dsa-filters";
 import { getPatternNotes, savePatternNote } from "./pattern-notes";
 import { addCustomReading, getReadingFor, getReadingList, setReadingDone } from "./reading";
-import { applySkips, getReviewQueue } from "./review";
+import { applySkips, getReviewQueue, splitReviewQueue, type ReviewItem } from "./review";
 import { getCountdown, getInterviewDate, getWeakSpots, setInterviewDate, weakConceptIds } from "./revise";
 import { getStats } from "./stats";
 import { clearStruggles, logStruggle, openStruggles } from "./struggles";
@@ -74,6 +74,56 @@ describe("review queue", () => {
     await rateConcept("sd-caching", 4);
     expect((await getConceptDetail("sd-caching"))!.progress).toMatchObject({ confidence: 4, checked: [0, 2], notes: "TTL jitter" });
     expect((await getReviewQueue()).some((i) => i.id === "sd-caching")).toBe(false);
+  });
+
+  it("splits review items into dueToday and backlog with cap and prioritization", () => {
+    const makeItem = (kind: ReviewItem["kind"], id: string): ReviewItem => {
+      const base = { id, title: `Item ${id}`, href: `/item/${id}`, detail: "" };
+      if (kind === "struggle") {
+        return { ...base, kind, struggle: { problemId: id, kind: "hint", reason: "", loggedOn: "2026-11-01", dueOn: "2026-11-04", due: true, count: 1 }, solved: false };
+      }
+      if (kind === "resolve") return { ...base, kind };
+      if (kind === "concept") return { ...base, kind, area: "sd", confidence: 2 };
+      return { ...base, kind, area: "sd", score: 3 };
+    };
+
+    // Unsorted list of 8 items across kinds
+    const items: ReviewItem[] = [
+      makeItem("exercise", "ex-1"),
+      makeItem("concept", "con-1"),
+      makeItem("resolve", "res-1"),
+      makeItem("struggle", "stg-1"),
+      makeItem("exercise", "ex-2"),
+      makeItem("resolve", "res-2"),
+      makeItem("concept", "con-2"),
+      makeItem("struggle", "stg-2"),
+    ];
+
+    // Default cap of 5: priority order is struggle > resolve > concept > exercise
+    const split = splitReviewQueue(items, 5);
+    expect(split.dueToday).toHaveLength(5);
+    expect(split.backlog).toHaveLength(3);
+
+    // dueToday has both struggles, both resolves, and the first concept
+    expect(split.dueToday.map((i) => `${i.kind}:${i.id}`)).toEqual([
+      "struggle:stg-1",
+      "struggle:stg-2",
+      "resolve:res-1",
+      "resolve:res-2",
+      "concept:con-1",
+    ]);
+
+    // backlog has remaining concept and exercises
+    expect(split.backlog.map((i) => `${i.kind}:${i.id}`)).toEqual([
+      "concept:con-2",
+      "exercise:ex-1",
+      "exercise:ex-2",
+    ]);
+
+    // When items <= cap, backlog is empty
+    const small = splitReviewQueue(items.slice(0, 3), 5);
+    expect(small.dueToday).toHaveLength(3);
+    expect(small.backlog).toHaveLength(0);
   });
 });
 

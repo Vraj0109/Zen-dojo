@@ -6,8 +6,8 @@ import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus } from "@/lib/leetcode/sync";
 import { getFeedUrl, listLessonPatches } from "@/lib/packs";
 import { getPlanStart } from "@/lib/tasks";
-import { getSimpleMode } from "@/lib/ui-prefs";
-import { setPlanStartAction, setSimpleModeAction } from "../../actions";
+import { getBuddySettings, getSimpleMode } from "@/lib/ui-prefs";
+import { setBuddySettingsAction, setPlanStartAction, setSimpleModeAction, shiftPlanScheduleAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { PackImporter } from "../../pack-importer";
 import { CustomColours, CustomFontPicker, ProfileEditor } from "../../custom-appearance";
@@ -46,6 +46,11 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
           </section>
           <Suspense fallback={<p className="text-muted">Loading…</p>}>
             <InterfaceSettings />
+          </Suspense>
+
+          <h3 className="text-lg font-semibold">Focus &amp; Pacing</h3>
+          <Suspense fallback={<p className="text-muted">Loading focus settings…</p>}>
+            <BuddySettingsSection />
           </Suspense>
 
           <h3 className="text-lg font-semibold">Content</h3>
@@ -162,6 +167,15 @@ async function PlanSettings() {
         />
         <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">Save</SubmitButton>
       </form>
+      <form action={shiftPlanScheduleAction} className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+        <span className="text-sm font-medium">Shift schedule for holidays or breaks:</span>
+        <button type="submit" name="days" value="7" className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+          +1 week
+        </button>
+        <button type="submit" name="days" value="14" className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+          +2 weeks
+        </button>
+      </form>
     </section>
   );
 }
@@ -210,6 +224,79 @@ async function ContentFeedSection() {
         Connect to an over-the-air content feed to check for new and updated problem packs.
       </p>
       <FeedUpdater initialFeedUrl={feedUrl} patches={patches} />
+    </section>
+  );
+}
+
+async function BuddySettingsSection() {
+  await connection();
+  const settings = await getBuddySettings();
+  return (
+    <section className="space-y-4 rounded-xl border border-line bg-surface p-4">
+      <div>
+        <h4 className="font-semibold">Accountability Buddy &amp; Gentle Pacing</h4>
+        <p className="mt-1 text-sm text-muted">
+          Designed for ADHD and cognitive ease: an optional, shame-free co-working companion, gentle timers with soft nudges, and micro-step deconstruction.
+        </p>
+      </div>
+      <form action={setBuddySettingsAction} className="space-y-4">
+        <div>
+          <label htmlFor="buddyMode" className="block text-sm font-medium">
+            Buddy Tone
+          </label>
+          <select
+            id="buddyMode"
+            name="buddyMode"
+            defaultValue={settings.mode}
+            className="mt-1 block w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+          >
+            <option value="off">Off (Standard Dojo)</option>
+            <option value="calm">Sensei (Calm, grounding &amp; mindful)</option>
+            <option value="peer">Study Buddy (Friendly, relatable &amp; encouraging)</option>
+            <option value="coach">Coach (Direct, positive &amp; motivating)</option>
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            When enabled, your buddy checks in at sprint start, offers gentle reminders, and celebrates effort without guilt.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="buddyName" className="block text-sm font-medium">
+            Buddy Name (optional)
+          </label>
+          <input
+            id="buddyName"
+            type="text"
+            name="buddyName"
+            defaultValue={settings.name}
+            placeholder="e.g., Sensei, Maya, Coach"
+            maxLength={50}
+            className="mt-1 block w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="adhdPacing" className="block text-sm font-medium">
+            Pacing Mode
+          </label>
+          <select
+            id="adhdPacing"
+            name="adhdPacing"
+            defaultValue={settings.pacing}
+            className="mt-1 block w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+          >
+            <option value="gentle">Gentle pacing (Count-up timer, soft reminder at 20 min, no harsh cutoffs)</option>
+            <option value="standard">Standard pacing (25 min Pomodoro countdown)</option>
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            Gentle pacing avoids countdown anxiety by counting up and softly nudging when it is time to stretch.
+          </p>
+        </div>
+
+        <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent text-sm">
+          Save pacing preferences
+        </SubmitButton>
+      </form>
     </section>
   );
 }

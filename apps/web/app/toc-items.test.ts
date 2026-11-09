@@ -72,3 +72,22 @@ describe("designDeepToc", () => {
     expect(toc[1].children?.map((c) => c.id)).toEqual(["deeper-sizing-with-the-arithmetic", "deeper-failure-modes"]);
   });
 });
+
+describe("ArticleLayout navigation", () => {
+  it("renders only Toc in aside without duplicate outline landmarks", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { ArticleLayout } = await import("./learn-blocks");
+    const html = renderToStaticMarkup(
+      ArticleLayout({
+        toc: [{ id: "overview", title: "Overview" }],
+        outline: "DUPLICATE_OUTLINE_CONTENT",
+        children: "LESSON_CONTENT",
+      })
+    );
+    expect(html).toContain("On this page");
+    expect(html).toContain("LESSON_CONTENT");
+    expect(html).not.toContain("DUPLICATE_OUTLINE_CONTENT");
+    // Ensure no duplicate outline navigation in the aside
+    expect(html).not.toContain("Course outline");
+  });
+});

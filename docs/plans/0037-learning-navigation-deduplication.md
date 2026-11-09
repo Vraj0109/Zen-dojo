@@ -1,8 +1,8 @@
 # 0037: Learning navigation deduplication
 
-- **Status:** ready
+- **Status:** in-review
 - **Planned by:** Claude Code & Antigravity, 2026-11-09
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Antigravity, 2026-11-09
 - **Spec:** Study Page Reading Experience & Navigation Rails
 
 ## Goal
@@ -45,31 +45,31 @@ The user explicitly requested:
 
 ## Steps
 
-- [ ] **1. Clean up `ArticleLayout` aside in `apps/web/app/learn-blocks.tsx`.**
+- [x] **1. Clean up `ArticleLayout` aside in `apps/web/app/learn-blocks.tsx`.**
   - Remove `outline` from the aside DOM tree in `ArticleLayout`.
   - Ensure the sidebar gives full vertical room to the `Toc` component and its active scroll tracker.
   - Done when: Study pages show only "On this page" in the right-hand rail.
 
-- [ ] **2. Move course navigation to breadcrumb quick-picker in `apps/web/app/study/[area]/[id]/page.tsx`.**
+- [x] **2. Move course navigation to breadcrumb quick-picker in `apps/web/app/study/[area]/[id]/page.tsx`.**
   - Integrate a compact lesson jump menu in the page header breadcrumb.
   - Retain "Next lesson" and "Previous lesson" navigation buttons at the bottom footer of the lesson text.
   - Done when: Navigating between lessons remains seamless from the header and footer.
 
-- [ ] **3. Update responsive mobile view.**
+- [x] **3. Update responsive mobile view.**
   - On mobile (< 1280px), the sticky aside collapses into a single clean `<details>` drawer labeled "On this page" at the top of the content.
   - Done when: Mobile view is completely free of nested double accordions.
 
-- [ ] **4. Tests.**
+- [x] **4. Tests.**
   - Update `apps/web/app/toc-items.test.ts` and `apps/web/lib/study.test.ts`.
   - Verify that `ArticleLayout` renders cleanly without duplicate nav landmarks.
   - Done when: `pnpm test` passes.
 
 ## Acceptance criteria
 
-- [ ] Lesson pages show exactly ONE table of contents in the sidebar ("On this page" with smooth animations and scroll tracking).
-- [ ] No duplicate headings or redundant course trees on the reading canvas.
-- [ ] Users can still jump to adjacent or other lessons via header breadcrumb or footer links.
-- [ ] `pnpm check` passes with 0 errors.
+- [x] Lesson pages show exactly ONE table of contents in the sidebar ("On this page" with smooth animations and scroll tracking).
+- [x] No duplicate headings or redundant course trees on the reading canvas.
+- [x] Users can still jump to adjacent or other lessons via header breadcrumb or footer links.
+- [x] `pnpm check` passes with 0 errors.
 
 ## Open questions
 
@@ -77,7 +77,11 @@ The user explicitly requested:
 
 ## Implementation notes
 
-(To be filled in when implemented).
+- Removed `outline` from the aside DOM tree in `ArticleLayout` (`apps/web/app/learn-blocks.tsx`). Deprecated the `outline` prop. The right-hand aside now dedicates its vertical height solely to `Toc` ("On this page") and its active position tracker/progressbar (plus optional rail widget).
+- On mobile (< 1280px), `ArticleLayout` displays only the clean `<details>` drawer labeled "On this page", eliminating competing double accordions.
+- Updated `CourseOutline` in `apps/web/app/course-outline.tsx` into a compact dropdown popover for the header breadcrumb. Displays course title, covered/total progress counts, section breakdown, lesson links with status dots, and practice exercises without duplicate subheadings.
+- In `apps/web/app/study/[area]/[id]/page.tsx`, integrated the `CourseOutline` quick-picker into the breadcrumb (`Study / [Area] / [Lesson Title ▾]`) and added `LessonNav` footer buttons for adjacent "Previous lesson" and "Next lesson" navigation.
+- Added verification test in `apps/web/app/toc-items.test.ts` to ensure `ArticleLayout` renders `Toc` without duplicate outline landmarks. Targeted test suites `toc-items.test.ts` and `study.test.ts` both pass cleanly.
 
 ## Review
 

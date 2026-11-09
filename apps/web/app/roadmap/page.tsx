@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { TOTAL_WEEKS } from "@habit/shared";
 import { getRoadmapView, type RoadmapWeek } from "@/lib/roadmap";
+import { shiftPlanScheduleAction } from "../actions";
 import { ProfileTabs } from "../profile/profile-ui";
 import { PageMain, ProgressBar } from "../ui";
 
@@ -43,6 +44,17 @@ async function Roadmap() {
         <p className="mt-2 text-xs text-muted">
           Roughly 40% DSA, 35% system design, 15% behavioral/LLD, 10% mocks and applications.
         </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          <span className="text-xs text-muted">Taking a holiday or break? Shift the schedule:</span>
+          <form action={shiftPlanScheduleAction} className="flex items-center gap-2">
+            <button type="submit" name="days" value="7" className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background">
+              +1 week
+            </button>
+            <button type="submit" name="days" value="14" className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background">
+              +2 weeks
+            </button>
+          </form>
+        </div>
       </section>
 
       <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">

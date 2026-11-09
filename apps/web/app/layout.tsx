@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, Geist, Geist_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { getBuddySettings } from "@/lib/ui-prefs";
+import { BuddySession } from "./buddy-session";
 import { GlobalTimer } from "./global-timer";
 import { CustomFontLoader } from "./custom-font-loader";
 import { FocusReading } from "./focus-reading";
@@ -42,9 +45,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Shell aside={asideNode}>{children}</Shell>
         <FocusReading />
         <CustomFontLoader />
+        <Suspense fallback={null}>
+          <BuddySessionLoader />
+        </Suspense>
       </body>
     </html>
   );
+}
+
+async function BuddySessionLoader() {
+  await connection();
+  const settings = await getBuddySettings();
+  return <BuddySession settings={settings} />;
 }
 
 const asideNode = (

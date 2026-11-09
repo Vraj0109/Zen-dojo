@@ -105,6 +105,6 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0032 | [Roadmap: hosted site with accounts and sync](0032-hosted-site-roadmap.md) | draft (decisions needed) |
 | 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | implemented (all merged) |
 | 0034 | [Blocked C++ programs and WebAssembly C++ runner](0034-blocked-programs-and-wasm-cpp.md) | ready (Part A implemented) |
-| 0035 | [ADHD helper, accountability buddy, and cognitive pacing](0035-adhd-accountability-and-pacing.md) | ready |
-| 0036 | [Schedule shifting, review backlog management, and theme database persistence](0036-schedule-shifting-backlog-and-theme-persistence.md) | ready |
-| 0037 | [Learning navigation deduplication](0037-learning-navigation-deduplication.md) | ready |
+| 0035 | [ADHD helper, accountability buddy, and cognitive pacing](0035-adhd-accountability-and-pacing.md) | implemented |
+| 0036 | [Schedule shifting, review backlog management, and theme database persistence](0036-schedule-shifting-backlog-and-theme-persistence.md) | implemented |
+| 0037 | [Learning navigation deduplication](0037-learning-navigation-deduplication.md) | implemented |

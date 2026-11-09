@@ -117,7 +117,7 @@ async function Problem({
           <div className="min-w-0 space-y-1">
             <h2 className="text-xl font-semibold tracking-tight">{label}</h2>
             {PROBLEMS[p.id]?.why && <p className="text-sm text-muted">Why this one: {PROBLEMS[p.id].why}</p>}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted zen-dim">
               <Difficulty level={p.difficulty} />
               {p.patterns.map((pat) => (
                 <Link key={pat.id} href={`/dsa/pattern/${pat.id}`} className="rounded-full border border-line px-2 py-0.5 text-xs hover:bg-background hover:text-foreground">
@@ -138,7 +138,7 @@ async function Problem({
               {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 zen-dim">
             {p.kind === "roadmap" && s.state !== "resolved" && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />

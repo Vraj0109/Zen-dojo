@@ -62,6 +62,58 @@ export default function StudyItemPage({ params, searchParams }: PageProps<"/stud
   );
 }
 
+interface LessonLink {
+  id: string;
+  title: string;
+  href: string;
+}
+
+function getAdjacentLessons(area: ReturnType<typeof getStudyArea> & {}, currentId: string): { prev?: LessonLink; next?: LessonLink } {
+  const all: LessonLink[] = [
+    ...area.sections.flatMap((s) => s.concepts.map((c) => ({ id: c.id, title: c.title, href: `/study/${area.id}/${c.id}` }))),
+    ...(area.exercises?.items ?? []).map((e) => ({ id: e.id, title: e.title, href: `/study/${area.id}/${e.id}` })),
+  ];
+  const index = all.findIndex((item) => item.id === currentId);
+  return {
+    prev: index > 0 ? all[index - 1] : undefined,
+    next: index >= 0 && index < all.length - 1 ? all[index + 1] : undefined,
+  };
+}
+
+function LessonNav({ prev, next }: { prev?: LessonLink; next?: LessonLink }) {
+  if (!prev && !next) return null;
+  return (
+    <nav aria-label="Lesson navigation" className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+      {prev ? (
+        <Link
+          href={prev.href}
+          className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background hover:text-foreground"
+        >
+          <span aria-hidden>←</span>
+          <span className="text-left">
+            <span className="block text-xs font-normal text-muted">Previous lesson</span>
+            <span className="line-clamp-1">{prev.title}</span>
+          </span>
+        </Link>
+      ) : (
+        <div />
+      )}
+      {next ? (
+        <Link
+          href={next.href}
+          className="ml-auto inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background hover:text-foreground"
+        >
+          <span className="text-right">
+            <span className="block text-xs font-normal text-muted">Next lesson</span>
+            <span className="line-clamp-1">{next.title}</span>
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
+      ) : null}
+    </nav>
+  );
+}
+
 const field = "w-full rounded-lg border border-line bg-background px-3 py-2";
 
 async function Item({ params, searchParams }: { params: PageProps<"/study/[area]/[id]">["params"]; searchParams: PageProps<"/study/[area]/[id]">["searchParams"] }) {
@@ -74,17 +126,34 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
   const exercise = ALL_EXERCISES[id];
   if (!area || (concept?.area !== area.id && exercise?.area !== area.id)) notFound();
 
+  const title = concept?.title ?? exercise?.title ?? "Lesson";
+  const { prev, next } = getAdjacentLessons(area, id);
+
   return (
     <article className="space-y-6">
-      <Link href={`/study/${area.id}`} className="inline-block text-sm text-muted hover:text-foreground">
-        ← {area.title}
-      </Link>
-      {concept ? <ConceptView id={id} /> : <ExerciseView id={id} diagramError={diagramError} />}
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center justify-between gap-2 text-sm print:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/study" className="text-muted hover:text-foreground">
+            Study
+          </Link>
+          <span aria-hidden className="text-muted">
+            /
+          </span>
+          <Link href={`/study/${area.id}`} className="text-muted hover:text-foreground">
+            {area.title}
+          </Link>
+          <span aria-hidden className="text-muted">
+            /
+          </span>
+          <CourseOutline areaId={area.id} currentId={id} label={title} />
+        </div>
+      </nav>
+      {concept ? <ConceptView id={id} prev={prev} next={next} /> : <ExerciseView id={id} diagramError={diagramError} prev={prev} next={next} />}
     </article>
   );
 }
 
-async function ConceptView({ id }: { id: string }) {
+async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; next?: LessonLink }) {
   const [d0, reading, focused, simple] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id), getSimpleMode()]);
   const d = d0!;
   const lesson = LESSONS[id];
@@ -119,7 +188,6 @@ async function ConceptView({ id }: { id: string }) {
 
       <ArticleLayout
         toc={toc}
-        outline={<CourseOutline areaId={d.concept.area} currentId={id} />}
         rail={<StartTimer itemId={id} label={d.concept.title} href={studyHref(d.concept.area, id)} defaultMinutes={studyMinutes} totalMinutes={focused} />}
       >
         {lesson?.overview && (
@@ -201,12 +269,14 @@ async function ConceptView({ id }: { id: string }) {
         </ArticleSection>
 
         {simple ? <SimpleHint /> : <ReadingSection itemId={id} items={reading} />}
+
+        <LessonNav prev={prev} next={next} />
       </ArticleLayout>
     </div>
   );
 }
 
-async function ExerciseView({ id, diagramError }: { id: string; diagramError?: string }) {
+async function ExerciseView({ id, diagramError, prev, next }: { id: string; diagramError?: string; prev?: LessonLink; next?: LessonLink }) {
   const [d0, reading, focused, diagrams, simple] = await Promise.all([getExerciseDetail(id), getReadingFor(id), focusMinutes(id), getDiagrams(id), getSimpleMode()]);
   const d = d0!;
   const { exercise, area, sessions, practice } = d;
@@ -416,6 +486,8 @@ async function ExerciseView({ id, diagramError }: { id: string; diagramError?: s
             <ReadingSection itemId={id} items={reading} />
           </>
         )}
+
+        <LessonNav prev={prev} next={next} />
       </ArticleLayout>
     </div>
   );

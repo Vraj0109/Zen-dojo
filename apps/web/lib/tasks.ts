@@ -6,6 +6,7 @@ import {
   WEEK_TEMPLATE,
   WEEKDAY_TEMPLATE,
   WEEKEND_TEMPLATE,
+  addDays,
   isWeekend,
   planWeekNumber,
   startOfWeek,
@@ -13,7 +14,7 @@ import {
 } from "@habit/shared";
 import { getDb } from "./db";
 import { getProgress } from "./progress";
-import { settings, tasks, type Task } from "./schema";
+import { problemSolves, settings, tasks, type Task } from "./schema";
 
 const PLAN_START_KEY = "plan_start_date";
 
@@ -37,6 +38,42 @@ export async function setPlanStart(input: string) {
     .onConflictDoUpdate({ target: settings.key, set: { value: date } });
   // Drop not-yet-done generated tasks so they regenerate with the new week's focus.
   await db.delete(tasks).where(and(isNotNull(tasks.templateKey), eq(tasks.status, "todo")));
+}
+
+/**
+ * Shift the plan schedule by N days.
+ * Updates plan_start in settings, regenerates open tasks, and offsets pending problemSolves re-solve dates.
+ */
+export async function shiftPlanSchedule(days: number): Promise<void> {
+  if (!days || days === 0) return;
+  const db = await getDb();
+  const currentStart = await getPlanStart();
+  const newStart = addDays(currentStart, days);
+
+  await db
+    .insert(settings)
+    .values({ key: PLAN_START_KEY, value: newStart })
+    .onConflictDoUpdate({ target: settings.key, set: { value: newStart } });
+
+  // Drop not-yet-done generated tasks so they regenerate with the new week's focus.
+  await db.delete(tasks).where(and(isNotNull(tasks.templateKey), eq(tasks.status, "todo")));
+
+  // Offset pending problemSolves re-solve dates:
+  const solves = await db.select().from(problemSolves).orderBy(problemSolves.id);
+  const resolvedProblemIds = new Set(
+    solves.filter((s) => s.kind === "resolve").map((s) => s.problemId),
+  );
+  const pendingSolves = solves.filter(
+    (s) => s.kind === "solve" && !resolvedProblemIds.has(s.problemId),
+  );
+
+  for (const s of pendingSolves) {
+    const shiftedDate = addDays(s.solvedOn, days);
+    await db
+      .update(problemSolves)
+      .set({ solvedOn: shiftedDate })
+      .where(eq(problemSolves.id, s.id));
+  }
 }
 
 function weekFor(weekNo: number) {
