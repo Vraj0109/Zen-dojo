@@ -234,6 +234,10 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("orderbook", "Stock exchange order book / matching engine", "Limit and market orders, price-time priority, FIFO matching, partial fills, cancellations"),
       lldProblem("text-editor", "Text editor with undo/redo", "Command and memento patterns, buffer, cursor and selection, history stack, macro commands"),
       lldProblem("job-scheduler", "Distributed job scheduler", "Triggers, priority queue execution, exponential backoff retries, state machine, lifecycle observers"),
+      lldProblem("wallet", "Digital wallet / ledger", "Double-entry bookkeeping, balance locking, idempotency, multi-currency FX"),
+      lldProblem("api-gateway", "API gateway / reverse proxy", "Filter pipeline, token bucket rate limiter, auth validation, route dispatch"),
+      lldProblem("inventory", "Inventory management", "SKU tracking, multi-warehouse allocation, reservation holds with TTL expiry, restock alerts"),
+      lldProblem("social-feed", "Social media activity feed", "Follow graph, hybrid fan-out on write and read, cursor pagination, privacy filters"),
     ],
   },
 };

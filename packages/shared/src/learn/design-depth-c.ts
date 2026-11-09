@@ -4,6 +4,65 @@ import type { WalkthroughDeep } from "./design-depth-types";
 
 export const DESIGN_DEPTH_C: Record<string, WalkthroughDeep> = {
   "sdd-ride-sharing": {
+    architecture: [
+      {
+            "name": "Driver location gateway",
+            "role": "Maintains duplex WebSocket connections with on-duty drivers, validates auth tokens and accepts 4-second GPS pings.",
+            "scale": "1 million drivers at 1 ping every 4 s generates 250,000 pings/sec; 140 Mbps network ingress terminated across 25 gateway instances.",
+            "failure": "Gateway crashes drop active sockets; drivers reconnect automatically to adjacent gateways with jitter. Locations are stateless."
+      },
+      {
+            "name": "Geospatial index",
+            "role": "Indexes moving driver positions into H3 hexagonal spatial cells in an in-memory Redis cluster with 10-second TTLs.",
+            "scale": "1 million active drivers requires only 150 MB RAM; k-ring hexagonal lookups take under 2 ms across 10 shards.",
+            "failure": "If a Redis shard crashes, driver positions for that cell rebuild organically within 4 to 8 seconds as next pings arrive."
+      },
+      {
+            "name": "Dispatch and matching engine",
+            "role": "Batches ride requests in 5-second windows and computes minimum-cost bipartite matches using true road route ETAs.",
+            "scale": "20 million trips per day averages 230 trips/sec, peaking at 2,500 requests/sec. Batch bipartite matching completes in under 200 ms.",
+            "failure": "If matching worker fails, unassigned requests roll over into the next 5-second batch window with higher priority."
+      },
+      {
+            "name": "Surge pricing calculator",
+            "role": "Aggregates ride demand and available driver supply per H3 cell, applying spatial smoothing across 1-ring neighbors.",
+            "scale": "Runs once per minute per metropolitan cell; evaluations take under 50 ms in memory.",
+            "failure": "On calculation timeout, pricing falls back to the previous minute's multiplier or neutral 1.0x baseline."
+      },
+      {
+            "name": "Trip store",
+            "role": "Authoritative relational database recording trip lifecycle, driver assignment leases, and financial billing records.",
+            "scale": "20 million trips per day is 20 GB/day (7.3 TB/year), sharded by tripId across partitioned PostgreSQL or CockroachDB.",
+            "failure": "Primary-replica failover with synchronous WAL replication. Optimistic version locking prevents double-booking race conditions."
+      }
+],
+    criteria: [
+      {
+            "area": "Scale and throughput arithmetic",
+            "strong": "Derives 250,000 location pings/sec from 1M drivers / 4s, calculates 140 Mbps bandwidth, and estimates 150 MB spatial memory.",
+            "weak": "States millions of drivers without calculating ping rate, bandwidth, or spatial index memory footprint."
+      },
+      {
+            "area": "Spatial indexing choices",
+            "strong": "Compares Quadtrees, Geohashes, and Uber H3 hexagons, justifying H3 for uniform 6-neighbor adjacency and invariant edge distance.",
+            "weak": "Proposes standard relational PostGIS queries or selects Quadtrees without addressing dynamic leaf rebalancing overhead."
+      },
+      {
+            "area": "Dispatch algorithm",
+            "strong": "Rejects greedy nearest-driver matching; introduces 5-second windowed bipartite matching via Hungarian algorithm with road ETAs.",
+            "weak": "Assigns the first driver with lowest Euclidean distance, ignoring global wait-time optimization and one-way road topologies."
+      },
+      {
+            "area": "Surge pricing and balance",
+            "strong": "Formulates supply-demand ratio per H3 cell with 1-ring spatial smoothing to eliminate border cliff effects.",
+            "weak": "Treats surge as a global city-wide multiplier without spatial localization or smoothing."
+      },
+      {
+            "area": "Concurrency and failure modes",
+            "strong": "Prevents double-booking via optimistic locking on trip version, and uses Redis TTLs to evict disconnected drivers without tombstones.",
+            "weak": "Relies on application memory flags to prevent double-booking, vulnerable to network partitions and race conditions."
+      }
+],
     "diagrams": [
       {
         "title": "Components",
@@ -47,6 +106,65 @@ export const DESIGN_DEPTH_C: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-maps": {
+    architecture: [
+      {
+            "name": "Vector tile service and CDN",
+            "role": "Serves Mapbox Vector Tiles (MVT) containing clipped, simplified road and polygon geometries for GPU client-side rendering.",
+            "scale": "500,000 tile requests/sec absorbed at 99%+ hit rate by worldwide CDN edge caches; origin stores 50 TB across zoom levels 0-14.",
+            "failure": "If origin tile service is slow, CDN serves stale tiles. Static geometries are durable in object storage."
+      },
+      {
+            "name": "Routing engine",
+            "role": "Computes turn-by-turn driving routes using bidirectional A* over precomputed Contraction Hierarchies and Multi-Level Dijkstra cells.",
+            "scale": "50,000 route queries/sec globally at peak; P99 latency under 5 ms utilizing in-memory shortcut graphs.",
+            "failure": "Routing nodes are stateless and replicated; failed nodes are dropped from the load balancer pool with zero user interruption."
+      },
+      {
+            "name": "Road network graph store",
+            "role": "Stores 100M intersections and 300M directed road edges in memory with dynamic traversal weights updated with live traffic.",
+            "scale": "Entire worldwide road graph requires only 7.2 GB raw memory (under 20 GB including spatial R-trees and traffic overlays).",
+            "failure": "Read-only graph is mirrored in RAM across all routing nodes; graph reload occurs through zero-downtime blue-green rotation."
+      },
+      {
+            "name": "Traffic speed streaming pipeline",
+            "role": "Consumes anonymized GPS probe pings in Kafka, aggregating segment speeds in 1-minute Flink tumbling windows.",
+            "scale": "Ingests hundreds of thousands of speed probes/sec, updating dynamic edge weights across graph partitions every minute.",
+            "failure": "If traffic stream aggregator lags, routing engine falls back to historical time-of-day speed baseline profiles."
+      },
+      {
+            "name": "Map-matching engine",
+            "role": "Snaps noisy, multipath-distorted GPS coordinates to true road network segments using a Hidden Markov Model Viterbi algorithm.",
+            "scale": "Processes active navigation pings in under 1 ms per point, preventing false off-route recalculation loops in urban canyons.",
+            "failure": "If map-matching confidence drops below threshold, navigation holds current road projection until clean GPS fixes resume."
+      }
+],
+    criteria: [
+      {
+            "area": "Scale and memory representation",
+            "strong": "Quantifies road network graph size (100M nodes, 300M edges, ~20 GB RAM) proving it fits in server memory without disk lookups.",
+            "weak": "Assumes global map routing requires distributed database disk queries for every turn."
+      },
+      {
+            "area": "Tile delivery architecture",
+            "strong": "Recommends client-rendered vector tiles over raster PNGs, explaining 80% bandwidth savings, smooth rotation, and dynamic styling.",
+            "weak": "Designs pre-rendered PNG image pipelines, ignoring mobile bandwidth and theme switching constraints."
+      },
+      {
+            "area": "Routing algorithm selection",
+            "strong": "Explains why Dijkstra and basic A* are too slow (millions of expansions); proposes Contraction Hierarchies and Multi-Level Dijkstra.",
+            "weak": "Stops at Dijkstra or standard A* without acknowledging the necessity of precomputed hierarchy shortcuts for sub-5ms latencies."
+      },
+      {
+            "area": "Dynamic traffic integration",
+            "strong": "Separates static road geometry from dynamic speed overlays; uses 1-minute streaming windows with fallback to historical profiles.",
+            "weak": "Proposes recomputing the entire global contraction hierarchy on every traffic jam."
+      },
+      {
+            "area": "GPS drift and resilience",
+            "strong": "Addresses urban canyon multipath interference with Hidden Markov Model Viterbi map-matching.",
+            "weak": "Snaps GPS coordinates greedily to the nearest road segment, causing frequent route recalculation flickering."
+      }
+],
     "diagrams": [
       {
         "title": "Components",
@@ -90,6 +208,65 @@ export const DESIGN_DEPTH_C: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-crawler": {
+    architecture: [
+      {
+            "name": "Mercator URL frontier",
+            "role": "Coordinates link discovery via priority Front Queues and per-host politeness Back Queues managed by a Politeness Min-Heap.",
+            "scale": "Buffers 5 billion URLs across crawl cycles; dispatches up to 5,000 URLs/sec while strictly respecting 1 req/sec/host limits.",
+            "failure": "Frontier state checkpoints to disk; worker leases use visibility timeouts so crashed worker tasks return to the queue."
+      },
+      {
+            "name": "Fetcher worker pool",
+            "role": "Stateless asynchronous workers that execute HTTP GET requests, validate MIME types, and respect robots.txt rules.",
+            "scale": "5,000 pages/sec consumes 500 MB/s (4 Gbps) network bandwidth; distributed across hundreds of containerized fetcher nodes.",
+            "failure": "Network timeouts and HTTP errors trigger exponential backoff. Target server 5xx drops domain priority temporarily."
+      },
+      {
+            "name": "Asynchronous DNS cache",
+            "role": "Custom in-memory non-blocking DNS resolver cluster (Netty/c-ares) caching IP addresses with aggressive TTLs.",
+            "scale": "Resolves 5,000 DNS queries/sec in microseconds, avoiding standard blocking OS getaddrinfo bottlenecks.",
+            "failure": "Failed DNS queries retry against secondary upstream resolvers; unresolvable hosts are quarantined."
+      },
+      {
+            "name": "Deduplication engine",
+            "role": "Filters known URLs using a Counting Bloom Filter and RocksDB; identifies near-duplicate content via 64-bit SimHash Hamming distance.",
+            "scale": "Tracks 50 billion URLs in 60 GB Bloom filter RAM; SimHash detects near-duplicates in sub-millisecond table lookups.",
+            "failure": "Bloom filter false positives (under 1%) are resolved by querying on-disk RocksDB. Content duplicates are discarded before storage."
+      },
+      {
+            "name": "Document object store",
+            "role": "Stores compressed raw HTML documents and parsed extracted text metadata for downstream search engine indexing.",
+            "scale": "5 billion pages compressed at 25 KB is 125 TB/month; stored in distributed object storage (S3/GCS/Ceph).",
+            "failure": "Object storage provides multi-AZ replication. Ingestion pipeline uses write-ahead buffering to survive storage transient errors."
+      }
+],
+    criteria: [
+      {
+            "area": "Scale, storage and bandwidth",
+            "strong": "Derives 1,930 pages/sec avg (5,000 peak) for 5B pages/month, 4 Gbps network bandwidth, and 125 TB monthly compressed storage.",
+            "weak": "Mentions crawling the web without calculating document throughput, network bandwidth, or storage capacity."
+      },
+      {
+            "area": "URL Frontier and politeness",
+            "strong": "Implements Mercator two-tier frontier: Front Queues for priority/freshness and Back Queues with min-heap for 1s/host politeness.",
+            "weak": "Uses a single FIFO queue, failing to prevent accidental distributed denial-of-service on target web hosts."
+      },
+      {
+            "area": "Deduplication strategy",
+            "strong": "Distinguishes URL deduplication (Bloom Filter + RocksDB) from content deduplication (64-bit SimHash Hamming distance <= 3).",
+            "weak": "Proposes storing all full URL strings in a hash set, exceeding memory limits, and misses near-duplicate content detection."
+      },
+      {
+            "area": "Spider traps and loop defense",
+            "strong": "Mitigates infinite calendar and directory traps via max path depth (8), max URL length (512), and per-domain crawl quotas.",
+            "weak": "Does not anticipate recursive URL loops or dynamic parameter generation."
+      },
+      {
+            "area": "DNS and networking bottlenecks",
+            "strong": "Identifies standard DNS resolution as a critical bottleneck; specifies asynchronous local DNS caching with pre-fetching.",
+            "weak": "Assumes standard blocking synchronous HTTP client calls without considering thread starvation or DNS lookup latency."
+      }
+],
     "diagrams": [
       {
         "title": "Components",
@@ -133,6 +310,65 @@ export const DESIGN_DEPTH_C: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-job-scheduler": {
+    architecture: [
+      {
+            "name": "Scheduler coordinator leader",
+            "role": "Elected active leader managing trigger time, acquiring task leases, and populating task queues from in-memory time wheels.",
+            "scale": "Coordinates 10 million registered jobs; handles 1,700 executions/sec baseline and 50,000/sec midnight spikes.",
+            "failure": "Standby coordinators monitor leader via ZooKeeper/etcd; automatic leader election recovers state within 5 seconds."
+      },
+      {
+            "name": "Hashed time wheel",
+            "role": "Multi-level circular ring buffer in RAM dispatching scheduled tasks in O(1) amortized time per second tick.",
+            "scale": "Hierarchical wheels (seconds, minutes, hours, days) track 10 million future task pointers in under 50 MB RAM.",
+            "failure": "Time wheel state is backed by persistent database job schedules; rebuilt on coordinator restart from next_run_at index."
+      },
+      {
+            "name": "Distributed task queue",
+            "role": "Partitioned queue (Kafka or Redis Streams) buffering dispatched jobs and isolating workloads by priority tier.",
+            "scale": "Absorbs 50,000 tasks/sec burst during midnight spikes, smoothing delivery across worker execution pools.",
+            "failure": "Topic replication prevents task loss; consumer acknowledgements prevent dropped jobs during worker node crashes."
+      },
+      {
+            "name": "Worker execution pool",
+            "role": "Stateless worker nodes pulling tasks from queues, maintaining heartbeats, and executing business logic with timeout guards.",
+            "scale": "Horizontally scales from 100 to 1,000+ workers based on queue lag and CPU/memory utilization metrics.",
+            "failure": "Unresponsive workers miss heartbeats; coordinator reassigns task to a healthy worker upon lease expiration."
+      },
+      {
+            "name": "Lease and fencing manager",
+            "role": "Issues distributed leases with monotonically increasing fencing tokens to prevent zombie split-brain writes.",
+            "scale": "Evaluates lease heartbeats every 5 s; verifies fencing tokens on task completion in sub-millisecond database updates.",
+            "failure": "Stale writes from zombie workers experiencing GC pauses are rejected when their token is lower than the active lease token."
+      }
+],
+    criteria: [
+      {
+            "area": "Scale and midnight spike handling",
+            "strong": "Identifies the 30x midnight cron spike (50k jobs/sec) and applies deterministic hash jitter to flatten execution demand.",
+            "weak": "Assumes uniform job arrivals across the day and ignores cron boundary synchronization spikes."
+      },
+      {
+            "area": "Trigger engine architecture",
+            "strong": "Rejects recurring SQL polling (SELECT WHERE next_run <= NOW); implements hierarchical Hashed Time Wheels for O(1) triggers.",
+            "weak": "Proposes continuous polling on a relational database table, causing database CPU saturation and missed deadlines."
+      },
+      {
+            "area": "Execution semantics and idempotency",
+            "strong": "Acknowledges physical exactly-once impossibility; provides at-least-once dispatch paired with idempotent execution keys.",
+            "weak": "Claims the scheduler guarantees exactly-once execution without addressing network partition boundaries."
+      },
+      {
+            "area": "Zombie workers and split-brain safety",
+            "strong": "Enforces distributed leases with monotonically increasing fencing tokens, rejecting late commits from timed-out workers.",
+            "weak": "Relies on simple timeout flags without fencing tokens, enabling data corruption when paused workers resume."
+      },
+      {
+            "area": "Fault tolerance and backpressure",
+            "strong": "Features active-standby Raft coordinator failover, isolated priority queues, exponential backoff, and dead-letter queues.",
+            "weak": "Lacks worker isolation, allowing long-running bulk batch jobs to starve short critical tasks."
+      }
+],
     "diagrams": [
       {
         "title": "Components",
@@ -176,6 +412,65 @@ export const DESIGN_DEPTH_C: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-top-k": {
+    architecture: [
+      {
+            "name": "Ingestion partition stream",
+            "role": "Partitioned Kafka event stream distributing high-throughput incoming events (search terms, hashtags, clicks) across workers.",
+            "scale": "Ingests 100,000 events/sec across 32 partitions; applies 2-stage salting for viral hot keys to balance partition load.",
+            "failure": "Kafka offset tracking allows workers to replay from checkpoints; partition replication prevents message loss."
+      },
+      {
+            "name": "Count-Min Sketch stream workers",
+            "role": "Stateless Apache Flink workers tracking item frequencies in sublinear space using conservative-update Count-Min Sketches.",
+            "scale": "Processes 100,000 events/sec in 76 KB RAM per sketch (depth d=7, width w=2718) with error bound epsilon <= 0.001.",
+            "failure": "Asynchronous Chandy-Lamport state snapshotting flushes sketch state to durable storage every 10 s for fast recovery."
+      },
+      {
+            "name": "Local top-K min-heap",
+            "role": "Bounded in-memory min-heap of size K paired with a hash map tracking the local heavy hitter candidates per worker node.",
+            "scale": "Maintains top-100 candidates with O(log K) insertion overhead; evicts root element when new items exceed minimum threshold.",
+            "failure": "Heap state is checkpointed alongside the sketch in worker state; reconstructed instantly upon worker restart."
+      },
+      {
+            "name": "Central aggregator reducer",
+            "role": "Periodically gathers candidate top-K lists from all distributed workers, combines counts, and produces the global top-K ranking.",
+            "scale": "Executes every 5 to 10 seconds; aggregates a few thousand candidate items in under 20 ms in memory.",
+            "failure": "Stateless aggregator; if a cycle fails, the subsequent snapshot cycle produces the updated global leaderboard."
+      },
+      {
+            "name": "Top-K cache and query API",
+            "role": "Caches the global Top-K leaderboard in a Redis Sorted Set (ZSET), serving client dashboard queries with sub-millisecond response.",
+            "scale": "Serves 10,000 read queries/sec with P99 under 2 ms; reads are isolated from heavy ingestion stream processing.",
+            "failure": "Redis read replicas handle query surges. On total cache loss, central aggregator re-publishes leaderboard within 5 seconds."
+      }
+],
+    criteria: [
+      {
+            "area": "Scale and memory constraints",
+            "strong": "Demonstrates that exact tracking of 100M keys requires 7.2 GB RAM; justifies probabilistic Count-Min Sketch using 76 KB RAM.",
+            "weak": "Proposes an in-memory HashMap for all keys, ignoring out-of-memory crashes on high-cardinality streams."
+      },
+      {
+            "area": "Count-Min Sketch parameters",
+            "strong": "Derives dimensions w = ceil(e/epsilon) = 2718 and d = ceil(ln(1/delta)) = 7 from epsilon=0.001 and 99.9% confidence.",
+            "weak": "Mentions Count-Min Sketch without knowing how width and depth relate to error bounds and confidence parameters."
+      },
+      {
+            "area": "Heavy hitter extraction mechanism",
+            "strong": "Pairs Count-Min Sketch with a bounded size-K Min-Heap and hash map to extract top items without scanning all possible keys.",
+            "weak": "Claims Count-Min Sketch can directly return top-K without maintaining a companion heap or candidate list."
+      },
+      {
+            "area": "Sliding window management",
+            "strong": "Addresses inability of sketches to decrement counts by partitioning 1-hour window into 12 tumbling 5-minute bucket sketches.",
+            "weak": "Suggests decrementing Count-Min Sketch counters on item expiration, which violates the minimum-count error guarantee."
+      },
+      {
+            "area": "Zipfian skew and hot keys",
+            "strong": "Applies conservative update to cut collision overestimation by 40%, whitelists super-heavy items, and salts hot keys across Kafka partitions.",
+            "weak": "Does not address hash collision contamination from viral items or partition hotspotting in Kafka."
+      }
+],
     "diagrams": [
       {
         "title": "Components",

@@ -12,6 +12,8 @@ import { KV_GUIDE } from "./lld-deep-d-kv";
 import { HOTEL_GUIDE } from "./lld-deep-e-hotel";
 import { MEETING_GUIDE } from "./lld-deep-e-meeting";
 import { PUBSUB_GUIDE, ORDERBOOK_GUIDE, TEXT_EDITOR_GUIDE, JOB_SCHEDULER_GUIDE } from "./lld-deep-f";
+import { WALLET_GUIDE, API_GATEWAY_GUIDE } from "./lld-deep-f2";
+import { INVENTORY_GUIDE, SOCIAL_FEED_GUIDE } from "./lld-deep-f3";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -302,4 +304,8 @@ class NotificationService {
   "lldp-orderbook": ORDERBOOK_GUIDE,
   "lldp-text-editor": TEXT_EDITOR_GUIDE,
   "lldp-job-scheduler": JOB_SCHEDULER_GUIDE,
+  "lldp-wallet": WALLET_GUIDE,
+  "lldp-api-gateway": API_GATEWAY_GUIDE,
+  "lldp-inventory": INVENTORY_GUIDE,
+  "lldp-social-feed": SOCIAL_FEED_GUIDE,
 };

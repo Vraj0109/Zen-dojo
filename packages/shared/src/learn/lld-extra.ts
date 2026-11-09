@@ -12,6 +12,8 @@ import { KV_EXTRA } from "./lld-deep-d-kv";
 import { HOTEL_EXTRA } from "./lld-deep-e-hotel";
 import { MEETING_EXTRA } from "./lld-deep-e-meeting";
 import { PUBSUB_EXTRA, ORDERBOOK_EXTRA, TEXT_EDITOR_EXTRA, JOB_SCHEDULER_EXTRA } from "./lld-deep-f";
+import { WALLET_EXTRA, API_GATEWAY_EXTRA } from "./lld-deep-f2";
+import { INVENTORY_EXTRA, SOCIAL_FEED_EXTRA } from "./lld-deep-f3";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -74,4 +76,8 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
   "lldp-orderbook": ORDERBOOK_EXTRA,
   "lldp-text-editor": TEXT_EDITOR_EXTRA,
   "lldp-job-scheduler": JOB_SCHEDULER_EXTRA,
+  "lldp-wallet": WALLET_EXTRA,
+  "lldp-api-gateway": API_GATEWAY_EXTRA,
+  "lldp-inventory": INVENTORY_EXTRA,
+  "lldp-social-feed": SOCIAL_FEED_EXTRA,
 };

@@ -20,6 +20,10 @@ describe.skipIf(!hasJdk)(`LLD Java projects compile and run (${hasJdk ? "javac f
     "lldp-orderbook",
     "lldp-text-editor",
     "lldp-job-scheduler",
+    "lldp-wallet",
+    "lldp-api-gateway",
+    "lldp-inventory",
+    "lldp-social-feed",
   ]);
   for (const [id, project] of Object.entries(LLD_PROJECTS).filter(([id]) => targetIds.has(id))) {
     it(id, () => {

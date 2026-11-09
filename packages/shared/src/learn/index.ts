@@ -36,6 +36,10 @@ import { MEETING_DEEP } from "./lld-deep-e-meeting";
 import { LLD_PROJECTS_E_MEETING } from "./lld-projects-e-meeting";
 import { LLD_PROJECTS_F } from "./lld-projects-f";
 import { LLD_DEEP_F } from "./lld-deep-f";
+import { LLD_PROJECTS_F2 } from "./lld-projects-f2-wallet-gateway";
+import { LLD_DEEP_F2 } from "./lld-deep-f2";
+import { LLD_PROJECTS_F3 } from "./lld-projects-f3-inventory-feed";
+import { LLD_DEEP_F3 } from "./lld-deep-f3";
 import { HOTEL_DEEP } from "./lld-deep-e-hotel";
 import { LLD_PROJECTS_E_HOTEL } from "./lld-projects-e-hotel";
 import { KV_DEEP } from "./lld-deep-d-kv";
@@ -73,8 +77,8 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = { ...DESIGNS_A, ...DESI
 export { LLD_GUIDES };
 
 /** Full Java projects and their long explanations, by LLD problem id (plan 0013). */
-export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B, ...LLD_PROJECTS_B_URL, ...LLD_PROJECTS_B_LOG, ...LLD_PROJECTS_C_VENDING, ...LLD_PROJECTS_C_BOOKING, ...LLD_PROJECTS_C_SPLITWISE, ...LLD_PROJECTS_C_LIBRARY, ...LLD_PROJECTS_D_FOOD, ...LLD_PROJECTS_D_CAB, ...LLD_PROJECTS_D_GAMES, ...LLD_PROJECTS_D_FILESYSTEM, ...LLD_PROJECTS_D_KV, ...LLD_PROJECTS_E_HOTEL, ...LLD_PROJECTS_E_MEETING, ...LLD_PROJECTS_F };
-export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B, ...LLD_DEEP_B_URL, ...LLD_DEEP_B_LOG, ...VENDING_ATM_DEEP, ...BOOKING_DEEP, ...SPLITWISE_DEEP, ...LIBRARY_DEEP, ...FOOD_DEEP, ...CAB_DEEP, ...GAMES_DEEP, ...FILESYSTEM_DEEP, ...KV_DEEP, ...HOTEL_DEEP, ...MEETING_DEEP, ...LLD_DEEP_F };
+export const LLD_PROJECTS: Record<string, LldProject> = { ...LLD_PROJECTS_A, ...LLD_PROJECTS_B, ...LLD_PROJECTS_B_URL, ...LLD_PROJECTS_B_LOG, ...LLD_PROJECTS_C_VENDING, ...LLD_PROJECTS_C_BOOKING, ...LLD_PROJECTS_C_SPLITWISE, ...LLD_PROJECTS_C_LIBRARY, ...LLD_PROJECTS_D_FOOD, ...LLD_PROJECTS_D_CAB, ...LLD_PROJECTS_D_GAMES, ...LLD_PROJECTS_D_FILESYSTEM, ...LLD_PROJECTS_D_KV, ...LLD_PROJECTS_E_HOTEL, ...LLD_PROJECTS_E_MEETING, ...LLD_PROJECTS_F, ...LLD_PROJECTS_F2, ...LLD_PROJECTS_F3 };
+export const LLD_DEEP: Record<string, LldDeep> = { ...LLD_DEEP_A, ...LLD_DEEP_B, ...LLD_DEEP_B_URL, ...LLD_DEEP_B_LOG, ...VENDING_ATM_DEEP, ...BOOKING_DEEP, ...SPLITWISE_DEEP, ...LIBRARY_DEEP, ...FOOD_DEEP, ...CAB_DEEP, ...GAMES_DEEP, ...FILESYSTEM_DEEP, ...KV_DEEP, ...HOTEL_DEEP, ...MEETING_DEEP, ...LLD_DEEP_F, ...LLD_DEEP_F2, ...LLD_DEEP_F3 };
 export const lldGuide = (id: string): LldGuide | undefined => LLD_GUIDES[id];
 
 /** DSA pattern guides by pattern id (dsa.ts). Templates are C++. */
