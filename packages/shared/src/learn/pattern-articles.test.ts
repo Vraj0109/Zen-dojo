@@ -67,9 +67,10 @@ describe("pattern articles", () => {
     });
   }
 
-  it("reports how many patterns still lack an article", () => {
-    const missing = ALL_PATTERNS.map((p) => p.id).filter((id) => !PATTERN_ARTICLES[id]);
-    console.info(`pattern articles: ${ALL_PATTERNS.length - missing.length} of ${ALL_PATTERNS.length} written; missing: ${missing.join(", ")}`);
-    expect(missing.length).toBeLessThanOrEqual(ALL_PATTERNS.length);
+  it("every roadmap pattern has an article", () => {
+    const roadmapPatterns = ALL_PATTERNS.filter((p) => !p.id.startsWith("cses-"));
+    expect(roadmapPatterns.length).toBe(67);
+    const missing = roadmapPatterns.filter((p) => !PATTERN_ARTICLES[p.id]).map((p) => p.id);
+    expect(missing, `missing pattern articles: ${missing.join(", ")}`).toEqual([]);
   });
 });

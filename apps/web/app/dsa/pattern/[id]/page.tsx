@@ -12,7 +12,7 @@ import { focusMinutes, patternTimerId } from "@/lib/timer";
 import { StartTimer } from "../../../start-timer";
 import { Code } from "../../../code";
 import { Diagram } from "../../../diagram";
-import { ArticleLayout, ArticleSection, CodeBlock } from "../../../learn-blocks";
+import { ArticleLayout, ArticleSection } from "../../../learn-blocks";
 import { Tabs } from "../../../tabs";
 import { PageMain, ProgressBar, SimpleHint } from "../../../ui";
 import { AddedProblems } from "../../added-problems";
@@ -28,11 +28,12 @@ export async function generateMetadata({ params }: PageProps<"/dsa/pattern/[id]"
   return { title: ALL_PATTERNS.find((p) => p.id === id)?.name ?? "Pattern" };
 }
 
-/** Learn and Practice always; Reference (cp-algorithms articles) only for patterns that have some. */
+/** Learn (when a full article exists) and Practice always; Reference (cp-algorithms articles) only for patterns that have some. */
 function tabsFor(patternId: string) {
+  const hasArticle = Boolean(PATTERN_ARTICLES[patternId]);
   const refs = cpAlgoCount(patternId);
   return [
-    { id: "learn", label: "Learn" },
+    ...(hasArticle ? [{ id: "learn", label: "Learn" }] : []),
     { id: "practice", label: "Practice" },
     ...(refs > 0 ? [{ id: "reference", label: "Reference", count: refs }] : []),
   ];
@@ -74,17 +75,9 @@ async function PatternView({
   const next = ALL_PATTERNS[idx + 1];
 
   const tabs = tabsFor(id);
-  const requested = typeof sp?.tab === "string" ? sp.tab : "learn";
-  const currentTab = tabs.some((t) => t.id === requested) ? requested : "learn";
-
-  const toc = [
-    { id: "idea", title: "The idea" },
-    { id: "spot", title: "How to spot it" },
-    { id: "apply", title: "How to apply it" },
-    { id: "template", title: "Template" },
-    { id: "variations", title: "Variations" },
-    { id: "pitfalls", title: "Pitfalls" },
-  ];
+  const defaultTab = article ? "learn" : "practice";
+  const requested = typeof sp?.tab === "string" ? sp.tab : defaultTab;
+  const currentTab = tabs.some((t) => t.id === requested) ? requested : defaultTab;
 
   return (
     <article className="min-w-0 space-y-6">
@@ -105,55 +98,6 @@ async function PatternView({
       />
 
       {currentTab === "learn" && article && <ArticleView article={article} />}
-
-      {/* Patterns without a full article yet (plan 0008) keep the short guide. */}
-      {currentTab === "learn" && !article && (
-        <ArticleLayout toc={toc}>
-          <ArticleSection id="idea" title="The idea">
-            <p className="leading-7">{guide.idea}</p>
-          </ArticleSection>
-
-          <ArticleSection id="spot" title="How to spot it">
-            <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
-              {guide.signals.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ul>
-          </ArticleSection>
-
-          <ArticleSection id="apply" title="How to apply it">
-            <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-7">
-              {guide.steps.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ol>
-          </ArticleSection>
-
-          <ArticleSection id="template" title="Template (C++)">
-            <div className="space-y-2">
-              <p className="text-xs text-muted">{guide.complexity}</p>
-              <CodeBlock code={guide.template} />
-              <p className="text-xs text-muted">Type it out from memory once, then save your own version in the cheat sheet.</p>
-            </div>
-          </ArticleSection>
-
-          <ArticleSection id="variations" title="Variations">
-            <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
-              {guide.variations.map((v) => (
-                <li key={v}>{v}</li>
-              ))}
-            </ul>
-          </ArticleSection>
-
-          <ArticleSection id="pitfalls" title="Pitfalls">
-            <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7">
-              {guide.pitfalls.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-          </ArticleSection>
-        </ArticleLayout>
-      )}
 
       {currentTab === "reference" && <Reference id={id} />}
 

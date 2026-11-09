@@ -1087,4 +1087,169 @@ Incomplete state definition: Omitting necessary state history when revisiting ve
       },
     ],
   },
+  bipartite: {
+    intro:
+      "A bipartite graph is an undirected graph whose vertices can be partitioned into two disjoint independent sets such that every edge connects a vertex in one set to a vertex in the other. Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. You reach for bipartite checking when dividing entities into two mutually conflicting groups (such as teammates vs rivals or red vs blue), testing two-colorability of graphs, finding maximum bipartite matchings in assignment systems, or validating conflict-free constraints across network relationships.",
+    sections: [
+      {
+        title: "The intuition",
+        body: `Imagine you are organizing a tournament with two competing factions, Team Red and Team Blue. You are given a list of rivalries between pairs of players. Two players who share a rivalry cannot belong to the same team; they must be assigned to opposing factions. The fundamental question is: can all players be divided into these two teams without causing a rivalry conflict within either team?
+
+This scenario corresponds precisely to graph 2-colorability, also known as the bipartite graph property. In this mathematical formulation, each player represents a vertex, and each mutual rivalry represents an undirected edge. Partitioning the players into two conflict-free teams is equivalent to assigning each vertex one of two colors (such as 1 and -1) such that every edge joins two vertices with different colors.
+
+If a graph contains a triangle—a cycle of length 3 formed by vertices A, B, and C with edges (A, B), (B, C), and (C, A)—a conflict is inevitable. If player A is assigned to Team Red, player B must be assigned to Team Blue because of edge (A, B). Consequently, player C must be assigned to Team Red because of edge (B, C). However, the remaining edge (C, A) now connects two players who have both been assigned to Team Red, violating the rivalry constraint. Any odd-length cycle creates this exact contradiction, proving that a 2-coloring is impossible. Conversely, even-length cycles (such as squares of length 4 or hexagons of length 6) alternate between the two colors harmoniously.
+
+The intuitive algorithm for bipartite verification is therefore alternating traversal: choose an arbitrary uncolored vertex, assign it color 1, and iteratively assign all its neighbors the opposite color -1. As you traverse through the graph using either Depth-First Search or Breadth-First Search, whenever you encounter an already-colored neighbor, you verify whether its assigned color matches expectation. If a neighbor already possesses the same color as the current vertex, an odd cycle has been trapped, and the graph cannot be bipartite. If all vertices across all connected components can be successfully colored without encountering any color collisions, the graph is bipartite.`,
+      },
+      {
+        title: "Why it works",
+        body: `The theoretical foundation of bipartite graph verification rests on Kőnig's theorem: an undirected graph G = (V, E) is bipartite if and only if it contains no cycle of odd length.
+
+To see why this theorem guarantees correctness, consider the 2-coloring process. We define a coloring function c: V -> {1, -1}. We fix an arbitrary starting vertex root in a connected component and assign c(root) = 1. For every other vertex v reachable from root, any path between root and v alternates colors on every step. Therefore, the color of vertex v is uniquely determined by the parity of the distance (path length in edges) from root to v: c(v) = 1 if the path length is even, and c(v) = -1 if the path length is odd.
+
+If the graph contains no odd cycle, all paths between root and v have the exact same parity. To prove this by contradiction, suppose there exist two paths P1 and P2 connecting root to v, where P1 has even length and P2 has odd length. Traversing forward along P1 from root to v and then backward along P2 from v to root forms a closed walk of odd length: even + odd = odd. Because any closed walk of odd length contains an elementary odd cycle, this contradicts the assumption that G has no odd cycles. Therefore, path parity between any two vertices is an invariant, meaning every vertex in the component has a unique, unambiguous color assignment.
+
+Operationally, the verification algorithm inspects every edge (u, v). If v is currently uncolored (color 0), we assign c(v) = -c(u) and propagate traversal. If v is already colored and c(v) == c(u), edge (u, v) connects two vertices of identical color. Because c(u) == c(v), both u and v have paths to root of the same parity. Adding edge (u, v) completes an odd cycle of length (dist(root, u) + dist(root, v) + 1), which is odd + odd + 1 = odd or even + even + 1 = odd. This guarantees that detecting any edge with c(u) == c(v) provides a constructive proof of non-bipartiteness.
+
+Finally, because real-world graphs may consist of multiple disconnected components, the outer loop must iterate through every vertex from 0 to n - 1. Whenever an uncolored vertex is discovered, it initiates a new traversal wave, establishing color 1 for that independent component. Only when every connected component successfully completes coloring can the graph be declared bipartite.`,
+      },
+      {
+        title: "A worked example",
+        body: `Let us trace the bipartite verification algorithm step-by-step on an undirected graph with 4 vertices and edges represented as an adjacency list:
+graph = [[1, 3], [0, 2], [1, 3], [0, 2]]
+This graph forms a square cycle: 0 connects to 1 and 3; 1 connects to 0 and 2; 2 connects to 1 and 3; 3 connects to 0 and 2.
+
+We initialize a color array of size 4 with all zeros: color = [0, 0, 0, 0], representing uncolored vertices.
+
+1. Outer loop checks vertex 0: color[0] == 0. We begin DFS from vertex 0 with color 1.
+   - color[0] is set to 1: color = [1, 0, 0, 0].
+   - Examine neighbors of 0: neighbor 1 is uncolored. We recursively call dfs(1, -1).
+2. Inside dfs(1, -1):
+   - color[1] is set to -1: color = [1, -1, 0, 0].
+   - Examine neighbors of 1:
+     * Neighbor 0 has color[0] == 1. This matches the required opposite color (-(-1) = 1). Valid.
+     * Neighbor 2 is uncolored. We recursively call dfs(2, 1).
+3. Inside dfs(2, 1):
+   - color[2] is set to 1: color = [1, -1, 1, 0].
+   - Examine neighbors of 2:
+     * Neighbor 1 has color[1] == -1. This matches the required opposite color (-(1) = -1). Valid.
+     * Neighbor 3 is uncolored. We recursively call dfs(3, -1).
+4. Inside dfs(3, -1):
+   - color[3] is set to -1: color = [1, -1, 1, -1].
+   - Examine neighbors of 3:
+     * Neighbor 0 has color[0] == 1. This matches the required opposite color (-(-1) = 1). Valid.
+     * Neighbor 2 has color[2] == 1. This matches the required opposite color (-(-1) = 1). Valid.
+   - All neighbors of 3 explored and consistent. Return true to vertex 2.
+5. Returning up the call stack:
+   - dfs(3) returns true to dfs(2).
+   - dfs(2) returns true to dfs(1).
+   - dfs(1) returns true to dfs(0).
+   - dfs(0) returns true to the outer loop.
+6. The outer loop checks vertices 1, 2, and 3: each is already colored (color != 0), so no new traversals are launched.
+All vertices are validly colored with color = [1, -1, 1, -1]. We return true: the graph is bipartite.
+
+Now consider adding edge (0, 2) to this graph, creating a diagonal chord that produces triangle (0, 1, 2). When vertex 0 with color 1 examines neighbor 2, it finds color[2] == 1. Because color[2] == color[0], a conflict is detected immediately, and the algorithm returns false.`,
+      },
+      {
+        title: "Implementation",
+        body: `Here is the clean, recursive Depth-First Search implementation of bipartite verification in modern C++17. A color array uses 0 for unvisited, 1 for the first color group, and -1 for the second color group. The outer loop ensures disconnected components are all colored.`,
+        code: `bool isBipartiteDfs(const vector<vector<int>>& graph) {
+    int n = graph.size();
+    vector<int> color(n, 0); // 0 = uncolored, 1 = red, -1 = blue
+
+    auto dfs = [&](auto& self, int u, int c) -> bool {
+        color[u] = c;
+        for (int v : graph[u]) {
+            if (color[v] == c) {
+                return false; // same color collision detected!
+            }
+            if (color[v] == 0 && !self(self, v, -c)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    for (int i = 0; i < n; i++) {
+        if (color[i] == 0) {
+            if (!dfs(dfs, i, 1)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}`,
+      },
+      {
+        title: "Implementation: BFS two-coloring",
+        body: `Alternatively, Breadth-First Search (BFS) is preferred in production or environments with restricted call stack sizes to eliminate recursion overhead and prevent stack overflow exceptions on large chain graphs.`,
+        code: `bool isBipartiteBfs(const vector<vector<int>>& graph) {
+    int n = graph.size();
+    vector<int> color(n, 0);
+    queue<int> q;
+
+    for (int i = 0; i < n; i++) {
+        if (color[i] != 0) continue;
+
+        color[i] = 1;
+        q.push(i);
+
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+
+            for (int v : graph[u]) {
+                if (color[v] == color[u]) {
+                    return false; // conflict with adjacent vertex
+                }
+                if (color[v] == 0) {
+                    color[v] = -color[u];
+                    q.push(v);
+                }
+            }
+        }
+    }
+    return true;
+}`,
+      },
+      {
+        title: "Variants",
+        body: `Possible Bipartition (Dislike Pairs): In problems where constraints are given as a list of dislike pairs (e.g., [a, b] indicates person a dislikes person b), vertices represent people (1-indexed from 1 to n). The algorithm first constructs an undirected adjacency list from the dislike pairs, and then runs the exact same 2-coloring BFS or DFS. If the dislike graph is bipartite, the people can be partitioned into two distinct groups.
+
+Disjoint Set Union (DSU with Parity / 2*N Trick): Bipartite verification can also be implemented using Disjoint Set Union without explicit graph traversal. For each person x, we maintain two virtual elements in DSU: x (representing team 1) and x + n (representing team 2). When a conflict edge between u and v is added, if find(u) == find(v), they are already required to be in the same team, which is impossible. Otherwise, we union u with v + n and union v with u + n. This DSU approach is especially powerful for online, dynamic bipartite checking where edges arrive as an input stream.
+
+Maximum Bipartite Matching: Once a graph is confirmed to be bipartite, the classic Hopcroft-Karp algorithm or max-flow formulation (Ford-Fulkerson with source and sink) finds the maximum number of independent edges sharing no common endpoints, running in O(E * sqrt(V)) time.
+
+Vertex Cover in Bipartite Graphs (Kőnig's Theorem): By Kőnig's theorem, in any bipartite graph, the size of a minimum vertex cover equals the size of a maximum matching. This allows solving NP-hard vertex cover problems in polynomial time on bipartite networks.`,
+      },
+      {
+        title: "Complexity",
+        body: `Time complexity:
+For a graph with V vertices and E edges:
+In the DFS implementation, every vertex is visited at most once, and every edge (u, v) is examined exactly twice (once from endpoint u and once from endpoint v). Thus, the time complexity is strictly O(V + E).
+In the BFS implementation, each vertex is pushed to and popped from the queue at most once. For each popped vertex, its adjacency list is scanned. The total operations over all adjacency lists sum to 2E. Thus, BFS also runs in strictly O(V + E) time.
+For dense graphs where E is close to V^2, time is O(V^2). For sparse graphs where E = O(V), runtime is completely linear O(V).
+
+Space complexity:
+The color array requires O(V) memory to store the integer state (-1, 0, or 1) of every vertex.
+For DFS, the recursion call stack requires O(V) space in the worst case (a linear path graph of V nodes).
+For BFS, the queue holds at most O(V) vertices simultaneously in the worst case (such as a star graph where the center connects to V - 1 peripheral nodes).
+Thus, total auxiliary space complexity is strictly O(V).`,
+      },
+      {
+        title: "Pitfalls and edge cases",
+        body: `Disconnected graphs and isolated vertices: A graph may consist of several disconnected components, or isolated vertices with zero edges. An algorithm that starts traversal solely from vertex 0 and terminates will fail to check remaining unvisited components. The outer loop MUST iterate through all vertices from 0 to n - 1, triggering a new traversal whenever color[i] == 0 is encountered. An isolated vertex with no edges is always trivially bipartite.
+
+1-based vs 0-based indexing: In technical interview problems, graphs may be indexed from 0 to n - 1 (like LeetCode 785) or 1 to n (like LeetCode 886). Ensure your color array size is allocated with size n + 1 when 1-based indexing is used, avoiding out-of-bounds array errors.
+
+Graph with self-loops: If a graph contains a self-loop (an edge connecting a vertex to itself, (u, u)), it can never be bipartite because a self-loop is an odd cycle of length 1. When examining neighbor u from vertex u, color[u] == color[u] immediately triggers the conflict condition and correctly returns false.
+
+Overlooking parallel edges: In multigraphs with multiple parallel edges between the same two vertices, parallel edges do not alter 2-colorability. The algorithm naturally handles parallel edges because if color[v] == -color[u] for the first edge, any duplicate parallel edge will also find color[v] == -color[u] and remain valid.`,
+      },
+      {
+        title: "Practice order",
+        body: `Start with Is Graph Bipartite? to master the clean BFS and DFS alternating 2-color traversal on pre-built adjacency lists. Next, advance to Possible Bipartition to learn how to model mutual dislike constraints as undirected conflict graphs and handle 1-indexed inputs. These two foundational problems solidify two-coloring intuition and prepare you for advanced matching and maximum flow algorithms.`,
+      },
+    ],
+  },
 };
