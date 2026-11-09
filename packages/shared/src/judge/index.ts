@@ -22,6 +22,8 @@ import { LOGIC_SPECS_ATCODER } from "./problems-logic-atcoder";
 import { LOGIC_SPECS_CODEFORCES } from "./problems-logic-codeforces";
 import { LOGIC_SPECS_KATTIS } from "./problems-logic-kattis";
 import { LOGIC_SPECS_BATCH2 } from "./problems-logic-batch2";
+import { LOGIC_SPECS_C } from "./problems-logic-c";
+import { STRESS_LOGIC_C } from "./stress-logic-c";
 import { STRESS } from "./stress";
 import { STRESS_6 } from "./stress-6";
 import { STRESS_7 } from "./stress-7";
@@ -62,6 +64,7 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
     ...LOGIC_SPECS_CODEFORCES,
     ...LOGIC_SPECS_KATTIS,
     ...LOGIC_SPECS_BATCH2,
+    ...LOGIC_SPECS_C,
   ].map((p) => [p.id, p])
 );
 
@@ -81,7 +84,8 @@ for (const spec of Object.values(JUDGE_PROBLEMS)) {
     STRESS_CSES_DP[spec.id] ??
     STRESS_CSES_GRAPH[spec.id] ??
     STRESS_CSES_MISC[spec.id] ??
-    STRESS_LOGIC[spec.id];
+    STRESS_LOGIC[spec.id] ??
+    STRESS_LOGIC_C[spec.id];
   if (stress) spec.stress = stress;
 }
 
@@ -106,4 +110,4 @@ export const CSES_PROBLEMS: ProblemSpec[] = [
   ...CSES_SPECS_MISC,
 ];
 export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;
-export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2];
+export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2, ...LOGIC_SPECS_C];
