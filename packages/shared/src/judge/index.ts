@@ -26,6 +26,7 @@ import { LOGIC_SPECS_C } from "./problems-logic-c";
 import { PROBLEMS_LOGIC_D } from "./problems-logic-d";
 import { SPECIAL_SPECS } from "./problems-special";
 import { STRESS_LOGIC_C } from "./stress-logic-c";
+import { STRESS_LOGIC_D } from "./stress-logic-d";
 import { STRESS } from "./stress";
 import { STRESS_6 } from "./stress-6";
 import { STRESS_7 } from "./stress-7";
@@ -88,7 +89,8 @@ for (const spec of Object.values(JUDGE_PROBLEMS)) {
     STRESS_CSES_GRAPH[spec.id] ??
     STRESS_CSES_MISC[spec.id] ??
     STRESS_LOGIC[spec.id] ??
-    STRESS_LOGIC_C[spec.id];
+    STRESS_LOGIC_C[spec.id] ??
+    STRESS_LOGIC_D[spec.id];
   if (stress) spec.stress = stress;
 }
 
