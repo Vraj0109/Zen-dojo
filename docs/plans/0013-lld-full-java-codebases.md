@@ -1,6 +1,6 @@
 # 0013: LLD problems with full Java codebases, diagrams and long explanations
 
-- **Status:** in-progress (batch A written; Java not compiled yet, no JDK on the dev machine)
+- **Status:** implemented (batches A to F landed through plan 0025; see the Round 7 audit under Review for what is still open)
 - **Planned by:** Claude Code, 2026-11-07
 - **Implemented by:** Claude Code
 
@@ -36,7 +36,7 @@ parking lot, URL shortener, elevator.
   - Done when: typecheck passes.
 - [x] **2. Data.** New files `learn/lld-projects-a.ts`, `-b.ts`, `-c.ts`, `-d.ts`, exported and merged in
   `learn/index.ts` as `LLD_PROJECTS` and `LLD_DEEP`.
-- [ ] **3. Content per problem (the unit of work).**
+- [x] **3. Content per problem (the unit of work).**
   - 5-12 Java files with the real classes (parking lot: `VehicleType`, `Vehicle`, `Spot`, `Floor`, `Ticket`,
     `PricingStrategy`, `HourlyPricing`, `SpotAllocationStrategy`, `NearestSpotStrategy`, `ParkingLot`, `Main`),
     150-400 lines in all, comments only where the why is not obvious.
@@ -63,10 +63,10 @@ parking lot, URL shortener, elevator.
 ## Batches (one per sitting; `pnpm check`, then tick)
 
 - [x] A. parking-lot, elevator, vending-atm (written; awaiting the Java compile run)
-- [ ] B. lru-rate-limiter, logger-notifications, url-shortener
-- [ ] C. booking, splitwise, library
-- [ ] D. food-cab, games, file-system-kv
-- [ ] E. hotel, meeting-rooms
+- [x] B. lru-rate-limiter, logger-notifications, url-shortener
+- [x] C. booking, splitwise, library
+- [x] D. food-cab, games, file-system-kv
+- [x] E. hotel, meeting-rooms
 
 ## Acceptance criteria
 
@@ -97,3 +97,10 @@ parking lot, URL shortener, elevator.
 - **2026-11-09: superseded by plan 0025 (agent D, branch agent/d-lld).** The vending machine / ATM rewrite, batches C, D and E (movie booking, Splitwise, library, food delivery, cab, games, file system, key-value store, hotel, meeting rooms) and the LLD concept lessons were done there. See 0025 for the file list and which projects were compiled.
 
 ## Review
+
+### Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+- Verified by reading: `LLD_PROJECTS` merges 18 files and holds 24 projects (`lldp-` ids), and `study.ts` lists the same 24 `lldProblem(...)` exercises (the plan said 14). Every project has `Main.java`, tests and expected output, and `learn.test.ts` ("LLD full Java projects") enforces a 1,000+ word walkthrough of 6+ sections plus class and sequence diagrams for each. Batches B to E and step 3 are ticked on that basis.
+- Step 5 stays open: `apps/web/lib/lld-projects.test.ts` exists, `ci.yml` installs JDK 17 and `setup.ps1`/`setup.sh` check for a JDK, but the test compiles and runs only the first project plus 8 (pubsub, orderbook, text-editor, job-scheduler, wallet, api-gateway, inventory, social-feed), not every project. Plan 0025 says the rest were compiled by hand once with JDK 17.
+- Acceptance stays open: "All 14 problems have compiling projects" is now 24 and only 9 are re-compiled on each test run; "Java tests pass locally and in CI" and "`pnpm check` passes" were not run in this audit.
+- Status was `in-progress` while `README.md` already said `implemented`; the file now matches the index.

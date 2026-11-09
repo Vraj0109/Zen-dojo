@@ -1,6 +1,6 @@
 # 0037: Learning navigation deduplication
 
-- **Status:** in-review
+- **Status:** implemented
 - **Planned by:** Claude Code & Antigravity, 2026-11-09
 - **Implemented by:** Antigravity, 2026-11-09
 - **Spec:** Study Page Reading Experience & Navigation Rails
@@ -86,3 +86,9 @@ The user explicitly requested:
 ## Review
 
 (To be filled in by reviewer).
+
+### Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+- Verified by reading: `ArticleLayout` in `learn-blocks.tsx` renders only `Toc` in the aside (the `outline` prop is kept as a deprecated, unused prop); `study/[area]/[id]/page.tsx` mounts `CourseOutline` in the breadcrumb and `LessonNav` in the footer; `toc-items.test.ts` has the "renders only Toc in aside" test. Steps 1 to 4 and the first three acceptance items match the code. The mobile `<details>` drawer (step 3) was read in the source only, not viewed in a browser.
+- Not run here: `pnpm check`. No review has been done, so the status stays `implemented`.
+- Status was `in-review`, which is not in the status list; `README.md` already said `implemented`.

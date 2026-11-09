@@ -1,6 +1,6 @@
 # 0036: Schedule shifting, review backlog management, and theme database persistence
 
-- **Status:** completed
+- **Status:** implemented
 - **Planned by:** Claude Code & Antigravity, 2026-11-09
 - **Implemented by:** Antigravity Subagent, 2026-11-09
 - **Spec:** Review Backlog, Schedule Controls, and Appearance Persistence
@@ -99,7 +99,7 @@ Prevent review overwhelm by capping daily reviews on the Today page, moving exce
 - [x] Installing a new app build or changing port does not reset the user's theme, font, or accent.
 - [x] Today page never displays an overwhelming list of 50+ reviews; reviews are capped to a manageable batch (default 5).
 - [x] Users can open the Catch-up Backlog drawer to inspect and clear excess items when they have extra time.
-- [x] Users can shift their entire schedule by 1 or more weeks for holidays/festivals without streak loss.
+- [ ] Users can shift their entire schedule by 1 or more weeks for holidays/festivals without streak loss. (unverified: see Round 7 audit)
 - [x] Users can work ahead on future roadmap days.
 
 ## Open questions
@@ -131,3 +131,10 @@ Prevent review overwhelm by capping daily reviews on the Today page, moving exce
 ## Review
 
 (To be filled in by reviewer).
+
+### Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+- Verified by reading: `DAILY_REVIEW_CAP = 5` and `splitReviewQueue` in `lib/review.ts` with tests in `practice-tools.test.ts`; `CatchUpDrawer` in `app/today/today-ui.tsx` used from `app/page.tsx`; `shiftPlanSchedule` in `lib/tasks.ts` with `shiftPlanScheduleAction` and forms in `roadmap/page.tsx` and `profile/settings/page.tsx`, tested in `tasks.test.ts`; `getAppearanceSetting`/`setAppearanceSetting` in `lib/ui-prefs.ts`, the `shell.tsx` sync and tests in `ui-prefs.test.ts`; a "Work ahead" label on future weeks in `roadmap/page.tsx`. Steps 1 to 6 and the other four acceptance items match the code.
+- The acceptance item on streak loss is unticked. The plan's design says the vacation window is "marked as paused" so streaks do not break, but `shiftPlanSchedule` only moves `plan_start`, deletes open generated tasks and moves `solvedOn` on pending solves. No pause marker was found in `progress.ts` or `stats.ts`. Moving `solvedOn` of an original solve also changes the date that solve counts for in XP, the heatmap and the streak, which may not be intended. This needs a decision before the plan is called done.
+- The open question says the cap should be adjustable (3, 5 or 10) in Settings; no setting for it was found, only the constant of 5.
+- Status was `completed`, which is not in the status list; the file now says `implemented`, as `README.md` already did.

@@ -55,7 +55,7 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
   Where an answer is not unique (a path, a construction), return a **checkable value** instead (its length, or a count), and
   say so in the statement.
   - Done when: the CSES group lists all tasks; each section has its specs in order; the open ones are listed in the notes.
-- [ ] **3. Other platforms, 150 problems.** (round four: 44 done, round five: 25 more = 69, see Implementation notes) Original write-ups, linked to the source, grouped under a new `dsa.ts` group "Logic
+- [x] **3. Other platforms, 150 problems.** (done by round six: 150 `logic(...)` entries in `dsa.ts`, all specs in `JUDGE_PROBLEMS`, which the "are well formed" test in `judge.test.ts` checks for 6+ tests and 3+ hints; Round 7 audit by reading. Earlier: round four 44, round five 69, round six 150.) Original write-ups, linked to the source, grouped under a new `dsa.ts` group "Logic
   building" with these sets: AtCoder Beginner Contest A-D (about 40), Codeforces Div. 2 A-B rated 800-1400 on greedy,
   constructive, math and implementation (about 50), Project Euler 1-60 as functions with a fixed input (about 40), Kattis
   starter problems (about 20). Each gets a `source` value (`"atcoder" | "codeforces" | "euler" | "kattis"`; extend the
@@ -145,3 +145,9 @@ size, plus the shapes that break slow or careless code. Expected outputs for lar
   - Project Euler (20): 18, 20, 23, 25, 27, 30, 34, 36, 37, 39, 40, 41, 45, 47, 52, 53, 55, 58, 92, 97. Parameterised, no test uses the original parameters; answers stay below 2^53.
   - AtCoder (20): ABC 151 A, 153 A, 154 A, 155 A, 156 A, 157 A, 158 A, 159 A, 160 A, 161 A, 162 A, 163 B, 165 B, 169 B (limit 10^15 instead of 10^18), 171 B, 172 B, 175 B, 177 B, 163 C, 164 C.
 - **Outputs.** Every expected output came from compiling (g++ -O2) and running the C++ reference with a throwaway script (kept outside the repo). The same run checked the references against published values that are not stored in the specs (for example Euler 23 at 28123, 30 at p = 4 and 5, 36, 39, 45, 47, 53, 55, 58, 92, 97); all matched. Euler 58 is limited to percent >= 8 because 6 percent needs a side of about 10 million (16 s).
+
+### Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+- Step 3 is ticked: 150 logic problems are in `dsa.ts` and the judge (Euler, AtCoder, Codeforces, Kattis). Steps 1, 4, 5 and 6 and the acceptance items for the roadmap problems, the 150 logic problems and design-class problems were already ticked and match the code (the six special problems lc-297, lc-173, lc-133, lc-528, lc-382 and lc-362 are in `problems-special.ts`).
+- Step 2 and the acceptance item "All CSES tasks are in the list" stay open: `dsa.ts` has 83 `cses(...)` entries (Introductory, Sorting and Searching, DP, Graph and some Misc), and no `problems-cses-range/tree/math/geo*` files exist yet. Those sections (Range Queries, Tree, Mathematics, Geometry, String) are being added in round seven by other agents.
+- Steps 7 and "Every problem has a description..." and `pnpm check` stay open for the same reason (CSES incomplete; `pnpm check` not run here).

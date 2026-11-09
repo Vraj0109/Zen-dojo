@@ -41,7 +41,7 @@ thin walkthroughs.
   batch A to D standard: 1,500 or more words, three or more diagrams, failure-modes section, Java for the key part compiled once, register in
   `learn/index.ts` (`DESIGN_DEEP`).
   - Done when: all 27 designs have a depth entry; `design-depth.test.ts` guards pass.
-- [x] **4. Old thin walkthroughs.** For each design whose `designs-a.ts`/`designs-b.ts` walkthrough is short and now duplicated by the depth entry, trim the
+- [ ] **4. Old thin walkthroughs.** (not done: see Implementation notes; the reference walkthrough was kept on purpose) For each design whose `designs-a.ts`/`designs-b.ts` walkthrough is short and now duplicated by the depth entry, trim the
   old one to a summary and move anything the depth entry lacks into it (do not lose facts). Keep `WALKTHROUGH_EXTRA` follow-ups.
   - Done when: no design page repeats the same section twice.
 - [x] **5. Tests and counts.** Update `design-depth.test.ts`/`learn.test.ts` guards (27 designs with depth, diagrams, failure modes); add a pure test
@@ -69,3 +69,10 @@ thin walkthroughs.
 - **Round six (agent 1):** added `architecture` (5 cards) and `criteria` (5 rows) to the five designs in `design-depth-d.ts` (payments, inventory, ticketing, order-management, warehouse), using each write-up's own numbers. `design-depth.test.ts` now requires 4+ cards and 4+ criteria for these five too. Coverage check by file: batches A, B, C (ride-sharing, maps, crawler, job-scheduler, top-k), D and E (7 designs) all have both fields, so all 27 designs are covered, crawler included. There is no nearby-friends design in the repo.
 
 ## Review
+
+### Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+- Verified by reading: `study/[area]/[id]/page.tsx` imports `DESIGN_DEEP`, adds `designDeepToc(...)` and renders `<DesignDeepView>` (steps 1 and 2). `DESIGN_DEEP` has entries in `design-depth-a.ts` to `-e*.ts`, and `design-depth.test.ts` requires 27 designs, 3+ captioned diagrams, 800+ words and a failure section, and for all 27 (batches A to E) 4+ architecture cards and 4+ scorecard rows (steps 3 and 5, and the first two acceptance items). `design-code.test.ts` exists for the Java files.
+- Step 4 was ticked but the notes say the old walkthroughs were not trimmed, so it is unticked here. Whether any page repeats a section was not checked.
+- Not run here: `pnpm check` (last acceptance item stays open).
+- The note under step 3 says 875 to 1,490 words per design; later commits lengthened batch E and `design-depth.test.ts` now asserts 1,500+ words for those seven.

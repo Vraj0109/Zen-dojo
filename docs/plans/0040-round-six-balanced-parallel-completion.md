@@ -34,3 +34,12 @@ To reach 100% completion across Plan 0022 (Problem Library) and Plan 0031 (Syste
 2. **Each agent writes only to its owned files.**
 3. **Registration integration**: Master index registration in `packages/shared/src/judge/index.ts` and `docs/plans/` will be handled cleanly after agents report completion.
 4. **Final Gatekeeper Check**: A single `pnpm check` will be run by the orchestrator at the very end before push.
+
+## Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+This plan has no checkboxes, so the claims in its status line were checked against the repo instead.
+
+- 27 system designs with depth, architecture cards and scorecards: true (see the audit under 0031). The Batch D cards landed in commit 5f4011e.
+- 150 logic problems: `dsa.ts` has 150 `logic(...)` entries and `judge/index.ts` builds `LOGIC_PROBLEMS` from Euler, AtCoder, Codeforces, Kattis, batch 2, `LOGIC_SPECS_C` and `PROBLEMS_LOGIC_D`.
+- 6 special harnesses: `problems-special.ts` has lc-297, lc-173, lc-133, lc-528, lc-382 and lc-362; `SPECIAL_SPECS` is registered in `judge/index.ts`; `apps/web/lib/judge/harness-special.ts` is used from `harness-nodes.ts`; `judge.test.ts` checks templates in all languages and runs the C++ reference for each (skipped without g++). Their large inputs are one small case each in `stress-logic-d.ts`. Java and JavaScript references for these six are not tested.
+- The final `pnpm check` listed under "Final Gatekeeper Check" was not run in this audit.

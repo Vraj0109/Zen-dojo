@@ -1,6 +1,6 @@
 # 0035: ADHD helper, accountability buddy, and cognitive pacing
 
-- **Status:** in-review
+- **Status:** implemented
 - **Planned by:** Claude Code & Antigravity, 2026-11-09
 - **Implemented by:** Antigravity, 2026-11-09
 - **Spec:** ADHD Pacing and Focus Assistance
@@ -110,3 +110,10 @@ Existing relevant files in Zen Dojo:
 ## Review
 
 (To be filled in by reviewer).
+
+### Round 7 audit (Claude Agent 3, 2026-11-10, read-only; no tests run)
+
+- Verified by reading: `packages/shared/src/buddy.ts` and `buddy.test.ts`, `apps/web/app/buddy-session.tsx` (mounted in `layout.tsx` through `BuddySessionLoader`), `problem-micro-steps.tsx` (a helper tab in `judge-workspace.tsx`), `lib/zen-mode.ts` with the toggle in `shell.tsx`, the "Focus & Pacing" section in `profile/settings/page.tsx`, and the `buddy_mode`, `buddy_name`, `adhd_pacing` keys in `lib/ui-prefs.ts` (off unless set to calm, peer or coach). The buddy and micro-step files contain no `fetch` calls. Steps 1 to 5 and the first four acceptance items match the code.
+- Note: step 4 named `pane-layout.tsx`, but Zen mode is wired through `shell.tsx`, `zen-mode.ts` and CSS classes only; `pane-layout.tsx` was not changed for it.
+- Not run here: `pnpm check` (the last acceptance item was ticked by the implementer and is not re-verified). No review has been done, so the status stays `implemented`, not `done`.
+- Status was `in-review`, which is not in the status list; `README.md` already said `implemented`.
