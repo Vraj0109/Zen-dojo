@@ -49,17 +49,27 @@ What exists (all in 0.4.0):
   `/study/packs/...`). Pack format name is `prepwise-pack` (keep accepting it).
 - **Other:** streak freeze, weekly review, LeetCode extension (icons and name updated), desktop back/forward gestures, backup/restore.
 
-## 4. What is left, in this order
+## 4. What is done and what is left (after parallel agents merge)
+
+Merged from parallel worktrees (`agent/a-judge`, `agent/b-problems`, `agent/c-lessons`, `agent/d-lld`):
+
+- **Plan 0021 (implemented, agent A):** Run button v2 with hidden prelude boilerplate, compiler line number shift, `solution_runs` table saving the last run, custom input.
+- **Plan 0022 (in progress, agent B & A):** Roadmap batches 6 and 7 merged (50 problems), design-a-class problems merged (11 problems with C++, Java, JS harnesses). Batch 8 draft in `packages/shared/src/judge/problems-leetcode-8.ts`.
+- **Plan 0023 (implemented, agent C):** Markdown lessons in `content/**`, `build-content.mjs`, `content:build` and `content:check`, section ordering audit, subtopics in TOC and course outline.
+- **Plan 0024 (in progress, agent A):** `pack:check` and `pack:build` scripts, declarative stress generators, pack target study areas, download pack JSON export route, safe fetch with redirect and size limits.
+- **Plan 0025 (implemented, agent D):** 11 full Java projects (vending machine + ATM richer, movie booking, splitwise, library, food delivery, cab booking, games, file system, key-value store, hotel reservation, meeting rooms), 11 concept lessons.
+- **Plan 0014 / 0015 (in progress, agent C):** Core subjects (OS, DB, networking depth) and System design depth (batches A and B, 10 designs with Java code and diagrams).
+- **Plan 0008 (in progress, agent D):** Trees part 1 (`dsa-articles-e.ts`) merged.
+
+What is left:
 
 | # | Plan | What | Status |
 |---|---|---|---|
-| 1 | **0021** | Run button v2: hide `#include`/imports, save the last run, custom input | ready |
-| 2 | **0023** | Lessons as Markdown files, fix SOLID and other ordering, subtopics in navigation, `docs/content-editing.md` | ready |
-| 3 | **0024** | Content packs v2: into existing courses, patch built-in lessons, feed updates, `pack:build`/`pack:check`, large inputs | ready |
-| 4 | **0022** | Problem library: ~105 roadmap problems, all CSES, ~150 logic-building problems, design-class problem type | ready |
-| 5 | **0025** | LLD: vending/ATM richer, batches C to F, concept lessons | ready |
-| 6 | 0014, 0015 | System design depth; core subjects depth | ready, not started |
-| 7 | 0008 | 45 DSA pattern articles (batches 4 to 10) | in progress (22 of 67) |
+| 1 | **0022** | CSES, remaining roadmap problems (batch 8 stress + remaining), other platforms | in progress |
+| 2 | **0024** | Mermaid in packs, update feed UI, patch built-in lessons | in progress |
+| 3 | **0014, 0015** | System design batches C to E; Java concurrency core depth | in progress |
+| 4 | **0008** | Remaining DSA pattern articles (batches 5 to 10) | in progress (25 of 67) |
+| 5 | **0025** | Batch F new topics (optional future work) | not started |
 
 Why this order: 0021 is small and fixes daily friction. 0023 makes content cheap to edit (so a cheaper agent can do 0022, 0025,
 0014, 0015 and 0008 afterwards). 0024 lets content ship without releases. Then the content volume.
