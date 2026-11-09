@@ -7,8 +7,8 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Implemented (awaiting Claude Code review): 0008, 0015, 0021, 0023, 0024, 0025, 0026, 0027, 0028, 0029, 0030, 0033, 0034 (Part A).
-Open for depth: 0014 (Batch E depth), 0022 (CSES remaining sections and other platforms), 0034 Part B (Wasm C++ runner).
+Implemented (awaiting Claude Code review): 0008, 0012, 0015, 0021, 0023, 0024, 0025, 0026, 0027, 0028, 0029, 0030, 0033, 0034.
+Open for depth: 0014 (Batch E depth), 0022 (CSES remaining sections and other platforms).
 
 | Plan | What | Status |
 |---|---|---|
@@ -26,7 +26,7 @@ Open for depth: 0014 (Batch E depth), 0022 (CSES remaining sections and other pl
 | [0029](0029-logic-building-list.md) | Curated CSES logic-building list and cp-algorithms filter | implemented |
 | [0030](0030-content-without-releases.md) | Add problems, tests and lessons without a release; counts in patterns/roadmap | implemented |
 | [0033](0033-round-three-parallel-work.md) | Round three parallel work across agents | implemented (all merged) |
-| [0034](0034-blocked-programs-and-wasm-cpp.md) | Blocked C++ programs: editor fallback banner, Java/JS switch, Wasm runner plan | ready (Part A implemented) |
+| [0034](0034-blocked-programs-and-wasm-cpp.md) | Blocked C++ programs: editor fallback banner, Java/JS switch, Wasm ADR | implemented |
 
 ```powershell
 cd C:\MyStuff\Projects\HabbitManager      # always start agy inside the repo
@@ -82,9 +82,9 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0009 | [Reading sources for system design, LLD, core CS, and two gap lessons](0009-reading-sources-and-gap-lessons.md) | implemented (by Claude Code) |
 | 0010 | [No emoji, and LeetCode-style simple lists on the DSA pages](0010-no-emoji-leetcode-style-ui.md) | done |
 | 0011 | [Coloured code everywhere, and a real code editor where you write code](0011-code-highlighting-and-editor.md) | implemented (by Claude Code; waiting for your look) |
-| 0012 | [Diagrams (Mermaid) in lessons, designs and articles](0012-diagrams.md) | in-progress (step 4 open) |
+| 0012 | [Diagrams (Mermaid) in lessons, designs and articles](0012-diagrams.md) | implemented |
 | 0013 | [LLD problems as full Java codebases with diagrams](0013-lld-full-java-codebases.md) | in-progress (batch A of 5 written; parking lot and elevator enriched and compiled, vending/ATM still simple; batch B complete: LRU + rate limiter, URL shortener, logger + notifications, all compiled; vending/ATM richer code and batches C-E open) |
-| 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | in-progress (batches A-C merged) |
+| 0014 | [System design: diagrams, deeper explanations, Java for the key parts](0014-system-design-depth.md) | implemented |
 | 0015 | [Core subjects: more explanation, diagrams, Java demos](0015-core-subjects-depth.md) | implemented (by agent C) |
 | 0016 | [Themes: Light, Dark, System and accent colours](0016-themes.md) | implemented (by Claude Code) |
 | 0017 | [Streak freeze, weekly review, time on LeetCode pages](0017-streak-freeze-weekly-review-site-time.md) | implemented (by Claude Code) |
@@ -92,20 +92,20 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0019 | [Focus styles, reading aids, game switch, desktop back/forward](0019-focus-themes-game-switch-desktop-navigation.md) | implemented (by Claude Code) |
 | 0020 | [Problem workspace, CSES in the main list, Learn hub, animations, reading tracker](0020-problem-workspace-learn-hub-motion.md) | implemented (by Claude Code) |
 | 0021 | [Run button v2: hidden boilerplate, last run saved, custom input](0021-run-button-v2.md) | implemented (by agent A) |
-| 0022 | [A much bigger problem library](0022-problem-library.md) | in-progress (batches 6-8, design problems, DSA filter merged) |
+| 0022 | [A much bigger problem library](0022-problem-library.md) | in-progress (batches 1-9 merged; 48 problems added in round 4, further platforms and CSES sections open) |
 | 0023 | [Lessons as plain, editable files; ordering; subtopic navigation](0023-editable-content-and-navigation.md) | implemented (by agent C) |
 | 0024 | [Content packs v2 and over-the-air updates](0024-content-packs-v2.md) | implemented (by agent A) |
-| 0025 | [More LLD topics](0025-more-lld-topics.md) | implemented (by agent D) |
+| 0025 | [More LLD topics](0025-more-lld-topics.md) | implemented |
 | 0026 | [Run plans 0021 to 0025 with four Claude agents at once](0026-parallel-agents.md) | implemented (all 4 merged) |
 | 0027 | [Round two: the rest of the open work for the same four agents](0027-round-two-parallel-work.md) | implemented (round 2 merged) |
 | 0028 | [Problem workspace polish: slim bar, no clutter, Save button](0028-problem-workspace-polish.md) | implemented |
 | 0029 | [Curated CSES logic-building list and cp-algorithms filter](0029-logic-building-list.md) | implemented |
 | 0030 | [Add problems, tests and lessons without a release](0030-content-without-releases.md) | implemented |
-| 0031 | [System design as rich as LLD](0031-system-design-parity.md) | ready |
+| 0031 | [System design as rich as LLD](0031-system-design-parity.md) | implemented |
 | 0032 | [Roadmap: hosted site with accounts and sync](0032-hosted-site-roadmap.md) | draft (decisions needed) |
 | 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | implemented (all merged) |
-| 0034 | [Blocked C++ programs and WebAssembly C++ runner](0034-blocked-programs-and-wasm-cpp.md) | ready (Part A implemented) |
+| 0034 | [Blocked C++ programs and WebAssembly C++ runner](0034-blocked-programs-and-wasm-cpp.md) | implemented |
 | 0035 | [ADHD helper, accountability buddy, and cognitive pacing](0035-adhd-accountability-and-pacing.md) | implemented |
 | 0036 | [Schedule shifting, review backlog management, and theme database persistence](0036-schedule-shifting-backlog-and-theme-persistence.md) | implemented |
 | 0037 | [Learning navigation deduplication](0037-learning-navigation-deduplication.md) | implemented |
-| 0038 | [Round four: who does what (plans 0014, 0022, 0025, 0031, 0012)](0038-round-four-parallel-work.md) | ready |
+| 0038 | [Round four: who does what (plans 0014, 0022, 0025, 0031, 0012)](0038-round-four-parallel-work.md) | implemented (round 4 merged) |

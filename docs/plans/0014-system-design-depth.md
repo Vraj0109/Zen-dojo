@@ -1,6 +1,6 @@
 # 0014: System design walkthroughs with diagrams, fuller explanations and Java for the key parts
 
-- **Status:** in-progress
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-07
 - **Implemented by:** Claude Code (agent C, branch agent/c-lessons), round two
 

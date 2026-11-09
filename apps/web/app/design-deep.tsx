@@ -1,8 +1,4 @@
-import type { WalkthroughDeep } from "@habit/shared";
-
-// ArchitectureBlock and EvaluationCriterion are not re-exported from the package index (learn/index.ts is not ours); derive them.
-type ArchitectureBlock = NonNullable<WalkthroughDeep["architecture"]>[number];
-type EvaluationCriterion = NonNullable<WalkthroughDeep["criteria"]>[number];
+import type { ArchitectureBlock, EvaluationCriterion, WalkthroughDeep } from "@habit/shared";
 import { ArticleSection, DeeperSections } from "./learn-blocks";
 import { Code } from "./code";
 import { Diagram } from "./diagram";

@@ -124,12 +124,20 @@ export function courseOutline(opts: {
   });
 }
 
-/** Table of contents entries for DesignDeepView: diagrams, the depth sections as children, and the Java code. */
-export function designDeepToc(deep: { diagrams: { title: string }[]; sections: { title: string }[]; code?: { name: string }[] }): TocEntry[] {
+/** Table of contents entries for DesignDeepView: diagrams, architecture, depth sections, evaluation criteria, and Java code. */
+export function designDeepToc(deep: {
+  diagrams: { title: string }[];
+  sections: { title: string }[];
+  code?: { name: string }[];
+  architecture?: { name: string }[];
+  criteria?: { area: string }[];
+}): TocEntry[] {
   const ids = deeperIds(deep.sections.map((s) => s.title));
   return [
     { id: "design-diagrams", title: "Diagrams" },
+    ...(deep.architecture && deep.architecture.length > 0 ? [{ id: "design-architecture", title: "Architecture explorer" }] : []),
     { id: "design-depth", title: "Why it is built this way", children: deep.sections.map((s, i) => ({ id: ids[i], title: s.title })) },
+    ...(deep.criteria && deep.criteria.length > 0 ? [{ id: "design-criteria", title: "How you will be judged" }] : []),
     ...(deep.code && deep.code.length > 0 ? [{ id: "design-code", title: "Key parts in Java" }] : []),
   ];
 }

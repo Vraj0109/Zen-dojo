@@ -1,6 +1,6 @@
 # 0022: A much bigger problem library (CSES, other platforms, design problems)
 
-- **Status:** implemented
+- **Status:** in-progress (batches 1-9 merged; 48 problems added in round 4, further platforms and CSES sections open)
 - **Planned by:** Claude Code, 2026-11-09
 - **Implemented by:** Claude Code (Agent 1, round four), 2026-11-09; earlier batches by Agent B
 - **Spec:** none (builds on plans 0018 and 0020)

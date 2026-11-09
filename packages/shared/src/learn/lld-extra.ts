@@ -11,6 +11,7 @@ import { FILESYSTEM_EXTRA } from "./lld-deep-d-filesystem";
 import { KV_EXTRA } from "./lld-deep-d-kv";
 import { HOTEL_EXTRA } from "./lld-deep-e-hotel";
 import { MEETING_EXTRA } from "./lld-deep-e-meeting";
+import { PUBSUB_EXTRA, ORDERBOOK_EXTRA, TEXT_EDITOR_EXTRA, JOB_SCHEDULER_EXTRA } from "./lld-deep-f";
 
 // Per LLD problem: what to remember, one use case traced through the classes, and edge cases to name.
 
@@ -69,4 +70,8 @@ export const LLD_EXTRA: Record<string, LldExtra> = {
   "lldp-kv-store": KV_EXTRA,
   "lldp-hotel": HOTEL_EXTRA,
   "lldp-meeting-rooms": MEETING_EXTRA,
+  "lldp-pubsub": PUBSUB_EXTRA,
+  "lldp-orderbook": ORDERBOOK_EXTRA,
+  "lldp-text-editor": TEXT_EDITOR_EXTRA,
+  "lldp-job-scheduler": JOB_SCHEDULER_EXTRA,
 };

@@ -14,7 +14,14 @@ vi.setConfig({ testTimeout: 180_000 });
 const hasJdk = spawnSync("javac", ["-version"], { encoding: "utf8" }).status === 0;
 
 describe.skipIf(!hasJdk)(`LLD Java projects compile and run (${hasJdk ? "javac found" : "skipped: no javac on PATH"})`, () => {
-  for (const [id, project] of Object.entries(LLD_PROJECTS).slice(0, 1)) {
+  const targetIds = new Set([
+    Object.keys(LLD_PROJECTS)[0],
+    "lldp-pubsub",
+    "lldp-orderbook",
+    "lldp-text-editor",
+    "lldp-job-scheduler",
+  ]);
+  for (const [id, project] of Object.entries(LLD_PROJECTS).filter(([id]) => targetIds.has(id))) {
     it(id, () => {
       const dir = mkdtempSync(path.join(tmpdir(), "habit-lld-"));
       try {

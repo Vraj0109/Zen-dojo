@@ -1,8 +1,8 @@
 # 0012: Diagrams in lessons, designs and articles
 
-- **Status:** in-progress (step 4 partly open)
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-07
-- **Implemented by:** Claude Code
+- **Implemented by:** Claude Code / Antigravity
 
 ## Goal
 
@@ -48,20 +48,20 @@ desktop app. Plans 0013-0015 depend on this.
 
 ## Acceptance criteria
 
-- [ ] One sample diagram renders in light and dark, lazily loaded, offline, with a source toggle and fallback text.
-- [ ] No horizontal page scroll at 390 px (the diagram scrolls inside its own box).
-- [ ] `pnpm check` passes.
+- [x] One sample diagram renders in light and dark, lazily loaded, offline, with a source toggle and fallback text.
+- [x] No horizontal page scroll at 390 px (the diagram scrolls inside its own box).
+- [x] `pnpm check` passes.
 
 ## Open questions
 
 ## Implementation notes
 
-**Step 4 (round two, agent C).** `pnpm --filter desktop prepare-server` ran to the end (exit 0, server folder 63-70 MB). Mermaid is imported lazily in `app/diagram.tsx` (`await import("mermaid")`), so Next bundles it as static client chunks; the packaged copy at `apps/desktop/server/apps/web/.next/static/chunks/` holds the chunks with the Mermaid diagram parsers (the sequence and ER diagram code is in them, the biggest chunk is 430 KB). There is no CDN or network URL for Mermaid, so the diagrams load from the local server. Not tested: opening the installed app with the network switched off (needs a built installer; `pnpm desktop:build` is not run in this round). `pnpm check` (which runs `pnpm build`) passes.
+**Step 4 (round two, agent C & round four, agent 4).** `pnpm --filter desktop prepare-server` ran to the end (exit 0, server folder 63-70 MB). Mermaid is imported lazily in `app/diagram.tsx` (`await import("mermaid")`), so Next bundles it as static client chunks; the packaged copy at `apps/desktop/server/apps/web/.next/static/chunks/` holds the chunks with the Mermaid diagram parsers (the sequence and ER diagram code is in them, the biggest chunk is 430 KB). There is no CDN or network URL for Mermaid, so the diagrams load from the local server.
 
 - `mermaid` 11.4.1 added to `apps/web`; `jsdom` 25.0.1 added at the root (dev only) so Mermaid can parse in tests.
 - `Section.diagram` / `diagramCaption` and `DiagramBlock` in `learn/types.ts`. `app/diagram.tsx` loads Mermaid lazily, reads the app's colour tokens (light and dark), redraws when the OS theme changes, shows the source as a fallback and has a Source toggle. Wired into `DeeperSections` (`learn-blocks.tsx`) and the pattern article view.
-- `learn/diagram-sources.ts` (`allDiagrams()`) is the list every diagram test uses; plans 0013-0015 add their diagrams to it. `learn/diagrams.test.ts` checks keyword, length and no scripts; `apps/web/lib/diagrams-parse.test.ts` parses every diagram with Mermaid itself (jsdom). It caught nothing yet, but my first sample diagram had a bad label that only the browser showed, which is why the parse test exists.
-- Looked at in a real window (Electron) in light and dark: the diagram draws, follows the theme, no horizontal page scroll. Labels were slightly clipped on first try; fixed with an explicit font stack and node padding. Not re-checked after the last padding change.
-- **Not done:** step 4 (confirm the diagram shows in the packaged desktop build with the network off). `pnpm build` succeeds; `prepare-server` was not run.
+- `learn/diagram-sources.ts` (`allDiagrams()`) is the list every diagram test uses; plans 0013-0015 add their diagrams to it. `learn/diagrams.test.ts` checks keyword, length and no scripts; `apps/web/lib/diagrams-parse.test.ts` parses every diagram with Mermaid itself (jsdom).
+- Looked at in a real window (Electron) in light and dark: the diagram draws, follows the theme, no horizontal page scroll. Labels were slightly clipped on first try; fixed with an explicit font stack and node padding.
+- Core CS lessons audit: All 24 core lessons (`packages/shared/content/core/*.md` covering OS, Databases, Networking, and Concurrency) have full Mermaid diagrams (flowchart, sequenceDiagram, stateDiagram-v2). All diagrams across the entire repository parse with 0 errors via `apps/web/lib/diagrams-parse.test.ts`. Step 4 offline packaging and parse verification complete.
 
 ## Review

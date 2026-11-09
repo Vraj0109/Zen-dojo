@@ -230,6 +230,10 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
       lldProblem("kv-store", "Key-value store", "MVCC versions, TTL, snapshots, optimistic transactions, write-ahead log"),
       lldProblem("hotel", "Hotel reservation", "Inventory per night, rate rules, overbooking, cancellation, room assignment"),
       lldProblem("meeting-rooms", "Meeting room scheduler", "Interval conflicts, recurring events, room search, lock order"),
+      lldProblem("pubsub", "Publish-subscribe / message queue", "Topics, partitions, offsets, consumer groups, rebalancing, offset commits"),
+      lldProblem("orderbook", "Stock exchange order book / matching engine", "Limit and market orders, price-time priority, FIFO matching, partial fills, cancellations"),
+      lldProblem("text-editor", "Text editor with undo/redo", "Command and memento patterns, buffer, cursor and selection, history stack, macro commands"),
+      lldProblem("job-scheduler", "Distributed job scheduler", "Triggers, priority queue execution, exponential backoff retries, state machine, lifecycle observers"),
     ],
   },
 };

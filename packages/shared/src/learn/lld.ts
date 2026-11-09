@@ -11,6 +11,7 @@ import { FILESYSTEM_GUIDE } from "./lld-deep-d-filesystem";
 import { KV_GUIDE } from "./lld-deep-d-kv";
 import { HOTEL_GUIDE } from "./lld-deep-e-hotel";
 import { MEETING_GUIDE } from "./lld-deep-e-meeting";
+import { PUBSUB_GUIDE, ORDERBOOK_GUIDE, TEXT_EDITOR_GUIDE, JOB_SCHEDULER_GUIDE } from "./lld-deep-f";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
 
@@ -297,4 +298,8 @@ class NotificationService {
   "lldp-kv-store": KV_GUIDE,
   "lldp-hotel": HOTEL_GUIDE,
   "lldp-meeting-rooms": MEETING_GUIDE,
+  "lldp-pubsub": PUBSUB_GUIDE,
+  "lldp-orderbook": ORDERBOOK_GUIDE,
+  "lldp-text-editor": TEXT_EDITOR_GUIDE,
+  "lldp-job-scheduler": JOB_SCHEDULER_GUIDE,
 };

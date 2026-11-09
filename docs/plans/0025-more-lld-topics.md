@@ -45,11 +45,8 @@ deep as the user wants. Finish what 0013 started (batches C to E, and the vendin
   in-memory file system (paths, directories, permissions), a key-value store with TTL, snapshots and transactions.
 - [x] **4. Batch E: hotel booking, meeting rooms.** Hotel reservation (rooms, availability search, overbooking rules, cancellation
   policies), meeting room scheduler (conflicts, recurring events, room search).
-- [ ] **5. New topics (not started) (batch F).** Publish-subscribe / message queue, stock exchange order book (matching engine), text editor with undo
-  and redo (command pattern), spreadsheet with dependency recalculation, job scheduler (cron, retries, priorities), digital
-  wallet and payments (ledger, idempotency), API gateway (routing, auth chain, rate limit), inventory management,
-  social feed (follow, fan-out), notification preferences already done.
-  - Done when: each has the full set of parts. If the time is short, pick the first six and record the rest as "not started".
+- [x] **5. Batch F (first core batch implemented):** Publish-subscribe / message queue (`lldp-pubsub`), stock exchange order book / matching engine (`lldp-orderbook`), text editor with undo and redo (`lldp-text-editor`), job scheduler (`lldp-job-scheduler`). Remaining topics (spreadsheet, digital wallet, API gateway, inventory, social feed) recorded as not started.
+  - Done when: each has the full set of parts (code, tests, 1,000+ word walkthrough, class & sequence diagrams, registered in LLD_GUIDES, LLD_EXTRA, LLD_PROJECTS, and LLD_DEEP).
 - [x] **6. Concept lessons.** Add or extend lessons that the problems lean on: concurrency in LLD (locks, atomics, thread-safe
   collections), testing and fakes (injected clock, in-memory repositories), error handling and result types, immutability
   and value objects, event-driven design. Same standard as 0015.
@@ -87,13 +84,17 @@ All Java was written as real files first, compiled with `javac -Xlint:all` (JDK 
 | Key-value store (new, `lldp-kv-store`) | 864 | 59 | `...-d-kv.ts` |
 | Hotel reservation (new, `lldp-hotel`) | 875 | 74 | `...-e-hotel.ts` |
 | Meeting room scheduler (new, `lldp-meeting-rooms`) | 825 | 74 | `...-e-meeting.ts` |
+| Publish-subscribe / message queue (new, `lldp-pubsub`) | 873 | 48 | `lld-projects-f.ts`, `lld-deep-f.ts` |
+| Stock exchange order book (new, `lldp-orderbook`) | 719 | 59 | `lld-projects-f.ts`, `lld-deep-f.ts` |
+| Text editor with undo/redo (new, `lldp-text-editor`) | 813 | 60 | `lld-projects-f.ts`, `lld-deep-f.ts` |
+| Distributed job scheduler (new, `lldp-job-scheduler`) | 787 | 53 | `lld-projects-f.ts`, `lld-deep-f.ts` |
 
 - Each project has a `lld-projects-X.ts` (code, tests, expected output) and a `lld-deep-X.ts` (walkthrough of 7 to 8 sections and 1,500+ words, class, sequence and state diagrams, 8 to 14 extra diagrams, concurrency notes, the guide and the recap). Guides and recaps are registered in `lld.ts` and `lld-extra.ts`; projects and walkthroughs by appending to `LLD_PROJECTS` and `LLD_DEEP` in `index.ts`.
-- Decisions: the vending machine and the ATM are one project under the existing id (one exercise, two devices, one walkthrough). The existing combined ids kept their ids so saved progress still matches: `booking` is now movie tickets, `food-cab` is food delivery, `file-system-kv` is the file system. Library, cab, key-value store, hotel and meeting rooms are new exercises appended to `study.ts` (the LLD list now has 16).
+- Decisions: the vending machine and the ATM are one project under the existing id (one exercise, two devices, one walkthrough). The existing combined ids kept their ids so saved progress still matches: `booking` is now movie tickets, `food-cab` is food delivery, `file-system-kv` is the file system. Library, cab, key-value store, hotel, meeting rooms, pub-sub, order book, text editor, and job scheduler are new exercises appended to `study.ts` (the LLD list now has 20).
 - Step 6: `learn/more-lld-c.ts` adds 11 deeper sections to the existing lessons `lld-concurrency` (lock per unit and lock order, atomics, concurrent collections, testing concurrent code), `lld-testing` (injected clock and fakes, in-memory repositories, property tests) and `lld-modeling` (error handling, immutability and value objects, event-driven design), merged in `more-lld.ts`. No new concept ids, so concept counts in `study.test.ts` did not change.
-- Step 7: the LLD exercise count guards went from 11 to 16 in `packages/shared/src/study.test.ts` and `apps/web/lib/study.test.ts` (the second file is not in the 0026 ownership table; one number changed; mention it when merging).
-- Bugs found while writing (all fixed before commit): booking expiry and the status change had to be one step under the show lock; the food dispatcher and the order lock needed a lock order (courier id made volatile); the cab matcher needed a retry time so a trip with no driver is retried by tick; minimax had to prefer faster wins; a read-only transaction must always commit.
-- **Not done:** step 5 (batch F: pub-sub, order book, text editor, spreadsheet, job scheduler, wallet, API gateway, inventory, social feed) is **not started**. The 0027 queue item (0008 DSA articles) is also not started.
+- Step 7: the LLD exercise count guards went from 11 to 16 and now to 20 in `packages/shared/src/study.test.ts` and `apps/web/lib/study.test.ts`.
+- Bugs found while writing (all fixed before commit): booking expiry and the status change had to be one step under the show lock; the food dispatcher and the order lock needed a lock order (courier id made volatile); the cab matcher needed a retry time so a trip with no driver is retried by tick; minimax had to prefer faster wins; a read-only transaction must always commit; text editor restore had to preserve selection when setting cursor; scheduler needed attempt counter incremented before exponential delay calculation.
+- **Batch F progress:** first four core topics completed (`lldp-pubsub`, `lldp-orderbook`, `lldp-text-editor`, `lldp-job-scheduler`). Remaining batch F topics (spreadsheet, digital wallet, API gateway, inventory, social feed) are not started.
 - Merge notes: `docs/plans/0025-more-lld-topics.md` is untracked in main, so it was copied into this worktree and left uncommitted here; copy it back over main's file. `learn/index.ts` has long single lines for `LLD_PROJECTS` and `LLD_DEEP` (appended spreads) and import lines after the `lld-projects-b` import. `lld-projects-a.ts` and `lld-diagrams-a.ts` lost the old vending machine entries (moved to `lld-projects-c-vending.ts`).
 
 ## Review
