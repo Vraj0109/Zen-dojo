@@ -35,6 +35,10 @@ describe("problem specs", () => {
       expect(s.id.startsWith("cses-"), s.id).toBe(true);
       expect(s.url, s.id).toMatch(/^https:\/\/cses\.fi\/problemset\/task\/\d+$/);
     }
+    for (const s of specs.filter((x) => x.source === "other")) {
+      expect(PROBLEMS[s.id], s.id).toBeDefined();
+      expect(s.url, s.id).toMatch(/^https:\/\/cp-algorithms\.com\/.+/);
+    }
   });
 
   it("have a starter template per language with the function and no solution", () => {

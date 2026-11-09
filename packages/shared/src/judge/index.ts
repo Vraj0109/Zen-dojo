@@ -1,4 +1,5 @@
 import { CSES_SPECS } from "./problems-cses";
+import { OTHER_SPECS } from "./problems-other";
 import { LEETCODE_SPECS } from "./problems-leetcode";
 import { LEETCODE_SPECS_2 } from "./problems-leetcode-2";
 import { LEETCODE_SPECS_3 } from "./problems-leetcode-3";
@@ -30,6 +31,7 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
     ...LEETCODE_SPECS_7,
     ...LEETCODE_SPECS_8,
     ...CSES_SPECS,
+    ...OTHER_SPECS,
   ].map((p) => [p.id, p])
 );
 
@@ -48,3 +50,4 @@ export { STRESS_7 } from "./stress-7";
 export { STRESS_8 } from "./stress-8";
 
 export const CSES_PROBLEMS: ProblemSpec[] = CSES_SPECS;
+export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;
