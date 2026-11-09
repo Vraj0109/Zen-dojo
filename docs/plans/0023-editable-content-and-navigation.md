@@ -1,6 +1,6 @@
 # 0023: Lessons as plain, editable files; fix the ordering; subtopics in navigation
 
-- **Status:** in-progress
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-09
 - **Implemented by:** Claude Code (agent C, branch agent/c-lessons)
 - **Spec:** none
