@@ -16,6 +16,21 @@ import { Difficulty, PageMain, ProgressBar, SimpleHint, Stat, StatusMark } from 
 
 export const metadata: Metadata = { title: "DSA" };
 
+const SOURCE_FILTERS = [
+  { value: "", label: "All" },
+  { value: "leetcode", label: "LeetCode" },
+  { value: "cses", label: "CSES" },
+] as const;
+
+type DsaSource = (typeof SOURCE_FILTERS)[number]["value"];
+
+function parseSource(v: string | string[] | undefined): DsaSource {
+  const s = (Array.isArray(v) ? v[0] : v)?.trim().toLowerCase() ?? "";
+  if (s === "leetcode") return "leetcode";
+  if (s === "cses") return "cses";
+  return "";
+}
+
 export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
   return (
     <PageMain title="DSA patterns">
@@ -29,7 +44,7 @@ export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
 function dsaTabHref(id: string, params: Record<string, string | string[] | undefined>): string {
   if (id === "patterns") {
     const sp = new URLSearchParams();
-    for (const key of ["q", "difficulty", "status", "has", "topic", "group"] as const) {
+    for (const key of ["q", "difficulty", "status", "has", "topic", "group", "source"] as const) {
       const v = Array.isArray(params[key]) ? params[key][0] : params[key];
       if (typeof v === "string" && v.trim()) sp.set(key, v.trim());
     }
@@ -47,8 +62,14 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
 
   const tab = parseDsaTab(params);
   const filters = parseDsaFilters(params);
-  const filtering = hasActiveFilters(filters);
-  const results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
+  const source = parseSource(params.source);
+  const filtering = hasActiveFilters(filters) || Boolean(source);
+  let results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
+  if (source === "leetcode") {
+    results = results.filter(({ problem }) => problem.id.startsWith("lc-"));
+  } else if (source === "cses") {
+    results = results.filter(({ problem }) => problem.id.startsWith("cses-"));
+  }
   // Only the open group's problems are rendered (keeps the page small); ?group=none closes all.
   const openGroup = typeof params.group === "string" ? params.group : groups[0]?.id;
 
@@ -74,7 +95,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
           {tab === "patterns" && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Patterns</h2>
-              <FilterBar filters={filters} topics={topics} totals={totals} />
+              <FilterBar filters={filters} source={source} topics={topics} totals={totals} />
               {filtering ? (
                 <div>
                   <p className="mb-2 text-sm text-muted" role="status">
@@ -244,10 +265,12 @@ function SyncStatus({
 
 function FilterBar({
   filters,
+  source,
   topics,
   totals,
 }: {
   filters: DsaFilters;
+  source: string;
   topics: string[];
   totals: { solved: number; problems: number };
 }) {
@@ -262,6 +285,13 @@ function FilterBar({
         aria-label="Search problems"
         className={`${field} min-w-0 flex-1 basis-40 sm:max-w-xs`}
       />
+      <select name="source" defaultValue={source} aria-label="Source" className={field}>
+        {SOURCE_FILTERS.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </select>
       <select name="status" defaultValue={filters.status} aria-label="Status" className={field}>
         <option value="">Any status</option>
         {Object.entries(STATUS_FILTERS).map(([v, label]) => (
