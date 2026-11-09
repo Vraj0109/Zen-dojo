@@ -4,6 +4,65 @@ import type { WalkthroughDeep } from "./design-depth-types";
 
 export const DESIGN_DEPTH_A: Record<string, WalkthroughDeep> = {
   "sdd-url-shortener": {
+    "architecture": [
+      {
+        "name": "Shortener API",
+        "role": "Accepts a long URL, takes the next id from a local block, scrambles it, encodes it in base62 and inserts the row with a unique constraint.",
+        "scale": "About 39 writes a second on average (100 million a month). A few stateless servers are plenty; the id block means one allocator call per 1,000 writes.",
+        "failure": "If one server dies, the others carry on and the unused part of its block (up to 999 ids) is wasted, which is nothing against 3.5 trillion codes."
+      },
+      {
+        "name": "Id block allocator",
+        "role": "Hands each API server a block of 1,000 consecutive ids in one call, so no network call is needed per URL.",
+        "scale": "One row or ZooKeeper counter that is called once per 1,000 writes across the fleet. Easily one small replicated node.",
+        "failure": "If it is down, servers keep writing until their block runs out: about 250 seconds at 4 ids a second each. Redirects are not affected. A 10,000-id block stretches that to 40 minutes."
+      },
+      {
+        "name": "URL store",
+        "role": "Holds code, long URL, owner, expiry and flags. Every access is by code, so it shards by hash of the code.",
+        "scale": "100 million rows a month at about 500 bytes is 6 billion rows and 3 TB over five years. Spread over a few shards with replicas.",
+        "failure": "A down shard fails only its own codes, and a replica can be promoted. The unique constraint on the code is the final guard against duplicates."
+      },
+      {
+        "name": "Redis cache",
+        "role": "Answers redirects from memory and falls back to the store on a miss. Each entry lives for the smaller of an hour and the time to expiry.",
+        "scale": "The hottest 1 percent (1 million links) at about 120 bytes is roughly 120 MB. Expect a hit ratio above 90 percent, cutting 20,000 reads a second at peak to under 2,000.",
+        "failure": "If a node dies, misses jump about 10 times and fall on the database. Use a replicated cluster, warm the replacement and coalesce concurrent misses for the same code."
+      },
+      {
+        "name": "Click pipeline (Kafka and aggregator)",
+        "role": "The redirect service publishes a click event without waiting, and an aggregator counts clicks per link.",
+        "scale": "Around 4,000 events a second on average, 20,000 at peak, each a few dozen bytes. Small for a Kafka topic.",
+        "failure": "If Kafka is down, drop or buffer events locally. A few lost counts are acceptable; a slow redirect is not."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Requirements and numbers",
+        "strong": "Derives about 39 writes a second, 100 to 1 reads, a 20,000 a second peak and 3 TB over five years, then says the load is small and the hard parts are the code and the cache.",
+        "weak": "Says billions of URLs with no arithmetic and sizes servers by guess."
+      },
+      {
+        "area": "Code generation",
+        "strong": "Compares hash-and-truncate, random, a global counter and block-allocated ids, quotes the birthday collision estimate, and picks block ids with a reversible scramble.",
+        "weak": "Proposes a random or hashed code and never mentions collisions or what happens when one occurs."
+      },
+      {
+        "area": "Read path and cache",
+        "strong": "Puts a cache in front of a code-keyed store, sizes it (about 120 MB for the hot 1 percent), and uses 302 so clicks and expiry still work.",
+        "weak": "Reads the database on every redirect, or uses 301 without noticing that analytics and takedowns stop working."
+      },
+      {
+        "area": "Failure handling",
+        "strong": "Walks through cache loss, allocator outage (block lifetime in seconds), a hot shard and a viral link, and says reads take priority over writes.",
+        "weak": "Says the system is replicated and stops; cannot say what happens when the id source or the cache is down."
+      },
+      {
+        "area": "Abuse and extras",
+        "strong": "Covers custom aliases under the same unique constraint, expiry checked on read plus a sweeper, creation rate limits and a safe-browsing check.",
+        "weak": "Treats the shortener as pure throughput and ignores phishing, expiry and alias races."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",
@@ -47,6 +106,65 @@ export const DESIGN_DEPTH_A: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-rate-limiter": {
+    "architecture": [
+      {
+        "name": "Gateway middleware",
+        "role": "Sits in front of every request, builds the key (account, then IP as a backstop), calls the limiter and returns 429 with Retry-After when denied.",
+        "scale": "1 million requests a second across the fleet, so the check must cost about 1 to 2 ms. Gateways scale by adding instances.",
+        "failure": "If the limiter call times out (about 5 ms), fail open for ordinary read APIs and fall back to a small local limit for login and one-time-password endpoints."
+      },
+      {
+        "name": "Local token cache",
+        "role": "Takes about 100 tokens at a time from Redis and serves them from memory, so one Redis call covers 100 requests.",
+        "scale": "Cuts Redis traffic for a hot key by up to 100 times. The limit is then accurate to within one batch per gateway.",
+        "failure": "If a gateway crashes it loses its unused tokens, which only makes the limit slightly stricter. A hot customer at 50,000 requests a second no longer overloads one shard."
+      },
+      {
+        "name": "Redis cluster with Lua script",
+        "role": "Holds the token bucket (token count and last refill time) per key and does read, refill, test and decrement in one atomic script, using the Redis clock.",
+        "scale": "10 million active keys at about 50 bytes is 500 MB. One node does about 100,000 simple operations a second, so shard by key across 10 or more primaries.",
+        "failure": "A failover can lose the last few hundred milliseconds of writes, so a few extra requests slip through. Keys expire after capacity divided by rate, so memory does not grow."
+      },
+      {
+        "name": "Rules and config store",
+        "role": "Maps route and plan to limits (for example 100 a minute, burst 50), with per-customer overrides. Gateways cache and reload it.",
+        "scale": "Small: thousands of rules, read rarely. Gateways reload every few seconds to a minute.",
+        "failure": "If it is unreachable, gateways keep the last cached rules. A bad rule is rolled back by publishing the previous version."
+      },
+      {
+        "name": "Cross-region coordination",
+        "role": "Decides how a limit is split over regions: a share per region, one home region, or local counting with periodic totals.",
+        "scale": "With 4 regions a 100 a minute limit becomes 25 each, or totals are exchanged about every second.",
+        "failure": "During a region partition each region keeps enforcing its own share, so the global limit can be briefly exceeded. Accept this and say so."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Requirements and scope",
+        "strong": "Asks what the key is, what the rule is, per server or global, and what happens when the limiter fails, then sizes the state (500 MB for 10 million keys).",
+        "weak": "Starts with an algorithm and never asks who is being limited or what failure should do."
+      },
+      {
+        "area": "Algorithm choice",
+        "strong": "Compares fixed window (boundary burst), sliding log (memory per request), sliding counter and token bucket, and picks token bucket for burst plus average rate with two numbers per key.",
+        "weak": "Names one algorithm and cannot say what is wrong with the fixed window at the boundary."
+      },
+      {
+        "area": "Atomicity and distribution",
+        "strong": "Does check and update in one Lua script, uses the Redis clock, shards by key and explains local token batching for hot keys.",
+        "weak": "Reads the counter, decides, then writes it back, which lets two gateways both allow the last request."
+      },
+      {
+        "area": "Failure behaviour",
+        "strong": "Chooses fail open for ordinary reads and fail closed or local limits for login, with a 5 ms timeout and TTLs on keys.",
+        "weak": "Says the limiter must always be correct, so an outage of Redis becomes an outage of the product."
+      },
+      {
+        "area": "Client experience",
+        "strong": "Returns 429 with Retry-After and rate limit headers, advises backoff with jitter and mentions combined keys against NAT and many-IP attackers.",
+        "weak": "Drops requests silently, so well-behaved clients retry at once and make load worse."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",
@@ -90,6 +208,65 @@ export const DESIGN_DEPTH_A: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-kv-store": {
+    "architecture": [
+      {
+        "name": "Coordinator (any node)",
+        "role": "Receives a get or put, finds the replica set on the ring, sends the request to those replicas and waits for R or W answers.",
+        "scale": "With 10,000 operations a second over 60 nodes, that is about 170 a second per node. Every node can coordinate, so there is no front-door bottleneck.",
+        "failure": "If the coordinator fails, the client retries another node. A coordinator that cannot reach W replicas returns an error, or stores a hint for a down replica."
+      },
+      {
+        "name": "Consistent hash ring with virtual nodes",
+        "role": "Maps keys to nodes. Each machine sits on the ring at 128 to 256 points, so load is even and a failed node's load spreads over all the others.",
+        "scale": "Adding a fifth node to four moves about a fifth of the keys, against 80 percent for hash mod N. Replicas are the next 3 distinct nodes clockwise, spread across racks or zones.",
+        "failure": "A stale ring view sends a request to the wrong node, which forwards it. Gossip each second spreads membership in a logarithmic number of rounds."
+      },
+      {
+        "name": "Gossip and failure detector",
+        "role": "Each node swaps membership and health with a few random peers every second and marks a peer down after a phi-accrual threshold.",
+        "scale": "The cost per node stays about constant as the cluster grows past 60 nodes. There is no central directory.",
+        "failure": "A slow network can cause false suspicion. A node wrongly marked down just receives hints and catches up, so the cost is small."
+      },
+      {
+        "name": "Local storage engine",
+        "role": "Appends writes to a commit log and a memtable, flushes immutable SSTables and compacts them in the background. Bloom filters skip files that cannot hold the key.",
+        "scale": "About 5 TB usable per node: 100 TB of data times 3 replicas is 300 TB over 60 nodes. Disk size and recovery time, not operations a second, are the limits.",
+        "failure": "A crash loses only memory and the log replays. A compaction backlog slows reads because more files must be checked, so throttle compaction and alert on pending count."
+      },
+      {
+        "name": "Repair: read repair, hinted handoff, Merkle trees",
+        "role": "Fix replicas that disagree: read repair on a read, hints for a replica that was down, and Merkle tree comparison for keys nobody reads.",
+        "scale": "Replacing a lost 5 TB node over a 10 Gbit/s link takes about 4,000 seconds, over an hour, during which redundancy is reduced.",
+        "failure": "Repair traffic competes with foreground traffic, so throttle it. Without repair, a replica that missed a delete can bring a deleted key back after the tombstone is dropped."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Consistency choice",
+        "strong": "States the Dynamo-style choice (available, eventually consistent), explains N, R and W, and that R + W greater than N guarantees overlap with the latest acknowledged write.",
+        "weak": "Says strongly consistent and highly available with no mention of partitions or quorums."
+      },
+      {
+        "area": "Partitioning",
+        "strong": "Rejects hash mod N (about 80 percent of keys move), uses a ring with virtual nodes and picks replicas as distinct nodes spread across racks.",
+        "weak": "Shards by hash mod N and does not know what happens when a node is added."
+      },
+      {
+        "area": "Conflicts and repair",
+        "strong": "Compares last write wins with vector clocks and covers read repair, hinted handoff, anti-entropy and tombstones for deletes.",
+        "weak": "Assumes replicas always agree and deletes a key by removing it from one node."
+      },
+      {
+        "area": "Failure modes",
+        "strong": "Works through a node loss (reduced redundancy for about an hour), a partition with W = 1 against quorum, a hot key and large values.",
+        "weak": "Mentions replication and moves on; cannot say what a partition does to writes."
+      },
+      {
+        "area": "Sizing",
+        "strong": "Computes 300 TB raw, 60 nodes, 170 operations a second per node and recovery time, and says capacity and recovery are the constraints.",
+        "weak": "Sizes only by operations a second and ends up with far too few nodes."
+      }
+    ],
     "diagrams": [
       {
         "title": "Architecture",
@@ -133,6 +310,65 @@ export const DESIGN_DEPTH_A: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-notifications": {
+    "architecture": [
+      {
+        "name": "Notification API",
+        "role": "Validates a request, checks preferences, inserts it in the delivery log with the producer's idempotency key and enqueues it. Returns accepted without waiting for any provider.",
+        "scale": "About 580 messages a second on average and 16,700 a second at the peak of a 10 million user campaign. Stateless, scaled by instances.",
+        "failure": "If the delivery log is down, reject and let producers retry. Accepting without logging would lose deduplication."
+      },
+      {
+        "name": "Queues per channel and priority",
+        "role": "Separate queues for push, email and SMS, each with a high priority queue for transactional and a low one for bulk, plus a dead-letter queue.",
+        "scale": "Workers read high priority first or in an 8 to 2 ratio. Bulk campaigns are paced at about 2,000 a second instead of putting 10 million messages on at once.",
+        "failure": "A queue holds messages until acknowledged, so a worker crash only delays delivery. A maximum receive count sends poison messages to the dead-letter queue."
+      },
+      {
+        "name": "Channel workers",
+        "role": "Call APNs, FCM, an email service or an SMS aggregator, classify errors as transient (retry) or permanent (stop and mark the token invalid), and update the log.",
+        "scale": "Scaled per channel on queue age. A crash between the provider call and the ack can send twice, so keep the window small and the content safe to repeat.",
+        "failure": "Backoff with jitter (1 s, 2 s, 4 s) avoids a synchronised retry wave. A circuit breaker per provider stops hammering a failing service, and an OTP is dropped after about 5 minutes."
+      },
+      {
+        "name": "Delivery log",
+        "role": "Source of truth for every message: state (queued, sent, failed), idempotency key, channel and timestamps. Drives deduplication and audit.",
+        "scale": "About 300 bytes a record and 50 million a day is 15 GB a day, 5.5 TB a year, partitioned by date and user. Status updates are single-row upserts.",
+        "failure": "It is on the path of every message, so it needs replicas and quick failover. Old partitions are archived."
+      },
+      {
+        "name": "Preferences, templates and provider feedback",
+        "role": "Holds opt-outs, quiet hours and per-user limits, renders localized templates from an id and parameters, and processes bounces and invalid tokens.",
+        "scale": "Read on every send, so cache it. Per-user limits stop a producer bug from sending one user 500 messages.",
+        "failure": "Suppress bounced and invalid addresses to protect sender reputation: a complaint rate above about 0.1 percent risks the sending domain being throttled."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Traffic separation",
+        "strong": "Splits transactional from bulk traffic, gives each its own queue and paces campaigns, using numbers (580 a second average, 16,700 a second campaign peak).",
+        "weak": "Puts everything on one queue, so a campaign delays one-time passwords."
+      },
+      {
+        "area": "Delivery guarantees",
+        "strong": "Says exactly-once is not available, chooses at-least-once plus an idempotency key and a log check, and covers the crash window after the provider accepts.",
+        "weak": "Claims exactly-once delivery with no mechanism."
+      },
+      {
+        "area": "Retries and errors",
+        "strong": "Separates transient from permanent errors, uses backoff with jitter, a retry limit or expiry and a dead-letter queue.",
+        "weak": "Retries forever or immediately, and keeps sending to dead device tokens."
+      },
+      {
+        "area": "Provider dependence",
+        "strong": "Uses a circuit breaker per provider, a secondary provider for critical channels and expiry for time-sensitive messages.",
+        "weak": "Treats the provider as always up and lets queues grow without a bound or alert."
+      },
+      {
+        "area": "User control and compliance",
+        "strong": "Checks opt-outs, quiet hours and per-user rate limits before queueing and mentions SPF, DKIM, DMARC and complaint handling.",
+        "weak": "Ignores preferences and legal opt-out rules for email and SMS."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",
@@ -170,6 +406,65 @@ export const DESIGN_DEPTH_A: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-typeahead": {
+    "architecture": [
+      {
+        "name": "Query log and aggregation pipeline",
+        "role": "Collects search queries, filters bots and private strings, counts distinct users per query and applies recency decay offline.",
+        "scale": "10 million searches a day with about 6 requests each is 60 million requests a day. The count job runs in batch daily, plus a stream job over 5-minute windows for trending.",
+        "failure": "If it lags during a spike, suggestions get staler but serving is untouched. That is the benefit of decoupling the two paths."
+      },
+      {
+        "name": "Trie builder",
+        "role": "Builds an immutable trie from the top 10 million useful queries, with the top 5 to 10 completions stored at every node, then validates it.",
+        "scale": "The structure is a few gigabytes and fits in memory on one machine. A lookup walks at most about 20 characters, so it does not depend on how many completions exist.",
+        "failure": "A bad build (empty or offensive) fails validation and the previous snapshot stays live. Keep the last few snapshots for rollback and alert when the snapshot is old."
+      },
+      {
+        "name": "Serving nodes",
+        "role": "Load the read-only snapshot into memory and answer prefix lookups, with a small override list applied for removals.",
+        "scale": "About 700 requests a second on average and 3,000 at peak is modest. A lookup takes microseconds; the 100 ms budget is spent on the network.",
+        "failure": "A lost node loses nothing: the load balancer uses the others and a replacement loads the snapshot in about a minute. No replication conflicts, because the data is immutable."
+      },
+      {
+        "name": "CDN and client behaviour",
+        "role": "The client waits about 100 ms after the last keystroke, cancels stale requests and caches per prefix. Responses carry max-age of an hour so the CDN answers repeated prefixes.",
+        "scale": "Short prefixes are the most popular and most cacheable. A CDN hit ratio above 80 percent is realistic, so the origin sees a fraction of the traffic.",
+        "failure": "If the CDN is down, requests reach serving nodes, which can take the load because it is small. Stale suggestions for up to an hour are acceptable."
+      },
+      {
+        "name": "Shards and routing table",
+        "role": "When the data no longer fits one machine, split by the first two characters or by measured ranges, with a small routing table in front and replicas per shard.",
+        "scale": "Sharding by first character is uneven, since far more queries start with s than x. Measured ranges balance it.",
+        "failure": "If a shard loses all its replicas, only prefixes in that range lose suggestions, and search itself still works."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Latency and offline split",
+        "strong": "Sets a 100 ms budget, separates the offline build from the online read-only lookup and says why.",
+        "weak": "Updates a live structure on every search and wonders why reads are slow or locked."
+      },
+      {
+        "area": "Data structure",
+        "strong": "Uses a trie with the top k precomputed per node, so a lookup costs the prefix length, and notes the memory cost and a snapshot swap.",
+        "weak": "Walks the whole subtree of the prefix at query time, or stores whole strings at every node."
+      },
+      {
+        "area": "Ranking and freshness",
+        "strong": "Weights recent counts with decay, merges a streaming trending overlay and requires a minimum number of distinct users.",
+        "weak": "Ranks by all-time count only, so trends never appear and one user can push a phrase."
+      },
+      {
+        "area": "Safety and cleaning",
+        "strong": "Filters bots, personal data and offensive terms and has a quick override list applied at serving time.",
+        "weak": "Shows raw query logs as suggestions, including phone numbers and abuse."
+      },
+      {
+        "area": "Scaling and caching",
+        "strong": "Computes 700 to 3,000 requests a second, uses client debounce and cancel, CDN caching by prefix and sharding by measured prefix ranges.",
+        "weak": "Assumes a huge cluster is needed for 3,000 requests a second and never mentions the client or CDN."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",

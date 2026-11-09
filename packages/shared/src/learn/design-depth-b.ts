@@ -4,6 +4,65 @@ import type { WalkthroughDeep } from "./design-depth-types";
 
 export const DESIGN_DEPTH_B: Record<string, WalkthroughDeep> = {
   "sdd-news-feed": {
+    "architecture": [
+      {
+        "name": "Post service and post store",
+        "role": "Stores each post once (id, author, text, media references, time), sharded by post id or author.",
+        "scale": "150 million posts a day is about 1,700 a second. Media goes to object storage and a CDN, so the row stays small.",
+        "failure": "Replicated shards keep posts readable. Deleted or hidden posts are filtered at read time because feed caches can still hold their ids."
+      },
+      {
+        "name": "Fan-out workers",
+        "role": "On publish, copy the post id into the feed cache of each active follower of an ordinary author. Skip authors above a follower threshold.",
+        "scale": "1,700 posts a second times 200 followers is about 340,000 cache writes a second. A celebrity with 50 million followers would need 50 million writes, so they are skipped.",
+        "failure": "A backed-up queue delays delivery but loses nothing, since the post is already stored. Fan out to active users first, bound each job's page size and alert on queue age."
+      },
+      {
+        "name": "Feed cache",
+        "role": "Per user sorted set of post ids by time, capped at about 800 entries, in Redis.",
+        "scale": "300 million users times 800 ids times 8 bytes is about 1.9 TB, a normal Redis cluster size. Cursor paging reads a range below the last seen score.",
+        "failure": "If a node dies, feeds are rebuilt on demand with the pull path, and per-user locks avoid a rebuild storm. Replicas make most failures invisible."
+      },
+      {
+        "name": "Feed service and celebrity merge",
+        "role": "At read time, takes cached ids, merges recent posts of the few celebrities the user follows and fetches post bodies, dropping deleted or hidden ones.",
+        "scale": "35,000 reads a second on average and about 100,000 at peak. The celebrity post list is cached per author for a few seconds, so one read serves a million feeds.",
+        "failure": "If the post store is slow, serve cached ids with whatever bodies are available and shorter pages. Fetch a few extra ids to fill the page."
+      },
+      {
+        "name": "Ranking service and feature store",
+        "role": "Scores a few hundred candidates by recency, closeness, engagement and predicted interest, then sorts them.",
+        "scale": "Runs only on the read candidates, not on the write path, so the model can change without rebuilding feeds.",
+        "failure": "If ranking is unavailable, fall back to time order. Like counts use sharded counters flushed in batches to avoid a hot row."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Requirements and numbers",
+        "strong": "Derives 35,000 to 100,000 feed reads a second, 1,700 posts a second, 200 followers each, and shows that building feeds at read time means 20 million author lookups a second.",
+        "weak": "Says millions of users and picks pull or push without a calculation."
+      },
+      {
+        "area": "Fan-out strategy",
+        "strong": "Explains push, pull and the hybrid, uses a follower threshold for celebrities and fans out only to active users.",
+        "weak": "Pushes for everyone and cannot say what happens when a user has 50 million followers."
+      },
+      {
+        "area": "Feed storage and paging",
+        "strong": "Stores ids not posts, caps each feed, sizes it (about 1.9 TB) and pages with a cursor rather than an offset.",
+        "weak": "Stores full posts per follower or uses offset paging that repeats items when new posts arrive."
+      },
+      {
+        "area": "Ranking and data model",
+        "strong": "Separates candidate generation from ranking, stores follows in both directions and keeps counters outside the post row.",
+        "weak": "Puts a heavy model on the write path and cannot say who follows a user without a full scan."
+      },
+      {
+        "area": "Failure and consistency",
+        "strong": "Rebuilds lost feeds with the pull path, filters deleted posts at read time and says feeds are eventually consistent while the post store and graph are strongly consistent.",
+        "weak": "Promises every follower sees every post instantly, with no plan for a lost cache node."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",
@@ -47,6 +106,65 @@ export const DESIGN_DEPTH_B: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-chat": {
+    "architecture": [
+      {
+        "name": "WebSocket gateways",
+        "role": "Hold one long-lived connection per device, authenticate once and forward messages to the chat service.",
+        "scale": "100 million concurrent connections at 100,000 to 1 million each means roughly 100 to 1,000 servers. They are stateful, unlike a normal web tier.",
+        "failure": "When one dies, around 200,000 connections drop at once. Clients reconnect with backoff and jitter and sync from their last sequence number."
+      },
+      {
+        "name": "Session registry",
+        "role": "A Redis hash mapping each user and device to the gateway that holds its connection, with a TTL refreshed by heartbeats.",
+        "scale": "One lookup per delivery, so a replicated Redis cluster sharded by user handles hundreds of thousands of lookups a second.",
+        "failure": "A stale entry sends to a gateway that no longer holds the connection. The service falls back to store, push and sync later, so a wrong route costs latency, not data."
+      },
+      {
+        "name": "Chat service and sequencer",
+        "role": "Appends each message to its conversation's log with the next server-assigned sequence number, dedupes by client message id and fans out to members.",
+        "scale": "About 230,000 messages a second on average and 700,000 at peak. All writes for a conversation go to one shard, so the sequence number is a simple counter there.",
+        "failure": "If the shard is down, sending for those conversations cannot move elsewhere without risking disorder. Replicate with a quorum and show not sent rather than claim delivery."
+      },
+      {
+        "name": "Message store",
+        "role": "A wide-column store (Cassandra or HBase) partitioned by conversation id and bucketed by month, clustered by sequence number.",
+        "scale": "20 billion messages a day at about 200 bytes is 4 TB a day and about 1.5 PB a year. Reading the latest 50 messages is a single-partition range read.",
+        "failure": "A slow or lost node is hidden by replication. Very active groups are split into time buckets so no partition grows without limit."
+      },
+      {
+        "name": "Fan-out queue and push",
+        "role": "Delivers a group message to each member's gateways without blocking the sender's ack, and sends push for offline devices.",
+        "scale": "A group of 200 means 200 deliveries, so cap group size or fan out through a queue. Presence is sent only to users with the conversation open.",
+        "failure": "Push is best effort and never relied on for correctness: the message is already stored and the app syncs when opened."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Requirements and numbers",
+        "strong": "Gets 230,000 messages a second average, 4 TB a day and about 100 million concurrent connections, and turns them into gateway and storage sizing.",
+        "weak": "Says a lot of users and picks a database before looking at message volume."
+      },
+      {
+        "area": "Ordering and duplicates",
+        "strong": "Uses a server-assigned sequence number per conversation and a client message id for idempotent retries, instead of device timestamps.",
+        "weak": "Sorts by sender timestamps, so different devices show different orders, and retries create duplicates."
+      },
+      {
+        "area": "Connections and delivery",
+        "strong": "Explains WebSocket gateways, a session registry with heartbeats, an offline path, and catch-up by last seen sequence number.",
+        "weak": "Uses polling for every client or has no plan for offline devices and new devices."
+      },
+      {
+        "area": "Storage and groups",
+        "strong": "Partitions by conversation, stores one copy per conversation with a read pointer per member, and bounds fan-out and partition size.",
+        "weak": "Stores a copy of every message per recipient and cannot compute read receipts cheaply."
+      },
+      {
+        "area": "Failure and reconnect storms",
+        "strong": "Covers a gateway loss, stale registry, a slow shard and reconnect floods with jitter, and keeps push as best effort only.",
+        "weak": "Assumes connections never drop and does not say what happens when a whole gateway goes down."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",
@@ -90,6 +208,65 @@ export const DESIGN_DEPTH_B: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-video": {
+    "architecture": [
+      {
+        "name": "Upload service and object storage",
+        "role": "Clients upload with resumable multipart uploads straight to object storage through pre-signed URLs, and the video moves through uploaded, processing and ready.",
+        "scale": "500 hours of video a minute is 30,000 hours a day, about 30 TB a day of source at 1 GB an hour.",
+        "failure": "A dropped connection resumes from the last part. A video is only published when its renditions are ready, so viewers never see a half-processed one."
+      },
+      {
+        "name": "Transcoding pipeline and orchestrator",
+        "role": "Splits the video into chunks at keyframes, encodes chunks and renditions in parallel (5 to 8 steps, 240p to 4K), packages segments and a manifest, and tracks the task graph.",
+        "scale": "About 100 TB a day stored with five renditions. Use spot machines for bulk work and a priority queue so short uploads are not stuck behind a three-hour film.",
+        "failure": "Tasks are idempotent, so a failed chunk is retried on another worker. A repeatedly failing video goes to a dead-letter state with an alert, and corrupt sources fail fast."
+      },
+      {
+        "name": "Segment and manifest store",
+        "role": "Holds HLS or DASH segments of about 2 to 10 seconds per rendition, plus a manifest per video. The manifest is written last as the commit point.",
+        "scale": "Tiered storage keeps recent and popular renditions on fast storage and old ones cheaper, regenerating rare renditions on demand.",
+        "failure": "A manifest that names a missing segment breaks playback midway, so write all segments before the manifest."
+      },
+      {
+        "name": "CDN with origin shield",
+        "role": "Serves segments as plain static files from edge caches, with regional tiers and an origin shield that collapses requests for the same segment.",
+        "scale": "A billion hours a day at 3 Mbit/s is about 4 PB a day, an average of 400 Gbit/s and several times that at peak. Nearly all of it must come from the edge.",
+        "failure": "If an edge fails, the player switches host, and multi-CDN setups steer by health and cost. A viral new video is protected by request collapsing and pre-pushing to edges."
+      },
+      {
+        "name": "Player (adaptive bitrate)",
+        "role": "Fetches the manifest and picks each next segment's quality from measured throughput and buffer level, stepping down fast and up slowly.",
+        "scale": "Starts at low quality with small first segments so playback begins within a couple of seconds.",
+        "failure": "A stall is the worst outcome, so the buffer rule favours lower quality. View counts use a separate stream aggregation path, not one database update per view."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Two-problem framing",
+        "strong": "Separates heavy asynchronous processing at upload from high-volume, latency-sensitive delivery, and says compute is spent once so playback is cheap file serving.",
+        "weak": "Treats it as one pipeline and proposes serving video from application servers."
+      },
+      {
+        "area": "Numbers",
+        "strong": "Derives about 30 TB a day of uploads, about 100 TB with renditions and 4 PB a day of delivery, concluding that the CDN must serve nearly everything.",
+        "weak": "Gives round figures with no egress calculation, so the CDN looks optional."
+      },
+      {
+        "area": "Transcoding design",
+        "strong": "Chunks at keyframes, encodes chunks and renditions in parallel with idempotent tasks, publishes low renditions first and uses resumable pre-signed uploads.",
+        "weak": "Encodes the whole file on one machine and publishes only when all work is done."
+      },
+      {
+        "area": "Adaptive streaming and CDN",
+        "strong": "Explains segments, manifest and buffer-based quality choice, with edge, regional and origin shield tiers and request collapsing.",
+        "weak": "Streams one file at one quality and ignores network changes and cache misses."
+      },
+      {
+        "area": "Operations and risk",
+        "strong": "Covers the manifest as commit point, takedown by purging caches by video id, multi-CDN failover and cost per viewing hour.",
+        "weak": "Ignores copyright checks, takedown speed and the fact that egress dominates the bill."
+      }
+    ],
     "diagrams": [
       {
         "title": "Upload and processing pipeline",
@@ -127,6 +304,65 @@ export const DESIGN_DEPTH_B: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-file-sync": {
+    "architecture": [
+      {
+        "name": "Client sync agent",
+        "role": "Watches the folder with a file system watcher plus a periodic scan, splits files into 4 MB chunks, hashes them and uploads only chunks the server lacks.",
+        "scale": "Uploads several chunks in parallel to fill the link. Content-defined chunking means a small insert changes only the chunks near it (5 new of 67 in the demo).",
+        "failure": "A crash mid-upload leaves harmless unreferenced chunks. On restart the client asks which chunks the server needs and resumes."
+      },
+      {
+        "name": "Metadata service",
+        "role": "Stores names, folders, versions and the ordered chunk list per version, and accepts a commit only if its base version is still the latest.",
+        "scale": "About 200 bytes per file version, so about 100 TB for 100 million users with 1,000 files and 5 versions each, sharded by user or namespace.",
+        "failure": "A rejected commit becomes a conflicted copy instead of an overwrite. The server checks every chunk exists before inserting a version, so a version never points at missing data."
+      },
+      {
+        "name": "Chunk store",
+        "role": "Object storage addressed by content hash, with global deduplication, encryption at rest and replication or erasure coding.",
+        "scale": "100 million users at 10 GB each is about 1 EB, so deduplication and cold tiers are the main cost levers. Durability targets about 11 nines.",
+        "failure": "Corruption is detectable because the name is the hash. Scrub in the background and repair from replicas."
+      },
+      {
+        "name": "Notification service",
+        "role": "A long poll or WebSocket per device that says something changed. The client then asks for changes after its cursor.",
+        "scale": "About 200 million changes a day, 2,300 a second on average. The message carries no data, so it stays small and stateless about content.",
+        "failure": "A change in a folder shared with 10,000 people makes 10,000 notifications, so coalesce to at most one per device per short interval."
+      },
+      {
+        "name": "Garbage collector",
+        "role": "Removes chunks no retained version refers to, using reference counts or mark and sweep after a safety delay of days.",
+        "scale": "Runs as a separate, throttled and audited process that can be paused.",
+        "failure": "The most dangerous bug in the system: deleting a chunk too early destroys user data. Keep a grace period and never delete immediately."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Metadata and data split",
+        "strong": "Separates transactional metadata from immutable chunks stored by hash, and says a file version is just an ordered chunk list.",
+        "weak": "Stores whole files in a relational database or re-uploads a 2 GB file for a one-line change."
+      },
+      {
+        "area": "Chunking and dedup",
+        "strong": "Uses 4 MB chunks, content-defined cut points to survive inserts, global dedupe and names the privacy risk of hash probing.",
+        "weak": "Uses fixed chunks without noticing that one inserted byte changes every later chunk."
+      },
+      {
+        "area": "Sync and conflicts",
+        "strong": "Uses a cursor and long poll to learn about changes, optimistic concurrency on the base version and a conflicted copy instead of a silent overwrite.",
+        "weak": "Uses last-write-wins timestamps, which loses one device's work and trusts device clocks."
+      },
+      {
+        "area": "Commit and data safety",
+        "strong": "Makes the commit the point where all chunks must exist, resumes uploads and delays garbage collection by days.",
+        "weak": "Deletes unreferenced chunks at once, or commits before the data is stored."
+      },
+      {
+        "area": "Scale and sharing",
+        "strong": "Shards metadata by user or namespace, coalesces notification storms for shared folders and gets cheap version history from chunk lists.",
+        "weak": "Ignores sharing and treats the 1 EB of data as an afterthought."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",
@@ -170,6 +406,65 @@ export const DESIGN_DEPTH_B: Record<string, WalkthroughDeep> = {
     ]
   },
   "sdd-collab-editing": {
+    "architecture": [
+      {
+        "name": "Collaboration server (one per open document)",
+        "role": "Receives operations, transforms each against those accepted since the client's base version, appends it to the log and broadcasts it, giving one total order.",
+        "scale": "Most documents have 1 to 5 editors and under 100 at most, so one server per active document is enough. Route by document id with consistent hashing.",
+        "failure": "If it crashes, another server loads the latest snapshot plus the log tail and clients resync from their last acknowledged version."
+      },
+      {
+        "name": "Operation log",
+        "role": "Durable, ordered log of every operation for each document, written before the acknowledgement. It is the source of truth.",
+        "scale": "An active document can produce millions of operations, so snapshot and compact, and archive old logs to cheap storage.",
+        "failure": "Because writes are durable before the ack, no acknowledged edit is lost. Resent operations are ignored by client-side id."
+      },
+      {
+        "name": "Snapshot store",
+        "role": "A snapshot every few hundred operations so loading needs only the latest snapshot plus a short tail.",
+        "scale": "10 million concurrently open documents at a few operations a second is tens of millions of operations a second across the fleet, spread by document id.",
+        "failure": "A missing snapshot only makes a load slower, since the log can be replayed from an older one."
+      },
+      {
+        "name": "Client engine",
+        "role": "Applies local edits at once, keeps one operation in flight plus a buffer, and transforms remote operations against them (or uses a CRDT such as Yjs).",
+        "scale": "The one-in-flight rule keeps the number of transformation cases small. Presence cursors are throttled to a few updates a second and never stored.",
+        "failure": "A bug can make replicas diverge silently, so clients send a hash at a known version and reload from the server on a mismatch."
+      },
+      {
+        "name": "Presence and viewer fan-out",
+        "role": "A lightweight channel for cursors, selections and read-only viewers, kept apart from the editing path.",
+        "scale": "A document with 10,000 viewers and a few editors uses relay servers so the editing server talks only to editors.",
+        "failure": "If it fails, editing continues without cursors. Revoked collaborators are disconnected at once and permissions are re-checked on reconnect."
+      }
+    ],
+    "criteria": [
+      {
+        "area": "Core problem",
+        "strong": "Shows with an example why applying operations as they arrive makes replicas diverge (bigs cat against big cats), and requires convergence, instant local typing and no lost edits.",
+        "weak": "Locks the document or applies edits in arrival order without seeing that positions differ."
+      },
+      {
+        "area": "OT or CRDT",
+        "strong": "Explains transformation of positions against concurrent operations, the tie-break for same-position inserts and the CRDT alternative with its tombstone cost.",
+        "weak": "Names OT or CRDT but cannot show how two concurrent inserts are reconciled."
+      },
+      {
+        "area": "Server and client protocol",
+        "strong": "Orders operations through one server per document, with one operation in flight and a buffer on the client and idempotent resends.",
+        "weak": "Broadcasts raw operations peer to peer with no ordering and no acknowledgement."
+      },
+      {
+        "area": "Storage and scale",
+        "strong": "Uses an operation log plus snapshots, routes by document id, handles offline edits and per-user undo as new inverse operations.",
+        "weak": "Stores only the latest text, so history, undo and recovery after a crash are impossible."
+      },
+      {
+        "area": "Correctness and failure",
+        "strong": "Detects divergence with hashes, fuzz tests concurrent operations, and bounds operation size and rate.",
+        "weak": "Trusts the algorithm is correct and has no way to notice or repair divergent replicas."
+      }
+    ],
     "diagrams": [
       {
         "title": "Components",

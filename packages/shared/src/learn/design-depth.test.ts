@@ -34,6 +34,24 @@ describe("system design depth", () => {
     });
   }
 
+  // Plan 0031 round five: batches A and B (the first ten designs) also have architecture cards and a scorecard.
+  const BATCH_AB = ["url-shortener", "rate-limiter", "kv-store", "notifications", "typeahead", "news-feed", "chat", "video", "file-sync", "collab-editing"].map((n) => "sdd-" + n);
+  for (const id of BATCH_AB) {
+    it(id + " has architecture cards and evaluation criteria", () => {
+      const d = DESIGN_DEEP[id];
+      expect((d.architecture ?? []).length).toBeGreaterThanOrEqual(4);
+      expect((d.criteria ?? []).length).toBeGreaterThanOrEqual(4);
+      for (const a of d.architecture ?? []) {
+        expect(a.name.length).toBeGreaterThan(3);
+        for (const v of [a.role, a.scale, a.failure]) expect(v.length).toBeGreaterThan(10);
+      }
+      for (const c of d.criteria ?? []) {
+        expect(c.area.length).toBeGreaterThan(3);
+        for (const v of [c.strong, c.weak]) expect(v.length).toBeGreaterThan(10);
+      }
+    });
+  }
+
   for (const [id, d] of Object.entries(DESIGN_DEEP)) {
     it(`${id} has diagrams, 800+ words and a failure section`, () => {
       expect(d.diagrams.length).toBeGreaterThanOrEqual(3);
