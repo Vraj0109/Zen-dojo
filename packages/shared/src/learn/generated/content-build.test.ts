@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generatedIsCurrent, parseLesson } from "../../../../../scripts/build-content.mjs";
 import { ALL_CONCEPTS } from "../../study";
-import { LESSON_EXTRA, LESSONS, TS_EXTRA, TS_LESSONS } from "../index";
+import { LESSON_EXTRA, LESSONS } from "../index";
 import { GENERATED_LESSONS } from "./lessons";
 
 const F = "`".repeat(3);
@@ -136,24 +136,5 @@ describe("generated lessons", () => {
       expect(LESSONS[id]).toEqual(g.lesson);
       expect(LESSON_EXTRA[id].deeper.map((s) => s.title)).toEqual(g.deeper.map((s) => s.title));
     }
-  });
-
-  // Temporary guard (plan 0023 step 4): while a migrated lesson still has its old TypeScript entry, the two must say the
-  // same thing, otherwise a later edit of the TypeScript text would be hidden by the Markdown. Delete this test together
-  // with the old entries once the TypeScript copies are removed.
-  it("migrated lessons still match their old TypeScript entries", () => {
-    const stale: string[] = [];
-    for (const [id, g] of Object.entries(GENERATED_LESSONS)) {
-      const ts = TS_LESSONS[id];
-      if (!ts) continue;
-      const tsx = TS_EXTRA[id];
-      const same =
-        JSON.stringify({ ...g.lesson, pitfalls: g.lesson.pitfalls ?? [] }) === JSON.stringify({ overview: ts.overview.trim(), explain: ts.explain.map((e) => e.trim()), questions: ts.questions, pitfalls: ts.pitfalls ?? [] }) &&
-        JSON.stringify(g.recap) === JSON.stringify(tsx?.recap ?? []) &&
-        JSON.stringify(g.deeper.map((d) => [d.title, d.body, d.code, d.lang || undefined, d.diagram, d.diagramCaption || undefined])) ===
-          JSON.stringify((tsx?.deeper ?? []).map((d) => [d.title, d.body.trim(), d.code, d.lang || undefined, d.diagram, d.diagramCaption || undefined]));
-      if (!same) stale.push(id);
-    }
-    expect(stale, "these lessons differ from their old TypeScript entry: copy the TypeScript change into content/<area>/<id>.md (re-run MIGRATE=<id>), or delete the old entry").toEqual([]);
   });
 });

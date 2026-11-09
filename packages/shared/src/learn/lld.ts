@@ -1,4 +1,4 @@
-import { lesson, type LldGuide, type Lesson } from "./types";
+import type { LldGuide } from "./types";
 import { URL_SHORTENER_GUIDE } from "./lld-deep-b-url";
 import { VENDING_ATM_GUIDE } from "./lld-deep-c-vending";
 import { BOOKING_GUIDE } from "./lld-deep-c-booking";
@@ -13,81 +13,6 @@ import { HOTEL_GUIDE } from "./lld-deep-e-hotel";
 import { MEETING_GUIDE } from "./lld-deep-e-meeting";
 
 // Low-level design: topic lessons and reference answers for the classic problems.
-
-export const LLD_LESSONS: Record<string, Lesson> = {
-  "lld-oop": lesson(
-    "Object-oriented design is about putting behaviour next to the data it protects and depending on abstractions. In an LLD round, interviewers judge whether your classes have clear responsibilities and whether the design bends easily when requirements change.",
-    [
-      "Keep fields private and expose behaviour, not setters: account.withdraw(amount) checks the balance itself instead of callers doing setBalance(getBalance() - x). This keeps invariants in one place.",
-      "Inheritance models 'is-a' and couples the subclass to the parent's internals; deep hierarchies get brittle. Composition ('has-a', delegating to a field) is more flexible: a Car has an Engine you can swap. Prefer composition, and use inheritance for true subtypes with shared behaviour.",
-      "Callers work with an interface (PaymentMethod) and each implementation (Card, UPI, Wallet) behaves differently behind it. This removes if/else-on-type chains, and new types are added without touching callers.",
-      "An interface is a pure contract with no state; a class can implement many, and it's the default for abstractions. An abstract class can hold shared state and partial implementation for closely related subclasses (template method). Program to interfaces.",
-    ],
-    ["Composition vs inheritance: give a case where inheritance goes wrong.", "Interface vs abstract class in Java?"],
-  ),
-  "lld-solid": lesson(
-    "SOLID is five principles for code that's easy to change. Interviewers want each one with a concrete example, ideally from the design you're drawing, not textbook definitions.",
-    [
-      "A class should have one reason to change. An Invoice that calculates totals, saves to the database and sends emails changes for three reasons; split it into Invoice (totals), InvoiceRepository (persistence) and InvoiceMailer (email).",
-      "Open for extension, closed for modification: add behaviour by adding code, not by editing working code. Pricing with if (vehicle == CAR) … else if (BIKE) … must be edited for every new type; a PricingStrategy interface with one class per type is extended instead.",
-      "Subtypes must be usable wherever the base type is expected without surprises. The classic violation: Square extends Rectangle, where setting the width also changes the height, which breaks callers. Another: a ReadOnlyList subclass that throws on add(). If a subclass can't honour the parent's contract, it shouldn't be a subclass.",
-      "Clients shouldn't depend on methods they don't use. A fat Worker interface with work() and eat() forces Robot to implement eat(). Split it into Workable and Feedable, or small role interfaces such as Printer, Scanner and Fax instead of one MultiFunctionDevice.",
-      "High-level policy depends on abstractions, not concrete details: OrderService takes a PaymentGateway interface in its constructor rather than creating a StripeClient. This enables testing with fakes and swapping providers, and is what dependency injection is for.",
-    ],
-    ["Which SOLID principle does your parking lot pricing follow?", "Give an LSP violation you've seen."],
-  ),
-  "lld-patterns": lesson(
-    "Patterns are named solutions to recurring design problems. Use them when the problem calls for them, name them as you use them, and know the one-line intent of each common one.",
-    [
-      "Define a family of interchangeable algorithms behind one interface and choose at runtime: pricing strategies, payment methods, elevator scheduling, rate-limit algorithms. It replaces conditionals on type.",
-      "Subjects notify registered observers when something changes, so publishers don't know the concrete subscribers: notify display boards when a parking spot frees up, or send notifications on order status changes. Watch out for memory leaks from forgotten subscriptions, and for ordering.",
-      "A factory centralizes object creation behind a method (VehicleFactory.create(type)), so callers don't call new on concrete classes. An abstract factory creates families of related objects (a UI toolkit's Button and Checkbox for Mac vs Windows).",
-      "Build complex objects step by step with readable, optional parameters instead of telescoping constructors: new Pizza.Builder().size(L).cheese().build(). Validate in build(). Good for immutable objects with many fields.",
-      "Ensures one instance with a global access point (configuration, a connection pool). Pitfalls: hidden global state, hard to test (can't swap it for a fake), and thread-safety of lazy creation. Prefer dependency injection; if you need one, use an enum or a holder class for thread-safe laziness.",
-      "Wrap an object to add behaviour while keeping the same interface, stacking at runtime: new BufferedInputStream(new FileInputStream(f)), or a coffee with milk and sugar decorators, or logging and caching wrappers around a repository.",
-      "An object changes behaviour when its internal state changes, with each state as a class: a vending machine (Idle → HasMoney → Dispensing), an order lifecycle, a TCP connection. It replaces big switch statements on a state enum and makes illegal transitions explicit.",
-      "Encapsulate a request as an object so it can be queued, logged, retried or undone: text editor undo and redo, a job queue, elevator requests, transaction operations.",
-      "Convert one interface to another that clients expect, wrapping a legacy or third-party API: a PaymentGateway adapter around the Stripe SDK, or an XML-to-JSON adapter.",
-      "Pass a request along a chain of handlers until one handles it: middleware (auth → rate limit → logging → handler), approval workflows (manager → director → VP), ATM cash dispensing (2000s → 500s → 100s), logging levels.",
-    ],
-    ["Which patterns would you use in a vending machine?", "What's wrong with Singleton, and what would you do instead?", "Strategy vs State?"],
-    ["Forcing patterns where a simple class would do."],
-  ),
-  "lld-modeling": lesson(
-    "Modeling turns requirements into entities, relationships and states. Good models make illegal states hard to represent and keep the core flow simple to code in 20 minutes.",
-    [
-      "Find the nouns (entities: ParkingLot, Floor, Spot, Vehicle, Ticket) and verbs (operations: park, unpark, pay). Decide ownership and cardinality (a Lot has many Floors; a Ticket references one Spot and one Vehicle), and keep relationships one-directional where possible.",
-      "Use enums for fixed sets (VehicleType, SpotSize, OrderStatus, Direction) instead of strings or ints. The type system catches typos, and switches over them stay exhaustive.",
-      "Write down the allowed transitions (CREATED → PAID → SHIPPED → DELIVERED, with CANCELLED from CREATED or PAID) and enforce them in one place, rejecting invalid ones. This is often the heart of the problem (order, elevator, vending machine, booking).",
-      "Validate inputs at the boundary (amount > 0, seat exists) and fail with specific exceptions (SeatAlreadyBookedException, InsufficientFundsException) instead of returning null or false. Decide what's a checked versus a runtime error, and keep the system consistent when something fails halfway.",
-      "Identify what's likely to change (new vehicle types, pricing rules, payment methods, notification channels) and put an interface there. Don't add abstraction for things that won't change; say why you're adding each interface.",
-    ],
-    ["Model the order states of an e-commerce system and its legal transitions.", "Where would you put interfaces in a parking lot?"],
-  ),
-  "lld-concurrency": lesson(
-    "LLD problems often end with 'now make it thread-safe'. Know the Java concurrency tools, where races hide in your design, and the classic thread-safe structures.",
-    [
-      "Processes are isolated, threads share memory (see Core CS). In LLD, the question is which of your objects are shared between threads (a parking lot's spot map, a cache, a counter) and therefore need protection.",
-      "A mutex (synchronized, ReentrantLock) gives exclusive access to a critical section; ReentrantLock adds tryLock with a timeout, fairness and multiple conditions. A semaphore limits concurrent access to N (Semaphore(10) for 10 connections or 10 parking spots).",
-      "Producers put work on a BlockingQueue and consumers take from it; put() blocks when full (backpressure) and take() blocks when empty. ArrayBlockingQueue (bounded) or LinkedBlockingQueue. This is the standard way to hand off work between threads.",
-      "Creating a thread per task is expensive and unbounded. An ExecutorService (fixed thread pool) reuses threads and queues tasks; submit() returns a Future. Size pools by workload: about the core count for CPU-bound work, more for I/O-bound. Use CompletableFuture to compose async steps.",
-      "Mutual exclusion, hold and wait, no preemption and circular wait (see Core CS). In code, always acquire multiple locks in a global order (by id), keep critical sections small, and never call out to unknown code while holding a lock.",
-      "AtomicInteger and AtomicLong (incrementAndGet, compareAndSet) give lock-free counters; ConcurrentHashMap (computeIfAbsent, merge) gives thread-safe maps without locking the whole map. Check-then-act on a normal map (if (!map.containsKey(k)) map.put(…)) is a race; use putIfAbsent or compute instead.",
-      "Thread-safe lazy singleton: the holder idiom (a static nested class holding the instance, initialized on first access by the class loader) or an enum. Thread-safe LRU cache: a HashMap plus a doubly linked list guarded by one lock, or a LinkedHashMap with accessOrder=true wrapped with a lock; ConcurrentHashMap alone doesn't give you LRU order.",
-    ],
-    ["Make your parking lot's spot allocation thread-safe.", "Implement a bounded blocking queue with wait/notify or locks and conditions.", "Why isn't ConcurrentHashMap enough for an LRU cache?"],
-  ),
-  "lld-testing": lesson(
-    "Mentioning how you'd test your design shows seniority. Keep it short: what you'd unit test, the edge cases, and how dependency injection makes it testable.",
-    [
-      "Test behaviour through public methods: park assigns the smallest fitting spot, unpark frees it and computes the fee. One behaviour per test, arrange-act-assert, descriptive names (parksBikeInSmallestAvailableSpot).",
-      "Empty and full states (no spots left), boundary values (exactly at the fee boundary), invalid input (negative amount, unknown ticket), duplicates (paying twice), and concurrency (two cars racing for the last spot).",
-      "Replace dependencies (payment gateway, clock, notification sender) with fakes or mocks so tests are fast and deterministic. That's only possible if the dependencies are injected interfaces, which ties back to dependency inversion. Inject a Clock for any time-based logic.",
-      "Integration tests check real wiring: repository against a real database (Testcontainers), API endpoints end to end, message flow through a queue. Fewer of them, covering the paths that unit tests with fakes can't prove.",
-    ],
-    ["How would you test fee calculation that depends on the current time?", "What would you mock in your design and why?"],
-  ),
-};
 
 export const LLD_GUIDES: Record<string, LldGuide> = {
   "lldp-url-shortener": URL_SHORTENER_GUIDE,

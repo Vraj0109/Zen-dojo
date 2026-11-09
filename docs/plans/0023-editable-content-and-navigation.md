@@ -162,3 +162,5 @@ the merger, who owns that file). Tests: `content-build.test.ts`, `order-audit.te
 - Not changed: the page order of "Interview questions" and "Common mistakes" (they already render in that order).
 
 ## Review
+
+**LLD redo after the merge (agent C).** Re-ran the migration so `content/lld/*.md` carry D's changes (concurrency, modeling, testing), then retired the old TypeScript lesson code: removed `deep-lld.ts`, `more-lld.ts`, `more-lld-c.ts`, `section-points.ts`, the `LLD_LESSONS` block in `lld.ts` (the guides stay), the round-trip and migration tests, and the temporary guard test. All 62 concept lessons now come only from Markdown. To migrate a lesson from TypeScript again, write the `.md` by hand following `docs/content-editing.md`.

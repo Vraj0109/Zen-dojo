@@ -2,14 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ALL_CONCEPTS } from "../study";
 import { LESSON_EXTRA, LESSONS } from "./index";
 import { GENERATED_LESSONS } from "./generated/lessons";
-import { SECTION_POINTS } from "./section-points";
 
-/** The checklist point of a section: from the Markdown lesson ({point: n}) or, for TypeScript lessons, section-points.ts. */
-const pointMap = (id: string): Record<string, number> => {
-  const g = GENERATED_LESSONS[id];
-  if (!g) return SECTION_POINTS[id] ?? {};
-  return Object.fromEntries(g.deeper.filter((d) => d.point !== undefined).map((d) => [d.title, d.point as number]));
-};
+/** The checklist point of a section, from the Markdown lesson ({point: n}). */
+const pointMap = (id: string): Record<string, number> =>
+  Object.fromEntries((GENERATED_LESSONS[id]?.deeper ?? []).filter((d) => d.point !== undefined).map((d) => [d.title, d.point as number]));
 
 // Plan 0023, steps 1 and 2: lessons list their "Go deeper" sections in the order of the concept's checklist.
 
