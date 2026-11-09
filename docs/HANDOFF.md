@@ -67,12 +67,17 @@ All four parallel agent worktrees (`zd-a`, `zd-b`, `zd-c`, `zd-d`) are merged in
    - `getRoadmapView()` counts solved stored problems in weekly roadmap progress.
    - Unit tests in `apps/web/lib/dsa.test.ts` pass.
 
-6. **Prior Completed Plans:**
+6. **Release 0.5.0 Implemented Features:**
+   - **Plan 0035 (ADHD Helper & Focus Pacing):** Accountability Buddy dialogue generator (Calm, Peer, Coach tones), non-punitive compassionate re-entry copy, 5-step problem deconstruction tab in workspace (Restate, Bounds, Brute Force, Bottleneck, Pattern) with local persistence, and Zen focus mode (`Ctrl+Shift+Z`).
+   - **Plan 0036 (Schedule Shifting, Backlog Pacing & Theme Persistence):** Appearance preferences persisted into SQLite `settings` table (`appearance_prefs`), review queue capped to 5 on Today with overflow housed in a collapsible Catch-up Backlog drawer, and roadmap schedule shifting (+1/+2 weeks) with zero streak penalties.
+   - **Plan 0037 (Learning Navigation Deduplication):** Deduplicated study page aside to focus exclusively on animated "On this page" reading tracker; course outline accessible via breadcrumb dropdown quick-picker.
+
+7. **Prior Completed Plans:**
    - Plan 0015: Core subjects depth (OS, Databases, Networking, Concurrency).
    - Plan 0021: Run button v2 with line shifts and last run saving.
    - Plan 0023: Markdown editable lessons.
    - Plan 0024: Content packs v2 and OTA feed.
-   - Plan 0025: LLD Java projects with diagrams and tests.
+   - Plan 0025: LLD Java projects with diagrams and tests (Batches A-E).
 
 ---
 
