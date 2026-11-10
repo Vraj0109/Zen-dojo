@@ -163,10 +163,13 @@ export async function getDsaView() {
     }
   }
 
+  // Pattern names stand in for topics only while no LeetCode topic tags are known at all (before the extension has seen problems).
+  const noLcTopics = Object.keys(PROBLEMS).every((id) => lc(PROBLEMS[id].slug).topics.length === 0);
+
   const view = (id: string): ProblemView => {
     const lcInfo = lc(PROBLEMS[id].slug);
     const patternNames = problemPatterns.get(id) ?? [];
-    const problemTopics = lcInfo.topics.length > 0 ? lcInfo.topics : patternNames;
+    const problemTopics = noLcTopics ? patternNames : lcInfo.topics;
     return {
       ...PROBLEMS[id],
       here: ticks.here.has(id),
@@ -201,7 +204,7 @@ export async function getDsaView() {
     ...new Set(
       allIds.flatMap((id) => {
         const lcTopics = lc(PROBLEMS[id].slug).topics;
-        return lcTopics.length > 0 ? lcTopics : (problemPatterns.get(id) ?? []);
+        return noLcTopics ? (problemPatterns.get(id) ?? []) : lcTopics;
       })
     ),
   ].sort();
