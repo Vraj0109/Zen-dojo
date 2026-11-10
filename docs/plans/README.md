@@ -115,10 +115,10 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0041 | [Round seven: six-agent parallel final sprint (CSES completion, reviews & v0.6.0)](0041-round-seven-six-agent-completion.md) | implemented |
 | 0042 | [Time Limit Exceeded (TLE) hard cutoff and process tree cancellation](0042-tle-hard-cutoff-and-cancellation.md) | implemented |
 | 0043 | [Interactive multi-file Java IDE for LLD and System Design practice](0043-lld-system-design-interactive-java-ide.md) | implemented |
-| 0044 | [Notion-style offline-first cloud sync with Turso libSQL](0044-offline-first-cloud-sync.md) | in-progress |
+| 0044 | [Notion-style offline-first cloud sync with Turso libSQL](0044-offline-first-cloud-sync.md) | implemented |
 | 0045 | [Dynamic Admin Portal for Live Content Management](0045-admin-portal-content-management.md) | in-progress |
 | 0046 | [Round eight: six-agent parallel sprint (TLE cancellation, Java IDE, sync engine & admin)](0046-round-eight-six-agent-parallel-work.md) | implemented |
 | 0047 | [App-wide skeleton loaders & layout-shift-free streaming UI](0047-skeleton-loaders-and-streaming-ui.md) | ready |
 | 0048 | [Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)](0048-round-nine-six-agent-parallel-work.md) | ready |
-| 0049 | [Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)](0049-accounts-sign-in-and-abuse-protection.md) | in-progress |
-| 0050 | [Connect the app's data to cloud sync (triggers, server-side sync engine, first-link upload)](0050-connect-app-data-to-cloud-sync.md) | ready |
+| 0049 | [Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)](0049-accounts-sign-in-and-abuse-protection.md) | implemented |
+| 0050 | [Connect the app's data to cloud sync (triggers, server-side sync engine, first-link upload)](0050-connect-app-data-to-cloud-sync.md) | implemented |

@@ -1,6 +1,6 @@
 # 0050: Connect the app's data to cloud sync (triggers, server-side sync engine, first-link upload)
 
-- **Status:** ready
+- **Status:** implemented (released in 0.7.0; sign-in and two-device sync confirmed by the user)
 - **Planned by:** Claude Code, 2026-11-10
 - **Implemented by:** (implementer fills in) 3 Claude Code agents (A, B, C) + 3 Antigravity agents (D, E, F)
 - **Spec:** finishes plan 0044 (offline-first sync); builds on 0049 (accounts)
