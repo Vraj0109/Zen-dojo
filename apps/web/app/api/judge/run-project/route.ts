@@ -38,16 +38,25 @@ export async function POST(request: Request) {
 
   const { files, mainClass, input, timeoutMs } = body as Record<string, unknown>;
 
-  if (typeof files !== "object" || files === null || Array.isArray(files)) {
-    return Response.json({ error: "files must be an object mapping filenames to code strings." }, { status: 400 });
-  }
-
   const fileMap: Record<string, string> = {};
-  for (const [key, value] of Object.entries(files)) {
-    if (typeof key !== "string" || typeof value !== "string") {
-      return Response.json({ error: "All file paths and contents must be strings." }, { status: 400 });
+
+  if (Array.isArray(files)) {
+    for (const item of files) {
+      if (typeof item === "object" && item !== null && typeof (item as { name?: unknown }).name === "string" && typeof (item as { content?: unknown }).content === "string") {
+        fileMap[(item as { name: string }).name] = (item as { content: string }).content;
+      } else {
+        return Response.json({ error: "Each file item must have string 'name' and 'content' properties." }, { status: 400 });
+      }
     }
-    fileMap[key] = value;
+  } else if (typeof files === "object" && files !== null) {
+    for (const [key, value] of Object.entries(files)) {
+      if (typeof key !== "string" || typeof value !== "string") {
+        return Response.json({ error: "All file paths and contents must be strings." }, { status: 400 });
+      }
+      fileMap[key] = value;
+    }
+  } else {
+    return Response.json({ error: "files must be an object or array of { name, content }." }, { status: 400 });
   }
 
   if (Object.keys(fileMap).length === 0) {
@@ -77,5 +86,16 @@ export async function POST(request: Request) {
     timeoutMs: timeout,
   });
 
-  return Response.json(result);
+  return Response.json({
+    ...result,
+    ok: result.success,
+    stdout: result.output,
+    stderr: result.status === "compile_error" ? result.output : "",
+    exitCode: result.success ? 0 : 1,
+    elapsedMs: result.elapsedMs,
+    diagnostics: (result.diagnostics ?? []).map((d) => ({
+      ...d,
+      severity: "error",
+    })),
+  });
 }

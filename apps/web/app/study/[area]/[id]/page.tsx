@@ -37,6 +37,7 @@ import { CourseOutline } from "../../../course-outline";
 import { DesignDeepView } from "../../../design-deep";
 import { conceptToc, designDeepToc } from "../../../toc-items";
 import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, LldProjectView, ReadingSection, WalkthroughView } from "../../learn-ui";
+import { ProjectPlayground } from "./project-playground";
 import { Confidence, fmtDate } from "../../study-ui";
 
 /** Every concept and exercise is known at build time. */
@@ -299,9 +300,11 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
       ? [
           ...(LLD_DEEP[id] ? [{ id: "walkthrough", title: "Full design walkthrough" }, { id: "lld-diagrams", title: "Diagrams" }] : []),
           ...(LLD_PROJECTS[id] ? [{ id: "java-code", title: "The full code (Java 17)" }] : []),
+          ...(LLD_PROJECTS[id]?.files?.length ? [{ id: "playground-heading", title: "Playground" }] : []),
           ...(LLD_DEEP[id]?.concurrency.length ? [{ id: "concurrency", title: "Concurrency" }] : []),
         ]
       : []),
+    ...(isDesign && designDeep?.code?.length ? [{ id: "playground-heading", title: "Playground" }] : []),
     ...(hasFollowUps ? [{ id: "follow-ups", title: "Follow-ups they'll ask" }] : []),
     ...(hasFlow ? [{ id: "trace", title: "Trace one use case" }] : []),
     ...(hasEdgeCases ? [{ id: "edge-cases", title: "Edge cases to name" }] : []),
@@ -346,7 +349,24 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
 
         {designDeep && <DesignDeepView deep={designDeep} />}
 
-        {!isDesign && hasLldProject && <LldProjectView project={LLD_PROJECTS[id]} deep={LLD_DEEP[id]} />}
+        {isDesign && designDeep?.code && designDeep.code.length > 0 && (
+          <ProjectPlayground
+            projectId={id}
+            files={designDeep.code.map((f) => ({ name: f.name, content: f.code }))}
+          />
+        )}
+
+        {!isDesign && hasLldProject && (
+          <>
+            <LldProjectView project={LLD_PROJECTS[id]} deep={LLD_DEEP[id]} />
+            {LLD_PROJECTS[id]?.files && (
+              <ProjectPlayground
+                projectId={id}
+                files={LLD_PROJECTS[id].files.map((f) => ({ name: f.name, content: f.code }))}
+              />
+            )}
+          </>
+        )}
 
         {isDesign && WALKTHROUGH_EXTRA[id]?.followUps && (
           <FollowUps items={WALKTHROUGH_EXTRA[id].followUps} />
