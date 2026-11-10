@@ -62,10 +62,30 @@ the machine.
 - **Cloud ids:** every cloud table keys on `PRIMARY KEY (user_id, id)` with `id TEXT`. D1 holds no user data yet, so
   migration `0004` drops and recreates `tasks`, `problem_solves`, `practice_sessions`, `timer_rows` with TEXT ids
   (it first checks nothing would be lost: see step C1).
-- **Where sync runs:** on the server, next to the database. A module `lib/sync-engine.ts` reads `sync_dirty`, builds
+- **Where sync runs (run order: head check, pull, then push):** on the server, next to the database. A module `lib/sync-engine.ts` reads `sync_dirty`, builds
   mutations from the current rows, calls the Worker through `workerFetch("/api/sync")` (which attaches the session's
   token), writes the returned deltas into the local tables (with `applying=1`), and clears what was acknowledged. The
   browser only asks the server to run it and shows the status. One run at a time (single-flight lock).
+- **Sync cursor (fixes a flaw in the current Worker):** the Worker currently pulls rows with `updated_at > last_synced_at`,
+  but `updated_at` is the *device's* clock. A Mac that solved a problem offline at 10:00 and uploads at 12:00 writes
+  `updated_at = 10:00`; a Windows PC that last synced at 11:00 would never pull it. So every cloud row gets a second
+  column, `synced_at`, set by the **Worker's** clock when the row is written, and pulls use `synced_at > cursor`.
+  `updated_at` (device time) is used only to decide which write wins when two devices edit the same row.
+  The client stores the `server_timestamp` of its last pull as the cursor and asks for `cursor - 2000 ms` next time
+  (a small overlap so a write that lands in the same millisecond is never missed; re-applying a row is harmless).
+- **Efficiency:** only changed rows move. Push sends just the `sync_dirty` rows. Pull returns just rows with
+  `synced_at` past the cursor. A no-change check costs one tiny read: the Worker keeps one row per user,
+  `sync_heads(user_id, head)`, raised in the same batch as every push, and `GET /api/sync/head` returns it. A new
+  device with cursor 0 does a paged snapshot (2,000 rows per table per page), newest data first is not required.
+- **Offline use:** while offline, writes only add rows to `sync_dirty`. When the connection returns, a run pulls first
+  (so the screen shows the latest state fast), then pushes only the dirty rows. Edits to different rows on two devices
+  both survive (a union); only the same row edited on two devices is a conflict, and the later `updated_at` wins.
+- **Automatic sync (Notion-style, client-driven):** the browser tab drives it, because only the browser holds the
+  session cookies (the server never stores a refresh token). On sign-in and on every page load: run once. Every 5 s
+  while the tab is visible: a local, free check of `GET /api/sync/status` (`pending`); if there is anything pending,
+  run (so a change uploads about 5 s after you make it). Every 30 s while visible: one `GET /api/sync/head` compare;
+  pull only if the head moved. Immediately on tab focus and on the browser `online` event. Hidden tab: no timers.
+  Backs off on errors and on 429. Real-time push (WebSocket / Durable Object) is a possible later upgrade.
 - **Conflicts:** last write wins on `updated_at` (ms). A pulled row older than the local `sync_stamps` entry is ignored.
   A pulled generated task that collides with the local unique index `(date, scope, template_key)` is merged: keep the
   local row and record the pulled `sync_id` as its id. Clock skew between devices is accepted.
@@ -101,7 +121,7 @@ Routes (Agent D): `POST /api/sync/run` (same-origin, session required) returns `
 
 - The other user tables (see Scope v1); sharing; conflict UI; encryption of data at rest in D1.
 - Removing the old queue code; changing sign-in or admin; the Worker's rate limits.
-- Real-time push (polling every 60 s and on focus is enough).
+- Real-time push (a WebSocket or Durable Object channel); the 5 s and 30 s checks are the v1 "automatic".
 
 ## Agents and file ownership (zero overlap)
 
@@ -137,8 +157,8 @@ push, tag, `Co-Authored-By` or AI attribution. Never touch `data/habit.db`: test
 
 - [ ] **B1. Mutation building.** For each `sync_dirty` row: live rows become `{ table: cloud, row_id: row_key, action: "upsert", payload: <columns from the table above, read from the current row>, client_timestamp: changed_at }`; deleted rows become `action: "delete"`. Apply `isSyncableSettingKey`. Batches of at most 200 (Worker limit 500).
   - Done when: tests cover each table's payload, settings denylist, delete, and batching.
-- [ ] **B2. Push, pull, apply.** `runSync`: single-flight lock; need a signed-in account (`sync_flags.account` equal to the session user, else `account-mismatch`; no session gives `signed-out`); loop `POST /api/sync` with `last_synced_at` from `sync_flags` until `has_more` is false; clear a `sync_dirty` row only if its `changed_at` is unchanged since it was sent. Apply pulled rows inside one transaction with `applying=1`: upsert by the table's natural key, resolve `sync_id` through `sync_ids` (insert a new local row and map it when unknown), skip rows older than `sync_stamps`, apply tombstones as deletes, merge the unique-index collision for tasks as designed. Store `last_synced_at = server_timestamp`.
-  - Done when: tests with an in-memory DB and a fake `fetch` cover: push then clear, edit during flight stays dirty, pull inserts and maps ids, older pull ignored, tombstone deletes, task collision merge, 401 gives `signed-out`, 429 gives `throttled` with the message, and no re-upload of pulled rows.
+- [ ] **B2. Push, pull, apply.** `runSync`: single-flight lock; need a signed-in account (`sync_flags.account` equal to the session user, else `account-mismatch`; no session gives `signed-out`); first `GET /api/sync/head` and stop with no pull when it equals the stored head; otherwise pull (`POST /api/sync` with an empty `mutations` list and `last_synced_at` = stored cursor minus 2000 ms) until `has_more` is false, apply, then push the dirty rows; clear a `sync_dirty` row only if its `changed_at` is unchanged since it was sent. Apply pulled rows inside one transaction with `applying=1`: upsert by the table's natural key, resolve `sync_id` through `sync_ids` (insert a new local row and map it when unknown), skip rows older than `sync_stamps`, apply tombstones as deletes, merge the unique-index collision for tasks as designed. Store `last_synced_at` = the `server_timestamp` of the last response and the `head` value, in `sync_flags`.
+  - Done when: tests with an in-memory DB and a fake `fetch` cover: head unchanged means no pull and no push call when nothing is dirty, the 2 s overlap re-applies harmlessly, push then clear, edit during flight stays dirty, pull inserts and maps ids, older pull ignored, tombstone deletes, task collision merge, 401 gives `signed-out`, 429 gives `throttled` with the message, and no re-upload of pulled rows.
 - [ ] **B3. `linkAccount`, `unlinkAccount`, `getSyncStatus`.** Link marks every existing row of the eight tables dirty (single `INSERT ... SELECT` per table, with `sync_ids` rows created for the three autoincrement tables that lack one) and sets `account`; refuses with `account-mismatch` if linked to another account.
   - Done when: tests: link queues the right counts, is idempotent, refuses a different account; unlink keeps user rows.
 
@@ -146,8 +166,12 @@ push, tag, `Co-Authored-By` or AI attribution. Never touch `data/habit.db`: test
 
 - [ ] **C1. `migrations/0004_sync_ids.sql` and `schema.sql`.** Recreate `tasks`, `problem_solves`, `practice_sessions`, `timer_rows` with `id TEXT NOT NULL` and `PRIMARY KEY (user_id, id)` (keep every other column from the table above, plus `source` on `problem_solves`). Start the file with a comment that it is only safe while those four tables are empty and add the check command to run first: `SELECT (SELECT count(*) FROM tasks)+(SELECT count(*) FROM problem_solves)+(SELECT count(*) FROM practice_sessions)+(SELECT count(*) FROM timer_rows)` must be 0.
   - Done when: applies to an empty local D1 twice (use `DROP TABLE IF EXISTS` first); `schema.sql` matches.
+- [ ] **C1b. `synced_at` and heads.** In the same `0004` migration and `schema.sql`: add `synced_at INTEGER NOT NULL` to all eight cloud tables with an index on `(user_id, synced_at)`, and create `sync_heads(user_id TEXT PRIMARY KEY, head INTEGER NOT NULL)`.
+  - Done when: applies twice to an empty local D1.
 - [ ] **C2. Worker column lists.** In `src/index.ts` set `COLUMNS` to exactly the "Columns uploaded" column of the table above (cloud names) and keep `PK` as `id` for all except `settings` (`key`). Add tests: an upsert and delete for each of the eight tables round-trips; a payload column outside the list is dropped.
   - Done when: `pnpm exec vitest run packages/sync-worker` passes.
+- [ ] **C3. Cursor and head in the Worker.** On every pushed mutation set `synced_at` to the request's server time (the same value as `server_timestamp` for that request) and, in the same D1 batch, upsert `sync_heads` with that value. Change the pull query from `updated_at > ?` to `synced_at > ?` (ordered by `synced_at`, paged as today). The LWW rule for a write stays on `updated_at`. Add `GET /api/sync/head` (same auth and guard as sync, `route "sync"`) returning `{ ok: true, head: <number> }` (0 when none); it must read only `sync_heads`. Return `server_timestamp` taken **after** the push has been applied.
+  - Done when: tests prove the offline case: device A writes a row with an old `updated_at` and uploads it later, device B (cursor already past that old time) still receives it; and a head request costs one read and no writes.
 
 ### Agent D: routes
 
@@ -156,7 +180,7 @@ push, tag, `Co-Authored-By` or AI attribution. Never touch `data/habit.db`: test
 
 ### Agent E: UI
 
-- [ ] **E1. `sync-manager.ts` becomes a thin poller:** no database access; `POST /api/sync/run` every 60 s while the tab is visible and signed in, on focus, on `online`, and after "Sync now"; maps `SyncRunResult.state` to the existing status values; backs off on `throttled`/`error` (max 15 min, jitter); stops on `signed-out`. Keep exported names that other files use (`getSyncStatus`, `subscribeSyncStatus`, `flushSyncQueue`) so nothing else breaks.
+- [ ] **E1. `sync-manager.ts` becomes a thin poller:** no database access; follow the "Automatic sync" rules in Design exactly: a run at page load and sign-in; every 5 s while visible `GET /api/sync/status` and `POST /api/sync/run` only if `pending > 0`; every 30 s while visible `POST /api/sync/run` (the engine does the one-read head check and pulls only if it moved); immediately on focus, on `online` and on "Sync now"; no timers while the tab is hidden; maps `SyncRunResult.state` to the existing status values; backs off on `throttled`/`error` (max 15 min, jitter); stops on `signed-out`. Keep exported names that other files use (`getSyncStatus`, `subscribeSyncStatus`, `flushSyncQueue`) so nothing else breaks.
   - Done when: typecheck passes and the existing `sync-client.test.ts` is updated or still passes.
 - [ ] **E2. First-link prompt** in `sync-status.tsx`: when signed in, `GET /api/sync/status` says `account` is null and the database has rows, show "Upload this device's progress to your account?" with Upload / Not now; Upload calls `POST /api/sync/link` then runs a sync. `account-mismatch` shows "This device is linked to another account." No emoji.
   - Done when: lint and typecheck pass.
@@ -180,7 +204,9 @@ push, tag, `Co-Authored-By` or AI attribution. Never touch `data/habit.db`: test
 - [ ] Signed in, the app offers to upload this device's progress; after "Upload", the Account page shows a recent sync time and zero pending.
 - [ ] The remote D1 contains your solved problems, tasks and settings under your account id, and no `extension_token`.
 - [ ] A fresh browser profile or fresh database signed in to the same account shows the same solved problems and settings after one sync.
-- [ ] Marking a problem solved or changing a setting on one device appears on the other within about a minute; undoing a solve removes it there too.
+- [ ] Marking a problem solved or changing a setting on one device appears on the other within about 30 seconds while both are open; undoing a solve removes it there too.
+- [ ] Offline test: with the network off, solve two problems on device B; solve two others on device A and let it sync; turn B's network on. Both devices end with all four problems, and only B's two rows were uploaded.
+- [ ] A device with nothing new makes only one small request per 30 seconds (the head check), visible in the network panel.
 - [ ] Another GitHub account signing in sees none of this data, and a database linked to account X refuses to sync as account Y.
 - [ ] Your existing database rows are unchanged by the migration (row counts equal before and after).
 - [ ] `pnpm check` passes.
@@ -189,6 +215,8 @@ push, tag, `Co-Authored-By` or AI attribution. Never touch `data/habit.db`: test
 ## Pitfalls
 
 - Never run tests or experiments on `data/habit.db`; copy it first. The migration only adds tables and triggers, but a copy is the safe way to try the upload.
+- The pull cursor must be the Worker's `synced_at`, never a device `updated_at`; otherwise rows uploaded late from an offline device are never seen by others.
+- Background sync from the server process is not possible: it has no session cookies. The tab drives sync.
 - Triggers must stay quiet while pulled rows are written (`applying`), or every pull would be pushed straight back.
 - Autoincrement ids must never be used as cloud ids. Use `sync_ids` or a natural key.
 - A pulled row may violate a local unique index; handle it, do not crash the run.
