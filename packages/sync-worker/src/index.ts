@@ -340,6 +340,72 @@ async function handleSync(
   );
 }
 
+const DELETE_LIMIT = 3;
+const DELETE_WINDOW_MS = 3_600_000;
+
+/** POST /api/account/delete-data: removes the caller's cloud rows (scope "data") or also the account (scope "account"). */
+async function handleDeleteData(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  pathname: string,
+  corsHeaders: Headers,
+): Promise<Response> {
+  const auth = await authenticate(req, env, ctx, pathname, corsHeaders);
+  if ("reject" in auth) return auth.reject;
+  const userId = auth.userId;
+
+  const bodyRes = await readBodyLimited(req, 4_096);
+  if (!bodyRes.ok) {
+    return json({ ok: false, error: "unreadable_body" }, bodyRes.reason === "too_large" ? 413 : 400, pathname, corsHeaders);
+  }
+  let body: unknown;
+  try {
+    body = JSON.parse(bodyRes.text);
+  } catch {
+    return json({ ok: false, error: "malformed_json" }, 400, pathname, corsHeaders);
+  }
+  if (!isObject(body) || (body.scope !== "data" && body.scope !== "account") || body.confirm !== "DELETE") {
+    return json({ ok: false, error: 'Send {"scope":"data"|"account","confirm":"DELETE"}.' }, 400, pathname, corsHeaders);
+  }
+  const scope = body.scope;
+
+  // At most 3 successful calls per user per hour, counted in abuse_log (a security record that is never deleted here).
+  const key = `user:${userId}`;
+  const now = Date.now();
+  const recent = await env.DB.prepare(
+    "SELECT COUNT(*) AS n, MIN(at) AS oldest FROM abuse_log WHERE key = ? AND kind = 'delete-data' AND at > ?",
+  )
+    .bind(key, now - DELETE_WINDOW_MS)
+    .first<{ n: number; oldest: number | null }>();
+  if (recent && recent.n >= DELETE_LIMIT) {
+    const retry = Math.max(1, Math.ceil(((recent.oldest ?? now) + DELETE_WINDOW_MS - now) / 1000));
+    const res = json({ ok: false, error: "rate_limited" }, 429, pathname, corsHeaders);
+    res.headers.set("Retry-After", String(retry));
+    return res;
+  }
+
+  const targets: Array<[string, string]> = [
+    ...TABLES.map((t): [string, string] => [t, "user_id"]),
+    ["sync_heads", "user_id"],
+    ["user_quota", "user_id"],
+  ];
+  if (scope === "account") targets.push(["sessions", "user_id"], ["users", "id"]);
+  const results = await env.DB.batch(
+    targets.map(([table, col]) => env.DB.prepare(`DELETE FROM ${table} WHERE ${col} = ?`).bind(userId)),
+  );
+  const deleted: Record<string, number> = {};
+  targets.forEach(([table], i) => {
+    deleted[table] = results[i]?.meta?.changes ?? 0;
+  });
+
+  await env.DB.prepare("INSERT INTO abuse_log (at, key, kind, detail) VALUES (?, ?, ?, ?)")
+    .bind(now, key, "delete-data", scope)
+    .run();
+
+  return json({ ok: true, deleted }, 200, pathname, corsHeaders);
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const executionCtx: ExecutionContext = ctx ?? {
@@ -363,7 +429,7 @@ export default {
     let route: Route = "other";
     if (pathname.startsWith("/auth/") || pathname === "/.well-known/jwks.json") {
       route = "auth";
-    } else if (pathname === "/api/sync" || pathname === "/api/sync/head") {
+    } else if (pathname === "/api/sync" || pathname === "/api/sync/head" || pathname === "/api/account/delete-data") {
       route = "sync";
     }
 
@@ -388,6 +454,17 @@ export default {
       }
       try {
         return await handleHead(req, env, executionCtx, pathname, cors.headers);
+      } catch {
+        return json({ ok: false, error: "internal_error" }, 500, pathname, cors.headers);
+      }
+    }
+
+    if (pathname === "/api/account/delete-data") {
+      if (req.method !== "POST") {
+        return json({ ok: false, error: "method_not_allowed" }, 405, pathname, cors.headers);
+      }
+      try {
+        return await handleDeleteData(req, env, executionCtx, pathname, cors.headers);
       } catch {
         return json({ ok: false, error: "internal_error" }, 500, pathname, cors.headers);
       }

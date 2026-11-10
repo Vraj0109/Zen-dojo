@@ -39,6 +39,11 @@ class MockD1 implements D1Database {
           const userId = boundArgs[0] as string;
           return (this.heads.has(userId) ? { head: this.heads.get(userId) } : null) as T | null;
         }
+        if (q.includes("FROM abuse_log WHERE key = ? AND kind = 'delete-data'")) {
+          const [key, since] = boundArgs as [string, number];
+          const hits = this.abuseLog.filter((l) => l.key === key && l.kind === "delete-data" && l.at > since);
+          return { n: hits.length, oldest: hits.length ? Math.min(...hits.map((h) => h.at)) : null } as T;
+        }
         if (q.includes("FROM user_quota WHERE user_id = ?")) {
           const userId = boundArgs[0] as string;
           return (this.userQuota.get(userId) ?? null) as T | null;
@@ -77,6 +82,30 @@ class MockD1 implements D1Database {
       const s = stmt as unknown as { query: string; args: unknown[] };
       const q = s.query;
       const a = s.args;
+
+      if (q.startsWith("DELETE FROM")) {
+        const m = /DELETE FROM (\w+) WHERE (\w+) = \?/i.exec(q);
+        if (m) {
+          const [, tableName, col] = m;
+          const id = a[0] as string;
+          let changes = 0;
+          if (tableName === "sync_heads") {
+            changes = this.heads.delete(id) ? 1 : 0;
+          } else if (tableName === "user_quota") {
+            changes = this.userQuota.delete(id) ? 1 : 0;
+          } else {
+            const table = this.getTable(tableName);
+            for (const [k, r] of [...table.entries()]) {
+              if (r[col] === id) {
+                table.delete(k);
+                changes++;
+              }
+            }
+          }
+          results.push({ success: true, results: [], meta: { changes } });
+          continue;
+        }
+      }
 
       if (q.startsWith("SELECT * FROM")) {
         const match = /SELECT \* FROM (\w+) WHERE user_id = \? AND synced_at > \? ORDER BY synced_at ASC LIMIT (\d+)/i.exec(q);
@@ -532,6 +561,124 @@ describe("Sync Worker Index & Integration", () => {
       expect(json.ok).toBe(true);
       expect(json.has_more).toBe(false);
       expect(typeof json.next_since).toBe("number");
+    });
+  });
+
+  describe("Delete my data (plan 0054)", () => {
+    const URL_ = "https://sync.example/api/account/delete-data";
+    const DATA_TABLES = ["tasks", "problem_solves", "settings", "notes", "solution_runs", "pack_progress", "practice_sessions", "timer_rows"];
+
+    async function tokenFor(sub: string): Promise<string> {
+      return (await signAccessToken(testEnv, { sub, sid: "s-" + sub, adm: false })).token;
+    }
+    function del(token: string | null, body: unknown): Promise<Response> {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return worker.fetch(
+        new Request(URL_, { method: "POST", headers, body: typeof body === "string" ? body : JSON.stringify(body) }),
+        testEnv,
+      );
+    }
+    function seed(user: string): void {
+      for (const t of DATA_TABLES) {
+        const map = mockDb.tables.get(t) ?? new Map<string, Row>();
+        mockDb.tables.set(t, map);
+        map.set(`${user}:r1`, { user_id: user, id: "r1" });
+        map.set(`${user}:r2`, { user_id: user, id: "r2" });
+      }
+      mockDb.heads.set(user, 5);
+      mockDb.userQuota.set(user, { rows_live: 1, bytes_live: 1, day: 1, writes_today: 1 });
+      const sessions = mockDb.tables.get("sessions") ?? new Map<string, Row>();
+      mockDb.tables.set("sessions", sessions);
+      sessions.set(`s-${user}`, { id: `s-${user}`, user_id: user });
+      const users = mockDb.tables.get("users") ?? new Map<string, Row>();
+      mockDb.tables.set("users", users);
+      users.set(user, { id: user });
+    }
+    const count = (t: string, user: string) =>
+      [...(mockDb.tables.get(t)?.values() ?? [])].filter((r) => (r.user_id ?? r.id) === user).length;
+
+    it("deletes only the caller's rows for scope data and keeps the account", async () => {
+      seed("gh:a");
+      seed("gh:b");
+      const res = await del(await tokenFor("gh:a"), { scope: "data", confirm: "DELETE" });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { ok: boolean; deleted: Record<string, number> };
+      expect(body.ok).toBe(true);
+      expect(body.deleted.tasks).toBe(2);
+      expect(body.deleted.sync_heads).toBe(1);
+      expect(body.deleted.user_quota).toBe(1);
+      expect(body.deleted.sessions).toBeUndefined();
+      for (const t of DATA_TABLES) {
+        expect(count(t, "gh:a"), t).toBe(0);
+        expect(count(t, "gh:b"), t).toBe(2);
+      }
+      expect(mockDb.heads.has("gh:a")).toBe(false);
+      expect(mockDb.heads.has("gh:b")).toBe(true);
+      expect(mockDb.userQuota.has("gh:a")).toBe(false);
+      expect(mockDb.userQuota.has("gh:b")).toBe(true);
+      expect(count("sessions", "gh:a")).toBe(1);
+      expect(count("users", "gh:a")).toBe(1);
+    });
+
+    it("also removes sessions and the user row for scope account, and never touches bans or abuse_log", async () => {
+      seed("gh:a");
+      seed("gh:b");
+      mockDb.bans.set("user:gh:a", { key: "user:gh:a", reason: "x", banned_until: 1, strikes: 1 });
+      mockDb.abuseLog.push({ at: 1, key: "user:gh:a", kind: "other", detail: "keep" });
+      const res = await del(await tokenFor("gh:a"), { scope: "account", confirm: "DELETE" });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { deleted: Record<string, number> };
+      expect(body.deleted.sessions).toBe(1);
+      expect(body.deleted.users).toBe(1);
+      expect(count("sessions", "gh:a")).toBe(0);
+      expect(count("users", "gh:a")).toBe(0);
+      expect(count("sessions", "gh:b")).toBe(1);
+      expect(count("users", "gh:b")).toBe(1);
+      expect(mockDb.bans.has("user:gh:a")).toBe(true);
+      expect(mockDb.abuseLog.find((l) => l.detail === "keep")).toBeTruthy();
+    });
+
+    it("rejects a missing or wrong confirm, a bad scope and bad JSON with 400", async () => {
+      seed("gh:a");
+      const token = await tokenFor("gh:a");
+      for (const body of [{ scope: "data" }, { scope: "data", confirm: "delete" }, { scope: "all", confirm: "DELETE" }, {}, "not json"]) {
+        const res = await del(token, body);
+        expect(res.status).toBe(400);
+      }
+      expect(count("tasks", "gh:a")).toBe(2);
+    });
+
+    it("requires a token (401) and POST (405)", async () => {
+      expect((await del(null, { scope: "data", confirm: "DELETE" })).status).toBe(401);
+      const get = await worker.fetch(
+        new Request(URL_, { headers: { Authorization: `Bearer ${await tokenFor("gh:a")}` } }),
+        testEnv,
+      );
+      expect(get.status).toBe(405);
+    });
+
+    it("allows 3 successful calls per user per hour and answers the 4th with 429 and Retry-After", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      try {
+        vi.setSystemTime(1_800_000_000_000);
+        const token = await tokenFor("gh:a");
+        const other = await tokenFor("gh:b");
+        for (let i = 0; i < 3; i++) {
+          expect((await del(token, { scope: "data", confirm: "DELETE" })).status).toBe(200);
+        }
+        const fourth = await del(token, { scope: "data", confirm: "DELETE" });
+        expect(fourth.status).toBe(429);
+        expect(Number(fourth.headers.get("Retry-After"))).toBeGreaterThan(0);
+        expect(mockDb.abuseLog.filter((l) => l.kind === "delete-data").length).toBe(3);
+        // another user is not affected
+        expect((await del(other, { scope: "data", confirm: "DELETE" })).status).toBe(200);
+        // after the window the user may delete again
+        vi.setSystemTime(1_800_000_000_000 + 3_600_001);
+        expect((await del(await tokenFor("gh:a"), { scope: "data", confirm: "DELETE" })).status).toBe(200);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
