@@ -1,6 +1,6 @@
 # 0046: Round eight: six-agent parallel sprint (TLE cancellation, Java IDE, sync engine & admin)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Antigravity, 2026-11-10
 - **Implemented by:** 6 parallel agents (3 Antigravity, 3 Claude Code), 2026-11-10
 - **Spec:** Balanced 6-way workload (~10-15 mins each) with zero file collisions and fast targeted test execution
@@ -42,11 +42,11 @@ Round Eight tackles the core execution reliability, interactive design practice,
 
 ## Acceptance Criteria
 
-- [ ] Infinite loops terminate immediately with process tree kill and report `problem: "tle"`.
-- [ ] UI displays Time Limit Exceeded badge with elapsed time and input.
-- [ ] Multi-file Java backend compiles multiple classes and executes `Main`.
-- [ ] Tabbed IDE allows creating, deleting, and editing Java classes with localStorage persistence.
-- [ ] Local sync queue records mutations with `updated_at` and soft deletes.
-- [ ] `/admin` routes provide protected dashboard and problem management interface.
-- [ ] Fast targeted tests pass for all components.
-- [ ] Workspace typecheck passes cleanly (`pnpm -r typecheck`).
+- [x] Infinite loops terminate immediately with process tree kill and report `problem: "tle"`.
+- [x] UI displays Time Limit Exceeded badge with elapsed time and input.
+- [x] Multi-file Java backend compiles multiple classes and executes `Main`.
+- [x] Tabbed IDE allows creating, deleting, and editing Java classes with localStorage persistence.
+- [x] Local sync queue records mutations with `updated_at` and soft deletes.
+- [x] `/admin` routes provide protected dashboard and problem management interface.
+- [x] Fast targeted tests pass for all components (219/219 tests passed in 6.9s).
+- [x] Workspace typecheck passes cleanly across all 4 packages (`pnpm -r typecheck` in 6s).
