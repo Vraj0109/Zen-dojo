@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { type Env, type D1Database, type D1PreparedStatement, type D1Result } from "./index";
 import { signAccessToken } from "./auth/jwt";
 import { resetGuardState } from "./guard/guard";
@@ -9,6 +9,7 @@ class MockD1 implements D1Database {
   tables: Map<string, Map<string, Row>> = new Map();
   bans: Map<string, { key: string; reason: string; banned_until: number; strikes: number }> = new Map();
   userQuota: Map<string, { rows_live: number; bytes_live: number; day: number; writes_today: number }> = new Map();
+  heads: Map<string, number> = new Map();
   abuseLog: Array<{ at: number; key: string; kind: string; detail: string }> = [];
 
   private getTable(name: string): Map<string, Row> {
@@ -33,6 +34,10 @@ class MockD1 implements D1Database {
         if (q.includes("FROM bans WHERE key = ?")) {
           const key = boundArgs[0] as string;
           return (this.bans.get(key) ?? null) as T | null;
+        }
+        if (q.includes("FROM sync_heads WHERE user_id = ?")) {
+          const userId = boundArgs[0] as string;
+          return (this.heads.has(userId) ? { head: this.heads.get(userId) } : null) as T | null;
         }
         if (q.includes("FROM user_quota WHERE user_id = ?")) {
           const userId = boundArgs[0] as string;
@@ -74,7 +79,7 @@ class MockD1 implements D1Database {
       const a = s.args;
 
       if (q.startsWith("SELECT * FROM")) {
-        const match = /SELECT \* FROM (\w+) WHERE user_id = \? AND updated_at > \? ORDER BY updated_at ASC LIMIT (\d+)/i.exec(q);
+        const match = /SELECT \* FROM (\w+) WHERE user_id = \? AND synced_at > \? ORDER BY synced_at ASC LIMIT (\d+)/i.exec(q);
         if (match) {
           const tableName = match[1];
           const limit = Number(match[2]);
@@ -83,13 +88,20 @@ class MockD1 implements D1Database {
 
           const table = this.getTable(tableName);
           const rows = [...table.values()]
-            .filter((r) => r.user_id === userId && (r.updated_at as number) > since)
-            .sort((x, y) => (x.updated_at as number) - (y.updated_at as number))
+            .filter((r) => r.user_id === userId && (r.synced_at as number) > since)
+            .sort((x, y) => (x.synced_at as number) - (y.synced_at as number))
             .slice(0, limit);
 
           results.push({ success: true, results: rows as T[] });
           continue;
         }
+      }
+
+      if (q.startsWith("INSERT INTO sync_heads")) {
+        const [userId, head] = a as [string, number];
+        this.heads.set(userId, Math.max(this.heads.get(userId) ?? 0, head));
+        results.push({ success: true, results: [] });
+        continue;
       }
 
       if (q.startsWith("INSERT INTO")) {
@@ -117,11 +129,18 @@ class MockD1 implements D1Database {
       }
 
       if (q.startsWith("UPDATE")) {
-        const match = /UPDATE (\w+) SET deleted_at = \?, updated_at = \? WHERE user_id = \? AND (\w+) = \? AND updated_at <= \?/i.exec(q);
+        const match = /UPDATE (\w+) SET deleted_at = \?, updated_at = \?, synced_at = \? WHERE user_id = \? AND (\w+) = \? AND updated_at <= \?/i.exec(q);
         if (match) {
           const tableName = match[1];
           const pkCol = match[2];
-          const [deletedAt, updatedAt, userId, rowId, maxUpdatedAt] = a as [number, number, string, string, number];
+          const [deletedAt, updatedAt, syncedAt, userId, rowId, maxUpdatedAt] = a as [
+            number,
+            number,
+            number,
+            string,
+            string,
+            number,
+          ];
 
           const table = this.getTable(tableName);
           const key = `${userId}:${rowId}`;
@@ -130,6 +149,7 @@ class MockD1 implements D1Database {
           if (existing && (existing.updated_at as number) <= maxUpdatedAt) {
             existing.deleted_at = deletedAt;
             existing.updated_at = updatedAt;
+            existing.synced_at = syncedAt;
           }
           results.push({ success: true, results: [] });
           continue;
@@ -144,6 +164,17 @@ class MockD1 implements D1Database {
 
 // Wrapper to capture query & args on prepare
 class TrackingMockD1 extends MockD1 {
+  /** Every statement run, as read or write plus its query; used to count reads and writes. */
+  ops: Array<{ kind: "read" | "write"; query: string }> = [];
+
+  override async batch<T = Record<string, unknown>>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]> {
+    for (const st of statements) {
+      const query = (st as unknown as { query: string }).query;
+      this.ops.push({ kind: query.startsWith("SELECT") ? "read" : "write", query });
+    }
+    return super.batch<T>(statements);
+  }
+
   override prepare(query: string): D1PreparedStatement {
     const parentStmt = super.prepare(query);
     const q = query.replace(/\s+/g, " ").trim();
@@ -158,9 +189,18 @@ class TrackingMockD1 extends MockD1 {
         parentStmt.bind(...values);
         return tracking;
       },
-      first: parentStmt.first.bind(parentStmt),
-      run: parentStmt.run.bind(parentStmt),
-      all: parentStmt.all.bind(parentStmt),
+      first: (<T = unknown>() => {
+        this.ops.push({ kind: "read", query: q });
+        return parentStmt.first<T>();
+      }) as D1PreparedStatement["first"],
+      run: () => {
+        this.ops.push({ kind: "write", query: q });
+        return parentStmt.run();
+      },
+      all: (<T = unknown>() => {
+        this.ops.push({ kind: "read", query: q });
+        return parentStmt.all<T>();
+      }) as D1PreparedStatement["all"],
     };
     return tracking;
   }
@@ -492,6 +532,204 @@ describe("Sync Worker Index & Integration", () => {
       expect(json.ok).toBe(true);
       expect(json.has_more).toBe(false);
       expect(typeof json.next_since).toBe("number");
+    });
+  });
+
+  describe("Cursor, head and table coverage (plan 0050)", () => {
+    let BASE = 0;
+    const COLS: Record<string, string[]> = {
+      tasks: ["date", "scope", "template_key", "title", "category", "xp", "minutes", "status", "done_on"],
+      problem_solves: ["problem_id", "kind", "solved_on", "xp", "source"],
+      settings: ["value"],
+      notes: ["problem_id", "notes", "code", "language"],
+      solution_runs: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases"],
+      pack_progress: ["pack_id", "item_id", "done_on"],
+      practice_sessions: ["item_id", "practiced_on", "minutes", "scores", "score", "notes", "link", "xp"],
+      timer_rows: ["item_id", "focused_on", "minutes"],
+    };
+    const pkOf = (table: string) => (table === "settings" ? "key" : "id");
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      BASE = Date.now();
+      vi.setSystemTime(BASE);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function tokenFor(sub: string): Promise<string> {
+      return (await signAccessToken(testEnv, { sub, sid: "s-" + sub, adm: false })).token;
+    }
+    async function sync(token: string, body: Record<string, unknown>): Promise<Record<string, any>> {
+      const res = await worker.fetch(
+        new Request("https://sync.example/api/sync", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+        testEnv,
+      );
+      expect(res.status).toBe(200);
+      return (await res.json()) as Record<string, any>;
+    }
+    async function head(token: string): Promise<Response> {
+      return worker.fetch(
+        new Request("https://sync.example/api/sync/head", { headers: { Authorization: `Bearer ${token}` } }),
+        testEnv,
+      );
+    }
+
+    it("accepts exactly the planned columns for each of the eight tables", async () => {
+      const token = await tokenFor("gh:cols");
+      const mutations = Object.entries(COLS).map(([table, cols]) => ({
+        table,
+        row_id: "r1",
+        action: "upsert",
+        payload: Object.fromEntries(cols.map((c) => [c, "v-" + c])),
+        client_timestamp: 500,
+      }));
+      await sync(token, { mutations });
+      for (const [table, cols] of Object.entries(COLS)) {
+        const row = mockDb.tables.get(table)!.get("gh:cols:r1")!;
+        const stored = Object.keys(row).filter(
+          (k) => !["user_id", "id", "key", "updated_at", "deleted_at", "synced_at"].includes(k),
+        );
+        expect(stored.sort(), table).toEqual([...cols].sort());
+      }
+    });
+
+    it("round-trips an upsert and a delete for every table", async () => {
+      const token = await tokenFor("gh:rt");
+      let clock = BASE;
+      for (const [table, cols] of Object.entries(COLS)) {
+        const rowId = "row-" + table;
+        vi.setSystemTime((clock += 1000));
+        const first = await sync(token, { last_synced_at: 0 });
+        const payload = Object.fromEntries(cols.map((c) => [c, "v-" + c]));
+        vi.setSystemTime((clock += 1000));
+        await sync(token, {
+          mutations: [{ table, row_id: rowId, action: "upsert", payload, client_timestamp: 10 }],
+        });
+        vi.setSystemTime((clock += 1000));
+        const pulled = await sync(token, { last_synced_at: first.server_timestamp });
+        const rows = (pulled.deltas[table] as Array<Record<string, unknown>>).filter((r) => r[pkOf(table)] === rowId);
+        expect(rows.length, table).toBe(1);
+        for (const c of cols) expect(rows[0][c], `${table}.${c}`).toBe("v-" + c);
+        expect(rows[0].deleted_at).toBeNull();
+
+        vi.setSystemTime((clock += 1000));
+        await sync(token, {
+          mutations: [{ table, row_id: rowId, action: "delete", payload: {}, client_timestamp: 20 }],
+        });
+        vi.setSystemTime((clock += 1000));
+        const afterDelete = await sync(token, { last_synced_at: pulled.server_timestamp });
+        const gone = (afterDelete.deltas[table] as Array<Record<string, unknown>>).find((r) => r[pkOf(table)] === rowId);
+        expect(gone?.deleted_at, table).toBe(20);
+      }
+    });
+
+    it("drops payload columns that are not on the allow-list", async () => {
+      const token = await tokenFor("gh:drop");
+      await sync(token, {
+        mutations: [
+          {
+            table: "tasks",
+            row_id: "t1",
+            action: "upsert",
+            payload: { title: "ok", user_id: "gh:someone-else", updated_at: 1, synced_at: 1, bogus: "x", id: "evil" },
+            client_timestamp: 700,
+          },
+        ],
+      });
+      expect(mockDb.tables.get("tasks")!.has("gh:someone-else:t1")).toBe(false);
+      const row = mockDb.tables.get("tasks")!.get("gh:drop:t1")!;
+      expect(row.title).toBe("ok");
+      expect(row.user_id).toBe("gh:drop");
+      expect(row.id).toBe("t1");
+      expect(row.updated_at).toBe(700);
+      expect(row.bogus).toBeUndefined();
+      expect(row.synced_at).not.toBe(1);
+    });
+
+    it("delivers a row uploaded late with an old updated_at to a device whose cursor is already past it", async () => {
+      const token = await tokenFor("gh:offline");
+      // Device B syncs at server time T1 and stores that as its cursor.
+      vi.setSystemTime(BASE);
+      const bFirst = await sync(token, { last_synced_at: 0 });
+      const cursorB = bFirst.server_timestamp as number;
+      expect(bFirst.deltas.problem_solves).toEqual([]);
+
+      // Device A solved a problem offline an hour before that and uploads it only now.
+      vi.setSystemTime(BASE + 60_000);
+      await sync(token, {
+        mutations: [
+          {
+            table: "problem_solves",
+            row_id: "two-sum:solve",
+            action: "upsert",
+            payload: { problem_id: "two-sum", kind: "solve", solved_on: "2026-11-10", xp: 20, source: "manual" },
+            client_timestamp: BASE - 3_600_000,
+          },
+        ],
+      });
+
+      // B pulls with its old cursor and still gets the row, because pulls use synced_at (server time).
+      vi.setSystemTime(BASE + 120_000);
+      const bSecond = await sync(token, { last_synced_at: cursorB });
+      const rows = bSecond.deltas.problem_solves as Array<Record<string, unknown>>;
+      expect(rows.length).toBe(1);
+      expect(rows[0].id).toBe("two-sum:solve");
+      expect(rows[0].updated_at).toBe(BASE - 3_600_000);
+      expect(rows[0].synced_at).toBe(BASE + 60_000);
+      expect(bSecond.server_timestamp).toBeGreaterThanOrEqual(rows[0].synced_at as number);
+    });
+
+    it("raises the head with each push and reads it with one read and no writes", async () => {
+      const token = await tokenFor("gh:head");
+      vi.setSystemTime(BASE);
+      const empty = await head(token);
+      expect(empty.status).toBe(200);
+      expect(await empty.json()).toEqual({ ok: true, head: 0 });
+
+      vi.setSystemTime(BASE + 5000);
+      await sync(token, {
+        mutations: [{ table: "settings", row_id: "theme", action: "upsert", payload: { value: "dark" }, client_timestamp: 1 }],
+      });
+      expect(mockDb.heads.get("gh:head")).toBe(BASE + 5000);
+
+      mockDb.ops.length = 0;
+      const res = await head(token);
+      expect(await res.json()).toEqual({ ok: true, head: BASE + 5000 });
+      const dataOps = mockDb.ops.filter((o) => !/bans|user_quota|abuse_log/.test(o.query));
+      expect(dataOps).toEqual([{ kind: "read", query: "SELECT head FROM sync_heads WHERE user_id = ?" }]);
+      expect(dataOps.filter((o) => o.kind === "write")).toEqual([]);
+
+      // A pull-only request does not move the head.
+      vi.setSystemTime(BASE + 9000);
+      await sync(token, { last_synced_at: 0 });
+      expect(mockDb.heads.get("gh:head")).toBe(BASE + 5000);
+    });
+
+    it("requires a valid token and GET for the head route, and keeps users apart", async () => {
+      const a = await tokenFor("gh:headA");
+      const b = await tokenFor("gh:headB");
+      vi.setSystemTime(BASE);
+      await sync(a, {
+        mutations: [{ table: "tasks", row_id: "t", action: "upsert", payload: { title: "x" }, client_timestamp: 1 }],
+      });
+      expect(await (await head(a)).json()).toEqual({ ok: true, head: BASE });
+      expect(await (await head(b)).json()).toEqual({ ok: true, head: 0 });
+      const bPull = await sync(b, { last_synced_at: 0 });
+      for (const t of Object.keys(COLS)) expect(bPull.deltas[t]).toEqual([]);
+
+      const noAuth = await worker.fetch(new Request("https://sync.example/api/sync/head"), testEnv);
+      expect(noAuth.status).toBe(401);
+      const post = await worker.fetch(
+        new Request("https://sync.example/api/sync/head", { method: "POST", headers: { Authorization: `Bearer ${a}` } }),
+        testEnv,
+      );
+      expect(post.status).toBe(405);
     });
   });
 });

@@ -160,27 +160,82 @@ function parseMutations(raw: unknown): Mutation[] {
   });
 }
 
-function buildStatement(db: D1Database, userId: string, m: Mutation): D1PreparedStatement {
+function buildStatement(db: D1Database, userId: string, m: Mutation, syncedAt: number): D1PreparedStatement {
   const pk = PK[m.table];
   if (m.action === "delete") {
     return db
       .prepare(
-        `UPDATE ${m.table} SET deleted_at = ?, updated_at = ? WHERE user_id = ? AND ${pk} = ? AND updated_at <= ?`,
+        `UPDATE ${m.table} SET deleted_at = ?, updated_at = ?, synced_at = ? WHERE user_id = ? AND ${pk} = ? AND updated_at <= ?`,
       )
-      .bind(m.client_timestamp, m.client_timestamp, userId, m.row_id, m.client_timestamp);
+      .bind(m.client_timestamp, m.client_timestamp, syncedAt, userId, m.row_id, m.client_timestamp);
   }
   const allowed = COLUMNS[m.table];
   const cols = Object.keys(m.payload).filter((c) => allowed.includes(c));
-  const insertCols = ["user_id", pk, ...cols, "updated_at", "deleted_at"];
-  const values: unknown[] = [userId, m.row_id, ...cols.map((c) => bindable(m.payload[c])), m.client_timestamp, null];
+  const insertCols = ["user_id", pk, ...cols, "updated_at", "deleted_at", "synced_at"];
+  const values: unknown[] = [
+    userId,
+    m.row_id,
+    ...cols.map((c) => bindable(m.payload[c])),
+    m.client_timestamp,
+    null,
+    syncedAt,
+  ];
   const placeholders = insertCols.map(() => "?").join(", ");
-  const sets = [...cols, "updated_at", "deleted_at"].map((c) => `${c} = excluded.${c}`).join(", ");
+  const sets = [...cols, "updated_at", "deleted_at", "synced_at"].map((c) => `${c} = excluded.${c}`).join(", ");
   return db
     .prepare(
       `INSERT INTO ${m.table} (${insertCols.join(", ")}) VALUES (${placeholders}) ` +
         `ON CONFLICT (user_id, ${pk}) DO UPDATE SET ${sets} WHERE ${m.table}.updated_at <= excluded.updated_at`,
     )
     .bind(...values);
+}
+
+function headStatement(db: D1Database, userId: string, head: number): D1PreparedStatement {
+  return db
+    .prepare(
+      "INSERT INTO sync_heads (user_id, head) VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET head = MAX(sync_heads.head, excluded.head)",
+    )
+    .bind(userId, head);
+}
+
+/** Verifies the Bearer token and applies the per-user guard. Returns the user id or a ready response. */
+async function authenticate(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  pathname: string,
+  corsHeaders: Headers,
+): Promise<{ userId: string } | { reject: Response }> {
+  const authHeader = req.headers.get("authorization") ?? "";
+  const match = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authHeader);
+  const token = match ? match[1] : null;
+  const claims = token ? await verifyAccessToken(token, env) : null;
+  if (!claims) {
+    await noteAuthFailure(env, clientIp(req), "token");
+    return { reject: json({ ok: false, error: "unauthorized" }, 401, pathname, corsHeaders) };
+  }
+  const syncGuardReject = await guard(req, env, ctx, "sync", claims.sub);
+  if (syncGuardReject) {
+    return { reject: applyHeaders(syncGuardReject, pathname, corsHeaders) };
+  }
+  return { userId: claims.sub };
+}
+
+async function handleHead(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  pathname: string,
+  corsHeaders: Headers,
+): Promise<Response> {
+  const auth = await authenticate(req, env, ctx, pathname, corsHeaders);
+  if ("reject" in auth) return auth.reject;
+  // One read of one row; no writes.
+  const row = await env.DB.prepare("SELECT head FROM sync_heads WHERE user_id = ?")
+    .bind(auth.userId)
+    .first<{ head: number }>();
+  const head = row && typeof row.head === "number" ? row.head : 0;
+  return json({ ok: true, head }, 200, pathname, corsHeaders);
 }
 
 async function handleSync(
@@ -190,22 +245,10 @@ async function handleSync(
   pathname: string,
   corsHeaders: Headers,
 ): Promise<Response> {
-  // 1. Read Bearer token and verify
-  const authHeader = req.headers.get("authorization") ?? "";
-  const match = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authHeader);
-  const token = match ? match[1] : null;
-  const claims = token ? await verifyAccessToken(token, env) : null;
-  if (!claims) {
-    await noteAuthFailure(env, clientIp(req), "token");
-    return json({ ok: false, error: "unauthorized" }, 401, pathname, corsHeaders);
-  }
-  const userId = claims.sub;
-
-  // 2. Second guard check: user rate limit and user ban
-  const syncGuardReject = await guard(req, env, ctx, "sync", userId);
-  if (syncGuardReject) {
-    return applyHeaders(syncGuardReject, pathname, corsHeaders);
-  }
+  // 1-2. Verify the Bearer token, then the per-user rate limit and ban check
+  const auth = await authenticate(req, env, ctx, pathname, corsHeaders);
+  if ("reject" in auth) return auth.reject;
+  const userId = auth.userId;
 
   // 3. Read body bounded
   const bodyRes = await readBodyLimited(req, MAX_BODY_BYTES);
@@ -237,17 +280,22 @@ async function handleSync(
     return applyHeaders(quotaReject, pathname, corsHeaders);
   }
 
-  // 5. Server timestamp & execute mutations
-  const serverTimestamp = Date.now();
+  // 5. Execute mutations. Every written row gets synced_at = this request's server time, and the user's head is
+  // raised to the same value in the same batch. serverTimestamp is read after the batch has run.
+  const syncedAt = Date.now();
   if (mutations.length > 0) {
-    await env.DB.batch(mutations.map((m) => buildStatement(env.DB, userId, m)));
+    await env.DB.batch([
+      ...mutations.map((m) => buildStatement(env.DB, userId, m, syncedAt)),
+      headStatement(env.DB, userId, syncedAt),
+    ]);
   }
+  const serverTimestamp = Math.max(Date.now(), syncedAt);
 
   // 6. Pull rows with pagination
   const pulls = await env.DB.batch(
     TABLES.map((t) =>
       env.DB.prepare(
-        `SELECT * FROM ${t} WHERE user_id = ? AND updated_at > ? ORDER BY updated_at ASC LIMIT ${PULL_LIMIT + 1}`,
+        `SELECT * FROM ${t} WHERE user_id = ? AND synced_at > ? ORDER BY synced_at ASC LIMIT ${PULL_LIMIT + 1}`,
       ).bind(userId, since),
     ),
   );
@@ -263,15 +311,20 @@ async function handleSync(
       const pageRows = rows.slice(0, PULL_LIMIT);
       deltas[t] = pageRows;
       const last = pageRows[pageRows.length - 1];
-      if (last && typeof last.updated_at === "number") {
-        truncatedCursors.push(last.updated_at);
+      if (last && typeof last.synced_at === "number") {
+        truncatedCursors.push(last.synced_at);
       }
     } else {
       deltas[t] = rows;
     }
   });
 
-  const nextSince = hasMore && truncatedCursors.length > 0 ? Math.min(...truncatedCursors) : serverTimestamp;
+  // Rows of one push share a synced_at, so resume one ms early (re-sending a row is harmless) unless that makes no progress.
+  let nextSince = serverTimestamp;
+  if (hasMore && truncatedCursors.length > 0) {
+    const lowest = Math.min(...truncatedCursors);
+    nextSince = lowest - 1 > since ? lowest - 1 : lowest;
+  }
 
   return json(
     {
@@ -310,7 +363,7 @@ export default {
     let route: Route = "other";
     if (pathname.startsWith("/auth/") || pathname === "/.well-known/jwks.json") {
       route = "auth";
-    } else if (pathname === "/api/sync") {
+    } else if (pathname === "/api/sync" || pathname === "/api/sync/head") {
       route = "sync";
     }
 
@@ -329,6 +382,17 @@ export default {
     }
 
     // 4. API Sync route
+    if (pathname === "/api/sync/head") {
+      if (req.method !== "GET") {
+        return json({ ok: false, error: "method_not_allowed" }, 405, pathname, cors.headers);
+      }
+      try {
+        return await handleHead(req, env, executionCtx, pathname, cors.headers);
+      } catch {
+        return json({ ok: false, error: "internal_error" }, 500, pathname, cors.headers);
+      }
+    }
+
     if (pathname !== "/api/sync") {
       return json({ ok: false, error: "not_found" }, 404, pathname, cors.headers);
     }
