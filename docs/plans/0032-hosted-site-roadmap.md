@@ -15,16 +15,27 @@ Turn Zen Dojo from a single-user local installation into an offline-first multi-
 
 ---
 
-## Free Cloud Database Evaluation
+## Free Cloud Database Evaluation (Network Speed, Egress & Storage)
 
-| Database Provider | Dialect | Free Tier Quota | Offline-First Sync Fit | Verdict |
-|---|---|---|---|---|
-| **Turso (libSQL)** | SQLite / libSQL | **9 GB storage**<br>500 databases<br>1B row reads/month<br>25M row writes/month | **Native Embedded Replicas:** Local SQLite files replicate bidirectionally to/from cloud primary out of the box with zero SQL changes. | **Top Recommendation (Best Fit):** 100% compatible with Zen Dojo's existing libSQL engine (`@libsql/client`). Zero dialect changes required. |
-| **Supabase** | PostgreSQL | **500 MB storage**<br>50,000 MAU<br>2 active projects | Requires custom sync adapter (mapping local SQLite to cloud Postgres) or PowerSync / ElectricSQL bridge. | **Strong Alternative for Auth:** Excellent built-in OAuth/magic-link auth and row-level security, but 500MB storage limit is lower than Turso's 9GB and requires dual-dialect maintenance. |
-| **Cloudflare D1** | SQLite | **5 GB storage**<br>5M reads/day<br>100k writes/day | Global edge SQLite, but lacks automatic desktop file replication. | Good backup option, but lacks Turso's embedded replica ergonomics. |
-| **Neon** | PostgreSQL | **0.5 GB storage**<br>Serverless compute | Standard Postgres; requires full local SQLite to remote Postgres translation layer. | Less suitable for SQLite offline clients. |
+| Database Provider | Dialect | Free Tier Storage | Network / Egress Pricing | Latency & Global Distribution | System Design Verdict |
+|---|---|---|---|---|---|
+| **Cloudflare D1 + Workers** | **SQLite** | **5 GB storage**<br>5M row reads/day<br>100k row writes/day | **$0.00 Egress Fees** (completely free bandwidth worldwide) | **Fastest (< 25ms):** Runs at 330+ global edge locations right next to the user. | **Top Network Pick:** Zero egress bandwidth costs forever, edge-native, perfect complement to local SQLite. |
+| **Turso (libSQL)** | **SQLite / libSQL** | **5 GB storage** (Starter free)<br>500M row reads/month<br>10M row writes/month | 3 GB/month embedded sync allowance; ~$0.75/GB overage | **Low (< 50ms):** Distributed primary + multi-region edge replicas. | **Top Code Pick:** 100% drop-in compatible with our existing `@libsql/client` queries. |
+| **Supabase** | PostgreSQL | **500 MB storage**<br>50,000 MAU<br>2 active projects | 5 GB/month egress bandwidth | Standard cloud regions (single-region compute). | **Limited Storage:** 500 MB is 10× smaller than D1/Turso; requires local SQLite ↔ remote Postgres translation layer. |
+| **Neon** | PostgreSQL | **0.5 GB storage**<br>Serverless compute | Egress charges apply after quota | Single-region serverless Postgres. | Less suitable for offline SQLite clients. |
 
-**Selected Database:** **Turso (libSQL)** as the primary cloud database, because Zen Dojo's existing schema, migrations, and queries are already written in SQLite/libSQL. A single connection string switch (`DATABASE_URL=libsql://...` and `DATABASE_AUTH_TOKEN=...`) works immediately.
+### Should we change our local database?
+**System Design Verdict: Absolutely NOT.**
+Notion's own engineering team started with IndexedDB/LocalStorage and explicitly **migrated to SQLite** (native SQLite on desktop and SQLite via WASM + OPFS in browsers) because:
+1. **Relational Performance:** Zen Dojo's roadmap, study relations, and practice reviews require joins and index lookups that are 5-10× faster in SQLite than in key-value browser stores.
+2. **ACID Transaction Safety:** Local SQLite transactions prevent database corruption during sudden crashes or battery drain.
+3. **Zero Translation Overhead:** Both the local client (desktop) and cloud edge (Cloudflare D1 / Turso) speak the exact same SQLite SQL dialect.
+
+### Network Bandwidth & Latency Optimization
+By adopting Notion's delta sync protocol, network payload is kept microscopic:
+- A typical user action (e.g. marking a problem solved or updating a note) is an incremental delta payload of **~250 bytes to 1.5 KB**.
+- Even with 100 sync operations per day across multiple devices, monthly bandwidth is **< 10 MB per user**.
+- This means you will use **< 1% of the free bandwidth quota** on Cloudflare D1 or Turso, keeping operation completely free.
 
 ---
 

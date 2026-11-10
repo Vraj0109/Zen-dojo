@@ -7,7 +7,7 @@
 
 ## Goal
 
-Enable seamless, bi-directional cloud synchronization across multiple logged-in devices using an offline-first architecture identical to Notion. Users can work 100% offline with zero latency; all mutations are queued locally and only incremental changes (deltas) are synced to the cloud when connected. The cloud database runs on Turso's generous free tier (9 GB, 1B reads/mo, 25M writes/mo).
+Enable seamless, bi-directional cloud synchronization across multiple logged-in devices using an offline-first architecture identical to Notion. Users can work 100% offline with zero latency; all mutations are queued locally and only incremental changes (deltas) are synced to the cloud when connected. The cloud database runs on a 5 GB free-tier SQLite engine (Cloudflare D1 with $0 egress fees or Turso libSQL).
 
 ## Context
 
