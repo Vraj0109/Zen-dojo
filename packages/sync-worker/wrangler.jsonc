@@ -1,0 +1,12 @@
+{
+  "name": "zen-dojo-sync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zen-dojo-db",
+      "database_id": "REPLACE_WITH_DATABASE_ID"
+    }
+  ]
+}
