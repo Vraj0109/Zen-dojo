@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PROBLEMS, type Problem } from "@habit/shared";
+import { PROBLEMS, type PackProblem, type Problem } from "@habit/shared";
+import { getItem, listItems } from "@/lib/content";
+import { ProblemDrawer, type DrawerInitial } from "./problem-drawer";
 
 const COOKIE = "zen_admin_session";
 
@@ -55,45 +57,42 @@ function keep(p: { q: string; source: string; difficulty: string }, extra: Recor
 
 const field = "w-full rounded-md border border-line bg-background px-3 py-2 text-sm";
 
-function EditDrawer({ problem, closeHref }: { problem: Problem | null; closeHref: string }) {
-  return (
-    <div
-      className="fixed inset-0 z-30 flex justify-end bg-black/40"
-      role="dialog"
-      aria-modal="true"
-      aria-label={problem ? `Edit ${problem.title}` : "Add new problem"}
-    >
-      <Link href={closeHref} className="flex-1" aria-label="Close editor" />
-      <aside className="h-full w-full max-w-2xl overflow-y-auto border-l border-line bg-surface p-6 shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold">{problem ? `Edit: ${problem.title}` : "Add new problem"}</h2>
-          <Link href={closeHref} className="rounded-md border border-line px-3 py-1 text-sm hover:bg-background">Close</Link>
-        </div>
-        <p className="mb-4 rounded-md border border-line bg-background p-3 text-sm text-muted">
-          Preview only. Saving is disabled: stored problems and edits arrive with the sync plan 0044.
-        </p>
-        <form className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm">Title<input className={`${field} mt-1`} defaultValue={problem?.title ?? ""} /></label>
-            <label className="block text-sm">Slug or id<input className={`${field} mt-1`} defaultValue={problem?.slug ?? problem?.id ?? ""} /></label>
-          </div>
-          <label className="block text-sm">Statement (Markdown)
-            <textarea className={`${field} mt-1 h-40 font-mono`} defaultValue={problem?.why ?? ""} />
-          </label>
-          <label className="block text-sm">Test cases (input, a line with ---, then expected output)
-            <textarea className={`${field} mt-1 h-28 font-mono`} placeholder={"input\n---\nexpected output"} />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm">C++ reference solution<textarea className={`${field} mt-1 h-40 font-mono`} /></label>
-            <label className="block text-sm">Java reference solution<textarea className={`${field} mt-1 h-40 font-mono`} /></label>
-          </div>
-          <button type="button" disabled className="cursor-not-allowed rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent opacity-50">
-            Save (available with plan 0044)
-          </button>
-        </form>
-      </aside>
-    </div>
-  );
+function toInitial(id: string, builtin: Problem | null, stored: PackProblem | null): DrawerInitial {
+  if (stored) {
+    const cases = [...stored.examples, ...stored.tests].map((c) => ({ input: c.input, output: c.output }));
+    return {
+      originalId: id,
+      title: stored.title,
+      slug: stored.id,
+      difficulty: stored.difficulty ?? "easy",
+      source: stored.source ?? "",
+      category: stored.group ?? "",
+      description: stored.statement.join("\n\n"),
+      constraints: stored.constraints.join("\n"),
+      fnName: stored.fn.name,
+      params: stored.fn.params.map((p) => `${p.name}:${p.type}`).join(", "),
+      returns: stored.fn.returns,
+      tests: JSON.stringify(cases, null, 2),
+      code: stored.solution?.cpp ?? "",
+      stored: true,
+    };
+  }
+  return {
+    originalId: "",
+    title: builtin?.title ?? "",
+    slug: builtin ? (builtin.slug ?? builtin.id) : "",
+    difficulty: builtin?.difficulty ?? "easy",
+    source: builtin ? sourceOf(builtin.id) : "",
+    category: "",
+    description: builtin?.why ?? "",
+    constraints: "",
+    fnName: "",
+    params: "",
+    returns: "int",
+    tests: "",
+    code: "",
+    stored: false,
+  };
 }
 
 async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }) {
@@ -116,8 +115,19 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
   });
   const shown = matches.slice(0, MAX_ROWS);
   const editId = one(sp.edit);
-  const editing = editId ? (PROBLEMS[editId] ?? null) : null;
-  const drawerOpen = Boolean(editing) || one(sp.new) === "1";
+  const storedRow = editId ? await getItem(`problem:${editId}`) : null;
+  const storedEdit = storedRow?.item.type === "problem" ? (storedRow.item as PackProblem) : null;
+  const builtinEdit = editId ? (PROBLEMS[editId] ?? null) : null;
+  const drawerMode: "new" | "edit" | null = storedEdit || builtinEdit ? "edit" : one(sp.new) === "1" ? "new" : null;
+  const storedShown = (await listItems("problem"))
+    .filter((r) => r.source !== "builtin" && r.item.type === "problem")
+    .map((r) => r.item as PackProblem)
+    .filter((p) => {
+      if (source && (p.source ?? "Other") !== source) return false;
+      if (difficulty && (p.difficulty ?? "none") !== difficulty) return false;
+      if (needle && !p.title.toLowerCase().includes(needle) && !p.id.includes(needle)) return false;
+      return true;
+    });
 
   return (
     <div className="space-y-4">
@@ -171,6 +181,18 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
             </tr>
           </thead>
           <tbody>
+            {storedShown.map((p) => (
+              <tr key={`stored-${p.id}`} className="border-b border-line">
+                <td className="px-4 py-2 font-medium">{p.title}</td>
+                <td className="px-4 py-2 font-mono text-xs text-muted">{p.id}</td>
+                <td className="px-4 py-2">{p.source ?? "Other"}</td>
+                <td className="px-4 py-2">{p.difficulty ? <span className={`text-diff-${p.difficulty}`}>{p.difficulty}</span> : <span className="text-muted">unrated</span>}</td>
+                <td className="px-4 py-2 text-muted">Stored</td>
+                <td className="px-4 py-2 text-right">
+                  <Link href={keep(f, { edit: p.id })} className="text-accent hover:underline">Edit</Link>
+                </td>
+              </tr>
+            ))}
             {shown.map((p) => (
               <tr key={p.id} className="border-b border-line last:border-0">
                 <td className="px-4 py-2 font-medium">{p.title}</td>
@@ -185,7 +207,7 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
                 </td>
               </tr>
             ))}
-            {shown.length === 0 && (
+            {shown.length === 0 && storedShown.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted">No problems match these filters.</td>
               </tr>
@@ -194,7 +216,9 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
         </table>
       </div>
 
-      {drawerOpen && <EditDrawer problem={editing} closeHref={keep(f, {})} />}
+      {drawerMode && (
+        <ProblemDrawer key={`${drawerMode}:${editId}`} mode={drawerMode} initial={toInitial(editId, builtinEdit, storedEdit)} closeHref={keep(f, {})} />
+      )}
     </div>
   );
 }
