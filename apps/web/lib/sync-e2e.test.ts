@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+// @ts-expect-error -- this @types/node has no declarations for node:sqlite (it exists at runtime)
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +14,8 @@ import worker, {
 } from "../../../packages/sync-worker/src/index";
 import { signAccessToken } from "../../../packages/sync-worker/src/auth/jwt";
 import { resetGuardState } from "../../../packages/sync-worker/src/guard/guard";
+
+type SqlArgs = never[]; // node:sqlite bind values, kept loose because its types are not available here
 
 /**
  * Cloudflare D1 mock implementation backed by Node.js DatabaseSync.
@@ -32,22 +35,18 @@ function createD1Mock(db: DatabaseSync): D1Database {
         },
         async first<T = unknown>(): Promise<T | null> {
           const s = db.prepare(query);
-          const row = s.get(...(bound as any));
+          const row = s.get(...(bound as SqlArgs));
           return (row ?? null) as T | null;
         },
         async run(): Promise<D1Result> {
           const s = db.prepare(query);
-          const res = s.run(...(bound as any));
+          const res = s.run(...(bound as SqlArgs));
           return { success: true, meta: { changes: Number(res.changes) } };
         },
         async all<T = unknown>(): Promise<D1Result<T>> {
           const s = db.prepare(query);
-          const rows = s.all(...(bound as any));
+          const rows = s.all(...(bound as SqlArgs));
           return { success: true, results: rows as T[] };
-        },
-        async raw(): Promise<unknown[]> {
-          const s = db.prepare(query);
-          return s.all(...(bound as any));
         },
       };
       return stmt;
@@ -61,10 +60,10 @@ function createD1Mock(db: DatabaseSync): D1Database {
           const prepared = db.prepare(s.query);
           const isSelect = s.query.trim().toUpperCase().startsWith("SELECT");
           if (isSelect) {
-            const rows = prepared.all(...(s.args as any));
+            const rows = prepared.all(...(s.args as SqlArgs));
             results.push({ success: true, results: rows as T[] });
           } else {
-            const res = prepared.run(...(s.args as any));
+            const res = prepared.run(...(s.args as SqlArgs));
             results.push({ success: true, meta: { changes: Number(res.changes) } });
           }
         }
