@@ -117,3 +117,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0043 | [Interactive multi-file Java IDE for LLD and System Design practice](0043-lld-system-design-interactive-java-ide.md) | ready |
 | 0044 | [Notion-style offline-first cloud sync with Turso libSQL](0044-offline-first-cloud-sync.md) | ready |
 | 0045 | [Dynamic Admin Portal for Live Content Management](0045-admin-portal-content-management.md) | ready |
+| 0046 | [Round eight: six-agent parallel sprint (TLE cancellation, Java IDE, sync engine & admin)](0046-round-eight-six-agent-parallel-work.md) | ready |
