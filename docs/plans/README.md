@@ -126,3 +126,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0052 | [An IDE in the LLD "Your classes" section](0052-lld-your-classes-ide.md) | ready |
 | 0053 | [Solved ticks (accent plus grey) and DSA search with multi-select filters](0053-solved-ticks-and-dsa-search-filters.md) | ready |
 | 0054 | [Delete my data (cloud copy and this device, separately)](0054-delete-my-data.md) | ready |
+| 0055 | [Round eleven: finish plans 0053 and 0054 (six agents, balanced)](0055-round-eleven-finish-everything.md) | ready |
