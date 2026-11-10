@@ -1,8 +1,8 @@
 # 0047: App-wide skeleton loaders & layout-shift-free streaming UI
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Antigravity, 2026-11-10
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** 2 parallel agents (Antigravity 1 & 2), 2026-11-10
 - **Spec:** Replaces all crude `<p className="text-muted">Loading...</p>` texts with fluid, theme-aware skeleton placeholders
 
 ## Goal
@@ -55,7 +55,7 @@ By building reusable skeleton primitives (`Skeleton`, `SkeletonText`, `SkeletonC
 
 ## Acceptance Criteria
 
-- [ ] Zero instances of `<p className="text-muted">Loading...</p>` remain in `apps/web/app/`.
-- [ ] Navigating between pages displays smooth animated skeletons with zero layout jump.
-- [ ] All skeletons use theme variables and look crisp in both dark, light, and focus modes.
-- [ ] `pnpm -r typecheck` passes with zero errors.
+- [x] Zero instances of `<p className="text-muted">Loading...</p>` remain in `apps/web/app/`.
+- [x] Navigating between pages displays smooth animated skeletons with zero layout jump.
+- [x] All skeletons use theme variables and look crisp in both dark, light, and focus modes.
+- [x] `pnpm -r typecheck` passes with zero errors.

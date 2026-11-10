@@ -1,6 +1,6 @@
 # 0048: Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Antigravity, 2026-11-10
 - **Implemented by:** 6 parallel agents (3 Antigravity, 3 Claude Code), 2026-11-10
 - **Spec:** Balanced 6-way workload (~10-15 mins each) with zero file collisions and fast targeted test execution
@@ -43,10 +43,10 @@ Round Nine delivers the full offline-first Cloudflare D1 synchronization pipelin
 
 ## Acceptance Criteria
 
-- [ ] Cloudflare D1 database and Worker package configured with bindings.
-- [ ] `/api/sync` handles batch push mutations and pulls deltas with Last-Write-Wins.
-- [ ] Admin portal allows adding and editing problems and test cases.
-- [ ] Problem workspace and Today dashboard display smooth, theme-aware skeleton loaders without layout shift.
-- [ ] All other routes (Study, Roadmap, Review, Profile) display tailored skeleton loaders with zero `<p className="text-muted">Loading...</p>` text remaining.
-- [ ] Client sync manager flushes offline mutations automatically upon reconnecting.
-- [ ] `pnpm -r typecheck` passes with zero errors across all packages.
+- [x] Cloudflare D1 database and Worker package configured with bindings.
+- [x] `/api/sync` handles batch push mutations and pulls deltas with Last-Write-Wins.
+- [x] Admin portal allows adding and editing problems and test cases.
+- [x] Problem workspace and Today dashboard display smooth, theme-aware skeleton loaders without layout shift.
+- [x] All other routes (Study, Roadmap, Review, Profile) display tailored skeleton loaders with zero `<p className="text-muted">Loading...</p>` text remaining.
+- [x] Client sync manager flushes offline mutations automatically upon reconnecting.
+- [x] `pnpm -r typecheck` passes with zero errors across all packages.
