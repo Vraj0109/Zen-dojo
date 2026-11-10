@@ -1,0 +1,41 @@
+name: Deploy sync worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/sync-worker/**"
+      - ".github/workflows/deploy-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager" in package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: packages/sync-worker
+          command: deploy
