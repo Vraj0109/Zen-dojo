@@ -21,9 +21,9 @@ const STORAGE_PREFIX = "zen-dojo:project:";
 const MAX_FILES = 30;
 const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(\.java)?$/;
 
-function loadStored(projectId: string): { files: ProjectFile[]; active: string } | null {
+function loadStored(key: string): { files: ProjectFile[]; active: string } | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_PREFIX + projectId);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return null;
     const data: unknown = JSON.parse(raw);
     if (typeof data !== "object" || data === null) return null;
@@ -39,17 +39,17 @@ function loadStored(projectId: string): { files: ProjectFile[]; active: string }
   }
 }
 
-function saveStored(projectId: string, files: ProjectFile[], active: string) {
+function saveStored(key: string, files: ProjectFile[], active: string) {
   try {
-    window.localStorage.setItem(STORAGE_PREFIX + projectId, JSON.stringify({ files, active }));
+    window.localStorage.setItem(key, JSON.stringify({ files, active }));
   } catch {
     // Storage can be blocked or full; the editor keeps working in memory.
   }
 }
 
-function clearStored(projectId: string) {
+function clearStored(key: string) {
   try {
-    window.localStorage.removeItem(STORAGE_PREFIX + projectId);
+    window.localStorage.removeItem(key);
   } catch {
     // ignore
   }
@@ -85,9 +85,26 @@ const ICON_RESET = "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5";
 const BUTTON =
   "inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-foreground hover:bg-line/40 disabled:cursor-not-allowed disabled:opacity-50";
 
-export function ProjectEditor({ projectId, initialFiles }: { projectId: string; initialFiles: ProjectFile[] }) {
-  const [files, setFiles] = useState<ProjectFile[]>(initialFiles);
-  const [active, setActive] = useState<string>(initialFiles[0]?.name ?? "");
+export type ProjectEditorProps = {
+  projectId: string;
+  initialFiles?: ProjectFile[];
+  value?: ProjectFile[];
+  onChange?: (files: ProjectFile[]) => void;
+  storageKey?: string;
+  showReset?: boolean;
+};
+
+export function ProjectEditor({
+  projectId,
+  initialFiles,
+  value,
+  onChange,
+  storageKey,
+  showReset = true,
+}: ProjectEditorProps) {
+  const defaultFiles = value ?? initialFiles ?? [];
+  const [files, setFiles] = useState<ProjectFile[]>(defaultFiles);
+  const [active, setActive] = useState<string>(defaultFiles[0]?.name ?? "");
   const [revision, setRevision] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -100,29 +117,45 @@ export function ProjectEditor({ projectId, initialFiles }: { projectId: string; 
   const editorRef = useRef<HTMLDivElement>(null);
   const filesRef = useRef(files);
   const activeRef = useRef(active);
+  const onChangeRef = useRef(onChange);
+  const initialFilesRef = useRef(initialFiles && initialFiles.length > 0 ? initialFiles : (value ?? []));
   const pendingJump = useRef<{ file: string; line: number; column?: number } | null>(null);
   const selectId = `project-lang-${projectId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+  const resolvedKey = storageKey ?? (STORAGE_PREFIX + projectId);
 
   useEffect(() => {
     filesRef.current = files;
     activeRef.current = active;
-  }, [files, active]);
+    onChangeRef.current = onChange;
+  }, [files, active, onChange]);
+
+  useEffect(() => {
+    if (value !== undefined && value !== filesRef.current) {
+      filesRef.current = value;
+      initialFilesRef.current = value;
+      setFiles(value);
+      if (!value.some((f) => f.name === activeRef.current)) {
+        setActive(value[0]?.name ?? "");
+      }
+    }
+  }, [value]);
 
   // Load saved work after mount, so the server and first client render agree.
   useEffect(() => {
-    const stored = loadStored(projectId);
+    const stored = loadStored(resolvedKey);
     /* eslint-disable react-hooks/set-state-in-effect -- browser storage can only be read after mount */
     if (stored) {
       setFiles(stored.files);
       setActive(stored.active);
+      onChangeRef.current?.(stored.files);
     }
     setHydrated(true);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [projectId]);
+  }, [resolvedKey]);
 
   useEffect(() => {
-    if (hydrated) saveStored(projectId, files, active);
-  }, [projectId, files, active, hydrated]);
+    if (hydrated) saveStored(resolvedKey, files, active);
+  }, [resolvedKey, files, active, hydrated]);
 
   /** Copies the editor's current text into state and returns the up-to-date file list. */
   const flush = useCallback((): ProjectFile[] => {
@@ -134,8 +167,22 @@ export function ProjectEditor({ projectId, initialFiles }: { projectId: string; 
     const next = current.map((f) => (f.name === name ? { ...f, content: textarea.value } : f));
     filesRef.current = next;
     setFiles(next);
+    onChangeRef.current?.(next);
     return next;
   }, []);
+
+  // Flush on blur so clicks outside the editor immediately capture changes.
+  useEffect(() => {
+    const root = editorRef.current;
+    if (!root) return;
+    const onBlur = () => {
+      flush();
+    };
+    root.addEventListener("focusout", onBlur);
+    return () => {
+      root.removeEventListener("focusout", onBlur);
+    };
+  }, [flush]);
 
   // The editor keeps its text inside the textarea without firing events, so check it a few times a second.
   useEffect(() => {
@@ -199,6 +246,7 @@ export function ProjectEditor({ projectId, initialFiles }: { projectId: string; 
     setAdding(false);
     setNewName("");
     setNameError("");
+    onChangeRef.current?.(next);
   };
 
   const deleteFile = () => {
@@ -210,17 +258,20 @@ export function ProjectEditor({ projectId, initialFiles }: { projectId: string; 
     filesRef.current = next;
     setFiles(next);
     setActive(next[Math.min(index, next.length - 1)].name);
+    onChangeRef.current?.(next);
   };
 
   const resetCode = () => {
     if (!window.confirm("Reset every file to the starting code? Your changes will be lost.")) return;
-    clearStored(projectId);
-    filesRef.current = initialFiles;
-    setFiles(initialFiles);
-    setActive(initialFiles[0]?.name ?? "");
+    clearStored(resolvedKey);
+    const target = initialFiles && initialFiles.length > 0 ? initialFiles : initialFilesRef.current;
+    filesRef.current = target;
+    setFiles(target);
+    setActive(target[0]?.name ?? "");
     setResult(null);
     setFailure("");
     setRevision((r) => r + 1);
+    onChangeRef.current?.(target);
   };
 
   const run = async () => {
@@ -297,20 +348,16 @@ export function ProjectEditor({ projectId, initialFiles }: { projectId: string; 
           <Icon d={ICON_TRASH} />
           Delete File
         </button>
-        <button type="button" onClick={resetCode} className={BUTTON}>
-          <Icon d={ICON_RESET} />
-          Reset Code
-        </button>
+        {showReset !== false && (
+          <button type="button" onClick={resetCode} className={BUTTON}>
+            <Icon d={ICON_RESET} />
+            Reset Code
+          </button>
+        )}
       </div>
 
       {adding && (
-        <form
-          className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addFile();
-          }}
-        >
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
           <label htmlFor={`${selectId}-new`} className="text-xs text-muted">
             File name
           </label>
@@ -321,16 +368,22 @@ export function ProjectEditor({ projectId, initialFiles }: { projectId: string; 
               setNewName(e.target.value);
               setNameError("");
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addFile();
+              }
+            }}
             placeholder="User.java"
             autoFocus
             spellCheck={false}
             className="rounded-md border border-line bg-background px-2 py-1 font-mono text-xs"
           />
-          <button type="submit" className={BUTTON}>
+          <button type="button" onClick={addFile} className={BUTTON}>
             Add
           </button>
           {nameError && <span className="text-xs text-red-600 dark:text-red-400">{nameError}</span>}
-        </form>
+        </div>
       )}
 
       <div role="tablist" aria-label="Project files" className="flex gap-px overflow-x-auto border-b border-line bg-line/30">

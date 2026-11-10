@@ -493,7 +493,13 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
                   : "Requirements:\nEntities and relationships:\nPatterns used:\nConcurrency:\nExtensions:"
               }
               codeLabel={isDesign ? "Schema, API or pseudo-code" : "Your classes"}
-              codePlaceholder={isDesign ? "Optional: table schemas, API signatures, key algorithms." : "The class design you wrote. Re-write it from scratch when you practice again, then compare."}
+              codePlaceholder={
+                isDesign
+                  ? "Optional: table schemas, API signatures, key algorithms."
+                  : "Write your design as Java files and run them. Saved with this problem."
+              }
+              codeHelp={!isDesign ? "Write your design as Java files and run them. Saved with this problem." : undefined}
+              javaProject={!isDesign}
             />
           </div>
         </ArticleSection>
