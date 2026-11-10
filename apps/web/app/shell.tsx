@@ -8,33 +8,6 @@ import { getZenMode, initZenMode, setZenMode, subscribeZen, toggleZenMode } from
 import { getAppearanceAction, setAppearanceAction } from "./actions";
 import { HistoryButtons } from "./history-buttons";
 
-// Whether the slim top bar is hidden on focus pages (Ctrl+Shift+B), remembered in this browser.
-const BAR_KEY = "habit-bar-hidden";
-const barListeners = new Set<() => void>();
-const barHidden = () => {
-  try {
-    return localStorage.getItem(BAR_KEY) === "1";
-  } catch {
-    return false;
-  }
-};
-const setBarHidden = (hidden: boolean) => {
-  try {
-    localStorage.setItem(BAR_KEY, hidden ? "1" : "0");
-  } catch {
-    // storage can be blocked; the bar is then only hidden until the page reloads
-  }
-  barListeners.forEach((l) => l());
-};
-const subscribeBar = (l: () => void) => {
-  barListeners.add(l);
-  window.addEventListener("storage", l);
-  return () => {
-    barListeners.delete(l);
-    window.removeEventListener("storage", l);
-  };
-};
-
 /** Pages where the work (a problem and its editor) should fill the window: the sidebar becomes a slim bar. */
 export function isFocusPage(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -70,11 +43,15 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
   const [openFor, setOpenFor] = useState<string | null>(null);
   // The drawer belongs to one page: moving to another page closes it without an effect.
   const open = openFor === pathname;
-  const hiddenBar = useSyncExternalStore(subscribeBar, barHidden, () => false);
   const zen = useSyncExternalStore(subscribeZen, getZenMode, () => false);
 
   useEffect(() => {
     initZenMode();
+    try {
+      localStorage.removeItem("habit-bar-hidden");
+    } catch {
+      // storage blocked
+    }
   }, []);
 
   useEffect(() => {
@@ -130,10 +107,6 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
         e.preventDefault();
         setOpenFor((o) => (o === pathname ? null : pathname));
       }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        setBarHidden(!barHidden());
-      }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
         toggleZenMode();
@@ -146,77 +119,47 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
   if (!compact) return <FullShell aside={aside}>{children}</FullShell>;
 
   return (
-    // The panes fill what is left under the bar: 28 px for the bar (nothing when it is hidden) on top of the old 8.5rem minus the old 40 px bar.
-    <div className="shell-compact flex min-h-full flex-col" style={{ "--pane-h": hiddenBar ? "calc(100dvh - 6rem)" : "calc(100dvh - 7.75rem)" } as CSSProperties}>
-      {hiddenBar ? (
-        <div className="fixed top-2 left-3 z-40 flex items-center gap-2 print:hidden">
-          <button
-            type="button"
-            onClick={() => setBarHidden(false)}
-            aria-label="Show top bar"
-            title="Show the top bar (Ctrl+Shift+B)"
-            className="group flex items-center gap-1.5 rounded-full border border-line bg-surface/95 px-3 py-1 text-xs font-medium text-muted shadow-md backdrop-blur transition-all hover:border-accent hover:bg-background hover:text-foreground"
-          >
-            <svg viewBox="0 0 24 24" className="size-3.5 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-            <span>Show top bar</span>
-            <kbd className="hidden sm:inline-block rounded border border-line bg-background px-1 py-0.5 text-[10px] text-muted">Ctrl+Shift+B</kbd>
-          </button>
+    <div className="shell-compact flex min-h-full flex-col" style={{ "--pane-h": "calc(100dvh - 7.75rem)" } as CSSProperties}>
+      <div className="sticky top-0 z-30 flex h-7 items-center gap-1 border-b border-line bg-surface px-2 print:hidden">
+        <button
+          type="button"
+          onClick={() => setOpenFor(open ? null : pathname)}
+          aria-expanded={open}
+          aria-controls="shell-drawer"
+          aria-label="Menu"
+          title="Menu (Ctrl+B)"
+          className="grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground"
+        >
+          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="[&_button]:size-6 [&_button]:rounded-md [&_button]:border-0">
+          <HistoryButtons />
         </div>
-      ) : (
-        <div className="sticky top-0 z-30 flex h-7 items-center gap-1 border-b border-line bg-surface px-2 print:hidden">
-          <button
-            type="button"
-            onClick={() => setOpenFor(open ? null : pathname)}
-            aria-expanded={open}
-            aria-controls="shell-drawer"
-            aria-label="Menu"
-            title="Menu (Ctrl+B)"
-            className="grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground"
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="[&_button]:size-6 [&_button]:rounded-md [&_button]:border-0">
-            <HistoryButtons />
-          </div>
-          <Link
-            href={pathname?.startsWith("/study/") ? "/study" : "/dsa"}
-            aria-label={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
-            title={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
-            className="grid size-6 place-items-center rounded-md text-sm text-muted hover:bg-background hover:text-foreground"
-          >
-            <span aria-hidden>↩</span>
-          </Link>
-          <button
-            type="button"
-            onClick={toggleZenMode}
-            aria-pressed={zen}
-            aria-label="Zen mode"
-            title="Zen mode: focus purely on problem and code (Ctrl+Shift+Z)"
-            className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
-              zen ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
-            }`}
-          >
-            <span aria-hidden className="inline-block size-1.5 rounded-full bg-current" />
-            <span>Zen</span>
-          </button>
-          {zen && <span className="text-[11px] text-muted italic ml-1">focus mode (Esc to exit)</span>}
-          <button
-            type="button"
-            onClick={() => setBarHidden(true)}
-            aria-label="Hide the top bar"
-            title="Hide the top bar (Ctrl+Shift+B)"
-            className="ml-auto grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground"
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="m6 15 6-6 6 6" />
-            </svg>
-          </button>
-        </div>
-      )}
+        <Link
+          href={pathname?.startsWith("/study/") ? "/study" : "/dsa"}
+          aria-label={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
+          title={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
+          className="grid size-6 place-items-center rounded-md text-sm text-muted hover:bg-background hover:text-foreground"
+        >
+          <span aria-hidden>↩</span>
+        </Link>
+        <button
+          type="button"
+          onClick={toggleZenMode}
+          aria-pressed={zen}
+          aria-label="Zen mode"
+          title="Zen mode: focus purely on problem and code (Ctrl+Shift+Z)"
+          className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
+            zen ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+        >
+          <span aria-hidden className="inline-block size-1.5 rounded-full bg-current" />
+          <span>Zen</span>
+        </button>
+        {zen && <span className="text-[11px] text-muted italic ml-1">focus mode (Esc to exit)</span>}
+      </div>
       <div
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={() => setOpenFor(null)}
