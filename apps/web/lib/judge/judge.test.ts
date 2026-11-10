@@ -125,7 +125,7 @@ describe.skipIf(!GPP)("reference solutions (C++)", () => {
     expect(loop.status).toBe("done");
     if (loop.status === "done") {
       expect(loop.passed).toBe(0);
-      expect(loop.results[0]).toMatchObject({ pass: false, problem: "timeout" });
+      expect(loop.results[0]).toMatchObject({ pass: false, problem: "tle" });
       expect(loop.results.length).toBe(two.examples.length + two.tests.length + (two.stress?.length ?? 0));
       expect(loop.results.some((r) => r.problem === "not-run")).toBe(true); // the 15 s budget ran out
     }
@@ -564,8 +564,8 @@ public:
       expect(r.results.slice(0, known).every((x) => x.pass)).toBe(true); // right on all the small cases
       const large = r.results.slice(known);
       expect(large.length).toBe(spec.stress!.length);
-      expect(large.some((x) => x.problem === "timeout")).toBe(true); // too slow on the big ones
-      expect(large.find((x) => x.problem === "timeout")!.error).toMatch(/too slow|Time limit exceeded/i);
+      expect(large.some((x) => x.problem === "tle")).toBe(true); // too slow on the big ones
+      expect(large.find((x) => x.problem === "tle")!.error).toMatch(/too slow|Time limit exceeded/i);
     }
   }, 120_000);
 

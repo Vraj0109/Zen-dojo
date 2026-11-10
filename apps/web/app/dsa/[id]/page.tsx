@@ -144,7 +144,7 @@ async function Problem({
               </span>
               {p.solveSource === "judge" && (
                 <span className="rounded bg-diff-easy/15 px-2 py-0.5 text-xs font-semibold text-diff-easy">
-                  ✓ Solved on Zen Dojo
+                  Solved on Zen Dojo
                 </span>
               )}
               {p.onLeetCode && (

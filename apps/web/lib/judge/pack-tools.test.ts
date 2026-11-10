@@ -151,7 +151,7 @@ describe.skipIf(!GPP)("large inputs in a pack problem", () => {
     if (slow.status === "done") {
       const big = slow.results.find((r) => r.kind === "stress")!;
       expect(big.pass).toBe(false);
-      expect(big.problem).toBe("timeout");
+      expect(big.problem).toBe("tle");
     }
   }, 120_000);
 });
