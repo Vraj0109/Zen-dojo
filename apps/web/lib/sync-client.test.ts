@@ -11,6 +11,7 @@ import {
   SyncManager,
   applyIncomingDeltas,
   type SyncStatus,
+  type SyncPayload,
 } from "./sync-manager";
 
 describe("SyncManager & Client Sync Protocol", () => {
@@ -92,7 +93,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       manager.setOnlineState(false);
@@ -127,10 +128,10 @@ describe("SyncManager & Client Sync Protocol", () => {
         clientTimestamp: 1794000200000,
       });
 
-      let capturedPayload: any = null;
+      let capturedPayload: SyncPayload | null = null;
 
-      const fetchMock = vi.fn().mockImplementation(async (url: string, init: any) => {
-        capturedPayload = JSON.parse(init.body);
+      const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+        capturedPayload = JSON.parse(String(init?.body)) as SyncPayload;
         return {
           ok: true,
           status: 200,
@@ -145,7 +146,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
         apiEndpoint: "/api/sync",
       });
 
@@ -163,11 +164,12 @@ describe("SyncManager & Client Sync Protocol", () => {
       expect(req.headers["Content-Type"]).toBe("application/json");
 
       // Verify captured payload structure
-      expect(capturedPayload).toBeDefined();
-      expect(capturedPayload.last_synced_at).toBe(0);
-      expect(capturedPayload.mutations).toHaveLength(2);
+      const payload = capturedPayload as unknown as SyncPayload;
+      expect(payload).toBeDefined();
+      expect(payload.last_synced_at).toBe(0);
+      expect(payload.mutations).toHaveLength(2);
 
-      const m1 = capturedPayload.mutations[0];
+      const m1 = payload.mutations[0];
       expect(m1.table_name).toBe("tasks");
       expect(m1.row_id).toBe("task-101");
       expect(m1.action).toBe("upsert");
@@ -205,7 +207,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       const result = await manager.flushSyncQueue();
@@ -358,7 +360,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       const result = await manager.flushSyncQueue();
@@ -382,7 +384,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       const result = await manager.flushSyncQueue();
@@ -408,7 +410,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       manager.startBackgroundSync(5000);
@@ -442,7 +444,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       const result = await manager.flushSyncQueue();
@@ -469,7 +471,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       const manager = new SyncManager({
         db,
         autoStart: false,
-        fetchFn: fetchMock as any,
+        fetchFn: fetchMock as unknown as typeof fetch,
       });
 
       const result = await manager.flushSyncQueue();

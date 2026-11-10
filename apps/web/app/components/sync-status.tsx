@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import {
   flushSyncQueue,
@@ -10,18 +10,21 @@ import {
   type SyncStatus as SyncStatusState,
 } from "@/lib/sync-manager";
 import { currentUser, setCurrentUser, type CurrentUser } from "@/lib/sync-queue";
+import type { AnyDbClient } from "@/lib/sync-schema";
 import {
   adoptLocalData,
   hasLocalData,
   shouldPromptAdoption,
 } from "@/lib/account-adopt";
 
+const emptySubscribe = () => () => {};
+
 export interface SyncStatusProps {
   className?: string;
   showSyncButton?: boolean;
   compact?: boolean;
   user?: CurrentUser | null;
-  db?: any;
+  db?: AnyDbClient;
 }
 
 export function SyncStatus({
@@ -33,12 +36,11 @@ export function SyncStatus({
 }: SyncStatusProps) {
   const [status, setStatus] = useState<SyncStatusState>(() => getSyncStatus());
   const [isPending, startTransition] = useTransition();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [showAdoptPrompt, setShowAdoptPrompt] = useState(false);
   const [isAdopting, setIsAdopting] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     if (propUser !== undefined) {
       setCurrentUser(propUser);
     }

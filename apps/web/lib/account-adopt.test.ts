@@ -1,10 +1,9 @@
-import { createClient } from "@libsql/client";
+import { createClient, type InStatement, type TransactionMode } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adoptLocalData,
   hasLocalData,
   shouldPromptAdoption,
-  SYNC_TABLES,
 } from "./account-adopt";
 import { applySyncSchema } from "./sync-schema";
 import { getPendingMutations } from "./sync-queue";
@@ -189,17 +188,17 @@ describe("account-adopt (local data adoption)", () => {
 
       // Intentionally cause transaction failure by intercepting transaction
       const origTransaction = db.transaction.bind(db);
-      db.transaction = (async (mode: any) => {
+      db.transaction = (async (mode?: TransactionMode) => {
         const tx = await origTransaction(mode);
         const origExecute = tx.execute.bind(tx);
-        tx.execute = (async (stmt: any) => {
+        tx.execute = async (stmt: InStatement) => {
           if (typeof stmt === "object" && typeof stmt.sql === "string" && stmt.sql.includes("local_sync_queue")) {
             throw new Error("Simulated disk error during queue insertion");
           }
           return origExecute(stmt);
-        }) as any;
+        };
         return tx;
-      }) as any;
+      }) as typeof db.transaction;
 
       await expect(adoptLocalData(db, "gh:fail")).rejects.toThrow("Simulated disk error");
 

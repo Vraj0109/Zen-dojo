@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { InStatement, Transaction } from "@libsql/client";
 import {
   USER_SYNC_TABLES,
   extractClient,
@@ -46,7 +47,7 @@ export async function hasLocalData(
       if (!tableCheck.rows || tableCheck.rows.length === 0) continue;
 
       const info = await client.execute(`PRAGMA table_info(${table})`);
-      const cols = new Set((info.rows ?? []).map((r: any) => String(r.name).toLowerCase()));
+      const cols = new Set((info.rows ?? []).map((r: Record<string, unknown>) => String(r.name).toLowerCase()));
       if (!cols.has("user_id")) continue;
 
       const res = await client.execute({
@@ -101,7 +102,7 @@ export async function adoptLocalData(
     `);
   }
 
-  const statements: Array<{ sql: string; args?: any[] }> = [];
+  const statements: InStatement[] = [];
   let totalAdopted = 0;
   const now = Date.now();
 
@@ -113,19 +114,19 @@ export async function adoptLocalData(
     if (!tableCheck.rows || tableCheck.rows.length === 0) continue;
 
     const info = await client.execute(`PRAGMA table_info(${table})`);
-    const cols = new Set((info.rows ?? []).map((r: any) => String(r.name).toLowerCase()));
+    const cols = new Set((info.rows ?? []).map((r: Record<string, unknown>) => String(r.name).toLowerCase()));
     if (!cols.has("user_id")) continue;
 
     const pkCols = (info.rows ?? [])
-      .filter((r: any) => Number(r.pk) > 0)
-      .sort((a: any, b: any) => Number(a.pk) - Number(b.pk))
-      .map((r: any) => String(r.name));
+      .filter((r: Record<string, unknown>) => Number(r.pk) > 0)
+      .sort((a: Record<string, unknown>, b: Record<string, unknown>) => Number(a.pk) - Number(b.pk))
+      .map((r: Record<string, unknown>) => String(r.name));
 
     const res = await client.execute({
       sql: `SELECT * FROM ${table} WHERE user_id = 'local'`,
       args: [],
     });
-    const rows = (res.rows ?? []) as any[];
+    const rows = (res.rows ?? []) as Record<string, unknown>[];
     if (rows.length === 0) continue;
 
     totalAdopted += rows.length;
@@ -142,7 +143,7 @@ export async function adoptLocalData(
         rowId = randomUUID();
       }
 
-      const payloadObj: Record<string, any> = {
+      const payloadObj: Record<string, unknown> = {
         ...row,
         user_id: userId,
       };
@@ -175,9 +176,12 @@ export async function adoptLocalData(
   }
 
   // Execute atomically in a transaction or batch
-  const anyClient = client as any;
-  if (typeof anyClient.transaction === "function") {
-    const tx = await anyClient.transaction("write");
+  const clientWithTx = client as {
+    transaction?: (mode?: string) => Promise<Transaction>;
+    batch?: (stmts: InStatement[], mode?: string) => Promise<unknown>;
+  };
+  if (typeof clientWithTx.transaction === "function") {
+    const tx = await clientWithTx.transaction("write");
     try {
       for (const stmt of statements) {
         await tx.execute(stmt);
@@ -189,8 +193,8 @@ export async function adoptLocalData(
       } catch {}
       throw err;
     }
-  } else if (typeof anyClient.batch === "function") {
-    await anyClient.batch(statements, "write");
+  } else if (typeof clientWithTx.batch === "function") {
+    await clientWithTx.batch(statements, "write");
   } else {
     await client.execute("BEGIN IMMEDIATE");
     try {

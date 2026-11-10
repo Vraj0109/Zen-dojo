@@ -1,3 +1,4 @@
+import type { InValue, ResultSet } from "@libsql/client";
 import { extractClient, type AnyDbClient } from "./sync-schema";
 import {
   currentUser,
@@ -70,7 +71,7 @@ export interface SyncPayload {
     row_id: string;
     rowId: string;
     action: string;
-    payload: any;
+    payload: unknown;
     client_timestamp: number;
     clientTimestamp: number;
   }>;
@@ -78,7 +79,7 @@ export interface SyncPayload {
 }
 
 export interface SyncResponse {
-  deltas?: Record<string, any[]>;
+  deltas?: Record<string, Record<string, unknown>[]>;
   synced_ids?: string[];
   server_timestamp?: number;
   serverTimestamp?: number;
@@ -105,7 +106,7 @@ function toSnakeCase(str: string): string {
  */
 export async function applyIncomingDeltas(
   db: AnyDbClient,
-  deltas: Record<string, any[]>
+  deltas: Record<string, Record<string, unknown>[]>
 ): Promise<{ applied: number; skipped: number }> {
   if (!deltas || typeof deltas !== "object") {
     return { applied: 0, skipped: 0 };
@@ -126,7 +127,7 @@ export async function applyIncomingDeltas(
     }
 
     // Inspect columns of the local table
-    let tableInfo: any;
+    let tableInfo: ResultSet;
     try {
       tableInfo = await client.execute(`PRAGMA table_info(${tableName})`);
     } catch {
@@ -135,7 +136,7 @@ export async function applyIncomingDeltas(
       continue;
     }
 
-    const tableRows = (tableInfo.rows ?? []) as any[];
+    const tableRows = (tableInfo.rows ?? []) as Record<string, unknown>[];
     if (tableRows.length === 0) {
       skipped += rows.length;
       continue;
@@ -155,7 +156,7 @@ export async function applyIncomingDeltas(
 
       // Resolve primary key filter
       let whereCols: string[] = [];
-      let whereArgs: any[] = [];
+      let whereArgs: InValue[] = [];
 
       if (pkCols.length > 0) {
         let hasAllPk = true;
@@ -168,7 +169,7 @@ export async function applyIncomingDeltas(
             break;
           }
           whereCols.push(pk);
-          whereArgs.push(val);
+          whereArgs.push(val as InValue);
         }
         if (!hasAllPk) {
           whereCols = [];
@@ -180,19 +181,19 @@ export async function applyIncomingDeltas(
       if (whereCols.length === 0) {
         if (tableName === "solution_runs" && (rawRow.problem_id || rawRow.problemId) && rawRow.lang) {
           whereCols = ["problem_id", "lang"];
-          whereArgs = [rawRow.problem_id ?? rawRow.problemId, rawRow.lang];
+          whereArgs = [(rawRow.problem_id ?? rawRow.problemId) as InValue, rawRow.lang as InValue];
         } else if (tableName === "pack_progress" && (rawRow.pack_id || rawRow.packId) && (rawRow.item_id || rawRow.itemId)) {
           whereCols = ["pack_id", "item_id"];
-          whereArgs = [rawRow.pack_id ?? rawRow.packId, rawRow.item_id ?? rawRow.itemId];
+          whereArgs = [(rawRow.pack_id ?? rawRow.packId) as InValue, (rawRow.item_id ?? rawRow.itemId) as InValue];
         } else if (tableName === "site_time" && rawRow.day && rawRow.slug) {
           whereCols = ["day", "slug"];
-          whereArgs = [rawRow.day, rawRow.slug];
+          whereArgs = [rawRow.day as InValue, rawRow.slug as InValue];
         } else if (rawRow.id !== undefined && rawRow.id !== null) {
           whereCols = ["id"];
-          whereArgs = [rawRow.id];
+          whereArgs = [rawRow.id as InValue];
         } else if (tableName === "settings" && (rawRow.key !== undefined || rawRow.id !== undefined)) {
           whereCols = ["key"];
-          whereArgs = [rawRow.key ?? rawRow.id];
+          whereArgs = [(rawRow.key ?? rawRow.id) as InValue];
         }
       }
 
@@ -204,13 +205,13 @@ export async function applyIncomingDeltas(
       const whereClause = whereCols.map((c) => `${c} = ?`).join(" AND ");
 
       // Check existing row in local database
-      let localRow: any = null;
+      let localRow: Record<string, unknown> | null = null;
       try {
         const res = await client.execute({
           sql: `SELECT updated_at, deleted_at FROM ${tableName} WHERE ${whereClause}`,
           args: whereArgs,
         });
-        localRow = res.rows?.[0];
+        localRow = (res.rows?.[0] as Record<string, unknown>) ?? null;
       } catch {
         // query error
       }
@@ -229,7 +230,7 @@ export async function applyIncomingDeltas(
       }
 
       // Prepare column map matching local table columns
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, InValue> = {};
       for (const [key, val] of Object.entries(rawRow)) {
         const snakeKey = toSnakeCase(key);
         let targetCol: string | null = null;
@@ -243,8 +244,10 @@ export async function applyIncomingDeltas(
         if (targetCol) {
           if (val !== null && typeof val === "object") {
             updateData[targetCol] = JSON.stringify(val);
+          } else if (typeof val === "boolean") {
+            updateData[targetCol] = val ? 1 : 0;
           } else {
-            updateData[targetCol] = val;
+            updateData[targetCol] = val as InValue;
           }
         }
       }
@@ -257,7 +260,7 @@ export async function applyIncomingDeltas(
       // Soft delete handling
       const isDeleted = rawRow.deleted_at !== undefined && rawRow.deleted_at !== null;
       if (isDeleted && columnNames.has("deleted_at")) {
-        updateData.deleted_at = rawRow.deleted_at;
+        updateData.deleted_at = rawRow.deleted_at as InValue;
       }
 
       const cols = Object.keys(updateData);
@@ -308,14 +311,14 @@ export class SyncManager {
   private intervalMs: number = 60000;
   private status: SyncStatus = "idle";
   private subscribers = new Set<(status: SyncStatus) => void>();
-  private timer: any = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
   private isSyncing = false;
   private inFlightSync: Promise<FlushResult> | null = null;
   private isOnlineOverride: boolean | null = null;
   private fetchFn: typeof fetch;
   private configuredUserId?: string;
   private retryAttempts = 0;
-  private retryTimer: any = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: SyncManagerOptions = {}) {
     this.db = options.db ?? null;
@@ -327,9 +330,9 @@ export class SyncManager {
       options.fetchFn ??
       (typeof fetch !== "undefined"
         ? fetch.bind(globalThis)
-        : (async () => {
+        : (async (): Promise<Response> => {
             throw new Error("No fetch implementation available");
-          }) as any);
+          }));
 
     // Initial status check
     if (this.isOffline()) {
@@ -344,11 +347,11 @@ export class SyncManager {
     }
   }
 
-  public getRetryTimer(): any {
+  public getRetryTimer(): ReturnType<typeof setTimeout> | null {
     return this.retryTimer;
   }
 
-  public getBackgroundTimer(): any {
+  public getBackgroundTimer(): ReturnType<typeof setInterval> | null {
     return this.timer;
   }
 
@@ -534,7 +537,7 @@ export class SyncManager {
 
         // 3. Package mutations payload
         const mutationsPayload = pending.map((m) => {
-          let parsedPayload: any;
+          let parsedPayload: unknown;
           try {
             parsedPayload = typeof m.payload === "string" ? JSON.parse(m.payload) : m.payload;
           } catch {
@@ -584,10 +587,7 @@ export class SyncManager {
 
         // 429 Too Many Requests: throttled with Retry-After backoff
         if (res.status === 429) {
-          const retryHeader =
-            res.headers && typeof (res.headers as any).get === "function"
-              ? (res.headers as any).get("Retry-After")
-              : null;
+          const retryHeader = res.headers?.get ? res.headers.get("Retry-After") : null;
           const retryMs = parseRetryAfter(retryHeader);
 
           const MAX_BACKOFF_MS = 15 * 60 * 1000; // 15 min cap
@@ -706,7 +706,7 @@ export class SyncManager {
           deltasSkipped: deltasResult.skipped,
           lastSyncedAt: newTimestamp,
         };
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (this.isOffline()) {
           this.setStatus("offline");
         } else {
@@ -720,7 +720,7 @@ export class SyncManager {
         return {
           success: false,
           status: this.status,
-          error: err?.message ? String(err.message) : String(err),
+          error: err instanceof Error ? err.message : String(err),
         };
       } finally {
         this.isSyncing = false;

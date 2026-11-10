@@ -162,9 +162,7 @@ describe("Judge TLE Cutoff and Process Tree Cancellation", () => {
         };
       `;
 
-      const t0 = Date.now();
       const res = await runCode(spec, "cpp", cppLoop);
-      const elapsed = Date.now() - t0;
 
       expect(res.status).toBe("done");
       if (res.status === "done") {

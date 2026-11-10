@@ -90,9 +90,9 @@ export async function recordMutation(
 
   let payload: string;
   if (typeof options.payload === "string") {
-    let parsed: any;
+    let parsed: Record<string, unknown> | null;
     try {
-      parsed = JSON.parse(options.payload);
+      parsed = JSON.parse(options.payload) as Record<string, unknown>;
     } catch {
       parsed = null;
     }
@@ -105,9 +105,9 @@ export async function recordMutation(
       payload = options.payload;
     }
   } else if (options.payload !== undefined && options.payload !== null) {
-    const payloadObj = { ...options.payload };
+    const payloadObj: Record<string, unknown> = { ...options.payload };
     if (!isEffectiveGuest && (!payloadObj.user_id || payloadObj.user_id === "local")) {
-      (payloadObj as any).user_id = effectiveUserId;
+      payloadObj.user_id = effectiveUserId;
     }
     payload = JSON.stringify(payloadObj);
   } else if (action === "delete") {
@@ -153,7 +153,7 @@ export async function getPendingMutations(db: AnyDbClient): Promise<SyncQueueIte
     args: [],
   });
 
-  const rows = (result.rows ?? []) as any[];
+  const rows = (result.rows ?? []) as Record<string, unknown>[];
   return rows.map((r) => {
     const tableName = String(r.table_name ?? r.tableName);
     const rowId = String(r.row_id ?? r.rowId);
@@ -185,7 +185,7 @@ export async function getAllMutations(db: AnyDbClient): Promise<SyncQueueItem[]>
     args: [],
   });
 
-  const rows = (result.rows ?? []) as any[];
+  const rows = (result.rows ?? []) as Record<string, unknown>[];
   return rows.map((r) => {
     const tableName = String(r.table_name ?? r.tableName);
     const rowId = String(r.row_id ?? r.rowId);

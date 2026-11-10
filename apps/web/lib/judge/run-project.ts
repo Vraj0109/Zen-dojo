@@ -144,11 +144,11 @@ function executeProcess(
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       resolve({
         code: 1,
         signal: null,
-        output: String(err?.message || err),
+        output: err instanceof Error ? err.message : String(err),
         timedOut: false,
       });
       return;

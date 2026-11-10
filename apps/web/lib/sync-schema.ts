@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import type { Client } from "@libsql/client";
+import type { Client, InStatement, ResultSet } from "@libsql/client";
 
 /**
  * Standard user tables subject to multi-tenant offline synchronization.
@@ -95,23 +95,22 @@ export function generateSyncMigrationSql(tables: readonly string[] = USER_SYNC_T
 export type AnyDbClient =
   | Client
   | { $client: Client }
-  | { execute: (stmt: any) => Promise<any>; executeMultiple?: (sql: string) => Promise<any> }
-  | any;
+  | { execute: (stmt: InStatement) => Promise<ResultSet>; executeMultiple?: (sql: string) => Promise<unknown> };
 
 /**
  * Extract underlying executable client from Drizzle instance or raw client.
  */
 export function extractClient(db: AnyDbClient): {
-  execute: (stmt: any) => Promise<any>;
-  executeMultiple?: (sql: string) => Promise<any>;
+  execute: (stmt: InStatement) => Promise<ResultSet>;
+  executeMultiple?: (sql: string) => Promise<unknown>;
 } {
   if (!db) {
     throw new Error("Database instance cannot be null or undefined");
   }
-  if (db.$client && typeof db.$client.execute === "function") {
+  if ("$client" in db && db.$client && typeof db.$client.execute === "function") {
     return db.$client;
   }
-  if (typeof db.execute === "function") {
+  if ("execute" in db && typeof db.execute === "function") {
     return db;
   }
   throw new Error("Provided database object does not provide an execute method or $client");
@@ -126,7 +125,7 @@ export async function hasSyncColumns(
 ): Promise<{ hasUserId: boolean; hasUpdatedAt: boolean; hasDeletedAt: boolean }> {
   const client = extractClient(db);
   const info = await client.execute(`PRAGMA table_info(${tableName})`);
-  const cols = new Set((info.rows ?? []).map((r: any) => String(r.name).toLowerCase()));
+  const cols = new Set((info.rows ?? []).map((r: Record<string, unknown>) => String(r.name).toLowerCase()));
 
   return {
     hasUserId: cols.has("user_id"),

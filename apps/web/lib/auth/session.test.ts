@@ -310,6 +310,7 @@ describe("session management", () => {
 
     const res = await workerFetch("/api/data");
     expect(res.status).toBe(200);
+    expect(callCount).toBe(3);
     const body = await res.json();
     expect(body).toEqual({ ok: true, data: "success" });
   });
