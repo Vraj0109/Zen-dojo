@@ -19,7 +19,7 @@ import { getDb } from "./db";
 import { getNote, getNotedIds, type ProblemNote } from "./notes";
 import { getPatternNotes, type PatternNote } from "./pattern-notes";
 import { listAddedProblems } from "./content";
-import { leetcodeProblems, leetcodeTopics, leetcodeUserSubmissions, problemSolves } from "./schema";
+import { leetcodeProblems, leetcodeSubmissions, leetcodeTopics, leetcodeUserSubmissions, problemSolves, solutionRuns } from "./schema";
 import { openStruggles } from "./struggles";
 
 /** Solve history for roadmap problems (ids in PROBLEMS). Other LeetCode solves are handled separately. */
@@ -40,7 +40,30 @@ async function solveIndex() {
   return { rows, first, resolved, auto };
 }
 
+/**
+ * Where a problem counts as solved. "Here" is the main one: every test passed in this app's editor (or, for problems the
+ * judge cannot run, marked by hand). "On LeetCode" is a second, softer confirmation, like the second tick in a chat app.
+ */
+async function tickIndex(first: Map<string, string>) {
+  const db = await getDb();
+  const [rows, runs, subs] = await Promise.all([
+    db.select({ problemId: problemSolves.problemId, kind: problemSolves.kind, source: problemSolves.source }).from(problemSolves),
+    db.select({ problemId: solutionRuns.problemId, status: solutionRuns.status, passed: solutionRuns.passed, total: solutionRuns.total }).from(solutionRuns),
+    db.select({ slug: leetcodeSubmissions.slug }).from(leetcodeSubmissions),
+  ]);
+  const here = new Set<string>();
+  const leetcode = new Set<string>(subs.map((s) => s.slug));
+  for (const r of rows) if (r.kind === "solve" && first.has(r.problemId) && r.source !== "leetcode") here.add(r.problemId);
+  for (const r of runs) if (r.status === "done" && r.total > 0 && r.passed === r.total) here.add(r.problemId);
+  for (const r of rows) if (r.source === "leetcode") leetcode.add(PROBLEMS[r.problemId]?.slug ?? "");
+  return { here, leetcode };
+}
+
 export interface ProblemView extends Problem {
+  /** Solved in this app (all tests passed, or marked by hand where the judge cannot run it) */
+  here: boolean;
+  /** Also seen on LeetCode (sync or extension) */
+  onLeetCode: boolean;
   status: SolveState;
   /** First solve was imported from LeetCode */
   auto: boolean;
@@ -123,8 +146,11 @@ export async function getDsaView() {
     listAddedProblems(),
   ]);
   const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), struggling: struggles.has(e.problemId), ...lc(e.slug) }));
+  const ticks = await tickIndex(first);
   const view = (id: string): ProblemView => ({
     ...PROBLEMS[id],
+    here: ticks.here.has(id),
+    onLeetCode: ticks.leetcode.has((PROBLEMS[id].slug ?? "")),
     status: solveState(first.get(id), resolved.get(id), today),
     auto: auto.has(id),
     judgeable: id in JUDGE_PROBLEMS,
@@ -172,6 +198,8 @@ export async function getDsaView() {
 
 export interface ProblemDetail {
   id: string;
+  here?: boolean;
+  onLeetCode?: boolean;
   kind: "roadmap" | "extra";
   /** The local judge can run this problem, so its first solve has to pass every test there */
   judgeable?: boolean;
@@ -210,8 +238,11 @@ export async function getProblemDetail(id: string): Promise<ProblemDetail | null
   if (id in PROBLEMS) {
     const slug = PROBLEMS[id].slug;
     const [{ first, resolved, auto }, note, submissions, topics] = await Promise.all([solveIndex(), getNote(id), userSubmissions(slug), topicsFor(slug)]);
+    const ticks = await tickIndex(first);
     return {
       ...PROBLEMS[id],
+      here: ticks.here.has(id),
+      onLeetCode: ticks.leetcode.has(slug ?? "") || submissions.length > 0,
       kind: "roadmap",
       patterns: ALL_PATTERNS.filter((p) => p.problems.includes(id)).map(({ id, name, recognize }) => ({ id, name, recognize })),
       status: solveState(first.get(id), resolved.get(id), today),

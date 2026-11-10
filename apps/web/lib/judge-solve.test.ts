@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getDsaView, markSolvedManually, recordJudgePass } from "./dsa";
+import { PROBLEMS } from "@habit/shared";
+import { getDsaView, getProblemDetail, markSolvedManually, recordJudgePass } from "./dsa";
 
 describe("solving through the judge", () => {
   beforeEach(() => {
@@ -34,5 +35,21 @@ describe("saved runs keep only failed test ids", () => {
     expect(run.failedCases).toBe(`1,${spec.examples.length + spec.tests.length}`);
     expect(run.failed?.[0].input).toBeDefined();
     expect(run.failed?.[1].kind).toBe("stress");
+  });
+});
+
+describe("solved marks", () => {
+  it("marks a judge pass as solved here, and LeetCode as a second tick", async () => {
+    const { saveRun } = await import("./solution-runs");
+    await saveRun("lc-1", "cpp", "x", { status: "done", passed: 4, total: 4 });
+    await recordJudgePass("lc-1");
+    let p = (await getProblemDetail("lc-1"))!;
+    expect(p.here).toBe(true);
+    expect(p.onLeetCode).toBe(false);
+    const { getDb } = await import("./db");
+    const { leetcodeSubmissions } = await import("./schema");
+    await (await getDb()).insert(leetcodeSubmissions).values({ id: "1", slug: PROBLEMS["lc-1"].slug!, solvedOn: "2026-11-01", syncedAt: "x" });
+    p = (await getProblemDetail("lc-1"))!;
+    expect(p.onLeetCode).toBe(true);
   });
 });

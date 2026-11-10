@@ -70,7 +70,7 @@ export function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[
   return (
     <li className="hit group flex items-center justify-between gap-3 px-3 py-2.5 text-sm hover:bg-surface/80">
       <div className="flex min-w-0 items-center gap-3">
-        <StatusMark state={statusState} />
+        <StatusMark state={statusState} here={p.here} onLeetCode={p.onLeetCode} />
         <ProblemTitle
           id={p.id}
           label={label}

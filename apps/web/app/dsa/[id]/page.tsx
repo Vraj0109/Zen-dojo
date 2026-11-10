@@ -136,7 +136,7 @@ async function Problem({
                 </Link>
               ))}
               <span className="inline-flex items-center gap-1.5">
-                <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} />
+                <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} here={p.here} onLeetCode={p.onLeetCode} />
                 {s.state === "unsolved" && "Not solved"}
                 {s.state === "solved" && (s.resolveDue ? "Solved, re-solve due" : `Solved ${fmt(s.solvedOn)}`)}
                 {s.state === "resolved" && `Re-solved ${fmt(s.resolvedOn)}`}
@@ -235,7 +235,7 @@ async function Problem({
 
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
         <div className="flex items-center gap-2 text-sm">
-          <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} />
+          <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} here={p.here} onLeetCode={p.onLeetCode} />
           <span>
             {s.state === "unsolved" && "Not solved yet."}
             {p.kind === "extra" && s.state !== "unsolved" && `Solved ${fmt(s.solvedOn)} (synced from LeetCode).`}
