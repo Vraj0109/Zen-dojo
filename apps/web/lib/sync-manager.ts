@@ -8,7 +8,33 @@ import {
   type SyncQueueItem,
 } from "./sync-queue";
 
-export type SyncStatus = "idle" | "syncing" | "synced" | "offline" | "error";
+export type SyncStatus =
+  | "idle"
+  | "syncing"
+  | "synced"
+  | "offline"
+  | "error"
+  | "signed-out"
+  | "throttled";
+
+/**
+ * Parses an HTTP Retry-After header which can be an integer in seconds
+ * or an HTTP-date string. Returns milliseconds delay, or null if unparseable.
+ */
+export function parseRetryAfter(headerValue: string | null | undefined): number | null {
+  if (!headerValue) return null;
+  const trimmed = headerValue.trim();
+  const seconds = Number(trimmed);
+  if (!Number.isNaN(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+  const dateMs = Date.parse(trimmed);
+  if (!Number.isNaN(dateMs)) {
+    const diff = dateMs - Date.now();
+    return Math.max(0, diff);
+  }
+  return null;
+}
 
 export interface SyncManagerOptions {
   db?: AnyDbClient;
@@ -288,6 +314,8 @@ export class SyncManager {
   private isOnlineOverride: boolean | null = null;
   private fetchFn: typeof fetch;
   private configuredUserId?: string;
+  private retryAttempts = 0;
+  private retryTimer: any = null;
 
   constructor(options: SyncManagerOptions = {}) {
     this.db = options.db ?? null;
@@ -316,6 +344,18 @@ export class SyncManager {
     }
   }
 
+  public getRetryTimer(): any {
+    return this.retryTimer;
+  }
+
+  public getBackgroundTimer(): any {
+    return this.timer;
+  }
+
+  public getRetryAttempts(): number {
+    return this.retryAttempts;
+  }
+
   public setDb(db: AnyDbClient): void {
     this.db = db;
   }
@@ -337,7 +377,15 @@ export class SyncManager {
       if (this.status === "offline") {
         this.setStatus("idle");
       }
-      this.flushSyncQueue().catch(() => {});
+      const user = currentUser();
+      const effectiveUserId = this.configuredUserId ?? user.id;
+      const isGuest = this.configuredUserId
+        ? this.configuredUserId === "local"
+        : Boolean(user.isGuest || user.id === "local");
+
+      if (!isGuest && effectiveUserId !== "local") {
+        this.flushSyncQueue().catch(() => {});
+      }
     } else {
       this.setStatus("offline");
     }
@@ -377,7 +425,15 @@ export class SyncManager {
     if (this.status === "offline") {
       this.setStatus("idle");
     }
-    this.flushSyncQueue().catch(() => {});
+    const user = currentUser();
+    const effectiveUserId = this.configuredUserId ?? user.id;
+    const isGuest = this.configuredUserId
+      ? this.configuredUserId === "local"
+      : Boolean(user.isGuest || user.id === "local");
+
+    if (!isGuest && effectiveUserId !== "local") {
+      this.flushSyncQueue().catch(() => {});
+    }
   };
 
   private handleOffline = (): void => {
@@ -404,6 +460,16 @@ export class SyncManager {
     if (typeof setInterval !== "undefined") {
       this.timer = setInterval(() => {
         if (!this.isOffline() && !this.isSyncing) {
+          const user = currentUser();
+          const effectiveUserId = this.configuredUserId ?? user.id;
+          const isGuest = this.configuredUserId
+            ? this.configuredUserId === "local"
+            : Boolean(user.isGuest || user.id === "local");
+
+          if (isGuest || effectiveUserId === "local") {
+            this.setStatus("signed-out");
+            return;
+          }
           this.flushSyncQueue().catch(() => {});
         }
       }, this.intervalMs);
@@ -415,6 +481,10 @@ export class SyncManager {
       clearInterval(this.timer);
       this.timer = null;
     }
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
   }
 
   /**
@@ -424,6 +494,18 @@ export class SyncManager {
     if (this.isOffline()) {
       this.setStatus("offline");
       return { success: false, status: "offline", reason: "offline" };
+    }
+
+    // Check authentication: do not sync while signed out / guest
+    const user = currentUser();
+    const effectiveUserId = options.userId ?? this.configuredUserId ?? user.id;
+    const isGuest = options.userId
+      ? options.userId === "local"
+      : (this.configuredUserId ? this.configuredUserId === "local" : Boolean(user.isGuest || user.id === "local"));
+
+    if (isGuest || effectiveUserId === "local") {
+      this.setStatus("signed-out");
+      return { success: false, status: "signed-out", reason: "signed_out" };
     }
 
     if (this.isSyncing && this.inFlightSync) {
@@ -441,7 +523,7 @@ export class SyncManager {
         return { success: false, status: "idle", reason: "no_db" };
       }
 
-      const userId = options.userId ?? this.configuredUserId ?? currentUser().id;
+      const userId = effectiveUserId;
 
       try {
         // 1. Read pending mutations from local_sync_queue
@@ -485,11 +567,106 @@ export class SyncManager {
           body: JSON.stringify(syncPayload),
         });
 
+        // 401 Unauthorized: user session expired or signed out
+        if (res.status === 401) {
+          this.stopBackgroundSync();
+          this.setStatus("signed-out");
+          if (options.throwOnError) {
+            throw new Error("Unauthorized");
+          }
+          return {
+            success: false,
+            status: "signed-out",
+            error: "Unauthorized",
+            reason: "unauthorized",
+          };
+        }
+
+        // 429 Too Many Requests: throttled with Retry-After backoff
+        if (res.status === 429) {
+          const retryHeader =
+            res.headers && typeof (res.headers as any).get === "function"
+              ? (res.headers as any).get("Retry-After")
+              : null;
+          const retryMs = parseRetryAfter(retryHeader);
+
+          const MAX_BACKOFF_MS = 15 * 60 * 1000; // 15 min cap
+          const baseBackoff = Math.min(MAX_BACKOFF_MS, 1000 * Math.pow(2, this.retryAttempts));
+          const delayBeforeJitter = retryMs !== null ? Math.max(retryMs, baseBackoff) : baseBackoff;
+          const jitter = Math.floor(Math.random() * 900) + 100;
+          const finalDelayMs = Math.min(MAX_BACKOFF_MS, delayBeforeJitter + jitter);
+
+          this.retryAttempts++;
+          this.setStatus("throttled");
+
+          if (this.retryTimer) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+          }
+
+          this.retryTimer = setTimeout(() => {
+            this.retryTimer = null;
+            if (!this.isOffline() && this.status === "throttled") {
+              this.flushSyncQueue().catch(() => {});
+            }
+          }, finalDelayMs);
+
+          let errorMsg = "Too Many Requests";
+          try {
+            const errData = await res.json();
+            if (errData?.error) errorMsg = errData.error;
+          } catch {}
+
+          if (options.throwOnError) {
+            throw new Error(errorMsg);
+          }
+
+          return {
+            success: false,
+            status: "throttled",
+            error: errorMsg,
+            reason: "throttled",
+          };
+        }
+
+        // 403 Forbidden or 413 Payload Too Large / Quota Exceeded (non-retryable)
+        if (res.status === 403 || res.status === 413) {
+          let errorMsg = res.status === 413 ? "quota_exceeded" : "Forbidden";
+          try {
+            const errData = await res.json();
+            if (errData?.error) errorMsg = errData.error;
+            else if (errData?.message) errorMsg = errData.message;
+          } catch {}
+
+          this.setStatus("error");
+          if (options.throwOnError) {
+            throw new Error(errorMsg);
+          }
+          return {
+            success: false,
+            status: "error",
+            error: errorMsg,
+            reason: res.status === 413 ? "quota_exceeded" : "forbidden",
+          };
+        }
+
         if (!res.ok) {
-          throw new Error(`Sync request failed with status ${res.status}: ${res.statusText}`);
+          let errorMsg = `Sync request failed with status ${res.status}: ${res.statusText}`;
+          try {
+            const errData = await res.json();
+            if (errData?.error) errorMsg = errData.error;
+          } catch {}
+          throw new Error(errorMsg);
         }
 
         const data: SyncResponse = await res.json();
+
+        // Reset retry attempts on successful sync
+        this.retryAttempts = 0;
+        if (this.retryTimer) {
+          clearTimeout(this.retryTimer);
+          this.retryTimer = null;
+        }
 
         // 5. Ingest incoming deltas with updated_at LWW comparison
         let deltasResult = { applied: 0, skipped: 0 };

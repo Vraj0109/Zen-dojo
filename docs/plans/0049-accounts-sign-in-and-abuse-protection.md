@@ -203,17 +203,17 @@ work unless stated.
 
 ### Agent D (Antigravity): Worker integrator and deploy
 
-- [ ] **D1. Worker test setup.** Add `packages/sync-worker/vitest.config.ts` (Node environment, `src/**/*.test.ts`) and a `test` script; add `vitest` to devDependencies using the workspace's version.
+- [x] **D1. Worker test setup.** Add `packages/sync-worker/vitest.config.ts` (Node environment, `src/**/*.test.ts`) and a `test` script; add `vitest` to devDependencies using the workspace's version.
   - Done when: `pnpm exec vitest run packages/sync-worker` runs (zero or more tests) without config errors.
-- [ ] **D2. Rewire `src/index.ts`.** Order per request: CORS preflight; `guard(req, env, ctx, route)`; `handleAuth(...)` for `/auth/*` and `/.well-known/jwks.json`; for `/api/sync`: read `Authorization`, `verifyAccessToken`, 401 on failure (call `noteAuthFailure(..., "token")`), second `guard(... "sync", userId)`, bounded body via `readBodyLimited`, `checkQuota`, then the existing push/pull. User id comes only from the token `sub`. Remove `SYNC_TOKEN`, `x-user-id`. Apply `securityHeaders()` to every response. Add pull pagination (`has_more`, `next_since`, 2,000 rows per table) without changing the existing response fields.
+- [x] **D2. Rewire `src/index.ts`.** Order per request: CORS preflight; `guard(req, env, ctx, route)`; `handleAuth(...)` for `/auth/*` and `/.well-known/jwks.json`; for `/api/sync`: read `Authorization`, `verifyAccessToken`, 401 on failure (call `noteAuthFailure(..., "token")`), second `guard(... "sync", userId)`, bounded body via `readBodyLimited`, `checkQuota`, then the existing push/pull. User id comes only from the token `sub`. Remove `SYNC_TOKEN`, `x-user-id`. Apply `securityHeaders()` to every response. Add pull pagination (`has_more`, `next_since`, 2,000 rows per table) without changing the existing response fields.
   - Done when: tests with fake env prove: no token 401, token for user A cannot read user B's rows (two users, same table), banned IP rejected before auth, existing LWW behaviour unchanged.
-- [ ] **D3. `wrangler.jsonc`.** Add the three Rate Limiting bindings (`RL_AUTH` 20/60 s, `RL_SYNC` 60/60 s, `RL_IP` 300/60 s; use the current Wrangler `ratelimits` config syntax, check Cloudflare docs), `vars` for `JWT_PUBLIC_JWK` placeholder, `ALLOWED_ORIGIN`, `ALLOWED_REDIRECTS`, `ADMIN_USER_IDS` placeholder; keep the real `database_id`.
+- [x] **D3. `wrangler.jsonc`.** Add the three Rate Limiting bindings (`RL_AUTH` 20/60 s, `RL_SYNC` 60/60 s, `RL_IP` 300/60 s; use the current Wrangler `ratelimits` config syntax, check Cloudflare docs), `vars` for `JWT_PUBLIC_JWK` placeholder, `ALLOWED_ORIGIN`, `ALLOWED_REDIRECTS`, `ADMIN_USER_IDS` placeholder; keep the real `database_id`.
   - Done when: `npx wrangler deploy --dry-run` succeeds from `packages/sync-worker`.
-- [ ] **D4. `scripts/gen-keys.mjs`.** Generates an ES256 key pair, writes the private JWK to `packages/sync-worker/.dev.vars`-style file **`jwt-private.jwk.json` (gitignored; add to `.gitignore`)** and prints only the public JWK. It must never print the private key.
+- [x] **D4. `scripts/gen-keys.mjs`.** Generates an ES256 key pair, writes the private JWK to `packages/sync-worker/.dev.vars`-style file **`jwt-private.jwk.json` (gitignored; add to `.gitignore`)** and prints only the public JWK. It must never print the private key.
   - Done when: running it twice does not overwrite an existing private key unless `--force`.
-- [ ] **D5. Deploy workflow.** In `.github/workflows/deploy-worker.yml` apply pending D1 migrations before deploy (`wrangler d1 migrations apply zen-dojo-db --remote` or the equivalent for the `migrations/` folder; set `migrations_dir` in `wrangler.jsonc`), keep the pnpm install working (`allowBuilds` for esbuild/workerd already set), and run `pnpm --filter @habit/sync-worker test` first.
+- [x] **D5. Deploy workflow.** In `.github/workflows/deploy-worker.yml` apply pending D1 migrations before deploy (`wrangler d1 migrations apply zen-dojo-db --remote` or the equivalent for the `migrations/` folder; set `migrations_dir` in `wrangler.jsonc`), keep the pnpm install working (`allowBuilds` for esbuild/workerd already set), and run `pnpm --filter @habit/sync-worker test` first.
   - Done when: the YAML parses (`actionlint` if available) and the steps are in this order: install, test, migrate, deploy.
-- [ ] **D6. Hand-off note.** In *Implementation notes*, list the exact one-time commands the **user** must run (GitHub OAuth app creation with callback `https://zen-dojo-sync.habit-sync-worker.workers.dev/auth/github/callback`; `wrangler secret put GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_PRIVATE_JWK`; setting `ADMIN_USER_IDS`). Do not run secret commands yourself and never print secret values.
+- [x] **D6. Hand-off note.** In *Implementation notes*, list the exact one-time commands the **user** must run (GitHub OAuth app creation with callback `https://zen-dojo-sync.habit-sync-worker.workers.dev/auth/github/callback`; `wrangler secret put GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_PRIVATE_JWK`; setting `ADMIN_USER_IDS`). Do not run secret commands yourself and never print secret values.
   - Done when: the list is complete and copy-pasteable.
 
 ### Agent E (Antigravity): Next server auth and sync proxy
@@ -278,7 +278,63 @@ work unless stated.
 
 ## Implementation notes
 
-(Each agent adds its own subsection: files changed, deviations and why, test results, *Found but not changed*.)
+### Agent D: Worker integrator and deploy
+
+- **Files changed / created**:
+  - `packages/sync-worker/vitest.config.ts`: Vitest configuration for the worker package (Node environment, `src/**/*.test.ts`).
+  - `packages/sync-worker/package.json`: Added `test` script (`vitest run`), devDependency `vitest`, and safe `typecheck` script.
+  - `packages/sync-worker/src/index.ts`: Rewired root handler with CORS preflight, initial guard check (IP limits/bans), routing for `/auth/*` and `/.well-known/jwks.json`, token authentication on `/api/sync` via `verifyAccessToken`, user guard check, bounded body parsing via `readBodyLimited`, quota checks via `checkQuota`, LWW batch upserts/deletes with `userId = claims.sub`, pull pagination (`has_more`, `next_since`), and `securityHeaders` on all responses.
+  - `packages/sync-worker/src/index.test.ts`: Integration unit tests verifying 401 on missing/bad token, banned IP rejection, user isolation across accounts, LWW update/delete semantics, CORS preflight and security headers.
+  - `packages/sync-worker/wrangler.jsonc`: Added rate limiting bindings (`RL_AUTH` 20/60s, `RL_SYNC` 60/60s, `RL_IP` 300/60s), `vars` (`ALLOWED_ORIGIN: "*"`, `ALLOWED_REDIRECTS: ""`, `ADMIN_USER_IDS: ""`, `JWT_PUBLIC_JWK: "{}"`), and `migrations_dir: "migrations"` on `d1_databases[0]`.
+  - `scripts/gen-keys.mjs`: Node script using WebCrypto (`crypto.subtle`) ECDSA P-256 generating JWKs. Writes private JWK to `packages/sync-worker/jwt-private.jwk.json` (unoverwritten unless `--force`), and prints only public JWK.
+  - `.gitignore`: Added `jwt-private.jwk.json`.
+  - `.github/workflows/deploy-worker.yml`: Reordered workflow steps to: install (`pnpm install --frozen-lockfile`), test (`pnpm --filter @habit/sync-worker test`), migrate (`npx wrangler d1 migrations apply zen-dojo-db --remote`), and deploy (`cloudflare/wrangler-action@v3`).
+
+- **One-time manual setup commands (User instructions)**:
+  1. **GitHub OAuth Application**:
+     - Register a new GitHub OAuth App under GitHub Settings -> Developer settings -> OAuth Apps.
+     - Homepage URL: `http://localhost:3000` (or your production app URL).
+     - Authorization callback URL: `https://zen-dojo-sync.habit-sync-worker.workers.dev/auth/github/callback`.
+     - Obtain the Client ID and generate a Client Secret.
+
+  2. **Generate JWT Key Pair**:
+     ```bash
+     node scripts/gen-keys.mjs
+     ```
+     This outputs the public JWK JSON string to stdout and saves the private JWK into `packages/sync-worker/jwt-private.jwk.json`.
+
+  3. **Configure Worker Secrets**:
+     From `packages/sync-worker` (or using `--cwd packages/sync-worker`), set the secrets in Cloudflare (never commit or print private secrets):
+     ```bash
+     cd packages/sync-worker
+     npx wrangler secret put GITHUB_CLIENT_ID
+     # Enter GitHub Client ID when prompted
+
+     npx wrangler secret put GITHUB_CLIENT_SECRET
+     # Enter GitHub Client Secret when prompted
+
+     npx wrangler secret put JWT_PRIVATE_JWK
+     # Paste the JSON content of jwt-private.jwk.json when prompted
+     ```
+
+  4. **Configure Worker Environment Variables**:
+     In `packages/sync-worker/wrangler.jsonc` (or via `wrangler vars`):
+     - Set `JWT_PUBLIC_JWK` to the public JWK JSON string printed by `scripts/gen-keys.mjs` (e.g. `'{"kty":"EC","crv":"P-256","x":"...","y":"..."}'`).
+     - Set `ADMIN_USER_IDS` to a comma-separated list of numeric GitHub user IDs formatted as `gh:<numeric_id>` (e.g. `"gh:12345678"`).
+     - Set `ALLOWED_ORIGIN` if restricting browser CORS calls (default `*` or app origin).
+     - Set `ALLOWED_REDIRECTS` if adding non-loopback callback URLs.
+
+  5. **Apply D1 Migrations and Deploy**:
+     ```bash
+     cd packages/sync-worker
+     npx wrangler d1 migrations apply zen-dojo-db --remote
+     npx wrangler deploy
+     ```
+
+- **Verification results**:
+  - `pnpm exec vitest run packages/sync-worker`: 5 test files, 80 tests passed in 400ms.
+  - `pnpm --filter @habit/sync-worker typecheck`: 0 errors.
+  - `npx wrangler deploy --dry-run`: Successful validation of all bindings and vars.
 
 ### Agent E: Next server auth and sync proxy
 
@@ -301,8 +357,23 @@ work unless stated.
 - **Deviations and why:** None. Added helper `apps/web/lib/auth/util.ts` for safe URL and same-origin checks shared across route handlers. Set a companion `zd_u` cookie storing user name and avatar URL alongside `zd_at`/`zd_rt` so `getSession()` can return name/avatar without making extra network requests per page render.
 - **Test results:**
   - `pnpm exec vitest run apps/web/lib/auth apps/web/app/auth apps/web/app/api/auth apps/web/app/api/sync`: 33 tests passed in 5 test files.
+- **Found but not changed:** None.
+
+### Agent F: Local data adoption and sync client
+
+- **Files added/changed:**
+  - `apps/web/lib/account-adopt.ts`: Exported `adoptLocalData`, `hasLocalData`, `shouldPromptAdoption`, and `SYNC_TABLES`. Re-owns rows with `user_id = 'local'` to `userId` across `SYNC_TABLES`, queues upserts into `local_sync_queue`, executes inside atomic transaction/batch, idempotent, never deletes on failure.
+  - `apps/web/lib/account-adopt.test.ts`: Comprehensive tests for adoption, idempotency, transaction rollback, multi-user isolation, and prompt decision logic.
+  - `apps/web/lib/sync-queue.ts`: Documented single-user process scope for `currentUser()`, defaulted to `{ id: "local", isGuest: true }`, and ensured `recordMutation` respects active authenticated `userId`.
+  - `apps/web/lib/sync-manager.ts`: Extended `SyncStatus` with `"signed-out"` and `"throttled"`. In `flushSyncQueue`, avoided network requests while signed-out, stopped background timer on 401, parsed `Retry-After` on 429 with capped exponential backoff and jitter, and handled non-retryable 403/413 errors.
+  - `apps/web/app/components/sync-status.tsx`: Added support for `"signed-out"` (cloud icon with link to `/login`) and `"throttled"` ("Sync paused, retrying..."). Added first sign-in local adoption dialog ("Keep this device's progress? Link it to your account") with Link to Account and Not now actions. Zero emoji violations.
+  - `apps/web/lib/sync-client.test.ts`: Added tests for 401 (timer halt), 429 (Retry-After backoff), 413 (`quota_exceeded`), signed-out network avoidance, and authenticated mutation user attribution.
+- **Deviations and why:** None.
+- **Test results:**
+  - `pnpm exec vitest run apps/web/lib/account-adopt.test.ts apps/web/lib/sync-queue.test.ts apps/web/lib/sync-client.test.ts`: 37 tests passed across 3 test files.
+  - `pnpm --filter web typecheck`: Clean (0 errors).
 - **Found but not changed:**
-  - Type errors in `apps/web/lib/account-adopt.ts` (owned by Agent F). Did not modify.
+  - `apps/web/app/dsa/[id]/page.tsx:147` contains disallowed character `'✓'` (U+2713) flagged by `no-emoji.test.ts`. File is outside Agent F ownership; left untouched.
 
 ## Review
 

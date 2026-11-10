@@ -108,6 +108,8 @@ describe("SyncManager & Client Sync Protocol", () => {
 
   describe("flushSyncQueue mutation packaging & protocol", () => {
     it("packages pending mutations and sends POST /api/sync with last_synced_at", async () => {
+      setCurrentUser({ id: "gh:test-user", isGuest: false });
+
       // 1. Create mutations in local_sync_queue
       await recordMutation(db, {
         tableName: "tasks",
@@ -169,7 +171,7 @@ describe("SyncManager & Client Sync Protocol", () => {
       expect(m1.table_name).toBe("tasks");
       expect(m1.row_id).toBe("task-101");
       expect(m1.action).toBe("upsert");
-      expect(m1.payload).toEqual({ title: "Study B-Trees", category: "dsa", xp: 30 });
+      expect(m1.payload).toEqual({ title: "Study B-Trees", category: "dsa", xp: 30, user_id: "gh:test-user" });
       expect(m1.client_timestamp).toBe(1794000100000);
 
       // Verify local_sync_queue marked as synced
@@ -177,13 +179,15 @@ describe("SyncManager & Client Sync Protocol", () => {
       expect(pendingAfter).toHaveLength(0);
 
       // Verify last_synced_at updated in sync_state
-      const lastSynced = await getLastSyncedAt(db, "local");
+      const lastSynced = await getLastSyncedAt(db, "gh:test-user");
       expect(lastSynced).toBe(1794000500000);
 
       manager.destroy();
     });
 
     it("handles server error responses and updates status to error", async () => {
+      setCurrentUser({ id: "gh:test-user", isGuest: false });
+
       await recordMutation(db, {
         tableName: "tasks",
         rowId: "task-err",
@@ -330,6 +334,8 @@ describe("SyncManager & Client Sync Protocol", () => {
     });
 
     it("integrates deltas ingestion seamlessly into flushSyncQueue", async () => {
+      setCurrentUser({ id: "gh:test-user", isGuest: false });
+
       const fetchMock = vi.fn().mockImplementation(async () => ({
         ok: true,
         status: 200,
@@ -365,6 +371,140 @@ describe("SyncManager & Client Sync Protocol", () => {
       expect(row.rows[0].title).toBe("Pulled from another device");
 
       manager.destroy();
+    });
+  });
+
+  describe("authentication and error handling (Plan 0049 F3)", () => {
+    it("signed-out user does not make network calls and transitions to signed-out", async () => {
+      setCurrentUser(null); // Defaults to { id: "local", isGuest: true }
+
+      const fetchMock = vi.fn();
+      const manager = new SyncManager({
+        db,
+        autoStart: false,
+        fetchFn: fetchMock as any,
+      });
+
+      const result = await manager.flushSyncQueue();
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe("signed-out");
+      expect(manager.getStatus()).toBe("signed-out");
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      manager.destroy();
+    });
+
+    it("401 response transitions to signed-out and halts background timer", async () => {
+      setCurrentUser({ id: "gh:user-expired", isGuest: false });
+
+      const fetchMock = vi.fn().mockImplementation(async () => ({
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+        json: async () => ({ error: "Unauthorized session" }),
+      }));
+
+      const manager = new SyncManager({
+        db,
+        autoStart: false,
+        fetchFn: fetchMock as any,
+      });
+
+      manager.startBackgroundSync(5000);
+      expect(manager.getBackgroundTimer()).not.toBeNull();
+
+      const result = await manager.flushSyncQueue();
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe("signed-out");
+      expect(manager.getStatus()).toBe("signed-out");
+
+      // Verify timer is stopped to avoid spinning in a retry loop
+      expect(manager.getBackgroundTimer()).toBeNull();
+
+      manager.destroy();
+    });
+
+    it("429 response respects Retry-After and sets throttled", async () => {
+      setCurrentUser({ id: "gh:rate-limited", isGuest: false });
+
+      const fetchMock = vi.fn().mockImplementation(async () => ({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: {
+          get: (name: string) => (name.toLowerCase() === "retry-after" ? "30" : null),
+        },
+        json: async () => ({ error: "Rate limit exceeded" }),
+      }));
+
+      const manager = new SyncManager({
+        db,
+        autoStart: false,
+        fetchFn: fetchMock as any,
+      });
+
+      const result = await manager.flushSyncQueue();
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe("throttled");
+      expect(manager.getStatus()).toBe("throttled");
+      expect(manager.getRetryAttempts()).toBe(1);
+      expect(manager.getRetryTimer()).not.toBeNull();
+
+      manager.destroy();
+    });
+
+    it("413 response sets error (quota_exceeded) and does not retry", async () => {
+      setCurrentUser({ id: "gh:quota-overflow", isGuest: false });
+
+      const fetchMock = vi.fn().mockImplementation(async () => ({
+        ok: false,
+        status: 413,
+        statusText: "Payload Too Large",
+        json: async () => ({ error: "quota_exceeded" }),
+      }));
+
+      const manager = new SyncManager({
+        db,
+        autoStart: false,
+        fetchFn: fetchMock as any,
+      });
+
+      const result = await manager.flushSyncQueue();
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe("error");
+      expect(result.error).toBe("quota_exceeded");
+      expect(manager.getStatus()).toBe("error");
+      expect(manager.getRetryTimer()).toBeNull();
+
+      manager.destroy();
+    });
+
+    it("queue mutations respect active authenticated user id vs guest local", async () => {
+      // 1. Guest local mutation
+      setCurrentUser(null);
+      const mGuest = await recordMutation(db, {
+        tableName: "tasks",
+        rowId: "task-guest",
+        action: "upsert",
+        payload: { title: "Guest Task" },
+      });
+      const parsedGuest = JSON.parse(mGuest.payload);
+      expect(parsedGuest.user_id).toBeUndefined();
+
+      // 2. Authenticated user mutation
+      setCurrentUser({ id: "gh:active-user-99", isGuest: false });
+      const mAuth = await recordMutation(db, {
+        tableName: "tasks",
+        rowId: "task-auth",
+        action: "upsert",
+        payload: { title: "Auth Task" },
+      });
+      const parsedAuth = JSON.parse(mAuth.payload);
+      expect(parsedAuth.user_id).toBe("gh:active-user-99");
     });
   });
 });

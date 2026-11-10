@@ -13,6 +13,7 @@ export interface RecordMutationOptions {
   clientTimestamp?: number;
   client_timestamp?: number;
   id?: string;
+  userId?: string;
 }
 
 export interface SyncQueueItem {
@@ -44,7 +45,9 @@ export function setCurrentUser(user: CurrentUser | null): void {
 }
 
 /**
- * Returns the active authenticated user, or defaults to offline guest ('local').
+ * currentUser() is module state; safe for single-user desktop or client process.
+ * In hosted server requests, user is resolved per-request via getSession().
+ * Defaults to offline guest ('local').
  */
 export function currentUser(): CurrentUser {
   if (activeUser) {
@@ -79,15 +82,42 @@ export async function recordMutation(
   const action = options.action;
   const clientTimestamp = options.clientTimestamp ?? options.client_timestamp ?? Date.now();
 
+  const user = currentUser();
+  const effectiveUserId = options.userId ?? user.id;
+  const isEffectiveGuest = options.userId
+    ? options.userId === "local"
+    : Boolean(user.isGuest || user.id === "local");
+
   let payload: string;
   if (typeof options.payload === "string") {
-    payload = options.payload;
+    let parsed: any;
+    try {
+      parsed = JSON.parse(options.payload);
+    } catch {
+      parsed = null;
+    }
+    if (parsed && typeof parsed === "object") {
+      if (!isEffectiveGuest && (!parsed.user_id || parsed.user_id === "local")) {
+        parsed.user_id = effectiveUserId;
+      }
+      payload = JSON.stringify(parsed);
+    } else {
+      payload = options.payload;
+    }
   } else if (options.payload !== undefined && options.payload !== null) {
-    payload = JSON.stringify(options.payload);
+    const payloadObj = { ...options.payload };
+    if (!isEffectiveGuest && (!payloadObj.user_id || payloadObj.user_id === "local")) {
+      (payloadObj as any).user_id = effectiveUserId;
+    }
+    payload = JSON.stringify(payloadObj);
   } else if (action === "delete") {
-    payload = JSON.stringify({ id: rowId, deleted_at: clientTimestamp });
+    payload = JSON.stringify({
+      id: rowId,
+      ...(isEffectiveGuest ? {} : { user_id: effectiveUserId }),
+      deleted_at: clientTimestamp,
+    });
   } else {
-    payload = JSON.stringify({});
+    payload = JSON.stringify(isEffectiveGuest ? {} : { user_id: effectiveUserId });
   }
 
   await client.execute({
