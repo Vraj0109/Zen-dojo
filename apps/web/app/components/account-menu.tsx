@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { SyncStatus } from "@/app/components/sync-status";
-import { flushSyncQueue, getSyncStatus, subscribeSyncStatus, type SyncStatus as SyncStatusState } from "@/lib/sync-manager";
+import {
+  flushSyncQueue,
+  getSyncInfo,
+  subscribeSyncInfo,
+  syncManager,
+  type SyncStatus as SyncStatusState,
+  type SyncStatusInfo,
+} from "@/lib/sync-manager";
 
 type Device = { id: string; name: string | null; createdAt: number | null; lastSeenAt: number | null; current: boolean };
 
@@ -28,7 +35,7 @@ function parseDevices(body: unknown): Device[] {
 }
 
 function when(ms: number | null): string {
-  return ms ? new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "unknown";
+  return ms ? new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Never";
 }
 
 /** Small link for other pages (for example the settings page) that points at the account page. */
@@ -48,14 +55,18 @@ const SYNC_WORDS: Record<SyncStatusState, string> = {
   error: "Signed in, but the last sync failed. Try again.",
   "signed-out": "Signed out. Progress stays on this device only.",
   throttled: "Signed in. Sync is paused for a moment and will retry on its own.",
+  "account-mismatch": "This device is linked to another account.",
 };
 
-/** Live sync status with a Sync now button. Needs JavaScript (sync runs in the browser). */
+/** Live sync status with sync and unlink controls. */
 export function SyncPanel({ signedIn }: { signedIn: boolean }) {
-  const [status, setStatus] = useState<SyncStatusState>(() => getSyncStatus());
+  const [info, setInfo] = useState<SyncStatusInfo>(() => getSyncInfo());
   const [busy, setBusy] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
 
-  useEffect(() => subscribeSyncStatus(setStatus), []);
+  useEffect(() => {
+    return subscribeSyncInfo(setInfo);
+  }, []);
 
   async function syncNow() {
     if (busy) return;
@@ -69,38 +80,91 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
     }
   }
 
+  async function stopSyncing() {
+    if (unlinking) return;
+    const confirmed = window.confirm(
+      "Stop syncing this device? Your local progress will stay on this device, but it will no longer sync with your account."
+    );
+    if (!confirmed) return;
+
+    setUnlinking(true);
+    try {
+      const res = await fetch("/api/sync/unlink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        syncManager.setStatus("signed-out");
+        syncManager.stop();
+      }
+    } catch (err) {
+      console.error("Failed to stop syncing device:", err);
+    } finally {
+      setUnlinking(false);
+    }
+  }
+
+  const status = info.status;
   const syncing = busy || status === "syncing";
-  const words = signedIn ? SYNC_WORDS[status] : "Signed out. Progress stays on this device only.";
+  const words = signedIn ? (SYNC_WORDS[status] ?? SYNC_WORDS.idle) : "Signed out. Progress stays on this device only.";
 
   return (
     <section aria-labelledby="sync-title" className="space-y-3">
       <h2 id="sync-title" className="text-base font-semibold">Sync</h2>
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface p-4">
-        <SyncStatus showSyncButton={false} />
-        <p className="min-w-0 flex-1 basis-48 text-sm text-muted">{words}</p>
-        {signedIn ? (
-          <button
-            type="button"
-            onClick={syncNow}
-            disabled={syncing || status === "offline"}
-            className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className={`size-4 shrink-0 ${syncing ? "animate-spin" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M1 8a7 7 0 0 1 12-4.9L15 5M15 1v4h-4" />
-              <path d="M15 8a7 7 0 0 1-12 4.9L1 11M1 15v-4h4" />
-            </svg>
-            Sync now
-          </button>
-        ) : null}
+      <div className="rounded-xl border border-line bg-surface p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <SyncStatus showSyncButton={false} />
+          <p className="min-w-0 flex-1 basis-48 text-sm text-muted">{words}</p>
+          {signedIn ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={syncNow}
+                disabled={syncing || status === "offline"}
+                className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm hover:bg-background disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  className={`size-4 shrink-0 ${syncing ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M1 8a7 7 0 0 1 12-4.9L15 5M15 1v4h-4" />
+                  <path d="M15 8a7 7 0 0 1-12 4.9L1 11M1 15v-4h4" />
+                </svg>
+                Sync now
+              </button>
+              <button
+                type="button"
+                onClick={stopSyncing}
+                disabled={unlinking || syncing}
+                className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm text-muted hover:text-foreground hover:bg-background disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              >
+                {unlinking ? "Stopping..." : "Stop syncing this device"}
+              </button>
+            </div>
+          ) : null}
+        </div>
+        {signedIn && (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted border-t border-line/50 pt-2.5">
+            <div>
+              Last synced:{" "}
+              <span className="text-foreground font-medium">
+                {when(info.lastSyncedAt)}
+              </span>
+            </div>
+            <div>
+              Pending changes:{" "}
+              <span className="text-foreground font-medium">
+                {info.pending ?? 0}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

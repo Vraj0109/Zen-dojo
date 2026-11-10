@@ -4,18 +4,12 @@ import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 import Link from "next/link";
 import {
   flushSyncQueue,
-  getSyncStatus,
-  subscribeSyncStatus,
-  syncManager,
+  getSyncInfo,
+  subscribeSyncInfo,
   type SyncStatus as SyncStatusState,
+  type SyncStatusInfo,
 } from "@/lib/sync-manager";
-import { currentUser, setCurrentUser, type CurrentUser } from "@/lib/sync-queue";
-import type { AnyDbClient } from "@/lib/sync-schema";
-import {
-  adoptLocalData,
-  hasLocalData,
-  shouldPromptAdoption,
-} from "@/lib/account-adopt";
+import type { CurrentUser } from "@/lib/sync-queue";
 
 const emptySubscribe = () => () => {};
 
@@ -24,7 +18,7 @@ export interface SyncStatusProps {
   showSyncButton?: boolean;
   compact?: boolean;
   user?: CurrentUser | null;
-  db?: AnyDbClient;
+  db?: unknown;
 }
 
 export function SyncStatus({
@@ -32,57 +26,44 @@ export function SyncStatus({
   showSyncButton = true,
   compact = false,
   user: propUser,
-  db: propDb,
 }: SyncStatusProps) {
-  const [status, setStatus] = useState<SyncStatusState>(() => getSyncStatus());
+  const [info, setInfo] = useState<SyncStatusInfo>(() => getSyncInfo());
   const [isPending, startTransition] = useTransition();
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
-  const [showAdoptPrompt, setShowAdoptPrompt] = useState(false);
-  const [isAdopting, setIsAdopting] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    if (propUser !== undefined) {
-      setCurrentUser(propUser);
-    }
-    const unsubscribe = subscribeSyncStatus((newStatus) => {
-      setStatus(newStatus);
+    return subscribeSyncInfo((newInfo) => {
+      setInfo(newInfo);
     });
+  }, []);
 
-    // Check if first sign-in local adoption prompt should be shown
-    const checkAdoption = async () => {
-      try {
-        const u = propUser ?? currentUser();
-        const isGuest = Boolean(u.isGuest || u.id === "local");
-        if (isGuest) return;
+  // Determine if the user is signed in
+  const isGuest = propUser !== undefined
+    ? Boolean(!propUser || propUser.isGuest || propUser.id === "local")
+    : info.status === "signed-out";
+  const signedIn = !isGuest;
 
-        let isDismissed = false;
+  // Determine if first-link adoption has been dismissed in localStorage
+  const isDismissed =
+    dismissed ||
+    (mounted &&
+      (() => {
         try {
-          isDismissed = Boolean(localStorage.getItem("zen-dojo:adopt-dismissed"));
+          return Boolean(localStorage.getItem("zen-dojo:adopt-dismissed"));
         } catch {
-          // localStorage may be inaccessible in private browsing
+          return false;
         }
+      })());
 
-        if (isDismissed) return;
-
-        const targetDb = propDb ?? syncManager.getDb();
-        if (!targetDb) return;
-
-        const hasData = await hasLocalData(targetDb);
-        if (shouldPromptAdoption({ isGuest, hasLocalData: hasData, isDismissed })) {
-          setShowAdoptPrompt(true);
-        }
-      } catch (err) {
-        console.error("Adoption check error:", err);
-      }
-    };
-
-    checkAdoption();
-
-    return unsubscribe;
-  }, [propUser, propDb]);
+  // First-link prompt: when signed in, GET /api/sync/status says account is null and database has rows / pending > 0
+  const hasRows = info.hasRows;
+  const hasData = hasRows !== undefined ? hasRows : (info.pending > 0 || info.account === null);
+  const showFirstLinkPrompt = Boolean(mounted && !isDismissed && signedIn && info.account === null && hasData);
 
   const handleSyncNow = () => {
-    if (status === "syncing" || isPending) return;
+    if (info.status === "syncing" || isPending) return;
     startTransition(async () => {
       try {
         await flushSyncQueue();
@@ -92,13 +73,17 @@ export function SyncStatus({
     });
   };
 
-  const handleLinkAccount = async () => {
-    setIsAdopting(true);
+  const handleUpload = async () => {
+    setIsUploading(true);
     try {
-      const u = propUser ?? currentUser();
-      const targetDb = propDb ?? syncManager.getDb();
-      if (targetDb && u.id && u.id !== "local") {
-        await adoptLocalData(targetDb, u.id);
+      const res = await fetch("/api/sync/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Failed to link account:", err);
+      } else {
         await flushSyncQueue();
       }
       try {
@@ -106,21 +91,21 @@ export function SyncStatus({
       } catch {
         // Ignore storage errors
       }
-      setShowAdoptPrompt(false);
+      setDismissed(true);
     } catch (err) {
-      console.error("Failed to adopt local data:", err);
+      console.error("Failed to link account:", err);
     } finally {
-      setIsAdopting(false);
+      setIsUploading(false);
     }
   };
 
-  const handleDismissAdopt = () => {
+  const handleDismissFirstLink = () => {
     try {
       localStorage.setItem("zen-dojo:adopt-dismissed", "1");
     } catch {
       // Ignore storage errors
     }
-    setShowAdoptPrompt(false);
+    setDismissed(true);
   };
 
   if (!mounted) {
@@ -135,6 +120,7 @@ export function SyncStatus({
     );
   }
 
+  const status: SyncStatusState = info.status;
   const isSyncing = status === "syncing" || isPending;
 
   return (
@@ -175,6 +161,30 @@ export function SyncStatus({
               >
                 <span className="sr-only">Sign in to sync</span>
               </Link>
+            )}
+          </div>
+        )}
+
+        {/* Account mismatch state */}
+        {status === "account-mismatch" && (
+          <div className="flex items-center gap-1.5 text-diff-hard" title="This device is linked to another account.">
+            <svg
+              className="size-3.5 shrink-0"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="7" />
+              <path d="M8 5v4M8 12h.01" />
+            </svg>
+            {!compact && (
+              <span className="text-[11px] font-medium">
+                This device is linked to another account.
+              </span>
             )}
           </div>
         )}
@@ -317,69 +327,72 @@ export function SyncStatus({
         )}
 
         {/* "Sync now" action button */}
-        {showSyncButton && status !== "error" && status !== "signed-out" && (
-          <button
-            type="button"
-            onClick={handleSyncNow}
-            disabled={isSyncing || status === "offline"}
-            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer ${
-              compact ? "size-5 justify-center p-0" : ""
-            }`}
-            title={status === "offline" ? "Cannot sync while offline" : "Sync now with cloud"}
-            aria-label="Sync now"
-          >
-            <svg
-              className={`size-3 shrink-0 ${isSyncing ? "animate-spin" : ""}`}
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+        {showSyncButton &&
+          status !== "error" &&
+          status !== "signed-out" &&
+          status !== "account-mismatch" && (
+            <button
+              type="button"
+              onClick={handleSyncNow}
+              disabled={isSyncing || status === "offline"}
+              className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer ${
+                compact ? "size-5 justify-center p-0" : ""
+              }`}
+              title={status === "offline" ? "Cannot sync while offline" : "Sync now with cloud"}
+              aria-label="Sync now"
             >
-              <path d="M1 8a7 7 0 0 1 12-4.9L15 5M15 1v4h-4" />
-              <path d="M15 8a7 7 0 0 1-12 4.9L1 11M1 15v-4h4" />
-            </svg>
-            {!compact && <span>Sync now</span>}
-          </button>
-        )}
+              <svg
+                className={`size-3 shrink-0 ${isSyncing ? "animate-spin" : ""}`}
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M1 8a7 7 0 0 1 12-4.9L15 5M15 1v4h-4" />
+                <path d="M15 8a7 7 0 0 1-12 4.9L1 11M1 15v-4h4" />
+              </svg>
+              {!compact && <span>Sync now</span>}
+            </button>
+          )}
       </div>
 
-      {/* First sign-in local adoption modal */}
-      {showAdoptPrompt && (
+      {/* First-link upload modal prompt */}
+      {showFirstLinkPrompt && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="adopt-heading"
-          aria-describedby="adopt-desc"
+          aria-labelledby="first-link-heading"
+          aria-describedby="first-link-desc"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
         >
           <div className="w-full max-w-sm rounded-xl border border-line bg-surface p-5 shadow-lg space-y-4">
             <div className="space-y-1">
-              <h3 id="adopt-heading" className="text-sm font-semibold text-foreground">
-                Keep this device&apos;s progress? Link it to your account
+              <h3 id="first-link-heading" className="text-sm font-semibold text-foreground">
+                Upload this device&apos;s progress to your account?
               </h3>
-              <p id="adopt-desc" className="text-xs text-muted leading-relaxed">
-                Connect your offline habits and problem progress to your cloud account so you never lose your streak.
+              <p id="first-link-desc" className="text-xs text-muted leading-relaxed">
+                Connect your local progress and habits to your account so you can sync across devices.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={handleDismissAdopt}
-                disabled={isAdopting}
+                onClick={handleDismissFirstLink}
+                disabled={isUploading}
                 className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:bg-background hover:text-foreground transition-colors cursor-pointer"
               >
                 Not now
               </button>
               <button
                 type="button"
-                onClick={handleLinkAccount}
-                disabled={isAdopting}
+                onClick={handleUpload}
+                disabled={isUploading}
                 className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
               >
-                {isAdopting ? "Linking..." : "Link to Account"}
+                {isUploading ? "Uploading..." : "Upload"}
               </button>
             </div>
           </div>
