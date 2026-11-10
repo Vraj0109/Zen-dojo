@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "node -e \"const ts=require('typescript');const c=ts.readConfigFile('tsconfig.json',ts.sys.readFile);const p=ts.parseJsonConfigFileContent(c.config,ts.sys,'.');const fn=p.fileNames.filter(f=>!f.endsWith('.test.ts'));const pr=ts.createProgram(fn,p.options);const d=ts.getPreEmitDiagnostics(pr);if(d.length){console.error(ts.formatDiagnosticsWithColorAndContext(d,{getCanonicalFileName:x=>x,getCurrentDirectory:ts.sys.getCurrentDirectory,getNewLine:()=>ts.sys.newLine}));process.exit(1);}\""
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260702.1",
     "typescript": "^5",
+    "vitest": "^5.1.0",
     "wrangler": "^4"
   }
 }

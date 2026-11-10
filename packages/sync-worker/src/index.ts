@@ -1,41 +1,47 @@
 /**
- * Zen Dojo sync Worker (plan 0044). One endpoint: POST /api/sync.
- *
- * Table -> primary key column (D1 schema is expected to use PRIMARY KEY (user_id, <pk>)
- * or a UNIQUE index on those two columns, so ids from different users never collide):
- *
- *   table              pk column   notes
- *   -----------------  ----------  ------------------------------------------
- *   tasks              id
- *   problem_solves     id
- *   settings           key         row_id is the setting key
- *   notes              id
- *   solution_runs      id
- *   pack_progress      id
- *   practice_sessions  id
- *   timer_rows         id
- *
- * Every table also has user_id, updated_at (ms) and deleted_at (ms, tombstone).
- * Conflict rule: last write wins on updated_at; a mutation older than the stored row is ignored.
+ * Zen Dojo sync Worker (plan 0049).
+ * Handles authentication routes (/auth/*, /.well-known/jwks.json) and /api/sync.
  */
 
-// Minimal local D1 types so this file stands alone without @cloudflare/workers-types.
-interface D1Result<T = Record<string, unknown>> {
+import { handleAuth, verifyAccessToken } from "./auth/routes";
+import { guard, checkQuota, noteAuthFailure, checkAccountCreation, clientIp, type Route } from "./guard/guard";
+import { checkCors, readBodyLimited, securityHeaders } from "./guard/headers";
+import type { RateLimiter } from "./guard/types";
+
+export interface D1Result<T = Record<string, unknown>> {
   results?: T[];
   success: boolean;
+  meta?: { changes?: number };
 }
-interface D1PreparedStatement {
+
+export interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
+  first<T = unknown>(): Promise<T | null>;
+  run(): Promise<D1Result>;
+  all<T = unknown>(): Promise<D1Result<T>>;
 }
-interface D1Database {
+
+export interface D1Database {
   prepare(query: string): D1PreparedStatement;
   batch<T = Record<string, unknown>>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
 }
 
+export interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
 export interface Env {
   DB: D1Database;
-  SYNC_TOKEN?: string;
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
+  JWT_PRIVATE_JWK: string;
+  JWT_PUBLIC_JWK: string;
+  ADMIN_USER_IDS?: string;
+  ALLOWED_REDIRECTS?: string;
   ALLOWED_ORIGIN?: string;
+  RL_AUTH: RateLimiter;
+  RL_SYNC: RateLimiter;
+  RL_IP: RateLimiter;
 }
 
 type Action = "upsert" | "delete";
@@ -49,7 +55,7 @@ interface Mutation {
 
 const MAX_BODY_BYTES = 1_000_000;
 const MAX_MUTATIONS = 500;
-const MAX_PULL_ROWS = 5000;
+const PULL_LIMIT = 2000;
 
 const PK: Record<string, string> = {
   tasks: "id",
@@ -84,59 +90,27 @@ class HttpError extends Error {
   }
 }
 
-function corsHeaders(req: Request, env: Env): Record<string, string> {
-  const origin = req.headers.get("origin") ?? "";
-  const allowed = env.ALLOWED_ORIGIN ? env.ALLOWED_ORIGIN.split(",").map((s) => s.trim()) : [];
-  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  const ok = allowed.length > 0 ? allowed.includes("*") || allowed.includes(origin) : isLocal;
-  const h: Record<string, string> = {
-    "access-control-allow-methods": "POST, OPTIONS",
-    "access-control-allow-headers": "authorization, content-type, x-user-id",
-    "access-control-max-age": "86400",
-    vary: "origin",
-  };
-  if (ok) h["access-control-allow-origin"] = allowed.includes("*") ? "*" : origin;
-  return h;
-}
-
-function json(body: unknown, status: number, cors: Record<string, string>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store", ...cors },
+function applyHeaders(res: Response, pathname: string, corsHeaders?: Headers): Response {
+  const h = securityHeaders(pathname, res.headers);
+  if (corsHeaders) {
+    corsHeaders.forEach((val, key) => {
+      h.set(key, val);
+    });
+  }
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: h,
   });
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder();
-  const x = enc.encode(a);
-  const y = enc.encode(b);
-  // Walk the longer length so timing does not reveal where the strings differ.
-  const len = Math.max(x.length, y.length);
-  let diff = x.length ^ y.length;
-  for (let i = 0; i < len; i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
-  return diff === 0;
-}
-
-function authenticate(req: Request, env: Env): string {
-  const expected = env.SYNC_TOKEN;
-  if (!expected) throw new HttpError(401, "Unauthorized");
-  const m = /^Bearer (.+)$/.exec(req.headers.get("authorization") ?? "");
-  if (!m || !timingSafeEqual(m[1], expected)) throw new HttpError(401, "Unauthorized");
-  const userId = (req.headers.get("x-user-id") ?? "").trim();
-  if (!/^[A-Za-z0-9_.@:-]{1,128}$/.test(userId)) throw new HttpError(400, "Missing or invalid x-user-id");
-  return userId;
-}
-
-async function readBody(req: Request): Promise<unknown> {
-  const declared = Number(req.headers.get("content-length") ?? "0");
-  if (declared > MAX_BODY_BYTES) throw new HttpError(413, "Request body too large");
-  const text = await req.text();
-  if (text.length > MAX_BODY_BYTES) throw new HttpError(413, "Request body too large");
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new HttpError(400, "Malformed JSON");
-  }
+function json(body: unknown, status: number, pathname: string, corsHeaders?: Headers): Response {
+  const h = securityHeaders(pathname, corsHeaders);
+  h.set("Content-Type", "application/json");
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: h,
+  });
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -151,8 +125,8 @@ function bindable(v: unknown): string | number | null {
 }
 
 function parseMutations(raw: unknown): Mutation[] {
-  if (raw === undefined) return [];
-  if (!Array.isArray(raw)) throw new HttpError(400, "mutations must be an array");
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new HttpError(400, "mutations_must_be_array");
   if (raw.length > MAX_MUTATIONS) throw new HttpError(413, `At most ${MAX_MUTATIONS} mutations per request`);
   return raw.map((m: unknown, i: number): Mutation => {
     if (!isObject(m)) throw new HttpError(400, `mutations[${i}] must be an object`);
@@ -187,7 +161,6 @@ function parseMutations(raw: unknown): Mutation[] {
 }
 
 function buildStatement(db: D1Database, userId: string, m: Mutation): D1PreparedStatement {
-  // Table and pk names come only from the PK allowlist; column names only from COLUMNS. All values are bound.
   const pk = PK[m.table];
   if (m.action === "delete") {
     return db
@@ -210,51 +183,167 @@ function buildStatement(db: D1Database, userId: string, m: Mutation): D1Prepared
     .bind(...values);
 }
 
-async function handleSync(req: Request, env: Env, cors: Record<string, string>): Promise<Response> {
-  const userId = authenticate(req, env);
-  const body = await readBody(req);
-  if (!isObject(body)) throw new HttpError(400, "Body must be a JSON object");
+async function handleSync(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  pathname: string,
+  corsHeaders: Headers,
+): Promise<Response> {
+  // 1. Read Bearer token and verify
+  const authHeader = req.headers.get("authorization") ?? "";
+  const match = /^Bearer\s+([A-Za-z0-9._-]+)$/i.exec(authHeader);
+  const token = match ? match[1] : null;
+  const claims = token ? await verifyAccessToken(token, env) : null;
+  if (!claims) {
+    await noteAuthFailure(env, clientIp(req), "token");
+    return json({ ok: false, error: "unauthorized" }, 401, pathname, corsHeaders);
+  }
+  const userId = claims.sub;
+
+  // 2. Second guard check: user rate limit and user ban
+  const syncGuardReject = await guard(req, env, ctx, "sync", userId);
+  if (syncGuardReject) {
+    return applyHeaders(syncGuardReject, pathname, corsHeaders);
+  }
+
+  // 3. Read body bounded
+  const bodyRes = await readBodyLimited(req, MAX_BODY_BYTES);
+  if (!bodyRes.ok) {
+    const status = bodyRes.reason === "too_large" ? 413 : 400;
+    const error = bodyRes.reason === "too_large" ? "request_body_too_large" : "unreadable_body";
+    return json({ ok: false, error }, status, pathname, corsHeaders);
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(bodyRes.text);
+  } catch {
+    return json({ ok: false, error: "malformed_json" }, 400, pathname, corsHeaders);
+  }
+  if (!isObject(body)) {
+    return json({ ok: false, error: "body_must_be_object" }, 400, pathname, corsHeaders);
+  }
+
   const mutations = parseMutations(body.mutations);
   const since = body.last_synced_at === undefined ? 0 : body.last_synced_at;
   if (typeof since !== "number" || !Number.isFinite(since) || since < 0) {
-    throw new HttpError(400, "last_synced_at must be a non-negative number");
+    return json({ ok: false, error: "invalid_last_synced_at" }, 400, pathname, corsHeaders);
   }
 
-  // Taken before the push so rows written by this request are sent back next time (harmless: LWW is idempotent).
-  const serverTimestamp = Date.now();
+  // 4. Quota check
+  const quotaReject = await checkQuota(env, userId, mutations.length, bodyRes.bytes.byteLength);
+  if (quotaReject) {
+    return applyHeaders(quotaReject, pathname, corsHeaders);
+  }
 
+  // 5. Server timestamp & execute mutations
+  const serverTimestamp = Date.now();
   if (mutations.length > 0) {
     await env.DB.batch(mutations.map((m) => buildStatement(env.DB, userId, m)));
   }
 
+  // 6. Pull rows with pagination
   const pulls = await env.DB.batch(
     TABLES.map((t) =>
       env.DB.prepare(
-        `SELECT * FROM ${t} WHERE user_id = ? AND updated_at > ? ORDER BY updated_at LIMIT ${MAX_PULL_ROWS}`,
+        `SELECT * FROM ${t} WHERE user_id = ? AND updated_at > ? ORDER BY updated_at ASC LIMIT ${PULL_LIMIT + 1}`,
       ).bind(userId, since),
     ),
   );
+
+  let hasMore = false;
+  const truncatedCursors: number[] = [];
   const deltas: Record<string, unknown[]> = {};
+
   TABLES.forEach((t, i) => {
-    deltas[t] = pulls[i].results ?? [];
+    const rows = (pulls[i]?.results ?? []) as Array<Record<string, unknown>>;
+    if (rows.length > PULL_LIMIT) {
+      hasMore = true;
+      const pageRows = rows.slice(0, PULL_LIMIT);
+      deltas[t] = pageRows;
+      const last = pageRows[pageRows.length - 1];
+      if (last && typeof last.updated_at === "number") {
+        truncatedCursors.push(last.updated_at);
+      }
+    } else {
+      deltas[t] = rows;
+    }
   });
 
-  return json({ ok: true, deltas, server_timestamp: serverTimestamp }, 200, cors);
+  const nextSince = hasMore && truncatedCursors.length > 0 ? Math.min(...truncatedCursors) : serverTimestamp;
+
+  return json(
+    {
+      ok: true,
+      deltas,
+      server_timestamp: serverTimestamp,
+      has_more: hasMore,
+      next_since: nextSince,
+    },
+    200,
+    pathname,
+    corsHeaders,
+  );
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
-    const cors = corsHeaders(req, env);
+  async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    const executionCtx: ExecutionContext = ctx ?? {
+      waitUntil(p: Promise<unknown>) {
+        p.catch(() => {});
+      },
+    };
+
     const url = new URL(req.url);
-    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    const pathname = url.pathname;
+    const cors = checkCors(req, env.ALLOWED_ORIGIN);
+
+    // 1. CORS Preflight
+    if (req.method === "OPTIONS") {
+      if (!cors.allowed) return new Response(null, { status: 403 });
+      const h = securityHeaders(pathname, cors.headers);
+      return new Response(null, { status: 204, headers: h });
+    }
+
+    // 2. Initial Guard check (IP rate limits, bans)
+    let route: Route = "other";
+    if (pathname.startsWith("/auth/") || pathname === "/.well-known/jwks.json") {
+      route = "auth";
+    } else if (pathname === "/api/sync") {
+      route = "sync";
+    }
+
+    const guardReject = await guard(req, env, executionCtx, route);
+    if (guardReject) {
+      return applyHeaders(guardReject, pathname, cors.headers);
+    }
+
+    // 3. Auth routes & JWKS
+    if (pathname.startsWith("/auth/") || pathname === "/.well-known/jwks.json") {
+      const authRes = await handleAuth(req, env, executionCtx, { noteAuthFailure, checkAccountCreation });
+      if (authRes) {
+        return applyHeaders(authRes, pathname, cors.headers);
+      }
+      return json({ ok: false, error: "not_found" }, 404, pathname, cors.headers);
+    }
+
+    // 4. API Sync route
+    if (pathname !== "/api/sync") {
+      return json({ ok: false, error: "not_found" }, 404, pathname, cors.headers);
+    }
+
+    if (req.method !== "POST") {
+      return json({ ok: false, error: "method_not_allowed" }, 405, pathname, cors.headers);
+    }
+
     try {
-      if (url.pathname !== "/api/sync") throw new HttpError(404, "Not found");
-      if (req.method !== "POST") throw new HttpError(405, "Method not allowed");
-      return await handleSync(req, env, cors);
+      return await handleSync(req, env, executionCtx, pathname, cors.headers);
     } catch (err) {
-      if (err instanceof HttpError) return json({ ok: false, error: err.message }, err.status, cors);
-      console.error("sync failed", err instanceof Error ? err.message : "unknown error");
-      return json({ ok: false, error: "Internal error" }, 500, cors);
+      if (err instanceof HttpError) {
+        return json({ ok: false, error: err.message }, err.status, pathname, cors.headers);
+      }
+      return json({ ok: false, error: "internal_error" }, 500, pathname, cors.headers);
     }
   },
 };

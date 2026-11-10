@@ -6,7 +6,40 @@
     {
       "binding": "DB",
       "database_name": "zen-dojo-db",
-      "database_id": "a14794b5-d936-4913-ab5e-b157536dc4bb"
+      "database_id": "a14794b5-d936-4913-ab5e-b157536dc4bb",
+      "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "ratelimits": [
+    {
+      "name": "RL_AUTH",
+      "namespace_id": "rl_auth",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    },
+    {
+      "name": "RL_SYNC",
+      "namespace_id": "rl_sync",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "RL_IP",
+      "namespace_id": "rl_ip",
+      "simple": {
+        "limit": 300,
+        "period": 60
+      }
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "*",
+    "ALLOWED_REDIRECTS": "",
+    "ADMIN_USER_IDS": "",
+    "JWT_PUBLIC_JWK": "{}"
+  }
 }
