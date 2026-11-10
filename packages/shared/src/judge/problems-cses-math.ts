@@ -90,7 +90,7 @@ public:
     id: "cses-exponentiation-ii",
     source: "cses",
     title: "Exponentiation II",
-    url: "https://cses.fi/problemset/task/1096",
+    url: "https://cses.fi/problemset/task/1712",
     statement: [
       "Given a series of queries where each query consists of three integers [a, b, c], calculate a^(b^c) modulo 10^9 + 7.",
       "Note that 0^0 = 1."
