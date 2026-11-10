@@ -1,6 +1,6 @@
 # 0045: Dynamic Admin Portal for Live Content Management
 
-- **Status:** ready
+- **Status:** in-progress (login gate, problems table and editor built; study content pages not built)
 - **Planned by:** Antigravity, 2026-11-10
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on plans 0024, 0030, and 0032

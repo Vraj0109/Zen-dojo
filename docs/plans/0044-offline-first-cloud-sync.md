@@ -1,6 +1,6 @@
 # 0044: Notion-style offline-first cloud sync with Turso libSQL
 
-- **Status:** ready
+- **Status:** in-progress (worker, queue, proxy and status pill built; live two-device sync not yet confirmed)
 - **Planned by:** Antigravity, 2026-11-10
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on plans 0030 and 0032

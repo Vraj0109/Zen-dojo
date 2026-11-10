@@ -1,6 +1,6 @@
 # 0049: Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)
 
-- **Status:** ready
+- **Status:** in-progress (built and checked; live GitHub sign-in not yet confirmed)
 - **Planned by:** Claude Code, 2026-11-10
 - **Implemented by:** (implementer fills in) 3 Claude Code agents (A, B, C) + 3 Antigravity agents (D, E, F)
 - **Spec:** extends plan 0044 (offline-first sync) and 0045 (admin portal)
