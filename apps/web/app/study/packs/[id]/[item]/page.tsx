@@ -12,6 +12,7 @@ import { CodeBlock } from "../../../../learn-blocks";
 import { ProblemDescription, ProblemHelp, startersFor } from "../../../../problem-workspace";
 import { SubmitButton } from "../../../../submit-button";
 import { PageMain } from "../../../../ui";
+import { StudyArticleSkeleton } from "@/app/components/study-skeleton";
 
 function Inline({ text }: { text: string }) {
   return (
@@ -81,7 +82,7 @@ export const metadata: Metadata = { title: "Imported course" };
 export default function PackItemPage({ params }: PageProps<"/study/packs/[id]/[item]">) {
   return (
     <PageMain title="Imported item" full>
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyArticleSkeleton />}>
         <Item params={params} />
       </Suspense>
     </PageMain>

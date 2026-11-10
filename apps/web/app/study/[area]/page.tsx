@@ -10,6 +10,7 @@ import { PageMain, ProgressBar, Stat } from "../../ui";
 import { LearnBack } from "../../section-tabs";
 import { deeperIds } from "../../toc-items";
 import { Confidence, fmtDate } from "../study-ui";
+import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 /** The study areas are fixed, so their pages are known at build time. */
 export function generateStaticParams() {
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/study/[area]">): 
 export default function StudyAreaPage({ params }: PageProps<"/study/[area]">) {
   return (
     <PageMain title="Study">
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyAreaSkeleton />}>
         <Area params={params} />
       </Suspense>
     </PageMain>

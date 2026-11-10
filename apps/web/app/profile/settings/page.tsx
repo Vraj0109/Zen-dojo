@@ -16,6 +16,7 @@ import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
 import { FeedUpdater } from "./feed-updater";
+import { ProfileSettingsSkeleton } from "@/app/components/profile-skeleton";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -44,12 +45,12 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             <hr className="border-line" />
             <CustomFontPicker />
           </section>
-          <Suspense fallback={<p className="text-muted">Loading…</p>}>
+          <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
             <InterfaceSettings />
           </Suspense>
 
           <h3 className="text-lg font-semibold">Focus &amp; Pacing</h3>
-          <Suspense fallback={<p className="text-muted">Loading focus settings…</p>}>
+          <Suspense fallback={<ProfileSettingsSkeleton rows={3} />}>
             <BuddySettingsSection />
           </Suspense>
 
@@ -62,19 +63,19 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             </p>
             <PackImporter />
           </section>
-          <Suspense fallback={<p className="text-muted">Loading content updates…</p>}>
+          <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
             <ContentFeedSection />
           </Suspense>
 
           <h3 className="text-lg font-semibold">Plan</h3>
-          <Suspense fallback={<p className="text-muted">Loading…</p>}>
+          <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
             <PlanSettings />
           </Suspense>
 
           <h3 id="leetcode" className="scroll-mt-32 pt-2 text-lg font-semibold lg:scroll-mt-4">
             LeetCode
           </h3>
-          <Suspense fallback={<p className="text-muted">Loading…</p>}>
+          <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
             <Connections />
           </Suspense>
         </div>

@@ -37,6 +37,7 @@ import { CourseOutline } from "../../../course-outline";
 import { DesignDeepView } from "../../../design-deep";
 import { conceptToc, designDeepToc } from "../../../toc-items";
 import { DiagramsSection, FollowUps, LessonQuestions, LldGuideView, LldProjectView, ReadingSection, WalkthroughView } from "../../learn-ui";
+import { StudyArticleSkeleton } from "@/app/components/study-skeleton";
 import { ProjectPlayground } from "./project-playground";
 import { Confidence, fmtDate } from "../../study-ui";
 
@@ -56,7 +57,7 @@ export async function generateMetadata({ params }: PageProps<"/study/[area]/[id]
 export default function StudyItemPage({ params, searchParams }: PageProps<"/study/[area]/[id]">) {
   return (
     <PageMain title="Study">
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyArticleSkeleton />}>
         <Item params={params} searchParams={searchParams} />
       </Suspense>
     </PageMain>

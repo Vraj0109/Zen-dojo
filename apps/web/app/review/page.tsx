@@ -8,13 +8,14 @@ import { clearStruggleAction, logStruggleAction, markSolvedAction, rateConceptAc
 import { ReviewTabs } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
 import { PageMain } from "../ui";
+import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
 export const metadata: Metadata = { title: "Review" };
 
 export default function ReviewPage({ searchParams }: PageProps<"/review">) {
   return (
     <PageMain title="Review" narrow>
-      <Suspense fallback={<p className="text-muted">Loading reviews…</p>}>
+      <Suspense fallback={<ReviewQueueSkeleton />}>
         <Review searchParams={searchParams} />
       </Suspense>
     </PageMain>

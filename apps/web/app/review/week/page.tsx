@@ -8,6 +8,7 @@ import { saveReflectionAction } from "../../actions";
 import { ReviewTabsWithCount } from "../../section-tabs";
 import { SubmitButton } from "../../submit-button";
 import { PageMain, Stat } from "../../ui";
+import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
 export const metadata: Metadata = { title: "Weekly review" };
 
@@ -17,7 +18,7 @@ export default function WeeklyReviewPage({ searchParams }: PageProps<"/review/we
       <Suspense fallback={null}>
         <ReviewTabsWithCount active="weekly" />
       </Suspense>
-      <Suspense fallback={<p className="text-muted">Loading the week…</p>}>
+      <Suspense fallback={<ReviewQueueSkeleton />}>
         <Week searchParams={searchParams} />
       </Suspense>
     </PageMain>

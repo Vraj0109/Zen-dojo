@@ -6,6 +6,7 @@ import { BALANCE_DAYS, getStats } from "@/lib/stats";
 import { getPlanStart } from "@/lib/tasks";
 import { PageMain, ProgressBar, Stat, StatusMark } from "../ui";
 import { ProfileTabs } from "./profile-ui";
+import { ProfileStatsSkeleton } from "@/app/components/profile-skeleton";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -13,7 +14,7 @@ export default function ProfilePage() {
   return (
     <PageMain title="Profile">
       <ProfileTabs active="/profile" />
-      <Suspense fallback={<p className="text-muted">Loading stats…</p>}>
+      <Suspense fallback={<ProfileStatsSkeleton />}>
         <Stats />
       </Suspense>
     </PageMain>

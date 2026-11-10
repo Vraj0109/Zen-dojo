@@ -17,6 +17,8 @@ import { Tabs } from "../../../tabs";
 import { PageMain, ProgressBar, SimpleHint } from "../../../ui";
 import { AddedProblems } from "../../added-problems";
 import { CheatSheet, ProblemRow } from "../../problem-ui";
+import { StudyArticleSkeleton } from "@/app/components/study-skeleton";
+import { Skeleton } from "@/app/components/skeleton";
 
 /** One page per pattern, known at build time. */
 export function generateStaticParams() {
@@ -49,7 +51,7 @@ export default async function PatternPage({
 
   return (
     <PageMain title={pattern.name}>
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyArticleSkeleton />}>
         <PatternView params={params} searchParams={searchParams} />
       </Suspense>
     </PageMain>
@@ -102,7 +104,17 @@ async function PatternView({
       {currentTab === "reference" && <Reference id={id} />}
 
       {currentTab === "practice" && (
-        <Suspense fallback={<p className="text-sm text-muted">Loading your progress…</p>}>
+        <Suspense
+          fallback={
+            <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
+              <Skeleton className="h-5 w-40" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+            </div>
+          }
+        >
           <Practice id={id} />
         </Suspense>
       )}

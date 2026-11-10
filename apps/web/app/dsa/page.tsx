@@ -14,13 +14,14 @@ import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
 import { Difficulty, PageMain, ProgressBar, SimpleHint, Stat, StatusMark } from "../ui";
+import { DsaRoadmapSkeleton } from "@/app/components/roadmap-skeleton";
 
 export const metadata: Metadata = { title: "DSA" };
 
 export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
   return (
     <PageMain title="DSA patterns">
-      <Suspense fallback={<p className="text-muted">Loading patterns…</p>}>
+      <Suspense fallback={<DsaRoadmapSkeleton />}>
         <Dsa searchParams={searchParams} />
       </Suspense>
     </PageMain>

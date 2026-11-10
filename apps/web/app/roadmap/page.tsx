@@ -7,6 +7,7 @@ import { getRoadmapView, type RoadmapWeek } from "@/lib/roadmap";
 import { shiftPlanScheduleAction } from "../actions";
 import { ProfileTabs } from "../profile/profile-ui";
 import { PageMain, ProgressBar } from "../ui";
+import { DsaRoadmapSkeleton } from "@/app/components/roadmap-skeleton";
 
 export const metadata: Metadata = { title: "Roadmap" };
 
@@ -14,7 +15,7 @@ export default function RoadmapPage() {
   return (
     <PageMain title="Roadmap">
       <ProfileTabs active="/roadmap" />
-      <Suspense fallback={<p className="text-muted">Loading roadmap…</p>}>
+      <Suspense fallback={<DsaRoadmapSkeleton />}>
         <Roadmap />
       </Suspense>
     </PageMain>

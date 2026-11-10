@@ -6,13 +6,14 @@ import { getContinue, getCourses, type CourseView } from "@/lib/courses";
 import { toggleFavouriteCourseAction } from "../actions";
 import { SubmitButton } from "../submit-button";
 import { PageMain, ProgressBar } from "../ui";
+import { StudyHubSkeleton } from "@/app/components/study-skeleton";
 
 export const metadata: Metadata = { title: "Learn" };
 
 export default function LearnHubPage() {
   return (
     <PageMain title="Learn">
-      <Suspense fallback={<p className="text-muted">Loading your courses…</p>}>
+      <Suspense fallback={<StudyHubSkeleton />}>
         <Hub />
       </Suspense>
     </PageMain>

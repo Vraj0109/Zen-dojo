@@ -8,6 +8,7 @@ import { toggleReadingAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { LearnBack } from "../../section-tabs";
 import { PageMain } from "../../ui";
+import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 export const metadata: Metadata = { title: "Reading list" };
 
@@ -15,7 +16,7 @@ export default function ReadingPage() {
   return (
     <PageMain title="Reading list">
       <LearnBack current="Reading list" />
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyAreaSkeleton />}>
         <Reading />
       </Suspense>
     </PageMain>

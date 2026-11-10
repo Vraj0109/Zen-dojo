@@ -25,6 +25,7 @@ import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
 import { PageMain } from "../ui";
 import { PrintButton } from "./print-button";
+import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
 export const metadata: Metadata = { title: "Quick revise" };
 
@@ -55,7 +56,7 @@ export default function RevisePage({ searchParams }: PageProps<"/revise">) {
         </div>
         <PrintButton />
       </header>
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<ReviewQueueSkeleton />}>
         <Revise searchParams={searchParams} />
       </Suspense>
     </PageMain>

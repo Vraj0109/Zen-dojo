@@ -9,13 +9,14 @@ import { removePackAction } from "../../../actions";
 import { LearnBack } from "../../../section-tabs";
 import { SubmitButton } from "../../../submit-button";
 import { PageMain, ProgressBar } from "../../../ui";
+import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 export const metadata: Metadata = { title: "Imported course" };
 
 export default function PackPage({ params }: PageProps<"/study/packs/[id]">) {
   return (
     <PageMain title="Imported course">
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyAreaSkeleton />}>
         <Pack params={params} />
       </Suspense>
     </PageMain>

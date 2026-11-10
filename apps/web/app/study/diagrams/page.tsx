@@ -6,6 +6,7 @@ import { ALL_EXERCISES, studyHref } from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
 import { LearnBack } from "../../section-tabs";
 import { PageMain } from "../../ui";
+import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 export const metadata: Metadata = { title: "Your diagrams" };
 
@@ -13,7 +14,7 @@ export default function DiagramsPage() {
   return (
     <PageMain title="Your diagrams">
       <LearnBack current="Diagrams" />
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <Suspense fallback={<StudyAreaSkeleton />}>
         <Gallery />
       </Suspense>
     </PageMain>
