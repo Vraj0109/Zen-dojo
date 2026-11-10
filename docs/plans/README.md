@@ -122,3 +122,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0048 | [Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)](0048-round-nine-six-agent-parallel-work.md) | ready |
 | 0049 | [Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)](0049-accounts-sign-in-and-abuse-protection.md) | implemented |
 | 0050 | [Connect the app's data to cloud sync (triggers, server-side sync engine, first-link upload)](0050-connect-app-data-to-cloud-sync.md) | implemented |
+| 0051 | [Sign in from the desktop app (deep link back into the app)](0051-desktop-sign-in.md) | ready |
+| 0052 | [An IDE in the LLD "Your classes" section](0052-lld-your-classes-ide.md) | ready |
+| 0053 | [Solved ticks (accent plus grey) and DSA search with multi-select filters](0053-solved-ticks-and-dsa-search-filters.md) | ready |
+| 0054 | [Delete my data (cloud copy and this device, separately)](0054-delete-my-data.md) | ready |
