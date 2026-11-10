@@ -141,7 +141,8 @@ describe("importing submissions", () => {
     expect(dsa.extras).toEqual([
       expect.objectContaining({ title: "Some New Problem", number: 3999, difficulty: "hard", xp: 30, solvedOn: "2026-11-06" }),
     ]);
-    expect(dsa.totals).toMatchObject({ solved: 2, allSolved: 3 });
+    // imported from LeetCode, so counted only when all platforms are included
+    expect(dsa.totals).toMatchObject({ solved: 0, allSolved: 0, solvedAnywhere: 2, allSolvedAnywhere: 3 });
 
     const today = await getTodayView();
     expect(today).toMatchObject({ totalXp: 5 + 15 + 30, streak: 2 });

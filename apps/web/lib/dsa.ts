@@ -29,15 +29,20 @@ async function solveIndex() {
   const first = new Map<string, string>();
   const resolved = new Map<string, string>();
   const auto = new Set<string>();
+  const sources = new Map<string, "manual" | "judge" | "leetcode">();
   for (const r of rows) {
     if (!(r.problemId in PROBLEMS)) continue;
     if (r.kind === "solve" && !first.has(r.problemId)) {
       first.set(r.problemId, r.solvedOn);
+      sources.set(r.problemId, (r.source as "manual" | "judge" | "leetcode") ?? "manual");
       if (r.source === "leetcode") auto.add(r.problemId);
     }
-    if (r.kind === "resolve") resolved.set(r.problemId, r.solvedOn);
+    if (r.kind === "resolve") {
+      resolved.set(r.problemId, r.solvedOn);
+      if (r.source === "judge") sources.set(r.problemId, "judge");
+    }
   }
-  return { rows, first, resolved, auto };
+  return { rows, first, resolved, auto, sources };
 }
 
 /**
@@ -187,10 +192,14 @@ export async function getDsaView() {
       patterns: patterns.length,
       patternsCovered: patterns.filter((p) => p.covered).length,
       problems: allIds.length + addedProblems.length,
-      solved: first.size + addedProblems.filter((p) => p.done).length,
+      /** Roadmap problems solved in this app (every test passed here); solvedAnywhere also counts LeetCode-only ones */
+      solved: [...first.keys()].filter((id) => ticks.here.has(id)).length + addedProblems.filter((p) => p.done).length,
+      solvedAnywhere: first.size + addedProblems.filter((p) => p.done).length,
       resolved: resolved.size,
       /** Every distinct problem solved, roadmap or not (roadmap checklist: 150+). */
-      allSolved: first.size + extras.length + addedProblems.filter((p) => p.done).length,
+      allSolved: [...first.keys()].filter((id) => ticks.here.has(id)).length + addedProblems.filter((p) => p.done).length,
+      /** The same count when solves on LeetCode and the other platforms are included (the old total) */
+      allSolvedAnywhere: first.size + extras.length + addedProblems.filter((p) => p.done).length,
       xp: rows.reduce((sum, r) => sum + r.xp, 0),
     },
   };
@@ -211,6 +220,7 @@ export interface ProblemDetail {
   patterns: Pick<Pattern, "id" | "name" | "recognize">[];
   status: SolveState;
   auto: boolean;
+  solveSource?: "manual" | "judge" | "leetcode";
   note: ProblemNote | null;
   /** Your accepted LeetCode submissions (captured by the browser extension), newest first. */
   submissions: UserSubmission[];
@@ -237,7 +247,7 @@ export async function getProblemDetail(id: string): Promise<ProblemDetail | null
   const today = toLocalDate();
   if (id in PROBLEMS) {
     const slug = PROBLEMS[id].slug;
-    const [{ first, resolved, auto }, note, submissions, topics] = await Promise.all([solveIndex(), getNote(id), userSubmissions(slug), topicsFor(slug)]);
+    const [{ first, resolved, auto, sources }, note, submissions, topics] = await Promise.all([solveIndex(), getNote(id), userSubmissions(slug), topicsFor(slug)]);
     const ticks = await tickIndex(first);
     return {
       ...PROBLEMS[id],
@@ -247,6 +257,7 @@ export async function getProblemDetail(id: string): Promise<ProblemDetail | null
       patterns: ALL_PATTERNS.filter((p) => p.problems.includes(id)).map(({ id, name, recognize }) => ({ id, name, recognize })),
       status: solveState(first.get(id), resolved.get(id), today),
       auto: auto.has(id),
+      solveSource: sources.get(id),
       judgeable: id in JUDGE_PROBLEMS,
       note,
       submissions,
@@ -308,13 +319,12 @@ export async function markSolved(problemId: string, source: "manual" | "judge" =
 }
 
 /**
- * The Mark solved button. A problem the local judge can run cannot get its first solve this way: it has to pass every
- * test in the editor (see recordJudgePass). Re-solves and problems without a judge spec stay manual.
+ * The Mark solved button. A problem the local judge can run cannot be solved or re-solved this way: it has to pass every
+ * test in the editor (see recordJudgePass). Only problems without a judge spec allow manual solves.
  */
 export async function markSolvedManually(problemId: string): Promise<boolean> {
   if (problemId in JUDGE_PROBLEMS) {
-    const { first } = await solveIndex();
-    if (!first.has(problemId)) return false;
+    return false;
   }
   await markSolved(problemId);
   return true;

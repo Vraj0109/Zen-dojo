@@ -46,6 +46,8 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   after(syncLeetCodeIfStale);
   const [{ groups, due, extras, topics, totals }, leetcode, extension, simple] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus(), getSimpleMode()]);
 
+  const anywhere = params.platforms === "all";
+  const shown = anywhere ? { solved: totals.solvedAnywhere, allSolved: totals.allSolvedAnywhere } : { solved: totals.solved, allSolved: totals.allSolved };
   const tab = parseDsaTab(params);
   const filters = parseDsaFilters(params);
   const source = parseSource(params.source);
@@ -65,10 +67,16 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Patterns" value={`${totals.patternsCovered} / ${totals.patterns}`} hint="covered (4+ solved)" />
-        <Stat label="Roadmap solved" value={`${totals.solved} / ${totals.problems}`} hint={`${totals.resolved} re-solved`} />
-        <Stat label="All solved" value={String(totals.allSolved)} hint="goal: 150+" />
+        <Stat label="Roadmap solved" value={`${shown.solved} / ${totals.problems}`} hint={`${totals.resolved} re-solved`} />
+        <Stat label="All solved" value={String(shown.allSolved)} hint="goal: 150+" />
         <Stat label="Re-solves due" value={String(due.length)} hint="due now" href="?tab=resolve" />
       </section>
+      <p className="-mt-3 text-xs text-muted">
+        {anywhere ? "Counting solves on LeetCode and other platforms too." : "Counting only problems solved here (every test passed in the editor)."}{" "}
+        <Link href={anywhere ? "/dsa" : "/dsa?platforms=all"} className="underline hover:text-foreground">
+          {anywhere ? "Count only this app" : "Count all platforms"}
+        </Link>
+      </p>
 
       <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="DSA sections" />
 
