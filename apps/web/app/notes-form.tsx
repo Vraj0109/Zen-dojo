@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { ProblemNote } from "@/lib/notes";
 import { LANGUAGES, NOTE_LIMITS } from "@/lib/note-limits";
 import { parseProjectCode, serializeProject, type ProjectFile } from "@/lib/project-files";
@@ -44,11 +44,12 @@ export function NotesForm({
     }
   }, [id, note]);
 
+  const [result, formAction] = useActionState(saveNoteAction, null);
   const field = "w-full rounded-lg border border-line bg-background px-3 py-2";
   const subtitle = codeHelp ?? (javaProject ? codePlaceholder : undefined);
 
   return (
-    <form action={saveNoteAction} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="problemId" value={id} />
       <div>
         <label htmlFor="notes" className="mb-1 block font-semibold">
@@ -119,6 +120,11 @@ export function NotesForm({
           </span>
         )}
       </div>
+      {result && !result.ok && (
+        <p role="alert" className="text-sm text-diff-hard">
+          {result.error}
+        </p>
+      )}
       <p className="text-xs text-muted">Stored only in your local database. Saving both fields empty removes the note.</p>
     </form>
   );

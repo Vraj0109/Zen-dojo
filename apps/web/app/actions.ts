@@ -63,16 +63,24 @@ export async function undoSolveAction(formData: FormData) {
   refresh();
 }
 
-export async function saveNoteAction(formData: FormData) {
+// Works as a plain form action (formData) and with useActionState (previousState, formData), so the notes form keeps
+// posting without JavaScript while showing the error with it.
+export async function saveNoteAction(
+  first: unknown,
+  second?: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const formData = (second ?? first) as FormData;
   const problemId = String(formData.get("problemId") ?? "");
   // only known DSA problems, designs and LLD problems
-  if (!(problemId in ALL_EXERCISES) && !(await getProblemDetail(problemId))) return;
-  await saveNote(problemId, {
+  if (!(problemId in ALL_EXERCISES) && !(await getProblemDetail(problemId))) return { ok: false, error: "Unknown problem." };
+  const result = await saveNote(problemId, {
     notes: String(formData.get("notes") ?? ""),
     code: String(formData.get("code") ?? ""),
     language: String(formData.get("language") ?? ""),
   });
+  if (!result.ok) return result;
   refresh();
+  return { ok: true };
 }
 
 // Results of these are stored in settings and shown in Profile → Settings and the DSA sync card.
