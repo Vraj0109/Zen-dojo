@@ -152,17 +152,34 @@ export async function getDsaView() {
   ]);
   const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), struggling: struggles.has(e.problemId), ...lc(e.slug) }));
   const ticks = await tickIndex(first);
-  const view = (id: string): ProblemView => ({
-    ...PROBLEMS[id],
-    here: ticks.here.has(id),
-    onLeetCode: ticks.leetcode.has((PROBLEMS[id].slug ?? "")),
-    status: solveState(first.get(id), resolved.get(id), today),
-    auto: auto.has(id),
-    judgeable: id in JUDGE_PROBLEMS,
-    noted: noted.has(id),
-    struggling: struggles.has(id),
-    ...lc(PROBLEMS[id].slug),
-  });
+
+  // Map each problem id to the pattern names it appears in, so topics always includes them
+  const problemPatterns = new Map<string, string[]>();
+  for (const g of DSA_GROUPS) {
+    for (const p of g.patterns) {
+      for (const pid of p.problems) {
+        problemPatterns.set(pid, [...(problemPatterns.get(pid) ?? []), p.name]);
+      }
+    }
+  }
+
+  const view = (id: string): ProblemView => {
+    const lcInfo = lc(PROBLEMS[id].slug);
+    const patternNames = problemPatterns.get(id) ?? [];
+    const problemTopics = lcInfo.topics.length > 0 ? lcInfo.topics : patternNames;
+    return {
+      ...PROBLEMS[id],
+      here: ticks.here.has(id),
+      onLeetCode: ticks.leetcode.has((PROBLEMS[id].slug ?? "")),
+      status: solveState(first.get(id), resolved.get(id), today),
+      auto: auto.has(id),
+      judgeable: id in JUDGE_PROBLEMS,
+      noted: noted.has(id),
+      struggling: struggles.has(id),
+      ...lcInfo,
+      topics: problemTopics,
+    };
+  };
 
   const groups = DSA_GROUPS.map((g) => {
     const patterns: PatternView[] = g.patterns.map((p) => {
@@ -179,8 +196,15 @@ export async function getDsaView() {
   const allIds = Object.keys(PROBLEMS);
   const due = allIds.map(view).filter((p) => p.status.state === "solved" && p.status.resolveDue);
   const patterns = groups.flatMap((g) => g.patterns);
-  // Topic tags seen on roadmap problems, for the filter dropdown.
-  const topics = [...new Set(allIds.flatMap((id) => lc(PROBLEMS[id].slug).topics))].sort();
+  // Topic tags seen on roadmap problems (or their pattern names), for the filter dropdown.
+  const topics = [
+    ...new Set(
+      allIds.flatMap((id) => {
+        const lcTopics = lc(PROBLEMS[id].slug).topics;
+        return lcTopics.length > 0 ? lcTopics : (problemPatterns.get(id) ?? []);
+      })
+    ),
+  ].sort();
 
   return {
     today,

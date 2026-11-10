@@ -333,7 +333,28 @@ function FilterBar({
   topics: string[];
   totals: { solved: number; problems: number };
 }) {
-  const topicOptions = topics.map((t) => ({ value: t, label: t }));
+  const fallbackTopics = [
+    "Arrays & Hashing",
+    "Two pointers",
+    "Sliding window",
+    "Stack",
+    "Binary search",
+    "Linked list",
+    "Trees",
+    "Tries",
+    "Heap / priority queue",
+    "Backtracking",
+    "Graphs",
+    "Advanced graphs",
+    "1-D Dynamic programming",
+    "2-D Dynamic programming",
+    "Greedy",
+    "Intervals",
+    "Math & geometry",
+    "Bit manipulation",
+  ];
+  const effectiveTopics = topics.length > 0 ? topics : fallbackTopics;
+  const topicOptions = effectiveTopics.map((t) => ({ value: t, label: t }));
 
   return (
     <div className="space-y-2">
@@ -364,14 +385,12 @@ function FilterBar({
           options={FILTER_OPTIONS.difficulty}
           selected={filters.difficulty}
         />
-        {topics.length > 0 && (
-          <FilterGroup
-            title="Topic"
-            name="topic"
-            options={topicOptions}
-            selected={filters.topic}
-          />
-        )}
+        <FilterGroup
+          title="Topic"
+          name="topic"
+          options={topicOptions}
+          selected={filters.topic}
+        />
         <FilterGroup
           title="Notes"
           name="has"
