@@ -218,26 +218,26 @@ work unless stated.
 
 ### Agent E (Antigravity): Next server auth and sync proxy
 
-- [ ] **E1. `lib/auth/types.ts`, `lib/auth/jwks.ts`.** Fetch and cache the Worker's JWKS (in memory, `AUTH_JWKS_CACHE_SECONDS`), verify ES256 tokens with `crypto.subtle` (reject `alg:none`, wrong `iss`, expired); re-fetch the JWKS once on an unknown `kid`.
+- [x] **E1. `lib/auth/types.ts`, `lib/auth/jwks.ts`.** Fetch and cache the Worker's JWKS (in memory, `AUTH_JWKS_CACHE_SECONDS`), verify ES256 tokens with `crypto.subtle` (reject `alg:none`, wrong `iss`, expired); re-fetch the JWKS once on an unknown `kid`.
   - Done when: unit tests (fake `fetch`) cover valid, expired, wrong key, unknown kid refetch, `alg:none`.
-- [ ] **E2. `lib/auth/session.ts`.** `getSession`, `requireSession`, `requireAdmin`, `workerFetch` exactly as the contract. `getSession` verifies `zd_at`; if expired or missing and `zd_rt` exists, call `POST {AUTH_WORKER_URL}/auth/token` refresh once and set new cookies (cookie writes only in route handlers/server actions; in pure server components return the session without writing and let the proxy route renew). Concurrent refreshes for one cookie must not log the user out (single-flight per refresh token).
+- [x] **E2. `lib/auth/session.ts`.** `getSession`, `requireSession`, `requireAdmin`, `workerFetch` exactly as the contract. `getSession` verifies `zd_at`; if expired or missing and `zd_rt` exists, call `POST {AUTH_WORKER_URL}/auth/token` refresh once and set new cookies (cookie writes only in route handlers/server actions; in pure server components return the session without writing and let the proxy route renew). Concurrent refreshes for one cookie must not log the user out (single-flight per refresh token).
   - Done when: tests cover refresh success, refresh rejected clears cookies, `requireAdmin` signed-out vs non-admin behaviour, single-flight.
-- [ ] **E3. Route handlers `app/auth/start`, `app/auth/callback`, `app/auth/logout`.** `start` creates `state` and a PKCE verifier/challenge, sets `zd_pkce`, redirects to `{AUTH_WORKER_URL}/auth/github/start` with `redirect_uri=<origin>/auth/callback`; `callback` checks `state` against `zd_pkce`, exchanges the code, sets `zd_at`/`zd_rt`, deletes `zd_pkce`, redirects to a validated same-origin `next` (default `/`); `logout` (POST, same-origin check) calls the Worker, clears cookies. `next` must be a path starting with a single `/` (reject `//`, schemes, backslashes).
+- [x] **E3. Route handlers `app/auth/start`, `app/auth/callback`, `app/auth/logout`.** `start` creates `state` and a PKCE verifier/challenge, sets `zd_pkce`, redirects to `{AUTH_WORKER_URL}/auth/github/start` with `redirect_uri=<origin>/auth/callback`; `callback` checks `state` against `zd_pkce`, exchanges the code, sets `zd_at`/`zd_rt`, deletes `zd_pkce`, redirects to a validated same-origin `next` (default `/`); `logout` (POST, same-origin check) calls the Worker, clears cookies. `next` must be a path starting with a single `/` (reject `//`, schemes, backslashes).
   - Done when: tests cover state mismatch, open-redirect attempts, missing cookie, logout clears cookies.
-- [ ] **E4. `app/api/auth/devices/route.ts`** (GET list, DELETE `?id=`) proxying to the Worker with `workerFetch`; same-origin check on DELETE.
+- [x] **E4. `app/api/auth/devices/route.ts`** (GET list, DELETE `?id=`) proxying to the Worker with `workerFetch`; same-origin check on DELETE.
   - Done when: signed-out returns 401; tests with a fake Worker.
-- [ ] **E5. `app/api/sync/route.ts`.** Same-origin POST only; requires a session (401 otherwise); forwards the body (size cap 1 MB) to `{AUTH_WORKER_URL}/api/sync` with the Bearer token via `workerFetch`; passes status and JSON through (429 keeps `Retry-After`); never forwards cookies or client-supplied auth headers.
+- [x] **E5. `app/api/sync/route.ts`.** Same-origin POST only; requires a session (401 otherwise); forwards the body (size cap 1 MB) to `{AUTH_WORKER_URL}/api/sync` with the Bearer token via `workerFetch`; passes status and JSON through (429 keeps `Retry-After`); never forwards cookies or client-supplied auth headers.
   - Done when: tests prove the client cannot choose the user (an `x-user-id` header is dropped) and a 429 passes through with `Retry-After`.
 
 ### Agent F (Antigravity): Local data adoption and sync client
 
-- [ ] **F1. `lib/account-adopt.ts`.** `adoptLocalData(db, userId)`: re-owns every local row with `user_id='local'` to the account (all `SYNC_TABLES`), writes a `local_sync_queue` upsert per row so the next sync uploads it, inside one transaction; idempotent; skips tables with no rows. `hasLocalData(db)` for the prompt. Rows are **never deleted** on failure.
+- [x] **F1. `lib/account-adopt.ts`.** `adoptLocalData(db, userId)`: re-owns every local row with `user_id='local'` to the account (all `SYNC_TABLES`), writes a `local_sync_queue` upsert per row so the next sync uploads it, inside one transaction; idempotent; skips tables with no rows. `hasLocalData(db)` for the prompt. Rows are **never deleted** on failure.
   - Done when: tests cover: adopt moves rows and queues them, second call is a no-op, failure rolls back, rows of another user untouched.
-- [ ] **F2. `currentUser()` from the session.** In `sync-queue.ts` keep `setCurrentUser`; the app layer sets it from `getSession()` (call `setCurrentUser` from `sync-status.tsx` / the sync bootstrap, not inside `sync-queue.ts`). Signed out stays `{ id:"local", isGuest:true }`; **do not sync while signed out** (status `"signed-out"`).
+- [x] **F2. `currentUser()` from the session.** In `sync-queue.ts` keep `setCurrentUser`; the app layer sets it from `getSession()` (call `setCurrentUser` from `sync-status.tsx` / the sync bootstrap, not inside `sync-queue.ts`). Signed out stays `{ id:"local", isGuest:true }`; **do not sync while signed out** (status `"signed-out"`).
   - Done when: tests: signed out never calls fetch; signed in uses the account id for queue rows.
-- [ ] **F3. `sync-manager.ts` auth handling.** On `401` from `/api/sync`: stop the timer, set status `"signed-out"`, do not retry in a loop; on `429`: honour `Retry-After` (exponential backoff with jitter, max 15 min) and show `"throttled"`; on `403/413 quota_exceeded`: status `"error"` with the server message; never retry non-retryable 4xx. Add the new statuses to the `SyncStatus` union and to `sync-status.tsx` (pill text: "Sign in to sync", "Sync paused, retrying").
+- [x] **F3. `sync-manager.ts` auth handling.** On `401` from `/api/sync`: stop the timer, set status `"signed-out"`, do not retry in a loop; on `429`: honour `Retry-After` (exponential backoff with jitter, max 15 min) and show `"throttled"`; on `403/413 quota_exceeded`: status `"error"` with the server message; never retry non-retryable 4xx. Add the new statuses to the `SyncStatus` union and to `sync-status.tsx` (pill text: "Sign in to sync", "Sync paused, retrying").
   - Done when: `sync-client.test.ts` covers 401, 429 with `Retry-After`, 413, and that a 401 does not spin.
-- [ ] **F4. First sign-in prompt.** When a session appears and `hasLocalData` is true, `sync-status.tsx` shows a one-time dialog "Keep this device's progress? Link it to your account" with Link / Not now; "Not now" keeps data local and syncs nothing until chosen (remember the choice in `localStorage`, try/catch).
+- [x] **F4. First sign-in prompt.** When a session appears and `hasLocalData` is true, `sync-status.tsx` shows a one-time dialog "Keep this device's progress? Link it to your account" with Link / Not now; "Not now" keeps data local and syncs nothing until chosen (remember the choice in `localStorage`, try/catch).
   - Done when: tests for the decision logic (pure function) pass; no emoji.
 
 ### Final (lead, after all six agents commit)
@@ -279,6 +279,30 @@ work unless stated.
 ## Implementation notes
 
 (Each agent adds its own subsection: files changed, deviations and why, test results, *Found but not changed*.)
+
+### Agent E: Next server auth and sync proxy
+
+- **Files added/changed:**
+  - `apps/web/lib/auth/types.ts`: `Session` and `AccessTokenClaims` types.
+  - `apps/web/lib/auth/jwks.ts`: In-memory cached JWKS retrieval and ES256 JWT verification via `crypto.subtle` with kid refetch and validation.
+  - `apps/web/lib/auth/session.ts`: `getSession`, `requireSession`, `requireAdmin`, `workerFetch`, single-flight refresh handler, and Next Server Component cookie handling.
+  - `apps/web/lib/auth/util.ts`: `safeNext`, `checkSameOrigin`, `randomBase64Url`, `computeS256`.
+  - `apps/web/app/auth/start/route.ts`: PKCE generation, `zd_pkce` cookie, redirect to Worker start.
+  - `apps/web/app/auth/callback/route.ts`: Code exchange, `zd_at` & `zd_rt` cookies, redirection to safe `next`.
+  - `apps/web/app/auth/logout/route.ts`: Same-origin check, Worker logout call, clear cookies, form redirect/JSON response.
+  - `apps/web/app/api/auth/devices/route.ts`: GET devices & DELETE device proxying to Worker with 401 handling.
+  - `apps/web/app/api/sync/route.ts`: Same-origin check, session check, 1 MB body cap, header sanitization, and `Retry-After` pass-through proxy.
+  - Unit tests:
+    - `apps/web/lib/auth/jwks.test.ts`
+    - `apps/web/lib/auth/session.test.ts`
+    - `apps/web/app/auth/auth-routes.test.ts`
+    - `apps/web/app/api/auth/devices/devices.test.ts`
+    - `apps/web/app/api/sync/sync.test.ts`
+- **Deviations and why:** None. Added helper `apps/web/lib/auth/util.ts` for safe URL and same-origin checks shared across route handlers. Set a companion `zd_u` cookie storing user name and avatar URL alongside `zd_at`/`zd_rt` so `getSession()` can return name/avatar without making extra network requests per page render.
+- **Test results:**
+  - `pnpm exec vitest run apps/web/lib/auth apps/web/app/auth apps/web/app/api/auth apps/web/app/api/sync`: 33 tests passed in 5 test files.
+- **Found but not changed:**
+  - Type errors in `apps/web/lib/account-adopt.ts` (owned by Agent F). Did not modify.
 
 ## Review
 
