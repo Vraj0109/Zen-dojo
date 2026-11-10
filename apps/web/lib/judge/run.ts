@@ -43,6 +43,13 @@ export const DEFAULT_LIMIT_MS = 1500;
 /** Java starts slowly and JavaScript is slower, so they get longer. */
 export const TIME_MULTIPLIER: Record<JudgeLang, number> = { cpp: 1, java: 3, javascript: 5 };
 
+/** Default time limit per test case in milliseconds, by language. */
+export const DEFAULT_TIME_LIMIT_MS: Record<JudgeLang, number> = {
+  cpp: 1000,
+  java: 2500,
+  javascript: 4000,
+};
+
 export type CaseResult = {
   index: number;
   kind: "example" | "test" | "stress";
@@ -55,7 +62,9 @@ export type CaseResult = {
   actual?: string;
   /** Set when the case did not produce a right answer in time: an exception, a crash, a timeout, too much memory, or not run */
   error?: string;
-  problem?: "exception" | "crash" | "timeout" | "memory" | "not-run";
+  problem?: "exception" | "crash" | "timeout" | "memory" | "not-run" | "tle";
+  timeLimitMs?: number;
+  elapsedMs?: number;
   micros?: number;
   /** Design problems: which operation first gave a wrong answer */
   note?: string;
@@ -81,6 +90,7 @@ interface Exec {
   missing: boolean;
   /** The operating system refused to start the program (Windows Smart App Control blocks unsigned programs that g++ just built) */
   blocked: boolean;
+  elapsedMs: number;
 }
 
 import { isBlockedSpawnError } from "./blocked";
@@ -98,41 +108,95 @@ function blockedMessage(lang: JudgeLang): string {
 }
 
 /**
+ * Terminates an entire process tree across platforms.
+ * - On Windows: Uses taskkill /pid <PID> /T /F via execFile to terminate child processes and JVMs.
+ * - On POSIX: Uses process.kill(-pid, "SIGKILL") to kill the detached process group.
+ */
+function killProcessTree(child: ReturnType<typeof spawn>): void {
+  const pid = child.pid;
+  if (!pid) {
+    try {
+      child.kill("SIGKILL");
+    } catch {}
+    return;
+  }
+  if (process.platform === "win32") {
+    execFile("taskkill", ["/pid", String(pid), "/T", "/F"], { windowsHide: true }, () => {});
+    try {
+      child.kill("SIGKILL");
+    } catch {}
+  } else {
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {
+      try {
+        child.kill("SIGKILL");
+      } catch {}
+    }
+  }
+}
+
+/**
  * Runs a program with a time limit and an output cap. Standard output and standard error go to the SAME file, so what
  * your code prints through cout, printf and cerr keeps its order. The file size is watched while it runs, so a
  * loop that prints forever is stopped.
  */
-function runProcess(file: string, args: string[], opts: { cwd: string; timeout: number; input?: string }): Promise<Exec> {
+function runProcess(
+  file: string,
+  args: string[],
+  opts: { cwd: string; timeout: number; input?: string; perCaseTimeout?: number }
+): Promise<Exec> {
   return new Promise((resolve) => {
+    const startedAt = Date.now();
     const outPath = path.join(opts.cwd, "console.txt");
+    const resultsPath = path.join(opts.cwd, "results.txt");
     const fd = openSync(outPath, "w");
     let timedOut = false;
     let tooMuchOutput = false;
     let missing = false;
     let blocked = false;
     let finished = false;
+    let lastResultsSize = 0;
+    let lastCaseStarted = Date.now();
     let child: ReturnType<typeof spawn>;
+    const isWindows = process.platform === "win32";
     try {
-      child = spawn(file, args, { cwd: opts.cwd, windowsHide: true, stdio: ["pipe", fd, fd] });
+      child = spawn(file, args, { cwd: opts.cwd, windowsHide: true, stdio: ["pipe", fd, fd], detached: !isWindows });
     } catch (e) {
       // Some failures (Windows "spawn UNKNOWN") are thrown instead of sent as an error event.
       closeSync(fd);
-      resolve({ code: null, signal: null, output: "", timedOut: false, tooMuchOutput: false, missing: (e as NodeJS.ErrnoException).code === "ENOENT", blocked: isBlockedSpawnError(e) });
+      resolve({ code: null, signal: null, output: "", timedOut: false, tooMuchOutput: false, missing: (e as NodeJS.ErrnoException).code === "ENOENT", blocked: isBlockedSpawnError(e), elapsedMs: 0 });
       return;
     }
     const watcher = setInterval(() => {
       try {
         if (statSync(outPath).size > JUDGE_LIMITS.output) {
           tooMuchOutput = true;
-          child.kill("SIGKILL");
+          killProcessTree(child);
+          return;
         }
       } catch {
         // the file may be briefly unavailable; look again next time
       }
+      if (opts.perCaseTimeout) {
+        try {
+          const sz = statSync(resultsPath).size;
+          if (sz > lastResultsSize) {
+            lastResultsSize = sz;
+            lastCaseStarted = Date.now();
+          }
+        } catch {
+          // results.txt may not exist yet
+        }
+        if (Date.now() - lastCaseStarted > opts.perCaseTimeout) {
+          timedOut = true;
+          killProcessTree(child);
+        }
+      }
     }, 50);
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGKILL");
+      killProcessTree(child);
     }, opts.timeout);
     const finish = (code: number | null, signal: string | null) => {
       if (finished) return;
@@ -146,7 +210,7 @@ function runProcess(file: string, args: string[], opts: { cwd: string; timeout: 
       } catch {
         // no output file: treat as no output
       }
-      resolve({ code, signal, output, timedOut, tooMuchOutput, missing, blocked });
+      resolve({ code, signal, output, timedOut, tooMuchOutput, missing, blocked, elapsedMs: Date.now() - startedAt });
     };
     child.on("error", (e: NodeJS.ErrnoException) => {
       missing = e.code === "ENOENT";
@@ -263,13 +327,23 @@ interface Outcome {
   problem?: NonNullable<CaseResult["problem"]>;
   error?: string;
   output: string;
+  timeLimitMs?: number;
+  elapsedMs?: number;
 }
 
 /**
  * Runs the cases at `indices` (positions in `cases`), together in one process. If the program stops early (crash, hang,
  * exit) that case is marked and the rest are run again, until all are done or `budgetMs` is used up.
  */
-async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indices: number[], batchMs: number, budgetMs: number) {
+async function runSet(
+  dir: string,
+  run: Prepared["run"],
+  cases: RunCase[],
+  indices: number[],
+  batchMs: number,
+  budgetMs: number,
+  caseTimeLimitMs?: number
+) {
   const outcomes = new Map<number, Outcome>();
   let beforeTests = "";
   let pending = [...indices];
@@ -282,7 +356,12 @@ async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indic
     const stdin = `${pending.length}\n${pending.map((i) => JSON.stringify(cases[i].input)).join("\n")}\n`;
     const started = Date.now();
     const limit = Math.min(batchMs, budget);
-    const r = await runProcess(run.file, run.args, { cwd: dir, timeout: limit, input: stdin });
+    const r = await runProcess(run.file, run.args, {
+      cwd: dir,
+      timeout: limit,
+      input: stdin,
+      perCaseTimeout: caseTimeLimitMs,
+    });
     budget -= Date.now() - started;
     if (r.missing) {
       unavailable = true;
@@ -300,21 +379,52 @@ async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indic
     const printed = new Map<number, string>();
     for (const [local, out] of perCase) if (pending[local] !== undefined) printed.set(pending[local], (printed.get(pending[local]) ?? "") + out);
 
-    lines.forEach((line, local) => {
+    let tleHit = false;
+    for (let local = 0; local < lines.length; local++) {
+      const line = lines[local];
       const i = pending[local];
-      if (i === undefined) return;
+      if (i === undefined) continue;
       const [tag, payload, micros] = line.split("\t");
       const output = printed.get(i) ?? "";
       if (tag === "ERR") {
-        outcomes.set(i, { problem: OUT_OF_MEMORY.test(payload ?? "") ? "memory" : "exception", error: OUT_OF_MEMORY.test(payload ?? "") ? `Memory limit exceeded (${MEMORY_LIMIT_MB} MB).` : (payload ?? "error"), output });
-        return;
+        outcomes.set(i, {
+          problem: OUT_OF_MEMORY.test(payload ?? "") ? "memory" : "exception",
+          error: OUT_OF_MEMORY.test(payload ?? "") ? `Memory limit exceeded (${MEMORY_LIMIT_MB} MB).` : (payload ?? "error"),
+          output,
+        });
+        continue;
+      }
+      const microsNum = micros ? Number(micros) : undefined;
+      const tookMs = microsNum !== undefined ? Math.round(microsNum / 1000) : undefined;
+      if (caseTimeLimitMs !== undefined && tookMs !== undefined && tookMs > caseTimeLimitMs) {
+        outcomes.set(i, {
+          problem: "tle",
+          timeLimitMs: caseTimeLimitMs,
+          elapsedMs: tookMs,
+          error: `Time Limit Exceeded: ${tookMs}ms (limit: ${caseTimeLimitMs}ms).`,
+          output,
+        });
+        for (let rem = local + 1; rem < pending.length; rem++) {
+          outcomes.set(pending[rem], {
+            problem: "not-run",
+            error: "Not run: aborted due to Time Limit Exceeded in earlier case.",
+            output: "",
+          });
+        }
+        pending = [];
+        tleHit = true;
+        break;
       }
       try {
-        outcomes.set(i, { actual: JSON.parse(payload), micros: micros ? Number(micros) : undefined, output });
+        outcomes.set(i, { actual: JSON.parse(payload), micros: microsNum, timeLimitMs: caseTimeLimitMs, elapsedMs: tookMs, output });
       } catch {
         outcomes.set(i, { problem: "exception", error: "The answer could not be read back.", rawActual: payload, output });
       }
-    });
+    }
+
+    if (tleHit) {
+      break;
+    }
 
     const done = lines.length;
     if (done >= pending.length) {
@@ -323,10 +433,31 @@ async function runSet(dir: string, run: Prepared["run"], cases: RunCase[], indic
     }
     const stopped = pending[done];
     const output = printed.get(stopped) ?? "";
-    if (r.timedOut) outcomes.set(stopped, { problem: "timeout", error: `Time limit exceeded (stopped after ${Math.round(limit / 100) / 10} s).`, output });
-    else if (r.tooMuchOutput) outcomes.set(stopped, { problem: "crash", error: "Your code printed too much output and was stopped.", output });
-    else if (OUT_OF_MEMORY.test(r.output)) outcomes.set(stopped, { problem: "memory", error: `Memory limit exceeded (${MEMORY_LIMIT_MB} MB).`, output });
-    else outcomes.set(stopped, { problem: "crash", error: `Crashed: ${describeExit(r.code, r.signal)}`, output });
+    if (r.timedOut) {
+      const elapsed = caseTimeLimitMs ? Math.max(caseTimeLimitMs, r.elapsedMs) : r.elapsedMs;
+      outcomes.set(stopped, {
+        problem: "tle",
+        timeLimitMs: caseTimeLimitMs,
+        elapsedMs: elapsed,
+        error: `Time Limit Exceeded: ${elapsed}ms${caseTimeLimitMs ? ` (limit: ${caseTimeLimitMs}ms)` : ""}.`,
+        output,
+      });
+      for (let rem = done + 1; rem < pending.length; rem++) {
+        outcomes.set(pending[rem], {
+          problem: "not-run",
+          error: "Not run: aborted due to Time Limit Exceeded in earlier case.",
+          output: "",
+        });
+      }
+      pending = [];
+      break;
+    } else if (r.tooMuchOutput) {
+      outcomes.set(stopped, { problem: "crash", error: "Your code printed too much output and was stopped.", output });
+    } else if (OUT_OF_MEMORY.test(r.output)) {
+      outcomes.set(stopped, { problem: "memory", error: `Memory limit exceeded (${MEMORY_LIMIT_MB} MB).`, output });
+    } else {
+      outcomes.set(stopped, { problem: "crash", error: `Crashed: ${describeExit(r.code, r.signal)}`, output });
+    }
     pending = pending.slice(done + 1);
   }
 
@@ -373,6 +504,8 @@ type AnyCase = RunCase & { kind: CaseResult["kind"]; output?: unknown; label?: s
 export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string): Promise<RunResult> {
   if (code.length > JUDGE_LIMITS.code) return { status: "compile_error", message: "The code is too long." };
 
+  const timeLimitMs = (spec as { timeLimitMs?: number }).timeLimitMs ?? DEFAULT_TIME_LIMIT_MS[lang];
+
   const known: AnyCase[] = [...spec.examples.map((c) => ({ ...c, kind: "example" as const })), ...spec.tests.map((c) => ({ ...c, kind: "test" as const }))];
   const stress: AnyCase[] = (spec.stress ?? []).map((s) => ({ kind: "stress" as const, label: s.label, input: s.make(), limitMs: s.limitMs ?? DEFAULT_LIMIT_MS }));
   const cases: AnyCase[] = [...known, ...stress];
@@ -383,25 +516,47 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
     if (!prepared.ok) return prepared.result;
     const { run } = prepared.value;
 
-    const first = await runSet(dir, run, cases, known.map((_, i) => i), JUDGE_LIMITS.batchMs, JUDGE_LIMITS.totalMs);
+    const first = await runSet(dir, run, cases, known.map((_, i) => i), Math.max(JUDGE_LIMITS.batchMs, timeLimitMs), JUDGE_LIMITS.totalMs, timeLimitMs);
     if (first.unavailable) return { status: "unavailable", message: MISSING[lang] };
     if (first.blocked) return { status: "unavailable", message: blockedMessage(lang) };
     const outcomes = first.outcomes;
     let beforeTests = first.beforeTests;
 
+    const hasTle = Array.from(outcomes.values()).some((o) => o.problem === "tle");
+
     // Large inputs: each in its own process with its own time limit.
-    let stressBudget = JUDGE_LIMITS.stressTotalMs;
-    for (let s = 0; s < stress.length; s++) {
-      const i = known.length + s;
-      const limit = (stress[s].limitMs ?? DEFAULT_LIMIT_MS) * TIME_MULTIPLIER[lang];
-      const timeout = limit + 1500; // startup and reading the input come on top of the work itself
-      const part = await runSet(dir, run, cases, [i], timeout, Math.min(timeout, stressBudget));
-      stressBudget -= Math.min(timeout, stressBudget);
-      beforeTests += part.beforeTests;
-      const o = part.outcomes.get(i);
-      if (o) outcomes.set(i, o);
+    if (!hasTle) {
+      let stressBudget = JUDGE_LIMITS.stressTotalMs;
+      for (let s = 0; s < stress.length; s++) {
+        const i = known.length + s;
+        const limit = (stress[s].limitMs ?? DEFAULT_LIMIT_MS) * TIME_MULTIPLIER[lang];
+        const timeout = limit + 1500; // startup and reading the input come on top of the work itself
+        const part = await runSet(dir, run, cases, [i], timeout, Math.min(timeout, stressBudget), limit);
+        stressBudget -= Math.min(timeout, stressBudget);
+        beforeTests += part.beforeTests;
+        const o = part.outcomes.get(i);
+        if (o) outcomes.set(i, o);
+        if (o?.problem === "tle") {
+          for (let rem = s + 1; rem < stress.length; rem++) {
+            outcomes.set(known.length + rem, {
+              problem: "not-run",
+              error: "Not run: aborted due to Time Limit Exceeded in earlier case.",
+              output: "",
+            });
+          }
+          break;
+        }
+      }
+    } else {
+      for (let s = 0; s < stress.length; s++) {
+        outcomes.set(known.length + s, {
+          problem: "not-run",
+          error: "Not run: aborted due to Time Limit Exceeded in earlier case.",
+          output: "",
+        });
+      }
     }
-    const expectedStress = stress.length > 0 ? await referenceAnswers(spec) : [];
+    const expectedStress = (!hasTle && stress.length > 0) ? await referenceAnswers(spec) : [];
 
     const results: CaseResult[] = cases.map((c, i) => {
       const o = outcomes.get(i) ?? { problem: "not-run" as const, error: "Not run.", output: "" };
@@ -409,7 +564,17 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
       const expectedValue = isStress ? expectedStress?.[i - known.length] : c.output;
       const input = isStress ? `(large input: ${c.label})` : JSON.stringify(c.input);
       const expected = isStress ? (expectedValue === undefined ? "(not available)" : brief(JSON.stringify(expectedValue))) : JSON.stringify(c.output);
-      const base: CaseResult = { index: i, kind: c.kind, label: c.label, pass: false, input, expected, micros: o.micros };
+      const base: CaseResult = {
+        index: i,
+        kind: c.kind,
+        label: c.label,
+        pass: false,
+        input,
+        expected,
+        micros: o.micros,
+        timeLimitMs: o.timeLimitMs,
+        elapsedMs: o.elapsedMs,
+      };
       const out = o.output.replace(/\r\n/g, "\n");
       const printed = out.trim() ? { output: cap(out) } : {};
       const limitMs = c.limitMs ?? DEFAULT_LIMIT_MS;
@@ -437,21 +602,30 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
 function slow(base: CaseResult, o: Outcome, limitMs: number, lang: JudgeLang, printed: { output?: string }): CaseResult {
   const limit = limitMs * TIME_MULTIPLIER[lang];
   const took = Math.round((o.micros ?? 0) / 1000);
-  return { ...base, problem: "timeout", actual: brief(JSON.stringify(o.actual)), error: `Right answer, but too slow: ${took} ms, the limit here is ${limit} ms. Look for a faster algorithm.`, ...printed };
+  return {
+    ...base,
+    problem: "tle",
+    timeLimitMs: limit,
+    elapsedMs: took,
+    actual: brief(JSON.stringify(o.actual)),
+    error: `Time Limit Exceeded: ${took}ms (limit: ${limit}ms). Look for a faster algorithm.`,
+    ...printed,
+  };
 }
 
 export type CustomResult =
   | { status: "unavailable" | "compile_error"; message: string }
-  | { status: "done"; output?: string; error?: string; printed?: string; micros?: number };
+  | { status: "done"; output?: string; error?: string; printed?: string; micros?: number; problem?: CaseResult["problem"]; timeLimitMs?: number; elapsedMs?: number };
 
 /** Runs your code once on an input you typed (one JSON value per parameter). There is no expected answer. */
 export async function runCustom(spec: ProblemSpec, lang: JudgeLang, code: string, input: unknown[]): Promise<CustomResult> {
   if (code.length > JUDGE_LIMITS.code) return { status: "compile_error", message: "The code is too long." };
+  const timeLimitMs = (spec as { timeLimitMs?: number }).timeLimitMs ?? DEFAULT_TIME_LIMIT_MS[lang];
   const dir = await mkdtemp(path.join(os.tmpdir(), "habit-judge-"));
   try {
     const prepared = await prepare(spec, lang, code, dir);
     if (!prepared.ok) return prepared.result as CustomResult;
-    const r = await runSet(dir, prepared.value.run, [{ input }], [0], JUDGE_LIMITS.batchMs, JUDGE_LIMITS.batchMs);
+    const r = await runSet(dir, prepared.value.run, [{ input }], [0], Math.max(JUDGE_LIMITS.batchMs, timeLimitMs), Math.max(JUDGE_LIMITS.batchMs, timeLimitMs), timeLimitMs);
     if (r.unavailable) return { status: "unavailable", message: MISSING[lang] };
     if (r.blocked) return { status: "unavailable", message: blockedMessage(lang) };
     const o = r.outcomes.get(0);
@@ -460,6 +634,7 @@ export async function runCustom(spec: ProblemSpec, lang: JudgeLang, code: string
       status: "done",
       ...(o?.error ? { error: o.error } : {}),
       ...(o && !o.problem ? { output: JSON.stringify(o.actual), micros: o.micros } : {}),
+      ...(o?.problem ? { problem: o.problem, timeLimitMs: o.timeLimitMs, elapsedMs: o.elapsedMs } : {}),
       ...(o?.rawActual !== undefined ? { output: o.rawActual } : {}),
       ...(printed.trim() ? { printed: cap(printed) } : {}),
     };
