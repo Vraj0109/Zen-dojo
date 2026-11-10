@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
-import { getProblemDetail, markSolved, undoSolve } from "@/lib/dsa";
+import { getProblemDetail, markSolvedManually, undoSolve } from "@/lib/dsa";
 import { getSavedSolutions, saveNote, saveSolutionFor, type SavedSolution, type SolutionLang } from "@/lib/notes";
 import { applyFreeze } from "@/lib/progress";
 import { toggleFavouriteCourse } from "@/lib/courses";
@@ -53,7 +53,8 @@ export async function deleteTaskAction(formData: FormData) {
 }
 
 export async function markSolvedAction(formData: FormData) {
-  await markSolved(String(formData.get("problemId") ?? "")); // ignores unknown ids
+  // Ignores unknown ids. A problem the judge can run needs every test passed in the editor for its first solve.
+  await markSolvedManually(String(formData.get("problemId") ?? ""));
   refresh();
 }
 
@@ -213,7 +214,7 @@ export async function clearStruggleAction(formData: FormData) {
   const p = await getProblemDetail(problemId);
   if (!p) return;
   await clearStruggles(problemId);
-  if (problemId in PROBLEMS && p.status.state === "unsolved") await markSolved(problemId);
+  if (problemId in PROBLEMS && p.status.state === "unsolved") await markSolvedManually(problemId);
   refresh();
 }
 

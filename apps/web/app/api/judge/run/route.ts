@@ -1,5 +1,7 @@
 import { JUDGE_LANGS, JUDGE_LANG_LABEL, matchesTy, type JudgeLang, type ProblemSpec } from "@habit/shared";
 import { JUDGE_LIMITS, runCode, runCustom } from "@/lib/judge/run";
+import { revalidatePath } from "next/cache";
+import { recordJudgePass } from "@/lib/dsa";
 import { saveSolution } from "@/lib/notes";
 import { resolveProblemSpec } from "@/lib/content";
 import { getPackProblemSpec, setPackItemDone } from "@/lib/packs";
@@ -32,8 +34,9 @@ async function specFor(id: unknown): Promise<ProblemSpec | undefined> {
 export async function GET(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Forbidden" }, { status: 403 });
   const id = new URL(request.url).searchParams.get("id");
-  if (!(await specFor(id))) return Response.json({ error: "Unknown problem." }, { status: 400 });
-  return Response.json({ runs: await getRuns(id as string) });
+  const spec = await specFor(id);
+  if (!spec) return Response.json({ error: "Unknown problem." }, { status: 400 });
+  return Response.json({ runs: await getRuns(id as string, spec) });
 }
 
 /** Checks one typed value per parameter. Returns the values, or a plain message for the first one that does not fit. */
@@ -77,7 +80,7 @@ export async function POST(request: Request) {
   }
   const result = await runCode(spec, lang, body.code);
   // Keep the code of every run (a compile error is a run too) so it comes back after a reload.
-  if (result.status === "done") await saveRun(spec.id, lang, body.code, { status: "done", passed: result.passed, total: result.total });
+  if (result.status === "done") await saveRun(spec.id, lang, body.code, { status: "done", passed: result.passed, total: result.total, failedIds: result.results.filter((c) => !c.pass).map((c) => c.index) });
   else if (result.status === "compile_error") await saveRun(spec.id, lang, body.code, { status: "compile_error", passed: 0, total: 0 });
   // Imported (pack) problems: passing every test marks the problem done in its course.
   if (isPack && result.status === "done" && result.total > 0 && result.passed === result.total) {
@@ -85,10 +88,17 @@ export async function POST(request: Request) {
     await setPackItemDone(packId, itemId, true);
     return Response.json(result);
   }
+  // Every test passed: that is what counts as solving a roadmap problem here (the LeetCode sync is a second way in).
+  const allPassed = result.status === "done" && result.total > 0 && result.passed === result.total;
+  let solved = false;
+  if (allPassed && !isPack && (await recordJudgePass(spec.id))) {
+    solved = true;
+    revalidatePath("/", "layout");
+  }
   // When every test passes, keep the solution with the problem (only the code; your notes are not touched).
   if (body.save === true && result.status === "done" && result.total > 0 && result.passed === result.total) {
     await saveSolution(spec.id, body.code, JUDGE_LANG_LABEL[lang]);
-    return Response.json({ ...result, saved: true });
+    return Response.json({ ...result, saved: true, ...(solved ? { solved: true } : {}) });
   }
-  return Response.json(result);
+  return Response.json(solved ? { ...result, solved: true } : result);
 }

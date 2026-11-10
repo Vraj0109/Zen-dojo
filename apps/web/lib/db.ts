@@ -257,6 +257,10 @@ CREATE TABLE content_items (
 );
 CREATE INDEX content_items_type ON content_items (type);
 `,
+  // 0047: which tests failed in the latest run (ids only, comma separated; the cases themselves are looked up from the problem)
+  `
+ALTER TABLE solution_runs ADD COLUMN failed_cases TEXT NOT NULL DEFAULT '';
+`,
 ];
 
 async function migrate(client: Client) {

@@ -67,7 +67,7 @@ describe("backup", () => {
     expect((await getDsaView()).totals).toMatchObject({ solved: 1 });
     expect(await getNote("lc-1")).toMatchObject({ notes: "hash map, it's O(n)", language: "Java" });
     expect((await getConceptDetail("sd-caching"))!.progress).toMatchObject({ confidence: 4, checked: [0, 1] });
-    expect(await getRuns("lc-1")).toEqual([{ problemId: "lc-1", lang: "cpp", code: "class Solution {};", ranOn: "2026-11-06", status: "done", passed: 3, total: 10 }]);
+    expect(await getRuns("lc-1")).toEqual([{ problemId: "lc-1", lang: "cpp", code: "class Solution {};", ranOn: "2026-11-06", status: "done", passed: 3, total: 10, failedCases: "" }]);
     expect(await getExtensionToken()).toBe(otherKey);
     expect(await exportBackup()).toMatchObject({ tables: backup.tables });
   });

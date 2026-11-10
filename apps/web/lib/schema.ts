@@ -28,7 +28,7 @@ export const problemSolves = sqliteTable("problem_solves", {
   /** Local date (YYYY-MM-DD); drives the streak and re-solve schedule. */
   solvedOn: text("solved_on").notNull(),
   xp: integer("xp").notNull(),
-  source: text("source", { enum: ["manual", "leetcode"] }).notNull().default("manual"),
+  source: text("source", { enum: ["manual", "leetcode", "judge"] }).notNull().default("manual"),
 });
 
 /** LeetCode accepted submissions already processed, so each is imported once (and undo sticks). */
@@ -254,6 +254,8 @@ export const solutionRuns = sqliteTable(
     status: text("status").notNull(),
     passed: integer("passed").notNull(),
     total: integer("total").notNull(),
+    /** Ids (positions in examples, tests, then large inputs) of the tests that failed, comma separated */
+    failedCases: text("failed_cases").notNull().default(""),
   },
   (t) => [primaryKey({ columns: [t.problemId, t.lang] })],
 );

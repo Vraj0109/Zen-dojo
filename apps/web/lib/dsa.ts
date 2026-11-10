@@ -3,6 +3,7 @@ import { and, desc, eq, like, sql } from "drizzle-orm";
 import {
   ALL_PATTERNS,
   DSA_GROUPS,
+  JUDGE_PROBLEMS,
   PROBLEMS,
   RESOLVE_XP,
   patternTarget,
@@ -43,6 +44,8 @@ export interface ProblemView extends Problem {
   status: SolveState;
   /** First solve was imported from LeetCode */
   auto: boolean;
+  /** The local judge can run this problem, so its first solve has to pass every test there */
+  judgeable: boolean;
   /** Has notes or saved code in this app */
   noted: boolean;
   /** Accepted LeetCode submissions saved by the extension */
@@ -124,6 +127,7 @@ export async function getDsaView() {
     ...PROBLEMS[id],
     status: solveState(first.get(id), resolved.get(id), today),
     auto: auto.has(id),
+    judgeable: id in JUDGE_PROBLEMS,
     noted: noted.has(id),
     struggling: struggles.has(id),
     ...lc(PROBLEMS[id].slug),
@@ -169,6 +173,8 @@ export async function getDsaView() {
 export interface ProblemDetail {
   id: string;
   kind: "roadmap" | "extra";
+  /** The local judge can run this problem, so its first solve has to pass every test there */
+  judgeable?: boolean;
   title: string;
   number?: number | null;
   url?: string;
@@ -210,6 +216,7 @@ export async function getProblemDetail(id: string): Promise<ProblemDetail | null
       patterns: ALL_PATTERNS.filter((p) => p.problems.includes(id)).map(({ id, name, recognize }) => ({ id, name, recognize })),
       status: solveState(first.get(id), resolved.get(id), today),
       auto: auto.has(id),
+      judgeable: id in JUDGE_PROBLEMS,
       note,
       submissions,
       topics,
@@ -256,17 +263,42 @@ export async function getResolveDueCount(): Promise<number> {
 }
 
 /** First call records the solve; a second call records the re-solve. Further calls do nothing. */
-export async function markSolved(problemId: string) {
+export async function markSolved(problemId: string, source: "manual" | "judge" = "manual") {
   const problem = PROBLEMS[problemId];
   if (!problem) return;
   const db = await getDb();
   const existing = await db.select({ kind: problemSolves.kind }).from(problemSolves).where(eq(problemSolves.problemId, problemId));
   const solvedOn = toLocalDate();
   if (!existing.some((r) => r.kind === "solve")) {
-    await db.insert(problemSolves).values({ problemId, kind: "solve", solvedOn, xp: solveXp(problem) });
+    await db.insert(problemSolves).values({ problemId, kind: "solve", solvedOn, xp: solveXp(problem), source });
   } else if (!existing.some((r) => r.kind === "resolve")) {
-    await db.insert(problemSolves).values({ problemId, kind: "resolve", solvedOn, xp: RESOLVE_XP });
+    await db.insert(problemSolves).values({ problemId, kind: "resolve", solvedOn, xp: RESOLVE_XP, source });
   }
+}
+
+/**
+ * The Mark solved button. A problem the local judge can run cannot get its first solve this way: it has to pass every
+ * test in the editor (see recordJudgePass). Re-solves and problems without a judge spec stay manual.
+ */
+export async function markSolvedManually(problemId: string): Promise<boolean> {
+  if (problemId in JUDGE_PROBLEMS) {
+    const { first } = await solveIndex();
+    if (!first.has(problemId)) return false;
+  }
+  await markSolved(problemId);
+  return true;
+}
+
+/** Every test passed in the judge: records the first solve, or the re-solve once it is due. Returns true if a row was added. */
+export async function recordJudgePass(problemId: string): Promise<boolean> {
+  if (!(problemId in PROBLEMS)) return false;
+  const { first, resolved } = await solveIndex();
+  const s = solveState(first.get(problemId), resolved.get(problemId), toLocalDate());
+  if (s.state === "unsolved" || (s.state === "solved" && s.resolveDue)) {
+    await markSolved(problemId, "judge");
+    return true;
+  }
+  return false;
 }
 
 /** Undo the most recent solve or re-solve of a problem. */

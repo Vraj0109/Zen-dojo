@@ -83,7 +83,11 @@ export function ProblemRow({ p, patterns }: { p: ProblemView; patterns?: string[
 
       <div className="flex shrink-0 items-center gap-3">
         <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
-          {!solved ? (
+          {!solved && p.judgeable ? (
+            <Link href={`/dsa/${p.id}`} title="Pass every test in the editor to solve it" className="text-xs text-muted hover:text-foreground">
+              Solve to mark
+            </Link>
+          ) : !solved ? (
             <form action={markSolvedAction} className="inline">
               <input type="hidden" name="problemId" value={p.id} />
               <SubmitButton

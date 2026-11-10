@@ -50,6 +50,8 @@ export interface SavedRun {
   status: string;
   passed: number;
   total: number;
+  /** The tests that failed, looked up from their saved ids */
+  failed?: { id: number; kind: "example" | "test" | "stress"; input?: unknown[]; expected?: unknown }[];
 }
 
 const verdict = (r: SavedRun) => (r.status === "compile_error" ? "compile error" : `${r.passed} of ${r.total} passed`);
@@ -116,6 +118,17 @@ function LastRuns({ runs, saved, onLoad, children }: { runs: SavedRun[]; saved: 
               <p className="text-sm font-medium">
                 Last run, {LABEL[r.lang]}: {verdict(r)}, {r.ranOn}
               </p>
+              {r.failed && r.failed.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-muted">
+                  {r.failed.slice(0, 10).map((f) => (
+                    <li key={f.id}>
+                      Failed {f.kind === "stress" ? `large input #${f.id}` : `${f.kind} #${f.id + 1}`}
+                      {f.input ? `: input ${JSON.stringify(f.input)}, expected ${JSON.stringify(f.expected)}` : ""}
+                    </li>
+                  ))}
+                  {r.failed.length > 10 && <li>and {r.failed.length - 10} more</li>}
+                </ul>
+              )}
               <pre className="mt-2 max-h-72 overflow-auto text-xs whitespace-pre">{r.code}</pre>
             </div>
           ))}

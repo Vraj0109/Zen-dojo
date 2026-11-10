@@ -150,7 +150,7 @@ async function Problem({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 zen-dim">
-            {p.kind === "roadmap" && s.state !== "resolved" && (
+            {p.kind === "roadmap" && s.state !== "resolved" && !(s.state === "unsolved" && p.judgeable) && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
@@ -246,7 +246,7 @@ async function Problem({
         </div>
         {p.kind === "roadmap" && (
           <div className="flex gap-2">
-            {s.state !== "resolved" && (
+            {s.state !== "resolved" && !(s.state === "unsolved" && p.judgeable) && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
