@@ -33,7 +33,22 @@ Run this after writing TypeScript definitions to check all 4 packages without ru
 pnpm -r typecheck
 ```
 
-### Tier 3: Full Gatekeeper Check (`pnpm check`) — RUN ONLY ONCE BEFORE PUSH
+### Tier 3: Fast Test Suite (`pnpm test:fast`) (15 to 25 seconds) — PRE-COMMIT VERIFICATION
+Runs all application unit, integration, and UI tests across all workspace packages while skipping the slow compiler-heavy test suites (Judge harness, Java multi-file runners, LLD project builds, lesson Java demos, design Java code, and C++ pattern article compilations):
+```bash
+pnpm test:fast
+```
+Skipped suites in fast mode:
+- `apps/web/lib/judge/judge.test.ts`
+- `apps/web/lib/judge/project-run.test.ts`
+- `apps/web/lib/judge/pack-tools.test.ts`
+- `apps/web/lib/judge/judge-tle.test.ts`
+- `apps/web/lib/lld-projects.test.ts`
+- `apps/web/lib/core-code.test.ts`
+- `apps/web/lib/design-code.test.ts`
+- `apps/web/lib/pattern-article-code.test.ts`
+
+### Tier 4: Full Gatekeeper Check (`pnpm check`) — RUN ONLY ONCE BEFORE PUSH
 - **NEVER** run `pnpm test` followed by `pnpm check`. `pnpm check` already runs `pnpm test` as its third step. Running both back-to-back simply compiles 100+ native executables twice.
 - Run `pnpm check` only **once** as the final sign-off when all agent work is completed and ready to commit/push.
 
