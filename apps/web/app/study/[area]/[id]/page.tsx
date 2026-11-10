@@ -352,7 +352,7 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
 
         {isDesign && designDeep?.code && designDeep.code.length > 0 && (
           <ProjectPlayground
-            projectId={id}
+            projectId={`sd-${id}`}
             files={designDeep.code.map((f) => ({ name: f.name, content: f.code }))}
           />
         )}
@@ -362,7 +362,7 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
             <LldProjectView project={LLD_PROJECTS[id]} deep={LLD_DEEP[id]} />
             {LLD_PROJECTS[id]?.files && (
               <ProjectPlayground
-                projectId={id}
+                projectId={`lld-${id}`}
                 files={LLD_PROJECTS[id].files.map((f) => ({ name: f.name, content: f.code }))}
               />
             )}
