@@ -182,7 +182,7 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
               <Icon d={ICON.upload} />
             </span>
             <span className="min-w-0">
-              <span className="block">Upload this device's progress</span>
+              <span className="block">Upload this device&apos;s progress</span>
               {uploading && <span className="block text-xs text-muted">{uploading}</span>}
             </span>
           </button>
