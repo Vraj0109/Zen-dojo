@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
-import { DeviceList, SignOutButton } from "@/app/components/account-menu";
+import { DeviceList, SignOutButton, SyncPanel } from "@/app/components/account-menu";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -15,6 +15,7 @@ async function AccountBody() {
     return (
       <div className="max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
         <p className="text-sm">You are not signed in. The app works fully this way. Sign in to sync your progress across devices.</p>
+        <SyncPanel signedIn={false} />
         <a
           href={`/auth/start?next=${encodeURIComponent("/profile/account")}`}
           className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent"
@@ -48,13 +49,7 @@ async function AccountBody() {
         <SignOutButton />
       </section>
 
-      <section className="space-y-1 text-sm">
-        <h2 className="text-base font-semibold">Sync</h2>
-        <p className="text-muted">
-          Your progress syncs to your account in the background while you are signed in. The pill in the sidebar shows the current
-          state. Signed out, everything stays on this device only.
-        </p>
-      </section>
+      <SyncPanel signedIn />
 
       <DeviceList />
 

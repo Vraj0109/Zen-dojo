@@ -16,6 +16,7 @@ import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
 import { FeedUpdater } from "./feed-updater";
+import { AccountLink } from "@/app/components/account-menu";
 import { ProfileSettingsSkeleton } from "@/app/components/profile-skeleton";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -53,6 +54,16 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
           <Suspense fallback={<ProfileSettingsSkeleton rows={3} />}>
             <BuddySettingsSection />
           </Suspense>
+
+          <h3 className="text-lg font-semibold">Account and sync</h3>
+          <section className="rounded-xl border border-line bg-surface p-4">
+            <h4 className="mb-1 font-semibold">Sync across devices</h4>
+            <p className="mb-3 text-sm text-muted">
+              Sign in to keep your progress in step across devices. See sync status, run a sync and manage signed-in devices.
+              Signed out, everything stays on this device.
+            </p>
+            <AccountLink signedIn />
+          </section>
 
           <h3 className="text-lg font-semibold">Content</h3>
           <section className="space-y-3 rounded-xl border border-line bg-surface p-4">
