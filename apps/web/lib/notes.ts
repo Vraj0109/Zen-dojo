@@ -5,8 +5,12 @@ import { getDb } from "./db";
 import { getRuns } from "./solution-runs";
 import { problemNotes, settings } from "./schema";
 
-export const NOTE_LIMITS = { notes: 20_000, code: 50_000 } as const;
-export const LANGUAGES = ["Java", "C++", "Python", "TypeScript", "JavaScript", "Go", "C#", "Kotlin", "Other"] as const;
+import { MAX_TOTAL_BYTES, isEmptyProject, readProjectJson, serializeProject, validateProject } from "./project-files";
+
+/** `code` is the limit for plain text; a `java-project` uses `projectCode` (total bytes of all files). */
+export const NOTE_LIMITS = { notes: 20_000, code: 50_000, projectCode: MAX_TOTAL_BYTES } as const;
+const JAVA_PROJECT = "java-project";
+export const LANGUAGES = ["Java", "C++", "Python", "TypeScript", "JavaScript", "Go", "C#", "Kotlin", "Other", JAVA_PROJECT] as const;
 
 export type ProblemNote = typeof problemNotes.$inferSelect;
 
@@ -84,20 +88,41 @@ export async function getSavedSolutions(problemId: string): Promise<SavedSolutio
   return out;
 }
 
-/** Save notes/code; saving both empty removes the entry. Over-long input is truncated. */
-export async function saveNote(problemId: string, input: { notes: string; code: string; language: string }) {
+export type SaveNoteResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Save notes/code; saving both empty removes the entry. Over-long input is truncated, except for a `java-project`
+ * (JSON of files): that is validated and refused with a plain-English `error` instead, and nothing is saved.
+ */
+export async function saveNote(problemId: string, input: { notes: string; code: string; language: string }): Promise<SaveNoteResult> {
   const db = await getDb();
   const notes = input.notes.slice(0, NOTE_LIMITS.notes);
-  const code = input.code.slice(0, NOTE_LIMITS.code);
-  const language = (LANGUAGES as readonly string[]).includes(input.language) ? input.language : "";
+  let language = (LANGUAGES as readonly string[]).includes(input.language) ? input.language : "";
+  let code: string;
+
+  if (language === JAVA_PROJECT) {
+    const files = readProjectJson(input.code);
+    if (!files) return { ok: false, error: "Your classes could not be read. Reload the page and try again." };
+    const check = validateProject(files);
+    if (!check.ok) return check;
+    if (isEmptyProject(files)) {
+      code = "";
+      language = "";
+    } else {
+      code = serializeProject(files);
+    }
+  } else {
+    code = input.code.slice(0, NOTE_LIMITS.code);
+  }
 
   if (!notes.trim() && !code.trim()) {
     await db.delete(problemNotes).where(eq(problemNotes.problemId, problemId));
-    return;
+    return { ok: true };
   }
   const updatedAt = new Date().toISOString();
   await db
     .insert(problemNotes)
     .values({ problemId, notes, code, language, updatedAt })
     .onConflictDoUpdate({ target: problemNotes.problemId, set: { notes, code, language, updatedAt } });
+  return { ok: true };
 }

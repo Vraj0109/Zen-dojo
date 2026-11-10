@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDsaView, getProblemDetail, markSolved } from "./dsa";
 import { getDb } from "./db";
 import { NOTE_LIMITS, getNote, getNotedIds, saveNote } from "./notes";
+import { MAX_TOTAL_BYTES, emptyProject, parseProjectCode, serializeProject } from "./project-files";
 import { leetcodeProblems, problemSolves } from "./schema";
 
 beforeEach(() => {
@@ -47,6 +48,64 @@ describe("notes", () => {
     const items = (await getDsaView()).groups.flatMap((g) => g.patterns).flatMap((p) => p.items);
     expect(items.filter((i) => i.id === "lc-239").every((i) => i.noted)).toBe(true); // listed in two patterns
     expect(items.find((i) => i.id === "lc-1")!.noted).toBe(false);
+  });
+});
+
+describe("java project notes", () => {
+  const project = (files: { name: string; content: string }[]) => JSON.stringify({ v: 1, files });
+
+  it("saves a valid project and reads it back", async () => {
+    const code = project([
+      { name: "Main.java", content: "public class Main { public static void main(String[] a) { new Order(); } }" },
+      { name: "Order.java", content: "class Order {}" },
+    ]);
+    expect(await saveNote("lld-parking-lot", { notes: "n", code, language: "java-project" })).toEqual({ ok: true });
+    const note = (await getNote("lld-parking-lot"))!;
+    expect(note.language).toBe("java-project");
+    expect(parseProjectCode(note.code, note.language)).toHaveLength(2);
+    expect(note.code).toBe(code);
+  });
+
+  it("allows a project larger than the plain code limit", async () => {
+    const big = "x".repeat(NOTE_LIMITS.code + 5_000);
+    const code = project([{ name: "Big.java", content: big }]);
+    expect(await saveNote("lld-big", { notes: "", code, language: "java-project" })).toEqual({ ok: true });
+    expect((await getNote("lld-big"))!.code).toBe(code);
+  });
+
+  it("refuses invalid projects with a plain message and saves nothing", async () => {
+    await saveNote("lld-x", { notes: "keep", code: "", language: "" });
+    const bad = [
+      project([{ name: "bad name.java", content: "x" }]),
+      project([{ name: "A.java", content: "x" }, { name: "A.java", content: "y" }]),
+      project(Array.from({ length: 31 }, (_, i) => ({ name: `C${i}.java`, content: "x" }))),
+      project([{ name: "A.java", content: "x".repeat(MAX_TOTAL_BYTES + 1) }]),
+      "not json",
+      '{"v":1,"files":[{"name":1}]}',
+    ];
+    for (const code of bad) {
+      const r = await saveNote("lld-x", { notes: "changed", code, language: "java-project" });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error.length).toBeGreaterThan(10);
+    }
+    expect(await getNote("lld-x")).toMatchObject({ notes: "keep", code: "" });
+  });
+
+  it("leaves plain-text notes unchanged", async () => {
+    expect(await saveNote("lc-5", { notes: "n", code: "class S {}", language: "Java" })).toEqual({ ok: true });
+    expect(await getNote("lc-5")).toMatchObject({ code: "class S {}", language: "Java" });
+  });
+
+  it("deletes the row when notes are empty and the project is only the stub", async () => {
+    await saveNote("lld-y", { notes: "x", code: "", language: "" });
+    const stub = serializeProject(emptyProject());
+    expect(await saveNote("lld-y", { notes: " ", code: stub, language: "java-project" })).toEqual({ ok: true });
+    expect(await getNote("lld-y")).toBeNull();
+  });
+
+  it("keeps the notes but drops a stub-only project", async () => {
+    await saveNote("lld-z", { notes: "my notes", code: serializeProject(emptyProject()), language: "java-project" });
+    expect(await getNote("lld-z")).toMatchObject({ notes: "my notes", code: "", language: "" });
   });
 });
 
