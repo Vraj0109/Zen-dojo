@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { flushSyncQueue } from "@/lib/sync-manager";
 import { SyncStatusPill } from "./sync-status";
 
 export interface AccountUser {
@@ -25,6 +26,7 @@ const ICON = {
   settings: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
   stats: "M4 20V10M10 20V4M16 20v-8M22 20H2",
   admin: "M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6l-8-3zM9 12l2 2 4-4",
+  upload: "M12 16V4M7 9l5-5 5 5M4 20h16",
   signout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   chevron: "m6 15 6-6 6 6",
 };
@@ -61,6 +63,7 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   // A page cannot renew an expired 15-minute token itself, so ask the refresh route to, then redraw.
   useEffect(() => {
@@ -108,6 +111,29 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
   }
 
   const close = () => setOpen(false);
+
+  // Always available: links this device to the account (queues every existing row) and starts a sync.
+  async function uploadProgress() {
+    setUploading("Uploading...");
+    try {
+      const res = await fetch("/api/sync/link", { method: "POST", headers: { "Content-Type": "application/json" } });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        setUploading(body.error === "account-mismatch" ? "This device is linked to another account" : "Could not upload. Try again");
+        return;
+      }
+      try {
+        localStorage.removeItem("zen-dojo:adopt-dismissed");
+      } catch {
+        // storage blocked
+      }
+      await flushSyncQueue();
+      setUploading("Upload started");
+    } catch {
+      setUploading("Could not upload. Try again");
+    }
+  }
+
   return (
     <div ref={box} className="relative space-y-2">
       <button
@@ -151,6 +177,15 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
               Admin
             </MenuLink>
           )}
+          <button type="button" role="menuitem" onClick={uploadProgress} className={ITEM}>
+            <span className="text-muted">
+              <Icon d={ICON.upload} />
+            </span>
+            <span className="min-w-0">
+              <span className="block">Upload this device's progress</span>
+              {uploading && <span className="block text-xs text-muted">{uploading}</span>}
+            </span>
+          </button>
           <div className="my-1 border-t border-line" />
           <form action="/auth/logout" method="post">
             <button type="submit" role="menuitem" className={ITEM}>
