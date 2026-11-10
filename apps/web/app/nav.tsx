@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar, useProfile } from "./custom-appearance";
+import { SyncStatusPill } from "./components/sync-status";
 
 // Icons: 24x24 stroke paths (lucide-style), drawn in currentColor.
 const ICONS = {
@@ -112,6 +113,9 @@ export function NavFooterLinks({ pathname }: { pathname: string | null }) {
       {SECONDARY.map((l) => (
         <NavItem key={l.href} link={l} pathname={pathname} />
       ))}
+      <li className="pt-2">
+        <SyncStatusPill className="w-full justify-between" />
+      </li>
     </ul>
   );
 }

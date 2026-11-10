@@ -7,6 +7,7 @@ import { THEME_EVENT, applyTheme, readStoredAppearance } from "@/lib/theme";
 import { getZenMode, initZenMode, setZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
 import { getAppearanceAction, setAppearanceAction } from "./actions";
 import { HistoryButtons } from "./history-buttons";
+import { SyncStatusPill } from "./components/sync-status";
 
 /** Pages where the work (a problem and its editor) should fill the window: the sidebar becomes a slim bar. */
 export function isFocusPage(pathname: string | null): boolean {
@@ -159,6 +160,9 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
           <span>Zen</span>
         </button>
         {zen && <span className="text-[11px] text-muted italic ml-1">focus mode (Esc to exit)</span>}
+        <div className="ml-auto flex items-center gap-1.5">
+          <SyncStatusPill compact />
+        </div>
       </div>
       <div
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
