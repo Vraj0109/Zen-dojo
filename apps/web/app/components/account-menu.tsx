@@ -80,6 +80,33 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
     }
   }
 
+  // Link this device to the account: marks every existing row for upload, then syncs. Same as the first-sign-in prompt.
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  async function linkDevice() {
+    if (linking) return;
+    setLinking(true);
+    setLinkError(null);
+    try {
+      const res = await fetch("/api/sync/link", { method: "POST", headers: { "Content-Type": "application/json" } });
+      const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!res.ok) {
+        setLinkError(body.error === "account-mismatch" ? "This device is linked to another account." : "Could not link this device. Try again.");
+        return;
+      }
+      try {
+        localStorage.removeItem("zen-dojo:adopt-dismissed");
+      } catch {
+        // storage blocked
+      }
+      await flushSyncQueue();
+    } catch {
+      setLinkError("Could not link this device. Try again.");
+    } finally {
+      setLinking(false);
+    }
+  }
+
   async function stopSyncing() {
     if (unlinking) return;
     const confirmed = window.confirm(
@@ -116,7 +143,17 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
           <SyncStatus showSyncButton={false} />
           <p className="min-w-0 flex-1 basis-48 text-sm text-muted">{words}</p>
           {signedIn ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {info.account === null && (
+                <button
+                  type="button"
+                  onClick={linkDevice}
+                  disabled={linking}
+                  className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                >
+                  {linking ? "Uploading..." : "Upload this device's progress"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={syncNow}
@@ -149,6 +186,7 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
             </div>
           ) : null}
         </div>
+        {linkError && <p role="alert" className="text-sm text-diff-hard">{linkError}</p>}
         {signedIn && (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted border-t border-line/50 pt-2.5">
             <div>
