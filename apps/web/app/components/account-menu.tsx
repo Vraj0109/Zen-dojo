@@ -144,16 +144,17 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
           <p className="min-w-0 flex-1 basis-48 text-sm text-muted">{words}</p>
           {signedIn ? (
             <div className="flex flex-wrap items-center gap-2">
-              {info.account === null && (
-                <button
-                  type="button"
-                  onClick={linkDevice}
-                  disabled={linking}
-                  className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-                >
-                  {linking ? "Uploading..." : "Upload this device's progress"}
-                </button>
-              )}
+              {/* Always shown: linking is safe to repeat (it only queues rows again), and it is the way to start the first upload. */}
+              <button
+                type="button"
+                onClick={linkDevice}
+                disabled={linking}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${
+                  info.account ? "border border-line hover:bg-background" : "bg-accent text-on-accent hover:opacity-90"
+                }`}
+              >
+                {linking ? "Uploading..." : info.account ? "Upload everything again" : "Upload this device's progress"}
+              </button>
               <button
                 type="button"
                 onClick={syncNow}
