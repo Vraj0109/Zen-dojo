@@ -113,8 +113,10 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0039 | [Round five: balanced parallel work (plans 0022, 0025, 0031)](0039-round-five-balanced-parallel-work.md) | implemented (round 5 merged) |
 | 0040 | [Round six: balanced parallel completion (plans 0022, 0031)](0040-round-six-balanced-parallel-completion.md) | implemented (round 6 merged) |
 | 0041 | [Round seven: six-agent parallel final sprint (CSES completion, reviews & v0.6.0)](0041-round-seven-six-agent-completion.md) | implemented |
-| 0042 | [Time Limit Exceeded (TLE) hard cutoff and process tree cancellation](0042-tle-hard-cutoff-and-cancellation.md) | ready |
-| 0043 | [Interactive multi-file Java IDE for LLD and System Design practice](0043-lld-system-design-interactive-java-ide.md) | ready |
+| 0042 | [Time Limit Exceeded (TLE) hard cutoff and process tree cancellation](0042-tle-hard-cutoff-and-cancellation.md) | implemented |
+| 0043 | [Interactive multi-file Java IDE for LLD and System Design practice](0043-lld-system-design-interactive-java-ide.md) | implemented |
 | 0044 | [Notion-style offline-first cloud sync with Turso libSQL](0044-offline-first-cloud-sync.md) | ready |
 | 0045 | [Dynamic Admin Portal for Live Content Management](0045-admin-portal-content-management.md) | ready |
-| 0046 | [Round eight: six-agent parallel sprint (TLE cancellation, Java IDE, sync engine & admin)](0046-round-eight-six-agent-parallel-work.md) | ready |
+| 0046 | [Round eight: six-agent parallel sprint (TLE cancellation, Java IDE, sync engine & admin)](0046-round-eight-six-agent-parallel-work.md) | implemented |
+| 0047 | [App-wide skeleton loaders & layout-shift-free streaming UI](0047-skeleton-loaders-and-streaming-ui.md) | ready |
+| 0048 | [Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)](0048-round-nine-six-agent-parallel-work.md) | ready |
