@@ -2,17 +2,19 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getWorkerUrl } from "@/lib/auth/jwks";
 import { getCookieOptions } from "@/lib/auth/session";
-import { safeNext } from "@/lib/auth/util";
+import { requestOrigin, safeNext } from "@/lib/auth/util";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
+  // Never trust req.url for redirects: the callback may be loaded by the desktop window on any local port.
+  const origin = requestOrigin(req);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(error)}`, req.url),
+      new URL(`/login?error=${encodeURIComponent(error)}`, origin),
       302,
     );
   }
@@ -21,7 +23,7 @@ export async function GET(req: Request) {
   const pkceCookie = cookieStore.get("zd_pkce")?.value;
 
   if (!pkceCookie || !state || !code) {
-    return NextResponse.redirect(new URL("/login?error=state", req.url), 302);
+    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
   }
 
   let pkceData: { state?: string; verifier?: string; next?: string };
@@ -32,11 +34,11 @@ export async function GET(req: Request) {
       next?: string;
     };
   } catch {
-    return NextResponse.redirect(new URL("/login?error=state", req.url), 302);
+    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
   }
 
   if (!pkceData.state || pkceData.state !== state || !pkceData.verifier) {
-    return NextResponse.redirect(new URL("/login?error=state", req.url), 302);
+    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
   }
 
   const workerUrl = getWorkerUrl();
@@ -58,14 +60,14 @@ export async function GET(req: Request) {
       }),
     });
   } catch {
-    return NextResponse.redirect(new URL("/login?error=state", req.url), 302);
+    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
   }
 
   if (!tokenRes.ok) {
     if (tokenRes.status === 429) {
-      return NextResponse.redirect(new URL("/login?error=rate_limited", req.url), 302);
+      return NextResponse.redirect(new URL("/login?error=rate_limited", origin), 302);
     }
-    return NextResponse.redirect(new URL("/login?error=state", req.url), 302);
+    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
   }
 
   const data = (await tokenRes.json()) as {
@@ -81,11 +83,11 @@ export async function GET(req: Request) {
   };
 
   if (!data.access_token || !data.refresh_token) {
-    return NextResponse.redirect(new URL("/login?error=state", req.url), 302);
+    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
   }
 
   const destination = safeNext(pkceData.next);
-  const res = NextResponse.redirect(new URL(destination, req.url), 302);
+  const res = NextResponse.redirect(new URL(destination, origin), 302);
 
   res.cookies.set("zd_at", data.access_token, getCookieOptions(900));
   res.cookies.set("zd_rt", data.refresh_token, getCookieOptions(30 * 86400));

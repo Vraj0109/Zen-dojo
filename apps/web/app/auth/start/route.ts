@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getWorkerUrl } from "@/lib/auth/jwks";
-import { computeS256, randomBase64Url, safeNext } from "@/lib/auth/util";
+import { computeS256, randomBase64Url, requestOrigin, safeNext } from "@/lib/auth/util";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -11,11 +11,13 @@ export async function GET(req: Request) {
   const verifier = randomBase64Url(32);
   const challenge = await computeS256(verifier);
 
-  const forwardedProto = req.headers.get("x-forwarded-proto");
-  const forwardedHost = req.headers.get("x-forwarded-host");
-  const host = forwardedHost ?? req.headers.get("host");
-  const origin = host ? `${forwardedProto ?? "http"}://${host}` : url.origin;
-  const callbackUrl = new URL("/auth/callback", origin).toString();
+  // Desktop app: the system browser cannot reach the app's local server with
+  // the PKCE cookie, so the Worker sends the browser back via the deep link.
+  // HABIT_DESKTOP is set only by apps/desktop/main.js.
+  const callbackUrl =
+    process.env.HABIT_DESKTOP === "1"
+      ? "zendojo://auth/callback"
+      : new URL("/auth/callback", requestOrigin(req)).toString();
 
   const workerUrl = getWorkerUrl();
   const targetUrl = new URL("/auth/github/start", workerUrl);

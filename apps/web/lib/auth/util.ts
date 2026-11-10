@@ -14,6 +14,18 @@ export function safeNext(next: string | null | undefined): string {
 }
 
 /**
+ * Origin the browser (or the desktop window) used to reach this server.
+ * Prefers forwarded/Host headers over `req.url`, which behind a standalone
+ * server can carry the bind address instead of the address the client used.
+ */
+export function requestOrigin(req: Request): string {
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (!host) return new URL(req.url).origin;
+  const proto = req.headers.get("x-forwarded-proto") ?? "http";
+  return `${proto}://${host}`;
+}
+
+/**
  * Checks if the request is from the same origin using Origin or Referer against Host.
  */
 export function checkSameOrigin(req: Request): boolean {
