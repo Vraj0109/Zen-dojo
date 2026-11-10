@@ -14,6 +14,7 @@ import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } fr
 import { SubmitButton } from "./submit-button";
 import { CatchUpDrawer } from "./today/today-ui";
 import { PageMain, ProgressBar, StatusMark } from "./ui";
+import { TodaySkeleton } from "./components/today-skeleton";
 
 /** Rows shown in "Up next" before "+N more". */
 const UP_NEXT_VISIBLE = 5;
@@ -21,7 +22,7 @@ const UP_NEXT_VISIBLE = 5;
 export default function Page({ searchParams }: PageProps<"/">) {
   return (
     <PageMain title="Today">
-      <Suspense fallback={<p className="text-muted">Loading today…</p>}>
+      <Suspense fallback={<TodaySkeleton />}>
         <Today searchParams={searchParams} />
       </Suspense>
     </PageMain>

@@ -20,6 +20,7 @@ import { SubmitButton } from "../../submit-button";
 import { Tabs, type TabItem } from "../../tabs";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
+import { ProblemWorkspaceSkeleton } from "./problem-skeleton";
 
 /** The text of the link to the original problem page, by where the problem comes from. */
 function linkLabel(id: string, url: string): string {
@@ -40,7 +41,7 @@ export default function ProblemPage({ params, searchParams }: PageProps<"/dsa/[i
       <Link href="/dsa" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
         ← All patterns
       </Link>
-      <Suspense fallback={<p className="text-muted">Loading problem…</p>}>
+      <Suspense fallback={<ProblemWorkspaceSkeleton />}>
         <Problem params={params} searchParams={searchParams} />
       </Suspense>
     </PageMain>
