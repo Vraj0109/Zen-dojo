@@ -39,7 +39,8 @@
   "vars": {
     "ALLOWED_ORIGIN": "*",
     "ALLOWED_REDIRECTS": "",
-    "ADMIN_USER_IDS": "",
-    "JWT_PUBLIC_JWK": "{}"
+    "GITHUB_CLIENT_ID": "Ov23liNyEXCHcPzjQwHy",
+    "ADMIN_USER_IDS": "gh:88069540",
+    "JWT_PUBLIC_JWK": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"0MnAyLV6DqpjQq4Q2aTJEZEtXb1NE0t0gdqOJa9uD3U\",\"y\":\"SgVcB_dYQk4GI_gcxzds0QHyWstLXT4GL8t_2uRqzUI\"}"
   }
 }
