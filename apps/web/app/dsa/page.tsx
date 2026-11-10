@@ -5,7 +5,18 @@ import { after, connection } from "next/server";
 import { getDsaView, type PatternView } from "@/lib/dsa";
 import { AddedProblems } from "./added-problems";
 import { getSimpleMode } from "@/lib/ui-prefs";
-import { HAS_FILTERS, SOURCE_FILTERS, STATUS_FILTERS, filterProblems, matchesSource, parseSource, hasActiveFilters, parseDsaFilters, parseDsaTab, type DsaFilters } from "@/lib/dsa-filters";
+import {
+  FILTER_OPTIONS,
+  filterProblems,
+  filtersToSearchParams,
+  hasActiveFilters,
+  parseDsaFilters,
+  parseDsaTab,
+  removeFilterValue,
+  type DsaFilters,
+  type FilterKey,
+} from "@/lib/dsa-filters";
+import { FilterGroup } from "./filter-group";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
@@ -30,10 +41,13 @@ export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
 
 function dsaTabHref(id: string, params: Record<string, string | string[] | undefined>): string {
   if (id === "patterns") {
-    const sp = new URLSearchParams();
-    for (const key of ["q", "difficulty", "status", "has", "topic", "group", "source"] as const) {
-      const v = Array.isArray(params[key]) ? params[key][0] : params[key];
-      if (typeof v === "string" && v.trim()) sp.set(key, v.trim());
+    const filters = parseDsaFilters(params);
+    const sp = filtersToSearchParams(filters);
+    if (typeof params.group === "string" && params.group.trim()) {
+      sp.set("group", params.group.trim());
+    }
+    if (typeof params.platforms === "string" && params.platforms.trim()) {
+      sp.set("platforms", params.platforms.trim());
     }
     const qs = sp.toString();
     return qs ? `/dsa?${qs}` : "/dsa";
@@ -51,10 +65,8 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   const shown = anywhere ? { solved: totals.solvedAnywhere, allSolved: totals.allSolvedAnywhere } : { solved: totals.solved, allSolved: totals.allSolved };
   const tab = parseDsaTab(params);
   const filters = parseDsaFilters(params);
-  const source = parseSource(params.source);
-  const filtering = hasActiveFilters(filters) || Boolean(source);
-  let results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
-  results = results.filter(({ problem }) => matchesSource(problem, source));
+  const filtering = hasActiveFilters(filters);
+  const results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
   // Only the open group's problems are rendered (keeps the page small); ?group=none closes all.
   const openGroup = typeof params.group === "string" ? params.group : groups[0]?.id;
 
@@ -86,13 +98,13 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
           {tab === "patterns" && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Patterns</h2>
-              <FilterBar filters={filters} source={source} topics={topics} totals={totals} />
+              <FilterBar filters={filters} topics={topics} totals={totals} />
               {filtering ? (
                 <div>
                   <p className="mb-2 text-sm text-muted" role="status">
                     {results.length} problem{results.length === 1 ? "" : "s"} match.{" "}
                     <Link href="/dsa" className="font-medium text-foreground hover:underline">
-                      Clear filters
+                      Clear all
                     </Link>
                   </p>
                   {results.length > 0 && (
@@ -255,70 +267,129 @@ function SyncStatus({
   );
 }
 
+function ActiveChips({ filters }: { filters: DsaFilters }) {
+  if (!hasActiveFilters(filters)) return null;
+
+  const chips: { key: FilterKey | "q"; value?: string; label: string }[] = [];
+
+  if (filters.q) {
+    chips.push({ key: "q", label: `q: "${filters.q}"` });
+  }
+
+  for (const s of filters.source) {
+    const opt = FILTER_OPTIONS.source.find((o) => o.value === s);
+    chips.push({ key: "source", value: s, label: opt?.label ?? s });
+  }
+
+  for (const st of filters.status) {
+    const opt = FILTER_OPTIONS.status.find((o) => o.value === st);
+    chips.push({ key: "status", value: st, label: opt?.label ?? st });
+  }
+
+  for (const d of filters.difficulty) {
+    const opt = FILTER_OPTIONS.difficulty.find((o) => o.value === d);
+    chips.push({ key: "difficulty", value: d, label: opt?.label ?? d });
+  }
+
+  for (const t of filters.topic) {
+    chips.push({ key: "topic", value: t, label: `Topic: ${t}` });
+  }
+
+  for (const h of filters.has) {
+    const opt = FILTER_OPTIONS.has.find((o) => o.value === h);
+    chips.push({ key: "has", value: h, label: opt?.label ?? h });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+      {chips.map((chip) => {
+        const href = `/dsa?${filtersToSearchParams(removeFilterValue(filters, chip.key, chip.value)).toString()}`;
+        return (
+          <Link
+            key={`${chip.key}-${chip.value ?? ""}`}
+            href={href}
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs text-muted hover:border-line hover:text-foreground"
+          >
+            <span>{chip.label}</span>
+            <span className="text-muted hover:text-foreground" aria-hidden="true">
+              ×
+            </span>
+          </Link>
+        );
+      })}
+      <Link href="/dsa" className="text-xs text-muted underline hover:text-foreground">
+        Clear all
+      </Link>
+    </div>
+  );
+}
+
 function FilterBar({
   filters,
-  source,
   topics,
   totals,
 }: {
   filters: DsaFilters;
-  source: string;
   topics: string[];
   totals: { solved: number; problems: number };
 }) {
-  const field = "rounded-lg border border-line bg-background px-2 py-1.5 text-sm";
+  const topicOptions = topics.map((t) => ({ value: t, label: t }));
+
   return (
-    <form action="/dsa" className="flex flex-wrap items-center gap-2" role="search">
-      <input
-        name="q"
-        type="search"
-        defaultValue={filters.q}
-        placeholder="Search name or number"
-        aria-label="Search problems"
-        className={`${field} min-w-0 flex-1 basis-40 sm:max-w-xs`}
-      />
-      <select name="source" defaultValue={source} aria-label="Source" className={field}>
-        {SOURCE_FILTERS.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-      <select name="status" defaultValue={filters.status} aria-label="Status" className={field}>
-        <option value="">Any status</option>
-        {Object.entries(STATUS_FILTERS).map(([v, label]) => (
-          <option key={v} value={v}>
-            {label}
-          </option>
-        ))}
-      </select>
-      <select name="difficulty" defaultValue={filters.difficulty} aria-label="Difficulty" className={field}>
-        <option value="">Any difficulty</option>
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-      </select>
-      {topics.length > 0 && (
-        <select name="topic" defaultValue={filters.topic} aria-label="LeetCode topic" className={field}>
-          <option value="">Any topic</option>
-          {topics.map((t) => (
-            <option key={t}>{t}</option>
-          ))}
-        </select>
-      )}
-      <select name="has" defaultValue={filters.has} aria-label="Notes and solutions" className={field}>
-        <option value="">Notes: any</option>
-        {Object.entries(HAS_FILTERS).map(([v, label]) => (
-          <option key={v} value={v}>
-            {label}
-          </option>
-        ))}
-      </select>
-      <button className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Filter</button>
-      <span className="ml-auto text-sm text-muted whitespace-nowrap">
-        {totals.solved} / {totals.problems} solved
-      </span>
-    </form>
+    <div className="space-y-2">
+      <form action="/dsa" method="get" className="flex flex-wrap items-center gap-2" role="search">
+        <input
+          name="q"
+          type="search"
+          defaultValue={filters.q}
+          placeholder="Search title, topic, description or tests"
+          aria-label="Search problems"
+          className="min-w-0 flex-1 basis-40 rounded-lg border border-line bg-background px-2.5 py-1.5 text-sm sm:max-w-xs"
+        />
+        <FilterGroup
+          title="Source"
+          name="source"
+          options={FILTER_OPTIONS.source}
+          selected={filters.source}
+        />
+        <FilterGroup
+          title="Status"
+          name="status"
+          options={FILTER_OPTIONS.status}
+          selected={filters.status}
+        />
+        <FilterGroup
+          title="Difficulty"
+          name="difficulty"
+          options={FILTER_OPTIONS.difficulty}
+          selected={filters.difficulty}
+        />
+        {topics.length > 0 && (
+          <FilterGroup
+            title="Topic"
+            name="topic"
+            options={topicOptions}
+            selected={filters.topic}
+          />
+        )}
+        <FilterGroup
+          title="Notes"
+          name="has"
+          options={FILTER_OPTIONS.has}
+          selected={filters.has}
+        />
+        <button
+          type="submit"
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent"
+        >
+          Filter
+        </button>
+        <span className="ml-auto whitespace-nowrap text-sm text-muted">
+          {totals.solved} / {totals.problems} solved
+        </span>
+      </form>
+      <ActiveChips filters={filters} />
+    </div>
   );
 }
 
