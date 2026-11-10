@@ -1,23 +1,10 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { PROBLEMS, type PackProblem, type Problem } from "@habit/shared";
+import { requireAdmin } from "@/lib/auth/session";
 import { getItem, listItems } from "@/lib/content";
 import { ProblemDrawer, type DrawerInitial } from "./problem-drawer";
-
-const COOKIE = "zen_admin_session";
-
-function isAuthed(value: string | undefined): boolean {
-  const secret = process.env.ADMIN_SECRET;
-  if (!secret || !value) return false;
-  const expected = createHmac("sha256", secret).update("zen-dojo-admin-session-v1").digest("hex");
-  const a = Buffer.from(value);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 function sourceOf(id: string): string {
   if (id.startsWith("lc-")) return "LeetCode";
@@ -97,7 +84,7 @@ function toInitial(id: string, builtin: Problem | null, stored: PackProblem | nu
 
 async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }) {
   await connection();
-  if (!isAuthed((await cookies()).get(COOKIE)?.value)) redirect("/admin/login");
+  await requireAdmin();
 
   const sp = await searchParams;
   const q = one(sp.q).trim().slice(0, 100);

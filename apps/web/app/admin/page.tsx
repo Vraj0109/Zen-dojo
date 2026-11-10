@@ -1,21 +1,8 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { PROBLEMS, type Difficulty } from "@habit/shared";
-
-const COOKIE = "zen_admin_session";
-
-function isAuthed(value: string | undefined): boolean {
-  const secret = process.env.ADMIN_SECRET;
-  if (!secret || !value) return false;
-  const expected = createHmac("sha256", secret).update("zen-dojo-admin-session-v1").digest("hex");
-  const a = Buffer.from(value);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
+import { requireAdmin } from "@/lib/auth/session";
 
 function sourceOf(id: string): string {
   if (id.startsWith("lc-")) return "LeetCode";
@@ -39,7 +26,7 @@ function sum(r: Counts): number {
 
 async function Dashboard() {
   await connection();
-  if (!isAuthed((await cookies()).get(COOKIE)?.value)) redirect("/admin/login");
+  await requireAdmin();
 
   const rows = new Map<string, Counts>();
   const totals: Counts = { easy: 0, medium: 0, hard: 0, none: 0 };

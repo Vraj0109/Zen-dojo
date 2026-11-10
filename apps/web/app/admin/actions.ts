@@ -1,27 +1,15 @@
 "use server";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
 import { refresh, revalidatePath } from "next/cache";
 import type { PackProblem } from "@habit/shared";
+import { requireAdmin } from "@/lib/auth/session";
 import { getItem, upsertItem } from "@/lib/content";
 
 // Admin problem saving (plan 0045). Saves go through the existing content store (`upsertItem`, table `content_items`,
 // item id "problem:<slug>"); the store validates the item again with the same rules the pack importer uses and sets
 // `updated_at`. No new table or migration.
 
-const COOKIE = "zen_admin_session";
-
 export type ProblemActionResult = { ok: true; message: string; id: string } | { ok: false; errors: string[] };
-
-function isAuthed(value: string | undefined): boolean {
-  const secret = process.env.ADMIN_SECRET;
-  if (!secret || !value) return false;
-  const expected = createHmac("sha256", secret).update("zen-dojo-admin-session-v1").digest("hex");
-  const a = Buffer.from(value);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -112,7 +100,7 @@ function build(fd: FormData): Built {
 }
 
 async function save(mode: "create" | "update", fd: FormData): Promise<ProblemActionResult> {
-  if (!isAuthed((await cookies()).get(COOKIE)?.value)) return { ok: false, errors: ["Not signed in as admin. Sign in again at /admin/login."] };
+  await requireAdmin();
   const built = build(fd);
   if (!built.ok) return built;
   const existing = await getItem(`problem:${built.item.id}`);
@@ -135,9 +123,11 @@ async function save(mode: "create" | "update", fd: FormData): Promise<ProblemAct
 }
 
 export async function saveProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
+  await requireAdmin();
   return save("create", formData);
 }
 
 export async function updateProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
+  await requireAdmin();
   return save("update", formData);
 }
