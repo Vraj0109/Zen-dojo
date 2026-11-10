@@ -121,3 +121,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0047 | [App-wide skeleton loaders & layout-shift-free streaming UI](0047-skeleton-loaders-and-streaming-ui.md) | ready |
 | 0048 | [Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)](0048-round-nine-six-agent-parallel-work.md) | ready |
 | 0049 | [Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)](0049-accounts-sign-in-and-abuse-protection.md) | in-progress |
+| 0050 | [Connect the app's data to cloud sync (triggers, server-side sync engine, first-link upload)](0050-connect-app-data-to-cloud-sync.md) | ready |
