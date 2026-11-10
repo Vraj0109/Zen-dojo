@@ -120,3 +120,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0046 | [Round eight: six-agent parallel sprint (TLE cancellation, Java IDE, sync engine & admin)](0046-round-eight-six-agent-parallel-work.md) | implemented |
 | 0047 | [App-wide skeleton loaders & layout-shift-free streaming UI](0047-skeleton-loaders-and-streaming-ui.md) | ready |
 | 0048 | [Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)](0048-round-nine-six-agent-parallel-work.md) | ready |
+| 0049 | [Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)](0049-accounts-sign-in-and-abuse-protection.md) | ready |
