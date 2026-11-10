@@ -10,6 +10,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import updaterPkg from "electron-updater";
+import { PROTOCOL, findDeepLink, isWorkerRedirect, parseAuthDeepLink } from "./lib/deeplink.js";
 import { appCommandAction, swipeAction, withFeature } from "./lib/navigation.js";
 import { DEFAULT_PORT, databaseUrl, importDatabase, isExternal, pickPort, waitForServer } from "./lib/setup.js";
 import { CHECK_EVERY_MS, RELEASES_REPO, backupName, backupsToPrune, isNewer, needsBackup } from "./lib/updates.js";
@@ -27,20 +28,43 @@ if (process.env.HABIT_DATA_DIR) app.setPath("userData", path.resolve(process.env
 // Two-finger swipe on a touchpad = back/forward (Chrome has it; Electron needs the feature switched on).
 app.commandLine.appendSwitch("enable-features", withFeature(app.commandLine.getSwitchValue("enable-features")));
 
+const workerOrigin = process.env.AUTH_WORKER_URL || "https://zen-dojo-sync.habit-sync-worker.workers.dev";
+
 /** @type {Electron.UtilityProcess | null} */
 let server = null;
 /** @type {BrowserWindow | null} */
 let win = null;
+/** @type {string | null} */
+let serverOrigin = null;
+/** @type {string | null} */
+let pendingDeepLink = null;
 let quitting = false;
+
+if (devMode || !app.isPackaged) {
+  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1] ?? "")]);
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL);
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
-    if (!win) return;
-    if (win.isMinimized()) win.restore();
-    win.focus();
+  app.on("second-instance", (_event, argv) => {
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+    const link = findDeepLink(argv);
+    if (link) handleDeepLink(link);
   });
+  app.on("open-url", (event, url) => {
+    event.preventDefault();
+    handleDeepLink(url);
+  });
+
+  const initialLink = findDeepLink(process.argv);
+  if (initialLink) handleDeepLink(initialLink);
+
   app.whenReady().then(start).catch((err) => fail("Zen Dojo couldn't start", String(err?.stack ?? err)));
 }
 
@@ -93,6 +117,7 @@ async function start() {
       ...process.env,
       NODE_ENV: "production",
       NEXT_TELEMETRY_DISABLED: "1",
+      HABIT_DESKTOP: "1",
       HOSTNAME: "127.0.0.1",
       PORT: String(port),
       DATABASE_URL: databaseUrl(dbFile),
@@ -156,7 +181,8 @@ async function firstRun(dbFile) {
 
 /** @param {string} url */
 function openWindow(url) {
-  const origin = new URL(url).origin;
+  serverOrigin = new URL(url).origin;
+  const origin = serverOrigin;
   win = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -180,11 +206,42 @@ function openWindow(url) {
     return { action: isExternal(target, origin) ? "deny" : "allow" };
   });
   win.webContents.on("will-navigate", (event, target) => {
+    if (isWorkerRedirect(target, workerOrigin)) {
+      event.preventDefault();
+      shell.openExternal(target);
+      return;
+    }
     if (!isExternal(target, origin)) return;
     event.preventDefault();
     shell.openExternal(target);
   });
+  win.webContents.on("will-redirect", (event, target) => {
+    if (isWorkerRedirect(target, workerOrigin)) {
+      event.preventDefault();
+      shell.openExternal(target);
+    }
+  });
   win.loadURL(url);
+
+  if (pendingDeepLink) {
+    const link = pendingDeepLink;
+    pendingDeepLink = null;
+    handleDeepLink(link);
+  }
+}
+
+/** @param {string} url */
+function handleDeepLink(url) {
+  if (!win || !serverOrigin) {
+    pendingDeepLink = url;
+    return;
+  }
+  const auth = parseAuthDeepLink(url);
+  if (!auth) return;
+  const targetUrl = `${serverOrigin}/auth/callback?code=${encodeURIComponent(auth.code)}&state=${encodeURIComponent(auth.state)}`;
+  win.loadURL(targetUrl);
+  if (win.isMinimized()) win.restore();
+  win.focus();
 }
 
 /** @param {"back" | "forward" | null} action */

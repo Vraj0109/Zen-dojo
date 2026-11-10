@@ -1,6 +1,10 @@
 # Installers: pnpm desktop:build (builds for the OS you run it on). CI: .github/workflows/desktop.yml
 appId: dev.habitmanager.app
 productName: Zen Dojo
+protocols:
+  - name: Zen Dojo
+    schemes:
+      - zendojo
 directories:
   output: dist
   buildResources: build
