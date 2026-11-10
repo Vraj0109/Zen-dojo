@@ -118,6 +118,14 @@ describe("start", () => {
     "http://127.0.0.1:4567//auth/callback",
     "https://127.0.0.1:4567/auth/callback",
     "javascript:alert(1)",
+    "zendojo://auth/callback/x",
+    "zendojo://evil/callback",
+    "zendojo://auth/callback?x=1",
+    "zendojo://auth/callback#f",
+    "zendojo2://auth/callback",
+    "ZENDOJO://auth/callback",
+    "zendojo://user@auth/callback",
+    "zendojo://auth:1/callback",
     "",
   ])("rejects redirect_uri %s", async (uri) => {
     const env = await makeEnv();
@@ -131,6 +139,23 @@ describe("start", () => {
     expect((await start(env, "http://localhost:3000/auth/callback"))!.status).toBe(302);
     expect((await start(env, "https://app.example.com/auth/callback", "state-bbbbbbbbbbbbbbbb"))!.status).toBe(302);
     expect((await start(env, "https://app.example.com/auth/callback2", "state-cccccccccccccccc"))!.status).toBe(400);
+  });
+
+  it("accepts the desktop deep link and hands code and state back in Location", async () => {
+    // No new secret or var is needed for this: the rule is code in oauth.ts, live once the Worker is deployed.
+    const DEEP = "zendojo://auth/callback";
+    const env = await makeEnv();
+    const pkce = await pkcePair();
+    expect((await start(env, DEEP, STATE, pkce.challenge))!.status).toBe(302);
+    const cb = await call(env, `/auth/github/callback?code=ghcode&state=${STATE}`);
+    expect(cb!.status).toBe(302);
+    const location = cb!.headers.get("location")!;
+    expect(location.startsWith("zendojo://auth/callback?")).toBe(true);
+    const loc = new URL(location);
+    expect(loc.searchParams.get("state")).toBe(STATE);
+    const code = loc.searchParams.get("code")!;
+    expect(code.length).toBeGreaterThan(20);
+    expect((await exchange(env, code, pkce.verifier))!.status).toBe(200);
   });
 
   it("rejects bad state, challenge and duplicate state", async () => {

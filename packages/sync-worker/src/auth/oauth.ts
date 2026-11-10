@@ -6,6 +6,7 @@ import { clientIp, fail, randomToken, readJsonObject, sha256B64url, sha256Hex, t
 const B64URL = /^[A-Za-z0-9_-]+$/;
 const GITHUB_TIMEOUT_MS = 5000;
 const UA = "zen-dojo-sync";
+const DESKTOP_REDIRECT = "zendojo://auth/callback";
 
 /**
  * Exact redirect rule: http://127.0.0.1:<port>/auth/callback or http://localhost:<port>/auth/callback,
@@ -25,6 +26,9 @@ export function isAllowedRedirect(env: AuthEnv, raw: string): boolean {
     .map((s) => s.trim())
     .filter(Boolean);
   if (extra.includes(raw)) return u.protocol === "https:" || u.protocol === "http:";
+  // The desktop app's deep link: exactly this string, case-exact. It is a rule in code, not config, so no new
+  // secret or var is needed; it goes live when the Worker is deployed (by pushing).
+  if (raw === DESKTOP_REDIRECT) return true;
   if (u.protocol !== "http:") return false;
   if (u.hostname !== "127.0.0.1" && u.hostname !== "localhost") return false;
   if (u.pathname !== "/auth/callback") return false;
@@ -66,7 +70,8 @@ export async function start(req: Request, env: AuthEnv, ctx: AuthCtx, now: numbe
 function backToApp(redirectUri: string, params: Record<string, string>): Response {
   const u = new URL(redirectUri);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  return new Response(null, { status: 302, headers: { Location: u.toString(), "cache-control": "no-store" } });
+  // Plain location header (not Response.redirect) so custom schemes such as zendojo:// work on every runtime.
+  return new Response(null, { status: 302, headers: { location: u.toString(), "cache-control": "no-store" } });
 }
 
 async function timedFetch(f: typeof fetch, url: string, init: RequestInit): Promise<Response> {
