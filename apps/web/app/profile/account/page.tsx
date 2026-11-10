@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
 import { DeviceList, SignOutButton, SyncPanel } from "@/app/components/account-menu";
+import { DeleteCloudData, DeleteLocalData } from "./delete-data";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -13,15 +14,20 @@ async function AccountBody() {
 
   if (!session) {
     return (
-      <div className="max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
-        <p className="text-sm">You are not signed in. The app works fully this way. Sign in to sync your progress across devices.</p>
-        <SyncPanel signedIn={false} />
-        <a
-          href={`/auth/start?next=${encodeURIComponent("/profile/account")}`}
-          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent"
-        >
-          Continue with GitHub
-        </a>
+      <div className="max-w-2xl space-y-6">
+        <div className="space-y-4 rounded-xl border border-line bg-surface p-6">
+          <p className="text-sm">You are not signed in. The app works fully this way. Sign in to sync your progress across devices.</p>
+          <SyncPanel signedIn={false} />
+          <a
+            href={`/auth/start?next=${encodeURIComponent("/profile/account")}`}
+            className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+          >
+            Continue with GitHub
+          </a>
+        </div>
+
+        <DeleteCloudData signedIn={false} />
+        <DeleteLocalData />
       </div>
     );
   }
@@ -58,6 +64,9 @@ async function AccountBody() {
           <Link href="/admin" className="text-accent hover:underline">Open the admin portal</Link>
         </p>
       ) : null}
+
+      <DeleteCloudData signedIn accountName={session.name} />
+      <DeleteLocalData />
     </div>
   );
 }
