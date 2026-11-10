@@ -7,3 +7,5 @@ allowBuilds:
   electron-winstaller: false
   sharp: false
   unrs-resolver: false
+  esbuild: true
+  workerd: true
