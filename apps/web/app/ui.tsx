@@ -56,8 +56,8 @@ export function Difficulty({ level }: { level?: string | null }) {
 }
 
 /**
- * Solved marks, like a chat app's ticks. One green tick: solved here (every test passed in the editor). Two blue ticks:
- * solved here and also seen on LeetCode. A faint single tick: only seen on LeetCode so far, not solved here.
+ * Solved marks, like a chat app's ticks. One accent tick: solved here (every test passed in the editor). An accent tick
+ * followed by a grey one: solved here and also seen on LeetCode. One faint grey tick: only seen on LeetCode so far.
  */
 export function StatusMark({ state, here, onLeetCode }: { state: "solved" | "resolve" | "none"; here?: boolean; onLeetCode?: boolean }) {
   if (state === "solved" && here !== undefined) {
@@ -65,8 +65,8 @@ export function StatusMark({ state, here, onLeetCode }: { state: "solved" | "res
     const label = both ? "Solved here and on LeetCode" : here ? "Solved here" : "Solved on LeetCode, not solved here yet";
     return (
       <svg
-        className={`h-4 shrink-0 ${both ? "w-5 text-accent" : here ? "w-4 text-diff-easy" : "w-4 text-muted opacity-60"}`}
-        viewBox={both ? "0 0 20 16" : "0 0 16 16"}
+        className={`h-4 shrink-0 ${both ? "w-[26px]" : "w-4"}`}
+        viewBox={both ? "0 0 26 16" : "0 0 16 16"}
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
@@ -76,8 +76,12 @@ export function StatusMark({ state, here, onLeetCode }: { state: "solved" | "res
         role="img"
       >
         <title>{label}</title>
-        <path d="m3.5 8.5 3 3 6-7" />
-        {both && <path d="m9 11.5 1 1 6.5-8" />}
+        {here ? (
+          <path className="text-accent" d="m3.5 8.5 3 3 6-7" />
+        ) : (
+          <path className="text-muted" opacity="0.6" d="m3.5 8.5 3 3 6-7" />
+        )}
+        {both && <path className="text-muted" d="m13.5 8.5 3 3 6-7" />}
       </svg>
     );
   }
