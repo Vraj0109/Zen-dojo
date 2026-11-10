@@ -149,13 +149,21 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
     // The panes fill what is left under the bar: 28 px for the bar (nothing when it is hidden) on top of the old 8.5rem minus the old 40 px bar.
     <div className="shell-compact flex min-h-full flex-col" style={{ "--pane-h": hiddenBar ? "calc(100dvh - 6rem)" : "calc(100dvh - 7.75rem)" } as CSSProperties}>
       {hiddenBar ? (
-        <button
-          type="button"
-          onClick={() => setBarHidden(false)}
-          aria-label="Show the top bar"
-          title="Show the top bar (Ctrl+Shift+B)"
-          className="fixed inset-y-0 left-0 z-30 w-3 bg-transparent hover:bg-accent/30 focus-visible:bg-accent/40 print:hidden"
-        />
+        <div className="fixed top-2 left-3 z-40 flex items-center gap-2 print:hidden">
+          <button
+            type="button"
+            onClick={() => setBarHidden(false)}
+            aria-label="Show top bar"
+            title="Show the top bar (Ctrl+Shift+B)"
+            className="group flex items-center gap-1.5 rounded-full border border-line bg-surface/95 px-3 py-1 text-xs font-medium text-muted shadow-md backdrop-blur transition-all hover:border-accent hover:bg-background hover:text-foreground"
+          >
+            <svg viewBox="0 0 24 24" className="size-3.5 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+            <span>Show top bar</span>
+            <kbd className="hidden sm:inline-block rounded border border-line bg-background px-1 py-0.5 text-[10px] text-muted">Ctrl+Shift+B</kbd>
+          </button>
+        </div>
       ) : (
         <div className="sticky top-0 z-30 flex h-7 items-center gap-1 border-b border-line bg-surface px-2 print:hidden">
           <button

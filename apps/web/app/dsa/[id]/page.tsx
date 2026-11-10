@@ -141,6 +141,16 @@ async function Problem({
                 {s.state === "solved" && (s.resolveDue ? "Solved, re-solve due" : `Solved ${fmt(s.solvedOn)}`)}
                 {s.state === "resolved" && `Re-solved ${fmt(s.resolvedOn)}`}
               </span>
+              {p.solveSource === "judge" && (
+                <span className="rounded bg-diff-easy/15 px-2 py-0.5 text-xs font-semibold text-diff-easy">
+                  ✓ Solved on Zen Dojo
+                </span>
+              )}
+              {p.onLeetCode && (
+                <span className="text-xs text-muted">
+                  · Synced from LeetCode
+                </span>
+              )}
               {p.url && (
                 <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
                   {linkLabel(p.id, p.url)}
@@ -150,7 +160,17 @@ async function Problem({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 zen-dim">
-            {p.kind === "roadmap" && s.state !== "resolved" && !(s.state === "unsolved" && p.judgeable) && (
+            {p.judgeable && s.state === "unsolved" && (
+              <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
+                Run & pass all tests to solve on Zen Dojo
+              </span>
+            )}
+            {p.judgeable && s.state === "solved" && s.resolveDue && (
+              <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
+                Run & pass all tests to re-solve
+              </span>
+            )}
+            {!p.judgeable && p.kind === "roadmap" && s.state !== "resolved" && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
@@ -246,7 +266,7 @@ async function Problem({
         </div>
         {p.kind === "roadmap" && (
           <div className="flex gap-2">
-            {s.state !== "resolved" && !(s.state === "unsolved" && p.judgeable) && (
+            {!p.judgeable && s.state !== "resolved" && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
@@ -254,6 +274,11 @@ async function Problem({
                   <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
                 </SubmitButton>
               </form>
+            )}
+            {p.judgeable && s.state !== "resolved" && (
+              <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
+                Run & pass all tests to solve on Zen Dojo
+              </span>
             )}
             {s.state !== "unsolved" && (
               <form action={undoSolveAction}>
