@@ -131,40 +131,23 @@ describe("session management", () => {
     expect(mockCookies.get("zd_rt")?.value).toBe("new-refresh-token");
   });
 
-  it("handles Server Component where cookie set throws, returning session anyway", async () => {
+  it("does not rotate the refresh token in a Server Component, where the new cookies cannot be stored", async () => {
     mockCookies.set("zd_rt", { value: "refresh-token-456" });
     cookieSetThrows = true;
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          access_token: "new-access-jwt",
-          refresh_token: "new-refresh-token",
-          expires_in: 900,
-          user: {
-            id: "gh:200",
-            name: "Charlie",
-            avatar_url: null,
-            admin: false,
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+    // Rotating here would leave the browser holding a spent token, and the Worker would then revoke the device.
+    expect(await getSession()).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    cookieSetThrows = false;
+  });
 
-    mockVerifyAccessToken.mockResolvedValueOnce({
-      iss: "zen-dojo-sync",
-      sub: "gh:200",
-      sid: "session-3",
-      adm: false,
-      iat: 1000,
-      exp: 1900,
-    });
-
-    const session = await getSession();
-    expect(session).not.toBeNull();
-    expect(session?.userId).toBe("gh:200");
-    expect(session?.name).toBe("Charlie");
+  it("sends a signed-out-looking page with a refresh cookie to /auth/refresh", async () => {
+    mockCookies.set("zd_rt", { value: "refresh-token-456" });
+    cookieSetThrows = true;
+    await expect(requireSession("/profile")).rejects.toThrow("REDIRECT:/auth/refresh?next=%2Fprofile");
+    await expect(requireAdmin()).rejects.toThrow("REDIRECT:/auth/refresh?next=%2Fadmin");
+    cookieSetThrows = false;
   });
 
   it("clears cookies and returns null when refresh is rejected (e.g. 401)", async () => {

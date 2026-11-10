@@ -98,6 +98,25 @@ async function doRefresh(refreshToken: string): Promise<RefreshResult | null> {
   return promise;
 }
 
+/**
+ * Refresh tokens rotate: the Worker invalidates the old one as soon as it hands out a new one. A Server Component
+ * cannot store the new cookies, so refreshing there would leave the browser holding a spent token, and the next
+ * request would look like token theft and revoke the device. So only route handlers and server actions refresh.
+ */
+function canWriteCookies(store: Awaited<ReturnType<typeof cookies>>): boolean {
+  try {
+    store.set("zd_probe", "", { path: "/", maxAge: 0 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** True when there is a refresh cookie, so a signed-out-looking page can ask /auth/refresh to renew the session. */
+export async function hasRefreshCookie(): Promise<boolean> {
+  return Boolean((await cookies()).get(REFRESH_COOKIE)?.value);
+}
+
 export async function getSession(): Promise<Session | null> {
   const cookieStore = await cookies();
   const at = cookieStore.get(ACCESS_COOKIE)?.value;
@@ -135,6 +154,11 @@ export async function getSession(): Promise<Session | null> {
   // Token missing or invalid/expired, check refresh token
   const rt = cookieStore.get(REFRESH_COOKIE)?.value;
   if (!rt) {
+    return null;
+  }
+
+  if (!canWriteCookies(cookieStore)) {
+    // Read-only context (Server Component): do not rotate the token here. The caller redirects to /auth/refresh.
     return null;
   }
 
@@ -193,6 +217,7 @@ export async function getSession(): Promise<Session | null> {
 export async function requireSession(next?: string): Promise<Session> {
   const session = await getSession();
   if (!session) {
+    if (await hasRefreshCookie()) redirect(`/auth/refresh?next=${encodeURIComponent(next ?? "/")}`);
     const target = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
     redirect(target);
   }
@@ -202,6 +227,7 @@ export async function requireSession(next?: string): Promise<Session> {
 export async function requireAdmin(): Promise<Session> {
   const session = await getSession();
   if (!session) {
+    if (await hasRefreshCookie()) redirect("/auth/refresh?next=%2Fadmin");
     redirect("/login?next=/admin");
   }
   if (!session.admin) {

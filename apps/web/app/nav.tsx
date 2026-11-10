@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { Avatar, useProfile } from "./custom-appearance";
 import { SyncStatusPill } from "./components/sync-status";
 
@@ -58,8 +59,8 @@ export function Nav() {
 }
 
 /** The Profile link at the bottom of the sidebar (wide screens). On phones Profile is the last item of the top bar. */
-export function NavFooter() {
-  return <NavFooterLinks pathname={usePathname()} />;
+export function NavFooter({ account }: { account?: ReactNode }) {
+  return <NavFooterLinks pathname={usePathname()} account={account} />;
 }
 
 function ProfileName({ fallback }: { fallback: string }) {
@@ -107,7 +108,12 @@ export function NavLinks({ pathname }: { pathname: string | null }) {
   );
 }
 
-export function NavFooterLinks({ pathname }: { pathname: string | null }) {
+export function NavFooterLinks({ pathname, account }: { pathname: string | null; account?: ReactNode }) {
+  // With the account area (signed in or out), the profile button and sync status live in it. The plain Profile link
+  // and pill remain as the fallback while it loads.
+  if (account) {
+    return <div className="hidden border-t border-line pt-3 lg:block">{account}</div>;
+  }
   return (
     <ul className="hidden flex-col gap-1 border-t border-line pt-3 lg:flex">
       {SECONDARY.map((l) => (

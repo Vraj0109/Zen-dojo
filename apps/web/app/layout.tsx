@@ -12,6 +12,7 @@ import { CustomFontLoader } from "./custom-font-loader";
 import { FocusReading } from "./focus-reading";
 import { HistoryButtons } from "./history-buttons";
 import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
+import { SidebarAccount } from "./components/sidebar-account";
 import { Logo } from "./logo";
 import { Shell } from "./shell";
 
@@ -80,7 +81,7 @@ const asideNode = (
           <div className="mt-2 space-y-3 lg:mt-auto">
             <GlobalTimer />
             <Suspense fallback={<NavFooterLinks pathname={null} />}>
-              <NavFooter />
+              <NavFooter account={<Suspense fallback={null}><SidebarAccount /></Suspense>} />
             </Suspense>
           </div>
         </aside>
