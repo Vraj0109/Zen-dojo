@@ -13,7 +13,8 @@ Enable seamless, bi-directional cloud synchronization across multiple logged-in 
 
 - The app uses `@libsql/client` with a local SQLite file (`data/habit.db`).
 - All user tables (`tasks`, `problem_solves`, `settings`, `notes`, `solution_runs`, `pack_progress`, `practice_sessions`, `timer_rows`) are currently single-tenant with no `user_id`.
-- Turso provides native libSQL databases with embedded replica capabilities and seamless edge synchronization.
+- **Security Rule (Zero Database Secrets on Client):** Desktop and web clients must **never** hold direct database credentials or master connection strings. Clients authenticate via scoped JWT session tokens and communicate exclusively through a backend sync API (`POST /api/sync`).
+- **Cloud Infrastructure:** A Cloudflare Worker edge backend backed by Cloudflare D1 (serverless SQLite at 330+ global edge locations with $0 egress bandwidth fees).
 - Syncing entire database snapshots over HTTP is inefficient and destroys bandwidth. A Notion-style delta sync transmits only mutated rows and fields since the last synchronization timestamp.
 
 ## Out of scope
@@ -94,6 +95,17 @@ Enable seamless, bi-directional cloud synchronization across multiple logged-in 
     - Test soft deletes and tombstone propagation.
     - Test multi-user isolation (User A cannot pull User B's rows).
   - Done when: `pnpm exec vitest run apps/web/lib/sync.test.ts` passes.
+
+- [ ] **7. Cloudflare Worker backend & GitHub Actions CI/CD.**
+  - Create `packages/sync-worker`:
+    - TypeScript Cloudflare Worker receiving `POST /api/sync`.
+    - Native D1 binding (`env.DB.prepare(...)`).
+    - Validates client JWT token; enforces `WHERE user_id = :userId` on all queries.
+  - Setup `.github/workflows/deploy-sync.yml`:
+    - Uses `cloudflare/wrangler-action@v3` with repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+    - Runs D1 database migrations: `wrangler d1 migrations apply DB --remote`.
+    - Deploys worker to production on push to `main`.
+  - Done when: Pushing to `main` deploys the sync backend and runs D1 migrations automatically.
 
 ## Acceptance criteria
 
