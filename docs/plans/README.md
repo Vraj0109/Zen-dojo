@@ -8,8 +8,8 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
 Implemented: 0008, 0012-0017, 0019-0021, 0023-0031, 0033-0041.
-Ready to implement: 0042 (TLE cutoff & process cancellation), 0043 (LLD & System Design interactive Java IDE).
-In-progress / draft: 0022 (Advanced CSES sections), 0032 (Hosted site & sync).
+Ready to implement: 0042 (TLE cutoff & process cancellation), 0043 (LLD & System Design interactive Java IDE), 0044 (Notion-style offline-first cloud sync with Turso), 0045 (Dynamic admin portal for live content management).
+Roadmap & in-progress: 0022 (Advanced CSES sections), 0032 (Hosted site, Notion-style sync & admin roadmap).
 
 | Plan | What | Status |
 |---|---|---|
@@ -103,7 +103,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0029 | [Curated CSES logic-building list and cp-algorithms filter](0029-logic-building-list.md) | implemented |
 | 0030 | [Add problems, tests and lessons without a release](0030-content-without-releases.md) | implemented |
 | 0031 | [System design as rich as LLD](0031-system-design-parity.md) | implemented |
-| 0032 | [Roadmap: hosted site with accounts and sync](0032-hosted-site-roadmap.md) | draft (decisions needed) |
+| 0032 | [Roadmap: hosted site with accounts, Notion-style offline-first sync, and admin portal](0032-hosted-site-roadmap.md) | ready |
 | 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | implemented (all merged) |
 | 0034 | [Blocked C++ programs and WebAssembly C++ runner](0034-blocked-programs-and-wasm-cpp.md) | implemented |
 | 0035 | [ADHD helper, accountability buddy, and cognitive pacing](0035-adhd-accountability-and-pacing.md) | implemented |
@@ -115,3 +115,5 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0041 | [Round seven: six-agent parallel final sprint (CSES completion, reviews & v0.6.0)](0041-round-seven-six-agent-completion.md) | implemented |
 | 0042 | [Time Limit Exceeded (TLE) hard cutoff and process tree cancellation](0042-tle-hard-cutoff-and-cancellation.md) | ready |
 | 0043 | [Interactive multi-file Java IDE for LLD and System Design practice](0043-lld-system-design-interactive-java-ide.md) | ready |
+| 0044 | [Notion-style offline-first cloud sync with Turso libSQL](0044-offline-first-cloud-sync.md) | ready |
+| 0045 | [Dynamic Admin Portal for Live Content Management](0045-admin-portal-content-management.md) | ready |
