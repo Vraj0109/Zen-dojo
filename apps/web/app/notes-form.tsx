@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ProblemNote } from "@/lib/notes";
-import { LANGUAGES, NOTE_LIMITS } from "@/lib/notes";
+import { LANGUAGES, NOTE_LIMITS } from "@/lib/note-limits";
 import { parseProjectCode, serializeProject, type ProjectFile } from "@/lib/project-files";
 import { saveNoteAction } from "./actions";
 import { EditorField } from "./code-editor";

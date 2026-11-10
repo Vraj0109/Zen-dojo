@@ -5,12 +5,10 @@ import { getDb } from "./db";
 import { getRuns } from "./solution-runs";
 import { problemNotes, settings } from "./schema";
 
-import { MAX_TOTAL_BYTES, isEmptyProject, readProjectJson, serializeProject, validateProject } from "./project-files";
+import { isEmptyProject, readProjectJson, serializeProject, validateProject } from "./project-files";
+import { JAVA_PROJECT, LANGUAGES, NOTE_LIMITS } from "./note-limits";
 
-/** `code` is the limit for plain text; a `java-project` uses `projectCode` (total bytes of all files). */
-export const NOTE_LIMITS = { notes: 20_000, code: 50_000, projectCode: MAX_TOTAL_BYTES } as const;
-const JAVA_PROJECT = "java-project";
-export const LANGUAGES = ["Java", "C++", "Python", "TypeScript", "JavaScript", "Go", "C#", "Kotlin", "Other", JAVA_PROJECT] as const;
+export { LANGUAGES, NOTE_LIMITS };
 
 export type ProblemNote = typeof problemNotes.$inferSelect;
 
