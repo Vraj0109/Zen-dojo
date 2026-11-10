@@ -4,6 +4,7 @@ import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
+import { syncMigrationSql } from "./sync-triggers";
 
 /** Walk up from cwd to the repo root (the folder with pnpm-workspace.yaml). */
 function repoRoot(): string {
@@ -261,6 +262,8 @@ CREATE INDEX content_items_type ON content_items (type);
   `
 ALTER TABLE solution_runs ADD COLUMN failed_cases TEXT NOT NULL DEFAULT '';
 `,
+  // 0050: cloud sync change tracking (side tables and triggers; the user's tables and rows are not touched)
+  syncMigrationSql(),
 ];
 
 async function migrate(client: Client) {

@@ -40,7 +40,7 @@ async function seed() {
 describe("backup", () => {
   it("covers every table in the schema", async () => {
     await getTodayView();
-    const rs = await (await getDb()).$client.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'");
+    const rs = await (await getDb()).$client.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'sync\\_%' ESCAPE '\\'");
     expect(rs.rows.map((r) => String(r[0])).sort()).toEqual([...BACKUP_TABLES].sort());
   });
 
