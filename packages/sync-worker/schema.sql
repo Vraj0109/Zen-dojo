@@ -46,18 +46,20 @@ CREATE INDEX IF NOT EXISTS settings_user_updated ON settings (user_id, updated_a
 
 CREATE TABLE IF NOT EXISTS notes (
   user_id TEXT NOT NULL,
+  id TEXT NOT NULL, -- row_id: the problem id
   problem_id TEXT NOT NULL,
   notes TEXT NOT NULL DEFAULT '',
   code TEXT NOT NULL DEFAULT '',
   language TEXT NOT NULL DEFAULT '',
   updated_at INTEGER NOT NULL,
   deleted_at INTEGER,
-  PRIMARY KEY (user_id, problem_id)
+  PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS notes_user_updated ON notes (user_id, updated_at);
 
 CREATE TABLE IF NOT EXISTS solution_runs (
   user_id TEXT NOT NULL,
+  id TEXT NOT NULL, -- row_id: "<problem_id>:<lang>"
   problem_id TEXT NOT NULL,
   lang TEXT NOT NULL,
   code TEXT NOT NULL,
@@ -68,18 +70,19 @@ CREATE TABLE IF NOT EXISTS solution_runs (
   failed_cases TEXT NOT NULL DEFAULT '',
   updated_at INTEGER NOT NULL,
   deleted_at INTEGER,
-  PRIMARY KEY (user_id, problem_id, lang)
+  PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS solution_runs_user_updated ON solution_runs (user_id, updated_at);
 
 CREATE TABLE IF NOT EXISTS pack_progress (
   user_id TEXT NOT NULL,
+  id TEXT NOT NULL, -- row_id: "<pack_id>:<item_id>"
   pack_id TEXT NOT NULL,
   item_id TEXT NOT NULL,
   done_on TEXT NOT NULL,
   updated_at INTEGER NOT NULL,
   deleted_at INTEGER,
-  PRIMARY KEY (user_id, pack_id, item_id)
+  PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS pack_progress_user_updated ON pack_progress (user_id, updated_at);
 

@@ -65,11 +65,11 @@ const PK: Record<string, string> = {
 // Writable data columns per table (never includes user_id, updated_at, deleted_at, or the pk).
 const COLUMNS: Record<string, readonly string[]> = {
   tasks: ["date", "scope", "template_key", "title", "category", "xp", "minutes", "status", "done_on"],
-  problem_solves: ["problem_id", "kind", "solved_on", "xp"],
+  problem_solves: ["problem_id", "kind", "solved_on", "xp", "source"],
   settings: ["value"],
   notes: ["problem_id", "notes", "code", "language"],
-  solution_runs: ["slug", "lang", "runtime", "runtime_pct", "memory", "memory_pct", "code", "notes", "submitted_at"],
-  pack_progress: ["pack_id", "item_id", "done_on", "data"],
+  solution_runs: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases"],
+  pack_progress: ["pack_id", "item_id", "done_on"],
   practice_sessions: ["item_id", "practiced_on", "minutes", "scores", "score", "notes", "link", "xp"],
   timer_rows: ["item_id", "focused_on", "minutes"],
 };
