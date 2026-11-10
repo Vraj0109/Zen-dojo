@@ -140,6 +140,13 @@ export async function callback(
   if (!gh) return backToApp(row.redirect_uri, { error: "github_failed", state });
 
   const userId = `gh:${gh.id}`;
+  if (deps.checkAccountCreation) {
+    const existing = await env.DB.prepare("SELECT id FROM users WHERE id = ?").bind(userId).first<{ id: string }>();
+    if (!existing) {
+      const blocked = await deps.checkAccountCreation(env, clientIp(req));
+      if (blocked) return backToApp(row.redirect_uri, { error: "rate_limited", state });
+    }
+  }
   await env.DB.prepare(
     "INSERT INTO users (id, github_id, name, avatar_url, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, avatar_url = excluded.avatar_url, last_login_at = excluded.last_login_at",
   )

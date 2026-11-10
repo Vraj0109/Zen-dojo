@@ -36,6 +36,8 @@ export interface AuthDeps {
   fetch?: typeof fetch;
   now?: () => number;
   noteAuthFailure?: NoteAuthFailure;
+  /** Returns a Response to reject a new-account sign-up (e.g. the per-IP limit), or null to allow it. Wire the guard's checkAccountCreation here. */
+  checkAccountCreation?: (env: any, ip: string) => Promise<Response | null>;
 }
 
 export interface AccessClaims {
