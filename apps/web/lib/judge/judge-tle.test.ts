@@ -173,6 +173,7 @@ describe("Judge TLE Cutoff and Process Tree Cancellation", () => {
       }
 
     },
-    20_000
+    // g++ compile plus run is slow when other judge test files compile in parallel; the 500 ms limit under test is unchanged.
+    60_000
   );
 });

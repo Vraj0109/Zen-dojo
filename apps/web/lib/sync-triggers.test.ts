@@ -256,9 +256,12 @@ describe("triggers", () => {
     await c.execute("INSERT INTO settings (key, value) VALUES ('theme', 'dark')");
     const [d] = await all("SELECT changed_at FROM sync_dirty");
     const [s] = await all("SELECT updated_at FROM sync_stamps");
+    // SQLite stamps inside the trigger, so under machine load it can drift from JS Date.now() by a few ms either way.
+    // 50 ms still proves milliseconds (seconds would be off by up to 1000) and wall-clock time.
+    const SLACK_MS = 50;
     for (const v of [Number(d.changed_at), Number(s.updated_at)]) {
-      expect(v).toBeGreaterThanOrEqual(before - 5);
-      expect(v).toBeLessThanOrEqual(Date.now() + 5);
+      expect(v).toBeGreaterThanOrEqual(before - SLACK_MS);
+      expect(v).toBeLessThanOrEqual(Date.now() + SLACK_MS);
     }
   });
 
