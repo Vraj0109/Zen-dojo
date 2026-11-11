@@ -1,0 +1,11 @@
+# verify: skip-stress
+from typing import List
+
+class Solution:
+    def change(self, amount: int, coins: List[int]) -> int:
+        ways = [0] * (amount + 1)
+        ways[0] = 1
+        for c in coins:
+            for a in range(c, amount + 1):
+                ways[a] += ways[a - c]
+        return ways[amount]
