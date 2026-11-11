@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import {
   JUDGE_PROBLEMS,
   buildChatMessages,
+  buildLessonChatMessages,
   isChatIntent,
   type ChatIntent,
   type ChatMessage,
@@ -10,10 +11,14 @@ import {
 } from "@habit/shared";
 import { getDb } from "@/lib/db";
 import { problemNotes } from "@/lib/schema";
+import { lessonSource } from "@/lib/ai/lesson";
 
 /** A validated body of POST /api/ai/chat (plan 0067). */
 export interface ChatRequest {
-  problemId: string;
+  /** A judged problem... */
+  problemId?: string;
+  /** ...or a course lesson (concept, system design or LLD problem). Exactly one of the two. */
+  lessonId?: string;
   messages: VisibleMessage[];
   intent: ChatIntent;
   hintIndex: number;
@@ -28,7 +33,9 @@ const MAX_INPUT_MESSAGES = 200;
 export function parseChatRequest(raw: unknown): ChatRequest | null {
   if (typeof raw !== "object" || raw === null) return null;
   const b = raw as Record<string, unknown>;
-  if (typeof b.problemId !== "string" || !b.problemId) return null;
+  const hasProblem = typeof b.problemId === "string" && b.problemId.length > 0;
+  const hasLesson = typeof b.lessonId === "string" && b.lessonId.length > 0;
+  if (hasProblem === hasLesson) return null; // exactly one of problemId / lessonId
   if (!Array.isArray(b.messages) || b.messages.length === 0) return null;
   const messages: VisibleMessage[] = [];
   for (const m of b.messages.slice(-MAX_INPUT_MESSAGES)) {
@@ -42,7 +49,8 @@ export function parseChatRequest(raw: unknown): ChatRequest | null {
   if (b.hintIndex !== undefined && typeof b.hintIndex !== "number") return null;
   for (const k of ["revealSolution", "includeCode"] as const) if (b[k] !== undefined && typeof b[k] !== "boolean") return null;
   return {
-    problemId: b.problemId,
+    problemId: hasProblem ? (b.problemId as string) : undefined,
+    lessonId: hasLesson ? (b.lessonId as string) : undefined,
     messages,
     intent: (b.intent as ChatIntent | undefined) ?? "free",
     hintIndex: typeof b.hintIndex === "number" && Number.isFinite(b.hintIndex) ? b.hintIndex : 0,
@@ -58,13 +66,19 @@ export type ChatBuild = { ok: true; messages: ChatMessage[] } | { ok: false; err
  * so it never reaches the prompt (or a provider) otherwise. Saved code is read for `review` or `includeCode`.
  */
 export async function buildChat(req: ChatRequest): Promise<ChatBuild> {
-  const spec = JUDGE_PROBLEMS[req.problemId];
+  if (req.lessonId) {
+    const src = lessonSource(req.lessonId);
+    if (!src) return { ok: false, error: "unknown_problem" };
+    return { ok: true, messages: buildLessonChatMessages({ title: src.title, area: src.area, material: src.material, history: req.messages }) };
+  }
+  const problemId = req.problemId ?? "";
+  const spec = JUDGE_PROBLEMS[problemId];
   if (!spec) return { ok: false, error: "unknown_problem" };
   let code: string | undefined;
   let language: string | undefined;
   if (req.intent === "review" || req.includeCode) {
     const db = await getDb();
-    const note = await db.query.problemNotes.findFirst({ where: eq(problemNotes.problemId, req.problemId) });
+    const note = await db.query.problemNotes.findFirst({ where: eq(problemNotes.problemId, problemId) });
     code = note?.code?.trim() || undefined;
     language = note?.language || undefined;
     if (!code && req.intent === "review") return { ok: false, error: "no_code" };

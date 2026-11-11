@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-export type ChatIntent = "question" | "hint" | "review" | "solution" | "free";
+export type ChatIntent = "question" | "hint" | "review" | "solution" | "free" | "explain" | "quiz" | "example" | "interview";
 export interface ChatMsg {
   role: "user" | "assistant";
   content: string;
@@ -84,6 +84,14 @@ export function starterText(intent: ChatIntent, opts: { hintIndex?: number; hint
       return "Review my code.";
     case "solution":
       return "Explain the solution.";
+    case "explain":
+      return "Explain this lesson to me in simple words.";
+    case "quiz":
+      return "Quiz me on this lesson, one question at a time.";
+    case "example":
+      return "Give me a concrete example that shows how this works.";
+    case "interview":
+      return "Ask me an interview question about this and tell me how I did.";
     default:
       return "";
   }
@@ -131,7 +139,17 @@ function Answer({ text }: { text: string }) {
 
 const noopSubscribe = () => () => {};
 
-export function AiChat(props: { problemId: string; hints: string[]; providers: ProviderInfo[]; provider: string; hasCode: boolean }) {
+/** Chat for a judged problem (give problemId, hints, hasCode) or for a course lesson (give lessonId). */
+export interface AiChatProps {
+  problemId?: string;
+  lessonId?: string;
+  hints?: string[];
+  providers: ProviderInfo[];
+  provider: string;
+  hasCode?: boolean;
+}
+
+export function AiChat(props: AiChatProps) {
   // Saved chats are read in the browser only; the body mounts after hydration so server and client markup match.
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   if (!hydrated) return <div className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">Loading chat...</div>;
@@ -140,7 +158,16 @@ export function AiChat(props: { problemId: string; hints: string[]; providers: P
 
 const chip = "rounded-full border border-line px-3 py-1.5 text-xs font-medium hover:bg-background disabled:cursor-not-allowed disabled:opacity-50";
 
-function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemId: string; hints: string[]; providers: ProviderInfo[]; provider: string; hasCode: boolean }) {
+const LESSON_CHIPS: { intent: ChatIntent; label: string; title: string }[] = [
+  { intent: "explain", label: "Explain this lesson", title: "A simple explanation of the whole lesson" },
+  { intent: "quiz", label: "Quiz me", title: "One question at a time, with feedback" },
+  { intent: "example", label: "Give me an example", title: "A concrete example" },
+  { intent: "interview", label: "Interview question", title: "Practise answering like in an interview" },
+];
+
+function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, hasCode = false }: AiChatProps) {
+  const lesson = Boolean(lessonId);
+  const problemId = lesson ? `lesson:${lessonId}` : (pid ?? ""); // storage key part
   const info = providers.find((p) => p.id === provider);
   const cloud = info ? info.cloud : provider !== "ollama";
   const providerLabel = info?.label ?? (provider === "ollama" ? "Ollama" : provider);
@@ -207,7 +234,7 @@ function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemI
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          problemId,
+          ...(lesson ? { lessonId } : { problemId: pid }),
           messages: sent,
           intent: meta.intent,
           hintIndex: meta.hintIndex,
@@ -275,6 +302,10 @@ function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemI
     post(starterText(intent, { hintIndex, hintText: hintIndex === undefined ? undefined : hints[hintIndex] }), { intent, hintIndex });
   }
 
+  function lessonStarter(intent: ChatIntent) {
+    post(starterText(intent), { intent });
+  }
+
   function tryAgain() {
     const last = messages[messages.length - 1];
     if (!last || last.role !== "user") return;
@@ -300,11 +331,13 @@ function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemI
           <span className="text-sm font-semibold">{providerLabel}</span>{" "}
           <span className="text-xs text-muted">{cloud ? `Sends this chat to ${providerLabel}` : "Runs on your computer"}</span>
         </div>
-        <label className="ml-auto flex items-center gap-2 text-xs">
-          <input type="checkbox" checked={includeCode} onChange={(e) => setIncludeCode(e.target.checked)} />
-          Include my code
-        </label>
-        <button type="button" onClick={newChat} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-background">
+        {!lesson && (
+          <label className="ml-auto flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={includeCode} onChange={(e) => setIncludeCode(e.target.checked)} />
+            Include my code
+          </label>
+        )}
+        <button type="button" onClick={newChat} className={`${lesson ? "ml-auto " : ""}rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-background`}>
           New chat
         </button>
       </div>
@@ -358,14 +391,23 @@ function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemI
       </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Starter questions">
-        <button type="button" disabled={pending} onClick={() => starter("question")} className={chip}>
-          Explain the question
-        </button>
-        {hints.map((h, i) => (
+        {lesson &&
+          LESSON_CHIPS.map((c) => (
+            <button key={c.intent} type="button" disabled={pending} onClick={() => lessonStarter(c.intent)} title={c.title} className={chip}>
+              {c.label}
+            </button>
+          ))}
+        {!lesson && (
+          <button type="button" disabled={pending} onClick={() => starter("question")} className={chip}>
+            Explain the question
+          </button>
+        )}
+        {!lesson && hints.map((h, i) => (
           <button key={i} type="button" disabled={pending} onClick={() => starter("hint", i)} title={h} className={chip}>
             Explain hint {i + 1}
           </button>
         ))}
+        {!lesson && (
         <button
           type="button"
           disabled={pending || !hasCode}
@@ -375,9 +417,12 @@ function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemI
         >
           Review my code
         </button>
-        <button type="button" disabled={pending} onClick={() => starter("solution")} title="Shows the full solution idea and code" className={chip}>
-          Explain the solution
-        </button>
+        )}
+        {!lesson && (
+          <button type="button" disabled={pending} onClick={() => starter("solution")} title="Shows the full solution idea and code" className={chip}>
+            Explain the solution
+          </button>
+        )}
       </div>
 
       <div className="flex items-end gap-2">
@@ -393,7 +438,7 @@ function ChatBody({ problemId, hints, providers, provider, hasCode }: { problemI
           rows={2}
           maxLength={MAX_MESSAGE_CHARS}
           aria-label="Your question"
-          placeholder="Ask anything about this problem. Enter sends, Shift+Enter adds a line."
+          placeholder={lesson ? "Ask anything about this lesson. Enter sends, Shift+Enter adds a line." : "Ask anything about this problem. Enter sends, Shift+Enter adds a line."}
           className="min-w-0 flex-1 resize-y rounded-lg border border-line bg-background px-3 py-2 text-sm"
         />
         {pending ? (

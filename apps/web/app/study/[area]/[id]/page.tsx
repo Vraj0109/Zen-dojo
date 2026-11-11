@@ -23,7 +23,10 @@ import {
   readingMinutes,
 } from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
-import { getSimpleMode } from "@/lib/ui-prefs";
+import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
+import { detectProviders } from "@/lib/ai/providers";
+import { aiAvailable } from "@/lib/ai/guard";
+import { LessonAi } from "./lesson-ai";
 import { getReadingFor } from "@/lib/reading";
 import { focusMinutes } from "@/lib/timer";
 import { PRACTICE_LIMITS, getConceptDetail, getExerciseDetail } from "@/lib/study";
@@ -130,6 +133,8 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
 
   const title = concept?.title ?? exercise?.title ?? "Lesson";
   const { prev, next } = getAdjacentLessons(area, id);
+  const ai = aiAvailable() ? await getAiSettings() : null;
+  const aiProviders = ai?.enabled ? await detectProviders() : [];
 
   return (
     <article className="space-y-6">
@@ -151,6 +156,7 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
         </div>
       </nav>
       {concept ? <ConceptView id={id} prev={prev} next={next} /> : <ExerciseView id={id} diagramError={diagramError} prev={prev} next={next} />}
+      {ai?.enabled && <LessonAi lessonId={id} providers={aiProviders} provider={ai.provider} />}
     </article>
   );
 }

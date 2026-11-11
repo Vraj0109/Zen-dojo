@@ -37,8 +37,8 @@ const STYLE = "Be brief and plain. Use short paragraphs. Put code in fenced code
 
 // Plan 0067: the chat. The server builds the system message and problem context; the browser only sends the visible conversation.
 
-export type ChatIntent = "question" | "hint" | "review" | "solution" | "free";
-export const CHAT_INTENTS: readonly ChatIntent[] = ["question", "hint", "review", "solution", "free"];
+export type ChatIntent = "question" | "hint" | "review" | "solution" | "free" | "explain" | "quiz" | "example" | "interview";
+export const CHAT_INTENTS: readonly ChatIntent[] = ["question", "hint", "review", "solution", "free", "explain", "quiz", "example", "interview"];
 export const isChatIntent = (v: unknown): v is ChatIntent => typeof v === "string" && (CHAT_INTENTS as readonly string[]).includes(v);
 
 export const MAX_CHAT_MESSAGES = 20;
@@ -130,7 +130,38 @@ export function starterMessage(intent: ChatIntent, o: { hintIndex?: number; hint
       return "Review my code.";
     case "solution":
       return "Explain the solution.";
+    case "explain":
+      return "Explain this lesson to me in simple words.";
+    case "quiz":
+      return "Quiz me on this lesson, one question at a time.";
+    case "example":
+      return "Give me a concrete example that shows how this works.";
+    case "interview":
+      return "Ask me an interview question about this and tell me how I did.";
     default:
       return "";
   }
+}
+
+export const MAX_LESSON_CHARS = 6000;
+
+export interface LessonChatInput {
+  title: string;
+  area?: string;
+  /** The lesson text the learner is reading (built on the server). */
+  material: string;
+  history: VisibleMessage[];
+}
+
+/** Messages for a chat about a course lesson. The lesson text is not secret, so there is no solution gate here. */
+export function buildLessonChatMessages(input: LessonChatInput): ChatMessage[] {
+  const system = [
+    "You are a patient tutor helping someone prepare for software engineering interviews. Answer the learner's latest message using the conversation so far and the lesson below.",
+    "Stay close to the lesson. If asked for a quiz, ask one question at a time, wait for the answer, then say what was right and what was missing. If you are not sure, say so.",
+    STYLE,
+    "",
+    `Lesson: ${input.title}${input.area ? ` (${input.area})` : ""}`,
+    clip(input.material, MAX_LESSON_CHARS),
+  ].join("\n");
+  return [{ role: "system", content: system }, ...trimChatHistory(input.history)];
 }
