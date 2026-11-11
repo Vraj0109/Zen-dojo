@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { emitBuddy } from "@/app/buddy/buddy-events";
 
 export type ChatIntent = "question" | "hint" | "review" | "solution" | "free" | "explain" | "quiz" | "example" | "interview";
 export interface ChatMsg {
@@ -195,6 +196,13 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
     const el = list.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [messages, pending, error]);
+
+  // Tell the Buddy while an answer is being written; ai-end is also sent if the chat goes away mid-answer.
+  useEffect(() => {
+    if (!pending) return;
+    emitBuddy("ai-start");
+    return () => emitBuddy("ai-end");
+  }, [pending]);
 
   // Abort a running request if the component goes away.
   useEffect(() => () => ac.current?.abort(), []);

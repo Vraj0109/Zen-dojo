@@ -6,6 +6,7 @@ import type { RunResult } from "@/lib/judge/run";
 import { blockedBannerMessage, isBlockedRunMessage, pickFallbackLanguage } from "@/lib/judge/blocked";
 import { getZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
 import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
+import { emitBuddy } from "./buddy/buddy-events";
 import { EditorField } from "./code-editor";
 import { editorHelp } from "./editor-help";
 import { Results } from "./judge-panel";
@@ -245,6 +246,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           setBlockedBanner(blockedBannerMessage(nextLang));
           switchLang(nextLang);
         }
+        if (data.status === "done" && data.total > 0 && data.passed === data.total) emitBuddy("solved"); // once per fully passing run
         if (data.status === "done" && data.saved) router.refresh(); // the Notes tab now shows the saved solution
         void loadRuns();
         void getSavedSolutionsAction(id).then((list) => setSavedSolutions(list as SavedSolutionView[])).catch(() => {});
