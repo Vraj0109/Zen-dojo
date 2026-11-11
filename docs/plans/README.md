@@ -139,14 +139,14 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0053 | [Solved ticks (accent plus grey) and DSA search with multi-select filters](0053-solved-ticks-and-dsa-search-filters.md) | ready |
 | 0054 | [Delete my data (cloud copy and this device, separately)](0054-delete-my-data.md) | ready |
 | 0055 | [Round eleven: finish plans 0053 and 0054 (six agents, balanced)](0055-round-eleven-finish-everything.md) | ready |
-| 0056 | [Dynamic plan weeks and a Backlog page](0056-dynamic-plan-weeks-and-backlog.md) | ready |
+| 0056 | [Dynamic plan weeks and a Backlog page](0056-dynamic-plan-weeks-and-backlog.md) | implemented |
 | 0057 | [Three UI fixes: Today scroll, course page columns, account arrow](0057-three-ui-fixes.md) | implemented |
 | 0058 | [Hosted web app (sign in, track progress; no code running on the server)](0058-hosted-web-app.md) | ready |
 | 0059 | [Study on your phone: read-only mode, installable web app, phone navigation](0059-mobile-read-only-study.md) | ready (needs 0058 deployed to be useful) |
-| 0060 | [Local AI helper (optional, opt-in, desktop only)](0060-local-ai-helper.md) | ready |
+| 0060 | [Local AI helper (optional, opt-in, desktop only)](0060-local-ai-helper.md) | implemented |
 | 0061 | [Installer signing and a first-run "Check my tools" screen](0061-installer-signing-and-first-run-tools.md) | part A + B1/B2 implemented; B3/B4 wait for a signing route |
 | 0062 | [Python in the judge (run, starters, editor, saved code)](0062-python-in-the-judge.md) | implemented |
 | 0063 | [Reference solutions in C++, Java and Python as plain files, with a verifier](0063-solutions-in-three-languages.md) | implemented |
-| 0064 | [Portable tool manager: download Java, Python and a C++ compiler on request](0064-portable-tool-manager.md) | ready (after 0061 A and 0062) |
+| 0064 | [Portable tool manager: download Java, Python and a C++ compiler on request](0064-portable-tool-manager.md) | implemented |
 | 0065 | [Round twelve: Python, three-language solutions and the tools check (six agents)](0065-round-twelve-python-and-solutions.md) | implemented |
-| 0066 | [Round thirteen: dynamic weeks and Backlog, portable tool manager, local AI (four agents)](0066-round-thirteen-weeks-tools-and-local-ai.md) | ready |
+| 0066 | [Round thirteen: dynamic weeks and Backlog, portable tool manager, local AI (four agents)](0066-round-thirteen-weeks-tools-and-local-ai.md) | implemented |

@@ -47,6 +47,8 @@ Built: accounts, GitHub sign-in, abuse guard, cloud sync (SQLite triggers, `lib/
 Java editor for "Your classes", multi-select filters and deep search on `/dsa`, accent plus grey solved ticks, separate delete-cloud-data and delete-device-data,
 admin problem editor, solved-means-tests-passed, TLE handling. Cloudflare: Worker `zen-dojo-sync`, D1 `zen-dojo-db`, deploy workflow `deploy-worker.yml`.
 
+**Round thirteen is done (plan 0066, `pnpm check` green, not yet released):** dynamic plan weeks and the Backlog page (0056), the portable tool manager (0064), the opt-in local AI helper (0060). Still to check by hand: the Backlog on a database copy with `plan_week_start` ten days back, run `tools-smoke.yml` on GitHub, Settings > Tools > Set up in the desktop dev build, and the Local AI panel with real Ollama.
+
 **Round twelve is done (plan 0065, `pnpm check` green, not yet released):** Python in the judge (0062), Java and Python reference solutions for all 486 problems as
 plain files plus a verifier (0063, see `docs/solutions.md`), the "tools for running code" check and install notes (0061 part A and B1/B2), three UI fixes (0057).
 Known gap: `cses-grid-path-description.py` is correct but too slow for the 5 s Python limit (fails `solutions:verify`). Still to check by hand: Python picker and run in the
@@ -56,12 +58,8 @@ Open work, in plan order (index: `docs/plans/README.md`):
 
 | Plan | What | Status |
 |---|---|---|
-| 0066 | **Next: round thirteen** = 0056 + 0064 + 0060 split over four Claude agents (file ownership, contracts and paste-ready prompts inside) | ready |
-| 0056 | Dynamic plan weeks (week follows what you finished) and a Backlog page | ready |
-| 0064 | Portable tool manager (download Java, Python, C++ compiler on request) | ready, after 0061 A and 0062 |
-| 0060 | Local AI helper through Ollama, opt-in, desktop only | ready |
 | 0061 B3/B4 | Windows and macOS code signing | waits for the user's route and GitHub secrets |
-| 0058 | Hosted web app (per-user database acting as a sync device; no code running on the server) | ready |
+| 0058 | **Next:** hosted web app (per-user database acting as a sync device; no code running on the server) | ready |
 | 0059 | Phone read-only mode, installable web app, bottom nav | ready, needs 0058 deployed to be useful |
 | 0045 | Admin study pages (the `/admin/study` link is a 404) | in progress |
 | 0022 / 0032 | More problem sources; old hosted roadmap (superseded by 0058) | open |

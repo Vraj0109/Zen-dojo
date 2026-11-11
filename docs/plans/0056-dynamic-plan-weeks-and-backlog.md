@@ -1,6 +1,6 @@
 # 0056: Dynamic plan weeks and a Backlog page
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** replaces the "Shift schedule" idea of plan 0036; answers 0036's open streak question

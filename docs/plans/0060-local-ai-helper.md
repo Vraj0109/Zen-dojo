@@ -1,6 +1,6 @@
 # 0060: Local AI helper (optional, opt-in, desktop only)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** none
