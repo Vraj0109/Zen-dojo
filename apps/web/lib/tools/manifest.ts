@@ -54,6 +54,7 @@ export function writeManifest(dir: string, manifest: Manifest): void {
 
 /** Absolute folder with the programs of a downloaded tool, or null when none is installed, it is disabled or the files are gone. */
 export function managedBinDir(id: ManagedToolId, env: Env = process.env): string | null {
+  if (!env.HABIT_TOOLS_DIR) return null; // only the desktop app sets it; elsewhere nothing is managed
   const dir = toolsDir(env);
   const t = readManifest(dir).tools[id];
   if (!t || t.disabled) return null;

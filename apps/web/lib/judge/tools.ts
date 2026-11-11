@@ -1,13 +1,15 @@
 import "server-only";
 import { execFile } from "node:child_process";
 import { TOOL_IDS, TOOL_LABELS, TOOL_USED_FOR, hintFor, type InstallHint, type PkgManager, type ToolId } from "@habit/shared";
-import { pythonCommand, resolveTool } from "./resolve";
+import { pythonCommand, resolveTool, resolveToolSource, type ToolSource } from "./resolve";
 
 export interface ToolStatus {
   id: ToolId;
   label: string;
   found: boolean;
   version: string | null;
+  /** Where the program in use comes from: your own override, the app's download, or the system's PATH */
+  source: ToolSource;
   usedFor: string;
   hint: InstallHint;
 }
@@ -72,8 +74,30 @@ function guessPkgManager(): PkgManager {
   }
 }
 
-/** Which of the tools the judge needs are on this computer. Never throws. */
-export async function detectTools(opts: { exec?: ExecFn; platform?: string; pkgManager?: PkgManager } = {}): Promise<ToolStatus[]> {
+const CACHE_MS = 60_000;
+let cache: { at: number; value: Promise<ToolStatus[]> } | null = null;
+
+/** Forgets the remembered result (tests, and after tools are downloaded or removed). */
+export function resetToolsCache(): void {
+  cache = null;
+}
+
+/**
+ * Which of the tools the judge needs are on this computer. Never throws. The Today page asks on every load, so the answer
+ * for the real machine is remembered for 60 seconds (the Tools page's "Check again" button and installs reset it).
+ */
+export function detectTools(opts: { exec?: ExecFn; platform?: string; pkgManager?: PkgManager; fresh?: boolean } = {}): Promise<ToolStatus[]> {
+  const cacheable = !opts.exec && !opts.platform && !opts.pkgManager;
+  if (!cacheable) return detectUncached(opts);
+  if (opts.fresh) cache = null;
+  const now = new Date().getTime();
+  if (cache && now - cache.at < CACHE_MS) return cache.value;
+  const value = detectUncached(opts);
+  cache = { at: now, value };
+  return value;
+}
+
+async function detectUncached(opts: { exec?: ExecFn; platform?: string; pkgManager?: PkgManager }): Promise<ToolStatus[]> {
   const exec = opts.exec ?? defaultExec;
   const platform = opts.platform ?? process.platform;
   const pkg = opts.pkgManager ?? (platform === "linux" ? guessPkgManager() : "apt");
@@ -93,7 +117,8 @@ export async function detectTools(opts: { exec?: ExecFn; platform?: string; pkgM
         found = false;
         version = null;
       }
-      return { id, label: TOOL_LABELS[id], found, version, usedFor: TOOL_USED_FOR[id], hint: hintFor(id, platform, pkg) };
+      const source = resolveToolSource(id === "javascript" ? "node" : id === "cpp" ? "cpp" : id === "java" ? "java" : "python", { platform });
+      return { id, label: TOOL_LABELS[id], found, version, source, usedFor: TOOL_USED_FOR[id], hint: hintFor(id, platform, pkg) };
     }),
   );
 }

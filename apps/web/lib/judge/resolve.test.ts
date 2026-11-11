@@ -1,6 +1,10 @@
 import type { spawnSync } from "node:child_process";
-import { describe, expect, it } from "vitest";
-import { nodeCommand, pythonCommand, resolveTool } from "./resolve";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { writeManifest, type Manifest } from "../tools/manifest";
+import { nodeCommand, pythonCommand, resolveTool, resolveToolSource, tool } from "./resolve";
 
 type Spawn = typeof spawnSync;
 type Reply = { status?: number | null; stdout?: string; stderr?: string; error?: Error };
@@ -125,5 +129,78 @@ describe("Node for JavaScript problems", () => {
 
   it("resolveTool('node') matches nodeCommand", () => {
     expect(resolveTool("node", { env: {}, electron: false, execPath: "/x/node" })).toEqual({ file: "/x/node", args: [] });
+  });
+});
+
+describe("downloaded tools (override, then managed, then PATH)", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "zd-res-"));
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  /** Puts fake programs under <dir>/<tool>/1/bin and registers them in the manifest. */
+  function install(tools: Manifest["tools"], files: string[]) {
+    for (const f of files) {
+      fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+      fs.writeFileSync(path.join(dir, f), "x");
+    }
+    writeManifest(dir, { tools });
+  }
+  const javaRec = { version: "17", dir: "java/1", binDir: "bin", installedAt: "2026-01-01" };
+  const pyRec = { version: "3.12", dir: "python/1", binDir: "bin", installedAt: "2026-01-01" };
+
+  it("uses the downloaded Java when nothing is set", () => {
+    install({ java: javaRec }, ["java/1/bin/java", "java/1/bin/javac"]);
+    const env = { HABIT_TOOLS_DIR: dir };
+    expect(resolveTool("java", { env, platform: "linux" }).file).toBe(path.join(dir, "java", "1", "bin", "java"));
+    expect(resolveTool("javac", { env, platform: "linux" }).file).toBe(path.join(dir, "java", "1", "bin", "javac"));
+    expect(resolveToolSource("java", { env, platform: "linux" })).toBe("managed");
+  });
+
+  it("an explicit override beats the downloaded tool", () => {
+    install({ java: javaRec }, ["java/1/bin/java"]);
+    const env = { HABIT_TOOLS_DIR: dir, HABIT_JAVA: "/my/java" };
+    expect(resolveTool("java", { env, platform: "linux" }).file).toBe("/my/java");
+    expect(resolveToolSource("java", { env, platform: "linux" })).toBe("override");
+  });
+
+  it("falls back to PATH when nothing is downloaded, it is disabled, or the file is gone", () => {
+    const env = { HABIT_TOOLS_DIR: dir };
+    expect(resolveTool("java", { env, platform: "linux" }).file).toBe("java");
+    expect(resolveToolSource("java", { env, platform: "linux" })).toBe("system");
+    install({ java: { ...javaRec, disabled: true } }, ["java/1/bin/java"]);
+    expect(resolveTool("java", { env, platform: "linux" }).file).toBe("java");
+    fs.rmSync(path.join(dir, "java"), { recursive: true, force: true });
+    install({ java: javaRec }, []);
+    expect(resolveTool("java", { env, platform: "linux" }).file).toBe("java");
+    expect(resolveToolSource("java", { env, platform: "linux" })).toBe("system");
+  });
+
+  it("ignores downloads when HABIT_TOOLS_DIR is not set", () => {
+    install({ java: javaRec }, ["java/1/bin/java"]);
+    expect(tool("HABIT_JAVA", "java", {}, "linux")).toBe("java");
+  });
+
+  it("uses .exe names on Windows", () => {
+    install({ java: javaRec }, ["java/1/bin/java.exe"]);
+    expect(tool("HABIT_JAVA", "java", { HABIT_TOOLS_DIR: dir }, "win32")).toBe(path.join(dir, "java", "1", "bin", "java.exe"));
+  });
+
+  it("finds the downloaded Python first and probes it", () => {
+    install({ python: pyRec }, ["python/1/bin/python3"]);
+    const exe = path.join(dir, "python", "1", "bin", "python3");
+    const calls: string[] = [];
+    const sp = fakeSpawn({ [`${exe} --version`]: { stdout: "Python 3.12.16\n" }, "python3 --version": { stdout: "Python 3.9.0\n" } }, calls);
+    const env = { HABIT_TOOLS_DIR: dir };
+    expect(pythonCommand({ env, platform: "linux", spawnSync: sp })).toMatchObject({ found: true, file: exe, version: "3.12.16" });
+    expect(resolveToolSource("python", { env, platform: "linux" })).toBe("managed");
+    expect(calls).toEqual([`${exe} --version`]);
+  });
+
+  it("HABIT_PYTHON still beats a downloaded Python", () => {
+    install({ python: pyRec }, ["python/1/bin/python3"]);
+    const sp = fakeSpawn({ "/mine/python --version": { stdout: "Python 3.11.0\n" } });
+    expect(pythonCommand({ env: { HABIT_TOOLS_DIR: dir, HABIT_PYTHON: "/mine/python" }, platform: "linux", spawnSync: sp })).toMatchObject({ file: "/mine/python" });
   });
 });

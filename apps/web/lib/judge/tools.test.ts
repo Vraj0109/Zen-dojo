@@ -2,11 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { defaultExec, execWithTimeout, detectTools, type ExecFn } from "./tools";
+import { defaultExec, execWithTimeout, detectTools, resetToolsCache, type ExecFn } from "./tools";
 
 const saved = { ...process.env };
 afterEach(() => {
   process.env = { ...saved };
+  resetToolsCache();
 });
 
 const byId = (list: Awaited<ReturnType<typeof detectTools>>, id: string) => list.find((t) => t.id === id)!;
@@ -68,5 +69,33 @@ describe("defaultExec", () => {
     const r = await execWithTimeout(300)(process.execPath, ["-e", "setTimeout(() => {}, 20000)"]);
     expect(r.ok).toBe(false);
     expect(Date.now() - started).toBeLessThan(5000);
+  });
+});
+
+describe("detectTools cache", () => {
+  it("remembers the answer for the real machine, until reset or asked fresh", async () => {
+    process.env.HABIT_GPP = "definitely-not-a-program-xyz";
+    const first = detectTools();
+    expect(detectTools()).toBe(first);
+    resetToolsCache();
+    const second = detectTools();
+    expect(second).not.toBe(first);
+    expect(detectTools({ fresh: true })).not.toBe(second);
+    await Promise.all([first, second]);
+  });
+
+  it("does not cache calls that bring their own runner", async () => {
+    const exec: ExecFn = async () => ({ ok: true, output: "1.2.3" });
+    const a = detectTools({ exec, platform: "linux" });
+    expect(detectTools({ exec, platform: "linux" })).not.toBe(a);
+    await a;
+  });
+
+  it("reports where each program comes from", async () => {
+    process.env.HABIT_GPP = "my-gpp";
+    const exec: ExecFn = async () => ({ ok: true, output: "1.2.3" });
+    const list = await detectTools({ exec, platform: "linux" });
+    expect(byId(list, "cpp").source).toBe("override");
+    expect(byId(list, "java").source).toBe("system");
   });
 });
