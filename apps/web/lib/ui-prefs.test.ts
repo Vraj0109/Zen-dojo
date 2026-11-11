@@ -82,7 +82,15 @@ describe("buddy and pacing settings", () => {
 
 describe("local AI settings", () => {
   it("is off by default with the loopback URL", async () => {
-    expect(await getAiSettings()).toEqual({ enabled: false, model: "", url: "http://127.0.0.1:11434" });
+    expect(await getAiSettings()).toEqual({ enabled: false, model: "", url: "http://127.0.0.1:11434", provider: "ollama", consent: [] });
+  });
+  it("saves the provider and consent list, and ignores unknown ids", async () => {
+    await setAiSettings({ provider: "claude", consent: ["claude", "agy", "claude", "bogus" as never] });
+    expect(await getAiSettings()).toMatchObject({ provider: "claude", consent: ["claude", "agy"] });
+    await setAiSettings({ provider: "evil" as never });
+    expect((await getAiSettings()).provider).toBe("claude");
+    await setAiSettings({ consent: [] });
+    expect((await getAiSettings()).consent).toEqual([]);
   });
   it("persists the switch and a valid model, and ignores a bad model name", async () => {
     await setAiSettings({ enabled: true, model: "llama3.2:3b" });
