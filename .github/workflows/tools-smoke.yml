@@ -1,0 +1,39 @@
+name: Tools smoke test
+
+# Proves that the portable tool downloads work on each OS (plan 0064). Run it by hand from the Actions tab.
+# For each runner it downloads every catalogue tool for that platform from the real hosts, checks the published
+# checksum, unpacks it with the real install code, runs it (--version, a hello program for Java and Python, and a
+# hello program built with the judge's flags for the Windows C++ compiler) and fails on any problem.
+# Linux and macOS C++ are not downloaded (distribution package and xcode-select), so nothing is checked for them.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Tools (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-latest is Apple Silicon (darwin-arm64); ubuntu-latest is linux-x64.
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    timeout-minutes: 40
+    env:
+      TOOLS_SMOKE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download, verify, unpack and run every tool
+        run: pnpm exec vitest run apps/web/lib/tools/smoke.test.ts
