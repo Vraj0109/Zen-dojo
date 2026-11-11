@@ -63,39 +63,39 @@ feature. It does not exist on the hosted site or on phones.
 Targeted tests only (`pnpm exec vitest run <file>`, `pnpm -r typecheck`, eslint on changed files). The lead runs one
 `pnpm check`. No `pnpm desktop:build`. Local commits, explicit paths, no push, no attribution.
 
-- [ ] **1. Pure data and prompts.** `packages/shared/src/ai-models.ts` (`Hardware`, `MODEL_TIERS`,
+- [x] **1. Pure data and prompts.** `packages/shared/src/ai-models.ts` (`Hardware`, `MODEL_TIERS`,
   `usableGb(hw)`, `recommendModel(hw)`) and `packages/shared/src/ai-prompts.ts` (`buildHintPrompt`, `buildReviewPrompt`,
   `buildSolutionPrompt`, `clip`). Export from the package index.
   - Done when: `pnpm exec vitest run packages/shared/src/ai-models.test.ts packages/shared/src/ai-prompts.test.ts`
     passes: 4 GB RAM gets the smallest tier, 16 GB RAM no GPU gets a mid tier, a 24 GB GPU gets the largest, unknown
     hardware gets the smallest, prompts are clipped, review prompt never contains the reference solution.
-- [ ] **2. Hardware detection** `apps/web/lib/ai/hardware.ts` (server-only): `detectHardware()` plus a pure
+- [x] **2. Hardware detection** `apps/web/lib/ai/hardware.ts` (server-only): `detectHardware()` plus a pure
   `parseNvidiaSmi(stdout)`.
   - Done when: tests parse a one-GPU, a two-GPU (use the largest) and a garbage output; detection never throws.
-- [ ] **3. Ollama client** `apps/web/lib/ai/ollama.ts`: `assertLoopback(url)`, `status()` (GET `/api/version`),
+- [x] **3. Ollama client** `apps/web/lib/ai/ollama.ts`: `assertLoopback(url)`, `status()` (GET `/api/version`),
   `listModels()` (GET `/api/tags`), `pullModel(name)` (POST `/api/pull`, stream of JSON lines), `chat(messages, signal)`
   (POST `/api/chat`, stream). Timeouts, a 2 MB response cap for non-stream calls, model names validated against
   `^[a-zA-Z0-9._:/-]{1,100}$`.
   - Done when: tests with a stubbed `fetch` cover status ok and down, loopback check (rejects `http://example.com`,
     accepts `http://localhost:11434`), bad model name, stream parsing, abort.
-- [ ] **3b. Settings keys.** Add `ai_enabled`, `ai_model`, `ai_ollama_url` to `lib/ui-prefs.ts` getters/setters and to the
+- [x] **3b. Settings keys.** Add `ai_enabled`, `ai_model`, `ai_ollama_url` to `lib/ui-prefs.ts` getters/setters and to the
   sync denylist (they must **not** sync).
   - Done when: a test shows a changed `ai_enabled` is not queued for sync (see how the existing denylist test works).
-- [ ] **4. Routes** `apps/web/app/api/ai/{status,pull,chat}/route.ts`: same-origin only, JSON/stream, return 404 unless
+- [x] **4. Routes** `apps/web/app/api/ai/{status,pull,chat}/route.ts`: same-origin only, JSON/stream, return 404 unless
   `process.env.HABIT_DESKTOP === "1"` or the app is local (not hosted), and 403 unless `ai_enabled === "1"` (except
   `status`, which works so Settings can show the hardware and install hint). No stack traces, never log bodies.
   - Done when: route tests cover hosted (404), disabled (403), cross-origin (403), ok path with the stub.
-- [ ] **5. Settings UI** `apps/web/app/profile/settings/ai-settings.tsx` (client) plus the section in
+- [x] **5. Settings UI** `apps/web/app/profile/settings/ai-settings.tsx` (client) plus the section in
   `settings/page.tsx`: hardware summary, recommendation text ("Your computer has 16 GB of memory and no dedicated graphics
   card; a 7B model will run, slowly on long answers"), Ollama status with Check again, the Enable switch, model picker,
   Download with a progress bar and Cancel.
   - Done when: typecheck and eslint pass; with Ollama stopped the section shows install steps and no error; with
     the switch off nothing else in the app shows AI.
-- [ ] **6. Problem page panel** `apps/web/app/dsa/ask-ai.tsx` (client, collapsed by default) wired into
+- [x] **6. Problem page panel** `apps/web/app/dsa/ask-ai.tsx` (client, collapsed by default) wired into
   `apps/web/app/dsa/[id]/page.tsx` only when AI is enabled and not hosted and not reader mode (plan 0059 if present).
   Streams from `/api/ai/chat`, Stop button, copy button, "Runs on your computer" label.
   - Done when: with Ollama running and a small model pulled, "Explain this hint" streams an answer and Stop ends it.
-- [ ] **7. Docs** `docs/local-ai.md`: what it is, what leaves the machine (nothing), how to install Ollama, memory
+- [x] **7. Docs** `docs/local-ai.md`: what it is, what leaves the machine (nothing), how to install Ollama, memory
   guidance, how to remove models (`ollama rm`), and a note that answers can be wrong.
   - Done when: linked from Settings.
 
@@ -118,5 +118,7 @@ Targeted tests only (`pnpm exec vitest run <file>`, `pnpm -r typecheck`, eslint 
 ## Open questions
 
 ## Implementation notes
+
+Done by Agent D (round 13). Tags verified on ollama.com 2026-11-11: llama3.2:3b, qwen2.5-coder:7b/14b/32b all exist. Tier minimums are usable GB (2, 6, 12, 20) so a 24 GB GPU gets 32b. Chat route takes `{problemId, action, hintIndex}` and builds prompts server-side (reference solution never reaches the browser). Extra route `api/ai/settings` (actions.ts belongs to Agent A). Status is POST. Panel only on Run-button (judged) problems. Reader mode not present; only `HABIT_HOSTED` checked.
 
 ## Review

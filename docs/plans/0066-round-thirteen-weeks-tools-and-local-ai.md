@@ -189,6 +189,7 @@ End with the 0066 report format.
 ## Implementation notes
 
 (Agents: add one line each, e.g. `A: done, commits abc123..def456, no deviations.`)
+D: done, local AI per 0060 steps 1-7, no deviations beyond those in 0060 notes.
 A: engine done (0056 steps 1, 2, 3, 6, 7 except consumer tests), see commit "Add plan weeks".
 
 ## Review
