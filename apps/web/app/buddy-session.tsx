@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import {
   type BuddySettings,
   type BuddyTone,
@@ -10,6 +10,7 @@ import {
   getPostSessionCelebration,
   getStartCheckIn,
 } from "@habit/shared";
+import { emitBuddy } from "./buddy/buddy-events";
 import { useNow } from "./timer-store";
 
 interface SessionData {
@@ -41,36 +42,45 @@ function saveSession(data: SessionData) {
   }
 }
 
-const noopSubscribe = () => () => {};
-
-export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?: BuddySettings }) {
-  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+/**
+ * The co-work session panel (intent, sprint, reflection). The companion avatar opens it and says
+ * where it goes (`style`: fixed position next to the avatar). All session logic lives here.
+ * Mount it after hydration only (the companion does).
+ */
+export function BuddySession({
+  settings = DEFAULT_BUDDY_SETTINGS,
+  open,
+  onClose,
+  style,
+}: {
+  settings?: BuddySettings;
+  open: boolean;
+  onClose: () => void;
+  style: CSSProperties;
+}) {
   const [session, setSession] = useState<SessionData>(() => {
     if (typeof window === "undefined") return { status: "idle", goal: "", startedAt: null, durationMinutes: 20 };
     return loadSession();
   });
   const [goalInput, setGoalInput] = useState(() => (typeof window === "undefined" ? "" : loadSession().goal));
+  const [chosenMinutes, setChosenMinutes] = useState<number | null>(null);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
-  const now = useNow(session.status === "active");
+  const now = useNow(open && session.status === "active");
 
   const tone: BuddyTone = settings.mode === "off" ? "calm" : settings.mode;
   const name = settings.name?.trim() || "Buddy";
 
-  if (!hydrated || settings.mode === "off") return null;
+  if (!open || settings.mode === "off") return null;
 
-  const startIntent = () => {
-    const pacing = getPacingConfig(settings.pacing);
-    const updated: SessionData = {
-      status: "intent",
-      goal: "",
-      startedAt: null,
-      durationMinutes: pacing.workMinutes,
-    };
-    setSession(updated);
-    saveSession(updated);
-    setGoalInput("");
-    setNudgeMessage(null);
-  };
+  const pacing = getPacingConfig(settings.pacing);
+  const minutes = chosenMinutes ?? pacing.workMinutes;
+
+  // The panel is only visible while open; the idle state shows the intent form straight away.
+  const panel = (children: ReactNode) => (
+    <div style={style} className="fixed z-40 print:hidden" role="dialog" aria-label={`Co-work with ${name}`}>
+      {children}
+    </div>
+  );
 
   const beginSprint = () => {
     const goal = goalInput.trim() || "Focus on the problem";
@@ -78,10 +88,11 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
       status: "active",
       goal,
       startedAt: Date.now(),
-      durationMinutes: session.durationMinutes || 20,
+      durationMinutes: minutes,
     };
     setSession(updated);
     saveSession(updated);
+    emitBuddy("session-start");
   };
 
   const showNudge = () => {
@@ -97,6 +108,7 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
     };
     setSession(updated);
     saveSession(updated);
+    emitBuddy("session-end");
   };
 
   const recordOutcome = (achieved: boolean) => {
@@ -112,36 +124,23 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
     const updated: SessionData = { status: "idle", goal: "", startedAt: null, durationMinutes: 20 };
     setSession(updated);
     saveSession(updated);
+    setGoalInput("");
+    setChosenMinutes(null);
     setNudgeMessage(null);
+    onClose();
   };
 
-  // 1. Idle badge button
-  if (session.status === "idle") {
-    return (
-      <div className="fixed bottom-4 right-4 z-40 print:hidden">
-        <button
-          type="button"
-          onClick={startIntent}
-          className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-foreground shadow-lg hover:border-accent hover:bg-background transition-transform active:scale-95"
-        >
-          <span className="size-2 rounded-full bg-accent animate-pulse" />
-          <span>Co-work with {name}</span>
-        </button>
-      </div>
-    );
-  }
-
-  // 2. Intent declaration modal / widget
-  if (session.status === "intent") {
+  // 1. Intent declaration (also what an idle session shows when the avatar is clicked)
+  if (session.status === "idle" || session.status === "intent") {
     const prompt = getStartCheckIn(tone, name);
-    return (
-      <div className="fixed bottom-4 right-4 z-40 w-84 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-4 shadow-2xl anim-pop print:hidden">
+    return panel(
+      <div className="rounded-2xl border border-line bg-surface p-4 shadow-2xl anim-pop">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-accent" />
             <span className="text-xs font-semibold uppercase tracking-wider text-muted">Sprint Check-in</span>
           </div>
-          <button type="button" onClick={dismiss} className="text-muted hover:text-foreground text-sm">
+          <button type="button" onClick={dismiss} aria-label="Close" className="text-muted hover:text-foreground text-sm">
             ×
           </button>
         </div>
@@ -168,9 +167,9 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setSession((s) => ({ ...s, durationMinutes: m }))}
+                  onClick={() => setChosenMinutes(m)}
                   className={`rounded px-1.5 py-0.5 border ${
-                    session.durationMinutes === m ? "border-accent bg-accent/10 font-medium text-foreground" : "border-line"
+                    minutes === m ? "border-accent bg-accent/10 font-medium text-foreground" : "border-line"
                   }`}
                 >
                   {m}m
@@ -185,11 +184,11 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
             </button>
           </div>
         </form>
-      </div>
+      </div>,
     );
   }
 
-  // 3. Active co-working session
+  // 2. Active co-working session
   if (session.status === "active") {
     const elapsedSeconds = session.startedAt ? Math.floor((now - session.startedAt) / 1000) : 0;
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
@@ -200,14 +199,19 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
       ? `${elapsedMinutes}:${String(secsRemainingInMinute).padStart(2, "0")} elapsed`
       : `${Math.max(0, session.durationMinutes - elapsedMinutes - 1)}:${String(59 - secsRemainingInMinute).padStart(2, "0")}`;
 
-    return (
-      <div className="fixed bottom-4 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-3.5 shadow-2xl anim-pop print:hidden">
+    return panel(
+      <div className="rounded-2xl border border-line bg-surface p-3.5 shadow-2xl anim-pop">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="size-2 rounded-full bg-accent animate-pulse shrink-0" />
             <span className="truncate text-xs font-semibold text-foreground">With {name}</span>
           </div>
-          <span className="font-mono text-xs text-muted">{displayTime}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-muted">{displayTime}</span>
+            <button type="button" onClick={onClose} aria-label="Hide, the sprint keeps running" className="text-muted hover:text-foreground text-sm">
+              ×
+            </button>
+          </div>
         </div>
         <p className="mt-1 text-xs text-muted italic line-clamp-2">&ldquo;{session.goal}&rdquo;</p>
 
@@ -233,17 +237,17 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
             Finish sprint
           </button>
         </div>
-      </div>
+      </div>,
     );
   }
 
-  // 4. Post-sprint reflection
+  // 3. Post-sprint reflection
   const celebration = getPostSessionCelebration(tone, session.achieved ?? true, name);
-  return (
-    <div className="fixed bottom-4 right-4 z-40 w-84 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-4 shadow-2xl anim-pop print:hidden">
+  return panel(
+    <div className="rounded-2xl border border-line bg-surface p-4 shadow-2xl anim-pop">
       <div className="flex items-start justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-accent">Sprint Complete</span>
-        <button type="button" onClick={dismiss} className="text-muted hover:text-foreground text-sm">
+        <button type="button" onClick={dismiss} aria-label="Close" className="text-muted hover:text-foreground text-sm">
           ×
         </button>
       </div>
@@ -281,6 +285,6 @@ export function BuddySession({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?:
           </button>
         </div>
       )}
-    </div>
+    </div>,
   );
 }

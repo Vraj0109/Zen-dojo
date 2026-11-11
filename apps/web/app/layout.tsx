@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getBuddySettings } from "@/lib/ui-prefs";
-import { BuddySession } from "./buddy-session";
+import { BuddyCompanion } from "./buddy/buddy-companion";
 import { GlobalTimer } from "./global-timer";
 import { CustomFontLoader } from "./custom-font-loader";
 import { FocusReading } from "./focus-reading";
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 async function BuddySessionLoader() {
   await connection();
   const settings = await getBuddySettings();
-  return <BuddySession settings={settings} />;
+  return <BuddyCompanion settings={settings} />;
 }
 
 const asideNode = (
