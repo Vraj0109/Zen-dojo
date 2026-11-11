@@ -3,6 +3,16 @@
 Offline, open-source engineering course and practice tool: DSA with a built-in judge, system design, low-level design and core CS.
 Data is stored locally in `data/habit.db` (SQLite).
 
+## Install
+
+Download the installer for your system from the newest [GitHub release](../../releases/latest). The installers are not signed with a paid certificate yet, so your computer warns once on first install:
+
+- **Windows:** SmartScreen says *Windows protected your PC*. Choose *More info*, then *Run anyway*.
+- **macOS:** right-click the app and choose *Open*. If it says the app is damaged, run `xattr -dr com.apple.quarantine "/Applications/Zen Dojo.app"`.
+- **Linux:** make the AppImage executable (`chmod +x ZenDojo-*.AppImage`), then run it.
+
+Reading, plans and notes work right away. The Run button needs a C++ compiler, a JDK or Python on your computer; *Profile, Settings, Tools for running code* shows what is missing and the command to install it. More in [docs/signing.md](docs/signing.md) and [docs/troubleshooting.md](docs/troubleshooting.md).
+
 | Page | What it does |
 |---|---|
 | **Today** (`/`) | Daily + weekly tasks from the roadmap, each with a button to the exact problem, concept or design to work on; the week's focus panel (patterns, concepts, designs with your progress), with ‹ › to work ahead (`/?week=N`); custom tasks, XP, level, streak, review reminders |

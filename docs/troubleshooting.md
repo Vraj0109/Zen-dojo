@@ -1,5 +1,23 @@
 # Troubleshooting
 
+## Run code needs a compiler, a JDK, Node or Python
+
+The Run button uses programs installed on your computer. Reading, plans, notes and tracking work without them. Open
+**Profile, Settings, Tools for running code** (`/profile/settings/tools`) to see which of C++ (g++), Java (JDK), Node and
+Python 3 were found, copy the install command for your system, and press **Check again**. In the desktop app, Today
+also shows a dismissible notice while something is missing.
+
+- **Python is found in this order:** the `HABIT_PYTHON` environment variable if set (it is then the only candidate);
+  on Windows `py -3`, then `python`; on macOS and Linux `python3`, then `python`. Python 3 is required: a Python 2 is
+  ignored.
+- **The Microsoft Store stub counts as missing.** A fresh Windows has a fake `python.exe` that only opens the Store.
+  The check treats it as not installed. Install Python with `winget install Python.Python.3.12`.
+- **JavaScript** in the desktop app can run on the app's own runtime, so Node is only needed outside the app or when
+  the built-in runtime is blocked.
+- Other overrides: `HABIT_GPP`, `HABIT_JAVAC`, `HABIT_JAVA`, `HABIT_NODE` point at a specific program. Restart the app
+  after installing something so it sees the new PATH.
+- Installer warnings on first install (SmartScreen, Gatekeeper): see `docs/signing.md`.
+
 ## Windows blocks C++ (Smart App Control and Defender reputation)
 
 When running C++ code on Windows 11, the judge compiles a temporary executable (`main.exe`) in the operating system's temporary directory and attempts to spawn it. On systems where **Smart App Control** is active (or Windows Defender Reputation-based protection is in strict mode), the operating system refuses to start the newly generated executable because it is unsigned and has no established digital reputation.

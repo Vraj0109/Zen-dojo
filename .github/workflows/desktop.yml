@@ -84,6 +84,8 @@ jobs:
           else
             echo "No hand-written notes for $GITHUB_REF_NAME." > release-notes.md
           fi
+          # Every release carries the first-install notes (warnings the installers show once).
+          cat docs/releases/_install-notes.md >> release-notes.md
 
       - uses: softprops/action-gh-release@v2
         with:
