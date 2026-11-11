@@ -40,7 +40,7 @@ describe("ai routes", () => {
 
   it("403 when disabled, except status", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("down"); }));
-    expect((await chat(req({ problemId: "lc-1", action: "hint" }))).status).toBe(403);
+    expect((await chat(req({ problemId: "lc-1", messages: [{ role: "user", content: "hi" }] }))).status).toBe(403);
     expect((await pull(req({ model: "llama3.2:3b" }))).status).toBe(403);
     const r = await status(req({}));
     expect(r.status).toBe(200);
@@ -53,7 +53,7 @@ describe("ai routes", () => {
     await setAiSettings({ enabled: true, model: "llama3.2:3b" });
     const f = vi.fn(async () => ndjson(['{"message":{"content":"Think "}}\n', '{"message":{"content":"first"}}\n{"done":true}\n']));
     vi.stubGlobal("fetch", f);
-    const r = await chat(req({ problemId: "lc-1", action: "hint", hintIndex: 0 }));
+    const r = await chat(req({ problemId: "lc-1", intent: "hint", hintIndex: 0, messages: [{ role: "user", content: "Explain hint 1." }] }));
     expect(r.status).toBe(200);
     expect(await r.text()).toBe("Think first");
     expect(String((f.mock.calls[0] as unknown[])[0])).toBe("http://127.0.0.1:11434/api/chat");
@@ -61,9 +61,10 @@ describe("ai routes", () => {
 
   it("rejects bad input and unknown problems, and a review with no saved code", async () => {
     await setAiSettings({ enabled: true, model: "llama3.2:3b" });
-    expect((await chat(req({ problemId: "lc-1", action: "nope" }))).status).toBe(400);
-    expect((await chat(req({ problemId: "zzz", action: "hint" }))).status).toBe(404);
-    expect((await chat(req({ problemId: "lc-1", action: "review" }))).status).toBe(400);
+    const msgs = [{ role: "user", content: "hi" }];
+    expect((await chat(req({ problemId: "lc-1", messages: [{ role: "system", content: "x" }] }))).status).toBe(400);
+    expect((await chat(req({ problemId: "zzz", messages: msgs }))).status).toBe(404);
+    expect((await chat(req({ problemId: "lc-1", intent: "review", messages: msgs }))).status).toBe(400);
     expect((await pull(req({ model: "bad name" }))).status).toBe(400);
   });
 
@@ -71,7 +72,7 @@ describe("ai routes", () => {
     await setAiSettings({ enabled: true, model: "llama3.2:3b", url: "http://example.com:11434" });
     const f = vi.fn();
     vi.stubGlobal("fetch", f);
-    const r = await chat(req({ problemId: "lc-1", action: "hint" }));
+    const r = await chat(req({ problemId: "lc-1", messages: [{ role: "user", content: "hi" }] }));
     expect(await r.text()).toContain("stopped");
     expect(f).not.toHaveBeenCalled();
   });
