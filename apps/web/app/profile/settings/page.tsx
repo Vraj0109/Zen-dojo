@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import Link from "next/link";
 import { Suspense } from "react";
 import { formatLong } from "@habit/shared";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
@@ -63,6 +64,15 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
               Signed out, everything stays on this device.
             </p>
             <AccountLink signedIn />
+          </section>
+
+          <h3 className="text-lg font-semibold">Run code</h3>
+          <section className="rounded-xl border border-line bg-surface p-4">
+            <h4 className="mb-1 font-semibold">Tools for running code</h4>
+            <p className="mb-3 text-sm text-muted">See which of C++, Java, Node and Python are installed on this computer and copy the command to install the rest.</p>
+            <Link href="/profile/settings/tools" className="inline-block rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background">
+              Check my tools
+            </Link>
           </section>
 
           <h3 className="text-lg font-semibold">Content</h3>

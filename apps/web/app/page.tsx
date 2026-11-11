@@ -10,6 +10,7 @@ import { REVIEW_KIND_LABELS, getReviewQueue, splitReviewQueue } from "@/lib/revi
 import { getContinue } from "@/lib/courses";
 import { getCountdown } from "@/lib/revise";
 import { getTodayView } from "@/lib/tasks";
+import { ToolsNotice } from "./tools-notice";
 import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
 import { CatchUpDrawer } from "./today/today-ui";
@@ -108,6 +109,10 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
           </Link>
         </div>
       </header>
+
+      <Suspense fallback={null}>
+        <ToolsNotice />
+      </Suspense>
 
       {v.freezeOffer.length > 0 && (
         <form action={freezeDayAction} className="gamify-only flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
