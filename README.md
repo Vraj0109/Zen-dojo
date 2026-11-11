@@ -152,13 +152,8 @@ On first launch it offers to import your existing `data/habit.db` (it copies the
 Stop `pnpm start` / `pnpm dev` first so the copy is up to date. Or start fresh and restore a JSON backup in
 Profile → Settings. The desktop app and `pnpm start` use separate databases, so pick one to use day to day.
 
-**First launch warnings.** The installers aren't signed with a paid certificate:
-
-- **Windows:** SmartScreen says *Windows protected your PC*. Click *More info* → *Run anyway*.
-- **macOS:** if it says the app *is damaged* or *can't be opened*, run `xattr -cr /Applications/Zen Dojo.app`, then
-  open it again (or right-click → *Open*).
-- **Linux:** `chmod +x Zen Dojo-*.AppImage`. If it exits with a *SUID sandbox* error (Ubuntu 24.04+), start it
-  with `--no-sandbox`.
+**First launch warnings.** The installers aren't signed with a paid certificate; see *Install* at the top for what each
+system shows. On Linux, if the AppImage exits with a *SUID sandbox* error (Ubuntu 24.04+), start it with `--no-sandbox`.
 
 **Updates.** The installed app checks GitHub releases 10 seconds after it starts and every 6 hours (or Help →
 *Check for updates…*):

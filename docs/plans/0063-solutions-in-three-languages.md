@@ -1,6 +1,6 @@
 # 0063: Reference solutions in C++, Java and Python (data-only content, with a verifier)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** Claude agent C (tooling, steps 1 to 6) and Antigravity agents D, E, F (content, step 7); see plan 0065
 - **Spec:** extends `ProblemSpec.solution` (`packages/shared/src/judge/types.ts`); depends on plan 0062 only for *verifying Python*

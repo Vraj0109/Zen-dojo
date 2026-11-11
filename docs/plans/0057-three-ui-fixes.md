@@ -1,6 +1,6 @@
 # 0057: Three UI fixes (Today scroll, course page columns, account arrow)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** none

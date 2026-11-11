@@ -61,6 +61,7 @@ The plan file is the contract and the shared memory between tools. Whoever works
 - `docs/content-editing.md`: how to change, reorder and add lessons (Markdown in `packages/shared/content/`, `pnpm content:build` / `content:check`)
 - `docs/content-editing.md` "Add one thing": add one problem, extra test cases, a lesson or a reading link with `pnpm content:add` (no code, no release); `docs/hosting.md`: remote libSQL via `DATABASE_AUTH_TOKEN`; `docs/troubleshooting.md`: Windows C++ blocking and solutions
 - `docs/content-packs.md`: the JSON format for adding lessons and problems without code (`packages/shared/src/packs.ts`, `apps/web/lib/packs.ts`)
+- `docs/solutions.md`: reference solutions in Java and Python are plain files in `packages/shared/content/solutions/<problem-id>.java|.py` (C++ stays on the problem). Only the lead runs `pnpm solutions:build` (writes the committed bundle `packages/shared/src/judge/generated/solutions.ts`); `pnpm solutions:status|todo|verify` check them. The judge runs C++, Java, JavaScript and Python (`apps/web/lib/judge/`; tools found by `resolve.ts`)
 - `docs/plans/`: feature plans (see the workflow above)
 - `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
 

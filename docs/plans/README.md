@@ -7,9 +7,21 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-Implemented: 0008, 0012-0017, 0019-0021, 0023-0031, 0033-0041.
-Ready to implement: 0042 (TLE cutoff & process cancellation), 0043 (LLD & System Design interactive Java IDE), 0044 (Notion-style offline-first cloud sync with Turso), 0045 (Dynamic admin portal for live content management).
-Roadmap & in-progress: 0022 (Advanced CSES sections), 0032 (Hosted site, Notion-style sync & admin roadmap).
+**State on 2026-11-11 (release 0.7.1 is out).** The index at the bottom of this file is the source of truth; this block is the short version.
+
+- **Built and released (0.7.0 / 0.7.1):** accounts and GitHub sign-in (0049), cloud sync (0044, 0050), desktop sign-in (0051),
+  Java editor in "Your classes" (0052), ticks, filters and search (0053), delete-my-data (0054), round plan 0055.
+  Plans 0051 to 0055 still say `ready` in their files and are waiting for the user to confirm the installed desktop app
+  signs in; the lead then marks them `implemented`.
+- **Round twelve (next): plan 0065** = 0062 (Python in the judge) + 0063 (Java and Python solutions as plain files) + 0061 part A
+  and B1/B2 (tools check, install notes) + 0057 (three UI fixes). Three Claude agents (A, B, C) and three Antigravity agents
+  (D, E, F) who write the solution files.
+- **After that, in this order:** 0056 (dynamic plan weeks and Backlog), 0064 (portable tool manager), 0060 (local AI),
+  0061 B3/B4 (signing, waits for the user's choice and secrets), 0058 (hosted web app), 0059 (phone read-only mode, needs 0058).
+- **Still open from older rounds:** 0045 step 3 (admin study pages), 0022 (more problem sources), 0032 (old hosted roadmap,
+  superseded by 0058), un-synced tables (reading list, stuck list, boss fights).
+
+To start a fresh chat on this repo, paste: `Read docs/HANDOFF.md and docs/plans/README.md ("Next up"), tell me the state and what is next, then wait for my go.`
 
 | Plan | What | Status |
 |---|---|---|
@@ -127,3 +139,13 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0053 | [Solved ticks (accent plus grey) and DSA search with multi-select filters](0053-solved-ticks-and-dsa-search-filters.md) | ready |
 | 0054 | [Delete my data (cloud copy and this device, separately)](0054-delete-my-data.md) | ready |
 | 0055 | [Round eleven: finish plans 0053 and 0054 (six agents, balanced)](0055-round-eleven-finish-everything.md) | ready |
+| 0056 | [Dynamic plan weeks and a Backlog page](0056-dynamic-plan-weeks-and-backlog.md) | ready |
+| 0057 | [Three UI fixes: Today scroll, course page columns, account arrow](0057-three-ui-fixes.md) | implemented |
+| 0058 | [Hosted web app (sign in, track progress; no code running on the server)](0058-hosted-web-app.md) | ready |
+| 0059 | [Study on your phone: read-only mode, installable web app, phone navigation](0059-mobile-read-only-study.md) | ready (needs 0058 deployed to be useful) |
+| 0060 | [Local AI helper (optional, opt-in, desktop only)](0060-local-ai-helper.md) | ready |
+| 0061 | [Installer signing and a first-run "Check my tools" screen](0061-installer-signing-and-first-run-tools.md) | part A + B1/B2 implemented; B3/B4 wait for a signing route |
+| 0062 | [Python in the judge (run, starters, editor, saved code)](0062-python-in-the-judge.md) | implemented |
+| 0063 | [Reference solutions in C++, Java and Python as plain files, with a verifier](0063-solutions-in-three-languages.md) | implemented |
+| 0064 | [Portable tool manager: download Java, Python and a C++ compiler on request](0064-portable-tool-manager.md) | ready (after 0061 A and 0062) |
+| 0065 | [Round twelve: Python, three-language solutions and the tools check (six agents)](0065-round-twelve-python-and-solutions.md) | implemented |

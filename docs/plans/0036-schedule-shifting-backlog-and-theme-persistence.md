@@ -4,6 +4,7 @@
 - **Planned by:** Claude Code & Antigravity, 2026-11-09
 - **Implemented by:** Antigravity Subagent, 2026-11-09
 - **Spec:** Review Backlog, Schedule Controls, and Appearance Persistence
+- **Superseded in part:** schedule shifting (and its open streak question) is replaced by plan 0056 (dynamic plan weeks).
 
 ## Goal
 

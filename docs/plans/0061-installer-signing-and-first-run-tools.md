@@ -1,6 +1,6 @@
 # 0061: Installer signing and a first-run "Check my tools" screen
 
-- **Status:** ready
+- **Status:** ready (part A and B1/B2 implemented in round twelve; B3/B4 still open)
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** extends plan 0034 (blocked programs) and the release workflow of `AGENTS.md`

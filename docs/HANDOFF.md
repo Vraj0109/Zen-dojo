@@ -1,136 +1,95 @@
 # Handoff
 
-Written 2026-11-09, updated after parallel agent work and post-merge integration on branch `main`.
-For the next agent (Claude Code, Antigravity or anything else).
-Read this first, then `AGENTS.md`, then the plan you pick up. It describes what the project is, what is done, what is open, the Windows blocking issue, the tight memory constraint, how to verify, and pitfalls to avoid.
+Last updated 2026-11-11 (after release 0.7.1, plans written up to 0065). For the next agent (Claude Code, Antigravity or anything else).
+Read this, then `AGENTS.md`, then `docs/plans/README.md` ("Next up"), then the plan you pick up.
 
-## 1. The project in four lines
+**Update rule:** at the end of every round the lead updates the "State" section here and the "Next up" block in
+`docs/plans/README.md`. If they disagree with the plan files, the plan files and the index at the bottom of the README win.
 
-**Zen Dojo** (renamed from HabitManager on 2026-11-09) is an offline, open-source engineering course and practice platform:
-DSA with an in-process local code judge (C++, Java, JavaScript), system design depth, low-level design Java projects, core CS subjects,
-Mermaid diagrams, reading tracker, and spaced-repetition review queue. Next.js 16 + SQLite (libSQL), packaged as an Electron desktop app,
-pnpm workspace (`apps/web`, `apps/desktop`, `apps/extension`, `packages/shared`). Single user, local-first.
+**Starting a fresh chat? Paste this:**
+
+```
+Read docs/HANDOFF.md and docs/plans/README.md ("Next up"). Tell me the current state, which plans are ready, what the next
+round is and what is blocked on me. Then wait for my go.
+```
+
+## 1. The project
+
+**Zen Dojo** (repo `Vraj0109/Zen-dojo`, local remote still named `habit-manager`; old names HabitManager, Prepwise) is an interview-prep
+course and practice platform: DSA with a local code judge (C++, Java, JavaScript; Python is coming in plan 0062), system design depth, low-level design
+Java projects, core CS, diagrams, reading tracker, spaced-repetition review, a 16-week plan. Local-first Next.js 16 + libSQL app, packaged as an
+Electron desktop app, with optional **accounts and cloud sync** (GitHub sign-in through a Cloudflare Worker + D1). pnpm workspace: `apps/web`,
+`apps/desktop`, `apps/extension`, `packages/shared`, `packages/sync-worker`. Layout and conventions are in `AGENTS.md`.
 
 ## 2. How we work (the user's rules)
 
-- **Git:** Commit with plain-English messages when instructed in the prompt. Never push, never tag, never add `Co-Authored-By` or any AI attribution.
-- **Do not run `pnpm desktop:build`** (~10 minutes, high memory usage). Releases are built by GitHub Actions when a tag is pushed.
-- **Memory on this machine is tight:** Run only **ONE** `pnpm.cmd check` at a time. Close dev servers when done. Use targeted tests (`pnpm.cmd exec vitest run <file>`) while working.
-- **Tests must stay fast:** Do not add per-problem test loops across all problems. Run targeted problem checks (`pnpm.cmd exec vitest run apps/web/lib/judge -t "<id>"`).
-- **Done means checked:** `pnpm check` (lint, typecheck, test, build) must pass before a plan is marked `implemented`.
-- **Writing style:** Plain, specific language; no hype; no emoji in the UI (enforced by `apps/web/app/no-emoji.test.ts`: use SVG icons).
-- **Never touch `data/habit.db`** or the desktop app-data folder (`%APPDATA%\HabitManager`). Test against `:memory:` or a temporary copy.
-- **Plan status transitions:** An implementer sets status to `implemented` (never `done`). The reviewer evaluates against acceptance criteria and marks `done`.
+- **Roles:** Claude Code is the lead/coordinator and writes plans (`/plan`); Antigravity implements, and in "rounds" the user runs **3 Claude agents
+  and 3 Antigravity agents** with strict file ownership (see the round plans, for example `0065`). Claude agents take the heavy, trigger-sensitive,
+  engine work and finish in about half Antigravity's time; Antigravity takes bulk content and UI work against fixed contracts. The user
+  deliberately sends the token-heavy content work to Antigravity.
+- **Git:** commit with plain-English messages only when told to; **never push, tag or add any AI attribution / `Co-Authored-By`** unless the user explicitly
+  asks in that conversation. Never reuse or move a published tag.
+- **Tests:** while working run only targeted tests (`pnpm exec vitest run <file>`, `pnpm -r typecheck`, eslint on changed files). The lead runs **one**
+  `pnpm check` (6 to 9 minutes) at the end. Never run `pnpm desktop:build` (releases build on GitHub when a tag is pushed). Memory is tight: one heavy
+  command at a time.
+- **User data:** never touch `data/habit.db` or `%APPDATA%\HabitManager`; use `:memory:` or a copy (`DATABASE_URL=file:C:/Temp/habit-test.db`).
+- **Secrets:** never print, store or commit secrets; the user sets them (`wrangler secret put`, GitHub secrets). Never run `wrangler ... --remote` from an agent.
+- **UI:** no emoji (SVG icons; enforced by `no-emoji.test.ts`), wide layouts, plain specific language, no hype.
+- **Windows:** use `pnpm.cmd`; PowerShell for wrangler.
+- **Statuses:** implementer sets `implemented`; reviewer sets `done`. Plans 0051 to 0055 are built and released but still say `ready` until the user confirms
+  the installed desktop app signs in.
 
-## 3. Current State of the Codebase
+## 3. State (2026-11-11)
 
-All four parallel agent worktrees (`zd-a`, `zd-b`, `zd-c`, `zd-d`) are merged into `main`. `git branch --no-merged main` is completely empty.
+**Released: 0.7.1** (tag `v0.7.1`, installers for Windows, macOS arm64, Linux AppImage built by `.github/workflows/desktop.yml`).
 
-### What is fully implemented:
+Built: accounts, GitHub sign-in, abuse guard, cloud sync (SQLite triggers, `lib/sync-engine.ts`, Worker pull by server time), desktop sign-in through `zendojo://`,
+Java editor for "Your classes", multi-select filters and deep search on `/dsa`, accent plus grey solved ticks, separate delete-cloud-data and delete-device-data,
+admin problem editor, solved-means-tests-passed, TLE handling. Cloudflare: Worker `zen-dojo-sync`, D1 `zen-dojo-db`, deploy workflow `deploy-worker.yml`.
 
-1. **CSES Logic-Building List (Plan 0029 - Implemented):**
-   - Merged `agent/b-problems` into `main`.
-   - CSES introductory specs registered in judge with C++ reference answers and large inputs in `stress-cses-intro.ts`.
-   - 5 CSES practice groupings in `DSA_GROUPS` (`cses-intro`, `cses-sorting`, `cses-dp`, `cses-graph`, `cses-misc`) with pattern tags.
-   - Pattern guides registered in `dsa-d.ts`.
-   - All tests passing.
+**Round twelve is done (plan 0065, `pnpm check` green, not yet released):** Python in the judge (0062), Java and Python reference solutions for all 486 problems as
+plain files plus a verifier (0063, see `docs/solutions.md`), the "tools for running code" check and install notes (0061 part A and B1/B2), three UI fixes (0057).
+Known gap: `cses-grid-path-description.py` is correct but too slow for the 5 s Python limit (fails `solutions:verify`). Still to check by hand: Python picker and run in the
+browser, JavaScript without Node on the first CI-built release, macOS/Linux install commands. Python on Windows needs `HABIT_PYTHON` if a shell predates the install.
 
-2. **All 67 Roadmap Pattern Articles & Fallback Retired (Plan 0008 Step 11 - Implemented):**
-   - All 67 roadmap DSA patterns have complete, deep 8-section articles (`dsa-articles-a.ts` through `dsa-articles-k.ts`).
-   - Missing `bipartite` article added with recursive DFS and iterative BFS implementations.
-   - C++ snippets for all 67 articles compile cleanly (`pattern-article-code.test.ts`).
-   - Old short-guide fallback (`<ArticleLayout toc={toc}>...`) removed from `apps/web/app/dsa/pattern/[id]/page.tsx`.
-   - `pattern-articles.test.ts` now strictly asserts that all 67 roadmap patterns have an article (zero tolerance).
-   - `/revise?tab=dsa` retains recap lines.
+Open work, in plan order (index: `docs/plans/README.md`):
 
-3. **Windows Smart App Control Handling & WebAssembly Plan (Plan 0034 - Part A Implemented, Part B Planned):**
-   - Windows 11 Smart App Control blocks unsigned `main.exe` compiled by `g++` (`spawn UNKNOWN` / `EPERM`).
-   - Server returns `{ status: "unavailable", message: ... }` via `isBlockedSpawnError`.
-   - Editor (`judge-workspace.tsx`) displays an alert banner explaining why C++ was blocked, notes that Java and JavaScript work through signed runtimes, automatically switches the language picker to Java (or JS if Java is missing), and persists the preference per problem (`habit-judge-lang:<id>`).
-   - Pure helpers in `apps/web/lib/judge/blocked.ts` tested in `blocked.test.ts`.
-   - `docs/troubleshooting.md` created with a "Windows blocks C++" guide and linked from `AGENTS.md`.
-   - Part B plan written: running C++ in-process via WebAssembly in Node, size/speed/timing trade-offs, step list, acceptance criteria, and Azure Trusted Signing for desktop distribution.
-
-4. **Problem Workspace Layout Polish (Plan 0028 - Implemented):**
-   - Verified live in headless Edge browser at 1440x900 and 390px mobile against a copy of the database.
-   - Confirmed no "Tab indents" or "Added for you" clutter lines under the editor.
-   - The `?` button displays the help text on hover/click.
-   - Top bar measures 28 px and hides on `Ctrl+Shift+B`, exposing the 12 px restore strip.
-   - The **Save** button in code actions and keyboard shortcut `Ctrl+S` work, displaying "Saved (verified)".
-   - The Notes tab displays saved solutions with **Load into editor**.
-   - Zero horizontal overflow on 390px mobile.
-
-5. **Stored Problems Counting in Progress & Totals (Plan 0030 - Implemented):**
-   - Stored problems added via `pnpm content:add` are tagged with patterns.
-   - `getDsaView()` counts solved stored problems toward pattern progress (`solved`, `covered`).
-   - `getDsaView().totals` includes stored problems in `problems`, `solved`, and `allSolved`.
-   - `getRoadmapView()` counts solved stored problems in weekly roadmap progress.
-   - Unit tests in `apps/web/lib/dsa.test.ts` pass.
-
-6. **Release 0.5.0 Implemented Features:**
-   - **Plan 0035 (ADHD Helper & Focus Pacing):** Accountability Buddy dialogue generator (Calm, Peer, Coach tones), non-punitive compassionate re-entry copy, 5-step problem deconstruction tab in workspace (Restate, Bounds, Brute Force, Bottleneck, Pattern) with local persistence, and Zen focus mode (`Ctrl+Shift+Z`).
-   - **Plan 0036 (Schedule Shifting, Backlog Pacing & Theme Persistence):** Appearance preferences persisted into SQLite `settings` table (`appearance_prefs`), review queue capped to 5 on Today with overflow housed in a collapsible Catch-up Backlog drawer, and roadmap schedule shifting (+1/+2 weeks) with zero streak penalties.
-   - **Plan 0037 (Learning Navigation Deduplication):** Deduplicated study page aside to focus exclusively on animated "On this page" reading tracker; course outline accessible via breadcrumb dropdown quick-picker.
-
-7. **Prior Completed Plans:**
-   - Plan 0015: Core subjects depth (OS, Databases, Networking, Concurrency).
-   - Plan 0021: Run button v2 with line shifts and last run saving.
-   - Plan 0023: Markdown editable lessons.
-   - Plan 0024: Content packs v2 and OTA feed.
-   - Plan 0025: LLD Java projects with diagrams and tests (Batches A-E).
-
----
-
-## 4. What is Open
-
-| # | Plan | Task | Notes |
-|---|---|---|---|
-| 1 | **0022** | Problem library expansion | Remaining CSES sections (Sorting & Searching, DP, Graph, Range/Tree/Math/String) and problems from other platforms (AtCoder, Codeforces, Project Euler, Kattis). Link source, 6+ tests, 3+ hints, large inputs, expected outputs from C++ reference. |
-| 2 | **0014** | System design batch E depth | 7 designs (metrics, Kafka, recommendations, building-blocks, delivery-slots, pricing, catalog); lengthen the shortest to 1,500+ words with numbers and failure modes. |
-| 3 | **0025** | LLD batch F | Additional LLD topics (pub-sub, order book matching engine, text editor with undo, job scheduler, etc.). |
-| 4 | **0034** | WebAssembly C++ Runner (Part B) | Implement in-process WebAssembly compilation and execution of C++ code in Node to eliminate native executable execution on Windows. |
-
----
-
-## 5. The Windows C++ Blocking Issue
-
-On Windows 11 with **Smart App Control** active or strict Defender reputation settings:
-- `g++` compiles C++ code to a temporary executable (`main.exe`) in `%TEMP%`.
-- Spawning that unsigned binary fails with `spawn UNKNOWN` or `spawn EPERM`.
-- **Why Java and JavaScript work:** Java runs under `java.exe` (signed JDK runtime) and JavaScript runs under `node.exe` (signed Node.js runtime). Both have established system reputation.
-- **Handling:** The judge returns status `unavailable`. The editor displays an explanatory banner and switches to Java/JavaScript, remembering the choice for that problem.
-- **Long-term fix:** Plan 0034 Part B outlines compiling C++ to WebAssembly and running it in Node via WASI.
-- See [`docs/troubleshooting.md`](./troubleshooting.md) for full troubleshooting details.
-
----
-
-## 6. Machine & Environment Setup
-
-| Tool | Version / Path | Purpose |
+| Plan | What | Status |
 |---|---|---|
-| Node.js | v26.13.0 | Application runtime & build |
-| pnpm | Installed | Workspace package manager (always use `pnpm.cmd` on Windows) |
-| g++ | WinLibs (GCC 16.2.0) | C++ judge & article compilation tests |
-| JDK | Eclipse Temurin 17 | Java judge & LLD compilation tests |
+| 0056 | **Next:** dynamic plan weeks (week follows what you finished) and a Backlog page | ready |
+| 0064 | Portable tool manager (download Java, Python, C++ compiler on request) | ready, after 0061 A and 0062 |
+| 0060 | Local AI helper through Ollama, opt-in, desktop only | ready |
+| 0061 B3/B4 | Windows and macOS code signing | waits for the user's route and GitHub secrets |
+| 0058 | Hosted web app (per-user database acting as a sync device; no code running on the server) | ready |
+| 0059 | Phone read-only mode, installable web app, bottom nav | ready, needs 0058 deployed to be useful |
+| 0045 | Admin study pages (the `/admin/study` link is a 404) | in progress |
+| 0022 / 0032 | More problem sources; old hosted roadmap (superseded by 0058) | open |
 
-### Commands:
+Known gaps: no phone account button (0059), some tables do not sync yet (reading list, stuck list, boss fights), 0036's schedule shift is replaced by 0056.
+User-side chores: replace the broad Cloudflare API token, delete the R2 key and the old `SYNC_TOKEN` Worker secret, fix the OAuth app homepage typo, confirm sign-in from
+the installed desktop app.
+
+## 4. Things that have bitten before
+
+- **Windows Smart App Control** blocks unsigned programs that `g++` just built (`spawn UNKNOWN` / `EPERM`). The judge reports `unavailable`, the editor banner switches
+  to Java/JavaScript; Java and Node run through signed runtimes. See `docs/troubleshooting.md`.
+- The desktop app's JavaScript judge currently needs `node` on PATH (plan 0062 changes that to the app's own runtime).
+- The installed desktop app holds port 3000; `pnpm dev` then fails or shows the installed app. `pnpm desktop:dev` only opens a window; run `HABIT_DESKTOP=1 pnpm dev` first.
+- Server Components cannot set cookies; only route handlers may refresh auth tokens (rotation reuse revokes the device).
+- Never import `server-only` modules into client components (the production build, not typecheck, catches it).
+- Append-only migrations in `lib/db.ts`; `tasks`, `problem_notes`, settings and others are synced with fixed column lists (`lib/sync-triggers.ts` and the Worker) so a new column needs
+  a Worker + D1 migration too. Device-specific settings must go on the sync denylist.
+- Problems are **TypeScript** (`packages/shared/src/judge/problems-*.ts`); lessons are Markdown (`packages/shared/content`, `pnpm content:build`); Java and Python solutions will be plain files
+  (`packages/shared/content/solutions`, plan 0063).
+
+## 5. Machine and commands
+
+Windows 11, Node v26, pnpm, g++ (WinLibs), JDK Temurin 17. Python 3 is needed once plan 0062 lands.
+
 ```powershell
-pnpm.cmd check          # Full check: lint + typecheck + vitest + next build (~3.5 min)
-pnpm.cmd test           # Run all vitest suites
-pnpm.cmd exec vitest run <file> -t "<filter>"  # Targeted fast test
-```
-
----
-
-## 7. Worktree Removal
-
-All four agent branches have been merged into `main` and verified (`git branch --no-merged main` is empty).
-To cleanly remove the temporary worktrees and local agent branches:
-
-```powershell
-git worktree remove ..\zd-a
-git worktree remove ..\zd-b
-git worktree remove ..\zd-c
-git worktree remove ..\zd-d
-git branch -d agent/a-judge agent/b-problems agent/c-lessons agent/d-lld
+pnpm.cmd dev                                   # web app on http://localhost:3000 (use a copy of the database)
+pnpm.cmd exec vitest run <file> -t "<filter>"  # fast targeted test
+pnpm.cmd -r typecheck
+pnpm.cmd check                                 # lint + typecheck + test + build; lead runs once at the end
+pnpm.cmd content:build                         # lessons Markdown -> generated TypeScript
 ```
