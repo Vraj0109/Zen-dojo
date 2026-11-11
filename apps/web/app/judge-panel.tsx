@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import type { CaseResult, RunResult } from "@/lib/judge/run";
+import { TOOLS_SETTINGS_HREF, isSetupProblem } from "@/lib/judge/setup-hint";
 
 // How the results of a Run are shown: the verdict, one expandable row per case, and the console section.
 
@@ -31,15 +33,37 @@ function ClockIcon() {
 
 const label = (r: CaseResult) => (r.kind === "example" ? `Example ${r.index + 1}` : r.kind === "stress" ? `Large input: ${r.label ?? r.index + 1}` : `Test ${r.index + 1}`);
 
+/** Shown under a failure that comes from this computer's setup, not from the learner's code: points to Settings > Tools. */
+export function ToolSetupHint() {
+  return (
+    <div role="note" className="mt-3 rounded-lg border border-line bg-background p-3 text-sm">
+      <p className="font-medium">This looks like a setup problem on this computer, not a mistake in your code.</p>
+      <p className="mt-1 text-muted">
+        Open <span className="font-medium text-foreground">Settings, Tools for running code</span> to see what is installed and the exact command to fix what is missing.
+        On a Mac, install Apple&apos;s command line tools (<code className="font-mono">xcode-select --install</code>); the app supplies the header the compiler lacks.
+      </p>
+      <Link href={TOOLS_SETTINGS_HREF} className="mt-2 inline-block rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-on-accent">
+        Open Tools settings
+      </Link>
+    </div>
+  );
+}
+
 export function Results({ result }: { result: RunResult }) {
   if (result.status === "unavailable") {
-    return <p className="rounded-xl border border-cat-beh bg-surface p-3 text-sm">{result.message}</p>;
+    return (
+      <div className="rounded-xl border border-cat-beh bg-surface p-3 text-sm">
+        <p>{result.message}</p>
+        <ToolSetupHint />
+      </div>
+    );
   }
   if (result.status === "compile_error") {
     return (
       <div className="rounded-xl border border-cat-mock bg-surface p-3">
         <p className="font-semibold text-diff-hard">Compile error</p>
         <pre className="mt-2 overflow-x-auto text-xs whitespace-pre-wrap">{result.message}</pre>
+        {isSetupProblem(result.message) && <ToolSetupHint />}
       </div>
     );
   }

@@ -9,7 +9,8 @@ import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
 import { emitBuddy } from "./buddy/buddy-events";
 import { EditorField } from "./code-editor";
 import { editorHelp } from "./editor-help";
-import { Results } from "./judge-panel";
+import { Results, ToolSetupHint } from "./judge-panel";
+import { isSetupProblem } from "@/lib/judge/setup-hint";
 import { PaneLayout } from "./pane-layout";
 import { ProblemMicroSteps } from "./problem-micro-steps";
 
@@ -501,6 +502,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
               <div role="status" className="space-y-1 text-foreground">
                 {custom.compile && <pre className="overflow-x-auto whitespace-pre-wrap">{custom.compile}</pre>}
                 {custom.error && <p className="text-diff-hard">{custom.error}</p>}
+                {(isSetupProblem(custom.compile) || isSetupProblem(custom.error)) && <ToolSetupHint />}
                 {custom.output !== undefined && (
                   <p>
                     Output: <code className="font-mono">{custom.output}</code>

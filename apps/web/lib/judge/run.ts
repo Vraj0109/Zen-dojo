@@ -1,13 +1,14 @@
 import "server-only";
 import { execFile, spawn } from "node:child_process";
 import { closeSync, openSync, readFileSync, statSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { JudgeLang, ProblemSpec } from "@habit/shared";
 import { firstDifference, sameAnswer } from "./compare";
 import { CPP_PRELUDE_LINES, JAVA_PRELUDE, JAVA_PRELUDE_LINES, MEMORY_LIMIT_MB, PYTHON_PRELUDE_LINES, cppProgram, javaProgram, javaSupportFiles, javascriptProgram, pythonProgram } from "./harness";
 import { pythonCommand, resolveTool, tool } from "./resolve";
+import { STDCXX_SHIM, isClangVersion } from "./cpp-shim";
 
 // Runs your code on a problem's test cases, on this computer, like LeetCode's Run button. It compiles with the
 // tools installed here (g++, a JDK, Node, Python 3) and runs the program with time, memory and output limits. Nothing leaves
@@ -224,6 +225,20 @@ function runProcess(
 }
 
 /** The compiler step: collected output only. */
+const clangByCompiler = new Map<string, Promise<boolean>>();
+
+/** Is this "g++" really clang (macOS)? Asked once per compiler path. */
+function compilerIsClang(file: string): Promise<boolean> {
+  let p = clangByCompiler.get(file);
+  if (!p) {
+    p = new Promise<boolean>((resolve) => {
+      execFile(file, ["--version"], { timeout: 10_000, windowsHide: true }, (err, stdout, stderr) => resolve(!err && isClangVersion(String(stdout || stderr || ""))));
+    });
+    clangByCompiler.set(file, p);
+  }
+  return p;
+}
+
 function runCompiler(file: string, args: string[], cwd: string): Promise<{ ok: boolean; text: string; missing: boolean; timedOut: boolean }> {
   return new Promise((resolve) => {
     execFile(file, args, { cwd, timeout: JUDGE_LIMITS.compileMs, maxBuffer: JUDGE_LIMITS.output, windowsHide: true, killSignal: "SIGKILL" }, (err, stdout, stderr) => {
@@ -294,8 +309,15 @@ async function prepare(spec: ProblemSpec, lang: JudgeLang, code: string, dir: st
     const exe = process.platform === "win32" ? "main.exe" : "main";
     // _GLIBCXX_ASSERTIONS makes an out-of-range vector index stop with a message instead of reading garbage.
     // On Windows a big stack lets deep recursion work, as it does on LeetCode.
-    const flags = ["-O2", "-std=c++17", "-D_GLIBCXX_ASSERTIONS", ...(process.platform === "win32" ? ["-Wl,--stack,268435456"] : []), "-o", exe, "main.cpp"];
-    const c = await runCompiler(tool("HABIT_GPP", "g++"), flags, dir);
+    const gpp = tool("HABIT_GPP", "g++");
+    // Apple's g++ is clang: no <bits/stdc++.h>, so write a stand-in header next to main.cpp.
+    const clang = await compilerIsClang(gpp);
+    if (clang) {
+      await mkdir(path.join(dir, "bits"), { recursive: true });
+      await writeFile(path.join(dir, "bits", "stdc++.h"), STDCXX_SHIM);
+    }
+    const flags = ["-O2", "-std=c++17", ...(clang ? ["-I."] : ["-D_GLIBCXX_ASSERTIONS"]), ...(process.platform === "win32" ? ["-Wl,--stack,268435456"] : []), "-o", exe, "main.cpp"];
+    const c = await runCompiler(gpp, flags, dir);
     if (c.missing) return { ok: false, result: { status: "unavailable", message: MISSING.cpp } };
     if (c.timedOut) return { ok: false, result: { status: "compile_error", message: "The compiler took too long." } };
     if (!c.ok) return { ok: false, result: { status: "compile_error", message: shift ? shiftLines(clean(c.text, dir), cppLines.pre, cppLines.user) : clean(c.text, dir) } };
