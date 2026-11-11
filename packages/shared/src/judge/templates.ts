@@ -32,6 +32,36 @@ const JAVA_TREE_DOC = `/**
  */
 `;
 
+const PY_LIST_DOC = `# Definition for singly-linked list (already defined for you).
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
+`;
+const PY_TREE_DOC = `# Definition for a binary tree node (already defined for you).
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+`;
+
+const PY: Record<Ty, string> = {
+  list: "Optional[ListNode]",
+  tree: "Optional[TreeNode]",
+  int: "int",
+  long: "int",
+  double: "float",
+  bool: "bool",
+  string: "str",
+  "int[]": "List[int]",
+  "long[]": "List[int]",
+  "bool[]": "List[bool]",
+  "string[]": "List[str]",
+  "int[][]": "List[List[int]]",
+  "string[][]": "List[List[str]]",
+};
+
 const CPP: Record<Ty, string> = {
   list: "ListNode*",
   tree: "TreeNode*",
@@ -66,6 +96,7 @@ const JAVA: Record<Ty, string> = {
 
 export const cppType = (t: Ty) => CPP[t];
 export const javaType = (t: Ty) => JAVA[t];
+export const pythonType = (t: Ty) => PY[t];
 
 /** The C++ parameter type: containers by reference, like LeetCode. */
 const cppParam = (t: Ty) => (t.endsWith("]") ? `${CPP[t]}&` : CPP[t]);
@@ -81,6 +112,8 @@ export function templateFor(spec: ProblemSpec, lang: JudgeLang): string {
         return `${CPP_TREE_DOC}class Codec {\npublic:\n    // Encodes a tree to a single string.\n    string serialize(TreeNode* root) {\n        // Write your code here\n\n    }\n\n    // Decodes your encoded data to tree.\n    TreeNode* deserialize(string data) {\n        // Write your code here\n\n    }\n};\n`;
       case "java":
         return `${JAVA_TREE_DOC}public class Codec {\n    // Encodes a tree to a single string.\n    public String serialize(TreeNode root) {\n        // Write your code here\n\n    }\n\n    // Decodes your encoded data to tree.\n    public TreeNode deserialize(String data) {\n        // Write your code here\n\n    }\n}\n`;
+      case "python":
+        return `${PY_TREE_DOC}class Codec:\n    def serialize(self, root: Optional[TreeNode]) -> str:\n        """Encodes a tree to a single string."""\n        # Write your code here\n        pass\n\n    def deserialize(self, data: str) -> Optional[TreeNode]:\n        """Decodes your encoded data to tree."""\n        # Write your code here\n        pass\n`;
       case "javascript":
         return `/**\n * Definition for a binary tree node.\n * function TreeNode(val) {\n *     this.val = val;\n *     this.left = this.right = null;\n * }\n */\n\n/**\n * Encodes a tree to a single string.\n *\n * @param {TreeNode} root\n * @return {string}\n */\nfunction serialize(root) {\n    // Write your code here\n\n}\n\n/**\n * Decodes your encoded data to tree.\n *\n * @param {string} data\n * @return {TreeNode}\n */\nfunction deserialize(data) {\n    // Write your code here\n\n}\n`;
     }
@@ -92,6 +125,8 @@ export function templateFor(spec: ProblemSpec, lang: JudgeLang): string {
         return `/**\n * Definition for a Node (already defined for you).\n * class Node {\n * public:\n *     int val;\n *     vector<Node*> neighbors;\n *     Node() : val(0), neighbors() {}\n *     Node(int _val) : val(_val), neighbors() {}\n *     Node(int _val, vector<Node*> _neighbors) : val(_val), neighbors(_neighbors) {}\n * };\n */\nclass Solution {\npublic:\n    Node* cloneGraph(Node* node) {\n        // Write your code here\n\n    }\n};\n`;
       case "java":
         return `/**\n * Definition for a Node (already defined for you).\n * class Node {\n *     public int val;\n *     public List<Node> neighbors;\n *     public Node() { val = 0; neighbors = new ArrayList<Node>(); }\n *     public Node(int _val) { val = _val; neighbors = new ArrayList<Node>(); }\n *     public Node(int _val, ArrayList<Node> _neighbors) { val = _val; neighbors = _neighbors; }\n * }\n */\nclass Solution {\n    public Node cloneGraph(Node node) {\n        // Write your code here\n\n    }\n}\n`;
+      case "python":
+        return `# Definition for a Node (already defined for you).\n# class Node:\n#     def __init__(self, val=0, neighbors=None):\n#         self.val = val\n#         self.neighbors = neighbors if neighbors is not None else []\n\nclass Solution:\n    def cloneGraph(self, node: Optional[Node]) -> Optional[Node]:\n        # Write your code here\n        pass\n`;
       case "javascript":
         return `/**\n * // Definition for a Node.\n * function Node(val, neighbors) {\n *    this.val = val === undefined ? 0 : val;\n *    this.neighbors = neighbors === undefined ? [] : neighbors;\n * };\n */\n\n/**\n * @param {Node} node\n * @return {Node}\n */\nfunction cloneGraph(node) {\n    // Write your code here\n\n}\n`;
     }
@@ -100,9 +135,10 @@ export function templateFor(spec: ProblemSpec, lang: JudgeLang): string {
   const nodes = usesNodes(spec);
   const cppDocs = (nodes.list ? CPP_LIST_DOC : "") + (nodes.tree ? CPP_TREE_DOC : "");
   const javaDocs = (nodes.list ? JAVA_LIST_DOC : "") + (nodes.tree ? JAVA_TREE_DOC : "");
+  const pyDocs = (nodes.list ? PY_LIST_DOC : "") + (nodes.tree ? PY_TREE_DOC : "");
   if (spec.design) {
     const t = designTemplate(spec.design, lang);
-    return lang === "cpp" ? cppDocs + t : lang === "java" ? javaDocs + t : t;
+    return lang === "cpp" ? cppDocs + t : lang === "java" ? javaDocs + t : lang === "python" ? pyDocs + t : t;
   }
   const { name, params, returns } = spec.fn;
   switch (lang) {
@@ -122,6 +158,12 @@ public:
 
     }
 }
+`;
+    case "python":
+      return `${pyDocs}class Solution:
+    def ${name}(self${params.map((p) => `, ${p.name}: ${PY[p.type]}`).join("")}) -> ${PY[returns]}:
+        # Write your code here
+        pass
 `;
     case "javascript":
       return `/**
@@ -152,6 +194,12 @@ function designTemplate(d: DesignSpec, lang: JudgeLang): string {
       const params = (ps: { name: string; type: Ty }[]) => ps.map((p) => `${JAVA[p.type]} ${p.name}`).join(", ");
       const methods = d.methods.map((m) => `    public ${ret(m)} ${m.name}(${params(m.params)}) {\n${body}`);
       return `class ${d.className} {\n${join([`    public ${d.className}(${params(d.ctor)}) {\n${body}`, ...methods])}\n}\n`;
+    }
+    case "python": {
+      const params = (ps: { name: string; type: Ty }[]) => ps.map((p) => `, ${p.name}: ${PY[p.type]}`).join("");
+      const pyBody = "        # Write your code here\n        pass";
+      const methods = d.methods.map((m) => `    def ${m.name}(self${params(m.params)})${m.returns === "void" ? "" : ` -> ${PY[m.returns]}`}:\n${pyBody}`);
+      return `class ${d.className}:\n${join([`    def __init__(self${params(d.ctor)}):\n${pyBody}`, ...methods])}\n`;
     }
     case "javascript": {
       const params = (ps: { name: string }[]) => ps.map((p) => p.name).join(", ");

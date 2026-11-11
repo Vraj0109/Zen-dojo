@@ -8,10 +8,10 @@
  */
 export type Ty = "list" | "tree" | "int" | "long" | "double" | "bool" | "string" | "int[]" | "long[]" | "bool[]" | "string[]" | "int[][]" | "string[][]";
 
-export const JUDGE_LANGS = ["cpp", "java", "javascript"] as const;
+export const JUDGE_LANGS = ["cpp", "java", "javascript", "python"] as const;
 export type JudgeLang = (typeof JUDGE_LANGS)[number];
 
-export const JUDGE_LANG_LABEL: Record<JudgeLang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript" };
+export const JUDGE_LANG_LABEL: Record<JudgeLang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript", python: "Python" };
 
 export interface Case {
   /** One JSON value per parameter, in order */
@@ -91,7 +91,7 @@ export const usesNodes = (spec: ProblemSpec): { list: boolean; tree: boolean } =
 export interface StressCase {
   label: string;
   make: () => unknown[];
-  /** Milliseconds allowed in C++. Java gets 3 times as long and JavaScript 5 times. Default 1500. */
+  /** Milliseconds allowed in C++. Java gets 3 times as long, JavaScript 5 times and Python 10 times. Default 1500. */
   limitMs?: number;
 }
 
