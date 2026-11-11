@@ -84,9 +84,9 @@ defined in `packages/shared/src/judge/solution-groups.ts`:
 
 | Group | Spec arrays (import from the problem files) | Problems |
 |---|---|---|
-| `d` | `LEETCODE_SPECS`, `_2`, `_3`, `_4`, `_5`, `_6`, `_7`, `_8` | about 152 |
-| `e` | `LEETCODE_SPECS_9`, all `CSES_*`, `DESIGN_SPECS_A/B/C`, `SPECIAL_SPECS`, `OTHER_SPECS` | about 149 |
-| `f` | `LOGIC_SPECS_EULER/ATCODER/CODEFORCES/KATTIS/BATCH2/C`, `PROBLEMS_LOGIC_D` | about 150 |
+| `d` | `LEETCODE_SPECS`, `_2`, `_3`, `_4`, `_5`, `_6`, `_7`, `_8` | 163 |
+| `e` | `LEETCODE_SPECS_9`, all `CSES_*`, `DESIGN_SPECS_A/B/C`, `SPECIAL_SPECS`, `OTHER_SPECS` | 159 |
+| `f` | `LOGIC_SPECS_EULER/ATCODER/CODEFORCES/KATTIS/BATCH2/C`, `PROBLEMS_LOGIC_D` | 164 |
 
 A test checks that every problem in `JUDGE_PROBLEMS` is in exactly one group.
 
