@@ -76,3 +76,16 @@ describe("ai routes", () => {
     expect(f).not.toHaveBeenCalled();
   });
 });
+
+describe("ai settings route", () => {
+  it("turns the switch on, rejects a non-loopback URL and 404s when hosted", async () => {
+    const { POST: settings } = await import("./settings/route");
+    const { getAiSettings } = await import("@/lib/ui-prefs");
+    expect((await settings(req({ enabled: true, model: "llama3.2:3b" }))).status).toBe(200);
+    expect(await getAiSettings()).toMatchObject({ enabled: true, model: "llama3.2:3b" });
+    expect((await settings(req({ url: "http://example.com" }))).status).toBe(400);
+    expect((await settings(req({ enabled: "yes" }))).status).toBe(400);
+    vi.stubEnv("HABIT_HOSTED", "1");
+    expect((await settings(req({ enabled: true }))).status).toBe(404);
+  });
+});

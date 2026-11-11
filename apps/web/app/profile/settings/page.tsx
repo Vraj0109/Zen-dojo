@@ -17,6 +17,7 @@ import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
 import { FeedUpdater } from "./feed-updater";
+import { AiSettings } from "./ai-settings";
 import { AccountLink } from "@/app/components/account-menu";
 import { ProfileSettingsSkeleton } from "@/app/components/profile-skeleton";
 
@@ -74,6 +75,17 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
               Check my tools
             </Link>
           </section>
+
+          {process.env.HABIT_HOSTED !== "1" && (
+            <>
+              <h3 className="text-lg font-semibold">Local AI (optional)</h3>
+              <section className="rounded-xl border border-line bg-surface p-4">
+                <h4 className="mb-1 font-semibold">AI help on your own computer</h4>
+                <p className="mb-3 text-sm text-muted">Off until you turn it on. Explains hints and reviews your code with a model that runs here.</p>
+                <AiSettings />
+              </section>
+            </>
+          )}
 
           <h3 className="text-lg font-semibold">Content</h3>
           <section className="space-y-3 rounded-xl border border-line bg-surface p-4">
