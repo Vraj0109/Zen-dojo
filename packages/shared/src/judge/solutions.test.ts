@@ -3,7 +3,7 @@ import { SKIP_STRESS_LINE, checkFiles, generatedIsCurrent, groupStatus, readSolu
 import { SOLUTIONS } from "./generated/solutions";
 import { JUDGE_PROBLEMS } from "./index";
 import { SOLUTION_GROUP_IDS, groupIds, groupOf } from "./solution-groups";
-import { solutionCode, solutionLangs } from "./solutions";
+import { hasBundledSolutions, solutionCode, solutionLangs } from "./solutions";
 import type { ProblemSpec } from "./types";
 
 const FORBIDDEN = ["Runtime.getRuntime().exec", "ProcessBuilder", "subprocess", "os.system", "socket", "urllib", "java.net"];
@@ -60,7 +60,7 @@ describe("solution files", () => {
   });
 
   it("are in the generated bundle", () => {
-    expect(generatedIsCurrent()).toBe(true);
+    expect(generatedIsCurrent(), "generated/solutions.ts is stale: run pnpm solutions:build").toBe(true);
   });
 });
 
@@ -142,5 +142,10 @@ describe("solutionCode and solutionLangs", () => {
     const stored = { ...two, id: "pack-demo", solution: { idea: [], complexity: "O(1)", cpp: "int main() {}" } };
     expect(solutionLangs(stored)).toEqual(["cpp"]);
     expect(solutionCode(stored, "cpp")).toBe("int main() {}");
+    // A stored problem that reuses a built-in id but has its own solution does not get the built-in Java and Python.
+    const over = { ...two, solution: { ...two.solution, cpp: "int other() {}" } };
+    expect(hasBundledSolutions(over)).toBe(false);
+    expect(hasBundledSolutions(two)).toBe(true);
+    expect(solutionCode(over, "java")).toBeNull();
   });
 });

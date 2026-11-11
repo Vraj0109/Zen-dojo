@@ -11,6 +11,7 @@ The prompt to give an agent: **"Read docs/content-editing.md, then fix <problem>
 | Checklists (the "What to know" points), concept ids, exercises | `packages/shared/src/study.ts` | TypeScript |
 | System design walkthroughs, LLD projects, DSA articles | `packages/shared/src/learn/designs-*.ts`, `lld-projects-*.ts`, `dsa-articles-*.ts` | TypeScript (see HANDOFF.md) |
 | Added lessons and problems without code | `docs/content-packs.md` | JSON |
+| Java and Python reference solutions of the built-in problems | `packages/shared/content/solutions/<problem-id>.java` / `.py`; guide: `docs/solutions.md` | plain code files |
 
 A concept id exists in `study.ts`; every concept has exactly one Markdown lesson.
 
