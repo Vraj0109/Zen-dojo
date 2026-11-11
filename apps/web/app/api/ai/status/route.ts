@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       providers,
       provider: s.provider,
       consent: s.consent,
+      platform: process.platform,
     });
   } catch {
     return aiError(500, "internal_error");

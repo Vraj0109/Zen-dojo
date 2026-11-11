@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AI_INSTALL, OS_LABEL, installCommands, toOsId } from "@habit/shared";
 
 type Tier = { model: string; label: string; downloadGb: number };
 type Info = {
@@ -14,6 +15,7 @@ type Info = {
   providers?: ProviderInfo[];
   provider?: ProviderId;
   consent?: ProviderId[];
+  platform?: string;
 };
 type ProviderId = "ollama" | "claude" | "agy" | "gemini" | "codex";
 type ProviderInfo = { id: ProviderId; label: string; found: boolean; cloud: boolean };
@@ -201,6 +203,13 @@ export function AiSettings() {
                   {t.label}: {t.model} (about {t.downloadGb} GB){t.model === info.recommended.model ? " - suggested" : ""}
                 </option>
               ))}
+              {info.installed
+                .filter((m) => !info.tiers.some((t) => t.model === m))
+                .map((m) => (
+                  <option key={m} value={m}>
+                    Installed: {m}
+                  </option>
+                ))}
             </select>
             {have ? (
               <button type="button" onClick={() => void save({ model: pickModel })} disabled={info.model === pickModel} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50">
@@ -230,6 +239,7 @@ export function AiSettings() {
           {info.model && <p className="text-xs text-muted">Using {info.model}. To free disk space later, run <code>ollama rm {info.model}</code>.</p>}
         </div>
       )}
+      <InstallMore info={info} />
       <p className="text-xs text-muted">
         The default runs on your computer through Ollama and sends nothing to the internet. A cloud tool is used only after you tick its box above. Answers can be wrong. See{" "}
         <code>docs/local-ai.md</code>.
@@ -249,4 +259,61 @@ function testError(code?: string): string {
     default:
       return "The tool did not answer. Is it installed and signed in?";
   }
+}
+
+/** "Get more AI tools": the install command for this computer's system, with a Copy button. Nothing is run from here. */
+function InstallMore({ info }: { info: Info }) {
+  const os = toOsId(info.platform);
+  const found = new Set((info.providers ?? []).filter((p) => p.found).map((p) => p.id as string));
+  const [copied, setCopied] = useState("");
+  return (
+    <details className="rounded-lg border border-line p-3 text-sm">
+      <summary className="cursor-pointer font-medium">Get more AI tools ({OS_LABEL[os]})</summary>
+      <div className="mt-3 space-y-4">
+        <p className="text-xs text-muted">
+          Copy a command, paste it into a terminal (on Windows: PowerShell) and run it yourself. Zen Dojo never installs anything for you. Tools marked &ldquo;sends the chat&rdquo; use your own
+          account with that company.
+        </p>
+        {AI_INSTALL.map((item) => {
+          const here = item.providerId && found.has(item.providerId);
+          return (
+            <div key={item.id} className="space-y-1.5">
+              <p className="flex flex-wrap items-center gap-2 font-medium">
+                {item.name}
+                {here && <span className="rounded-full border border-line px-2 py-0.5 text-xs font-normal text-muted">Found on this computer</span>}
+                <span className="rounded-full border border-line px-2 py-0.5 text-xs font-normal text-muted">{item.kind === "cloud-cli" ? "sends the chat" : "stays on this computer"}</span>
+              </p>
+              <p className="text-xs text-muted">{item.blurb}</p>
+              {installCommands(item, os).map((c) => (
+                <div key={c.command} className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded border border-line bg-background px-2 py-1 text-xs">{c.command}</code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(c.command).then(() => setCopied(c.command)).catch(() => {});
+                      }}
+                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background"
+                    >
+                      {copied === c.command ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                  {c.note && <p className="text-xs text-muted">{c.note}</p>}
+                </div>
+              ))}
+              <p className="text-xs text-muted">
+                {item.afterInstall}{" "}
+                <a href={item.docsUrl} target="_blank" rel="noopener noreferrer" className="text-foreground underline">
+                  Documentation
+                </a>
+              </p>
+            </div>
+          );
+        })}
+        <p className="text-xs text-muted">
+          Antigravity is not offered in the chat: its command line cannot be limited to answering questions, so it could run commands on your computer.
+        </p>
+      </div>
+    </details>
+  );
 }

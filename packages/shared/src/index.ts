@@ -18,4 +18,5 @@ export * from "./buddy";
 export * from "./tool-hints";
 export * from "./ai-models";
 export * from "./ai-prompts";
+export * from "./ai-install";
 export * from "./tool-catalog";
