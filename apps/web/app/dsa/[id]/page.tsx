@@ -19,7 +19,8 @@ import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { Tabs, type TabItem } from "../../tabs";
 import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
-import { AskAi } from "../ask-ai";
+import { detectProviders } from "@/lib/ai/providers";
+import { AiChat } from "../ai-chat";
 import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 import { ProblemWorkspaceSkeleton } from "./problem-skeleton";
 
@@ -93,6 +94,7 @@ async function Problem({
     process.env.HABIT_HOSTED === "1" ? null : getAiSettings(),
   ]);
   const open = struggles.filter((x) => !x.clearedOn);
+  const aiProviders = ai?.enabled ? await detectProviders() : [];
 
   const s = p.status;
   const label = p.number ? `${p.number}. ${p.title}` : p.title;
@@ -116,6 +118,15 @@ async function Problem({
           />
         ),
       },
+      ...(ai?.enabled
+        ? [
+            {
+              id: "ai",
+              label: "Ask AI",
+              node: <AiChat problemId={p.id} hints={spec.hints} providers={aiProviders} provider={ai.provider} hasCode={Boolean(p.note?.code?.trim())} />,
+            },
+          ]
+        : []),
       ...(p.submissions.length > 0
         ? [{ id: "submissions", label: "Submissions", count: p.submissions.length, node: <Submissions list={p.submissions} /> }]
         : []),
@@ -198,7 +209,6 @@ async function Problem({
           </div>
         </header>
         <JudgeWorkspace id={p.id} templates={startersFor(spec)} tabs={judgedTabs} initialTab={wanted === "solve" ? "description" : wanted} />
-        {ai?.enabled && <AskAi problemId={p.id} hintCount={spec.hints.length} />}
       </article>
     );
   }
