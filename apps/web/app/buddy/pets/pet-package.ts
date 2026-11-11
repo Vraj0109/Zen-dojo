@@ -29,7 +29,6 @@ export const SHEET_MAX_BYTES = 2 * 1024 * 1024;
 const ALPHA_THRESHOLD = 16;
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
-// eslint-disable-next-line no-control-regex
 const CONTROL_RE = /[\u0000-\u001f\u007f-\u009f]/g;
 const clean = (s: string) => s.replace(CONTROL_RE, " ").replace(/\s+/g, " ").trim();
 

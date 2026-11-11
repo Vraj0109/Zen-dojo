@@ -41,7 +41,7 @@ describe("gridCell", () => {
     expect(gridCell(1536, 1872)).toEqual({ cellW: 192, cellH: 208 });
   });
   it("rejects other sizes", () => {
-    expect(() => gridCell(1000, 1872)).toThrow(/Petdex sheet/);
+    expect(() => gridCell(1001, 1872)).toThrow(/Petdex sheet/);
     expect(() => gridCell(1536, 1000)).toThrow(PetImportError);
   });
 });
