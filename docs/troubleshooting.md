@@ -5,7 +5,8 @@
 The Run button uses programs installed on your computer. Reading, plans, notes and tracking work without them. Open
 **Profile, Settings, Tools for running code** (`/profile/settings/tools`) to see which of C++ (g++), Java (JDK), Node and
 Python 3 were found, copy the install command for your system, and press **Check again**. In the desktop app, Today
-also shows a dismissible notice while something is missing.
+also shows a dismissible notice while something is missing. The desktop app can also download Java, Python and (on
+Windows) a C++ compiler for you with one button, without administrator rights: see `docs/tools.md`.
 
 - **Python is found in this order:** the `HABIT_PYTHON` environment variable if set (it is then the only candidate);
   on Windows `py -3`, then `python`; on macOS and Linux `python3`, then `python`. Python 3 is required: a Python 2 is

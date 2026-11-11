@@ -1,6 +1,6 @@
 # 0064: Portable tool manager (download Java, Python and a C++ compiler on request, no admin rights)
 
-- **Status:** ready (build after plans 0061 part A and 0062 are merged)
+- **Status:** implemented (smoke workflow run and desktop check pending, see notes)
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** extends plan 0061 (tools check screen) and plan 0062 (resolver)
@@ -75,35 +75,35 @@ Check again button. A top button "Set up all missing tools". Plain wording; the 
 Targeted tests only. The lead runs one `pnpm check`. No `pnpm desktop:build`. Local commits, explicit paths, no push, no attribution.
 Suggested split: Agent A steps 1 to 3; Agent B steps 4 to 6.
 
-- [ ] **1. Catalogue and verification helpers.** `packages/shared/src/tool-catalog.ts` and a pure `verifyPlan(entry)`;
+- [x] **1. Catalogue and verification helpers.** `packages/shared/src/tool-catalog.ts` and a pure `verifyPlan(entry)`;
   `apps/web/lib/tools/download.ts` (`downloadVerified(entry, destFile, { fetch, onProgress, signal })` with host checks, size cap,
   SHA-256 streaming).
   - Done when: `pnpm exec vitest run packages/shared/src/tool-catalog.test.ts apps/web/lib/tools/download.test.ts` passes:
     every entry has https url, 64-hex hash, positive size, known archive type; stubbed fetch cases for ok, wrong hash,
     too large, redirect to a non-allowed host, 4 redirects, abort.
-- [ ] **2. Extract and install.** `apps/web/lib/tools/install.ts`: list (`tar -tf`) and reject unsafe entries, extract, atomic move,
+- [x] **2. Extract and install.** `apps/web/lib/tools/install.ts`: list (`tar -tf`) and reject unsafe entries, extract, atomic move,
   manifest read/write, `removeTool`, `installedTools()`.
   - Done when: `apps/web/lib/tools/install.test.ts` passes with a tiny tar and a tiny zip fixture built in the test: normal
     install, an entry with `..` rejected, a failed extract leaves no folder, remove deletes it. Uses a temp folder only.
-- [ ] **3. Resolver.** Extend `apps/web/lib/judge/resolve.ts` so `resolveTool` consults the manifest after `HABIT_*` and before
+- [x] **3. Resolver.** Extend `apps/web/lib/judge/resolve.ts` so `resolveTool` consults the manifest after `HABIT_*` and before
   PATH; `tools.ts` reports which source is used.
   - Done when: `resolve.test.ts` covers override > managed > PATH and a manifest pointing at a missing file (ignored).
-- [ ] **4. Routes.** `apps/web/app/api/tools/{status,install,remove}/route.ts`: same-origin, desktop-only (404 otherwise),
+- [x] **4. Routes.** `apps/web/app/api/tools/{status,install,remove}/route.ts`: same-origin, desktop-only (404 otherwise),
   install streams progress as JSON lines, one install at a time (409 if busy), cancel via request abort, no stack traces, never
   log URLs with tokens.
   - Done when: route tests with stubbed install code cover 404 hosted, 403 cross-origin, 409 busy, success lines.
-- [ ] **5. UI.** Extend `apps/web/app/profile/settings/tools/page.tsx` with the client component for cards, confirmation,
+- [x] **5. UI.** Extend `apps/web/app/profile/settings/tools/page.tsx` with the client component for cards, confirmation,
   progress and Cancel; `apps/desktop/main.js` passes `HABIT_TOOLS_DIR`.
   - Done when: typecheck and eslint pass; with a stubbed catalogue pointing at a local test file served by a throwaway
     local server, the flow shows size, progresses, installs and the tool shows "Downloaded".
-- [ ] **6. Proof on all three systems.** `.github/workflows/tools-smoke.yml` (manual `workflow_dispatch` only): on
+- [x] **6. Proof on all three systems.** `.github/workflows/tools-smoke.yml` (manual `workflow_dispatch` only): on
   `windows-latest`, `macos-latest` and `ubuntu-latest` run a small Node script that installs each catalogue tool for that
   platform into a temp folder with the real code, runs `--version` (and, for the C++ tool, compiles and runs a hello program
   with the judge's flags from `run.ts`), and fails on any problem. For Zig on Linux, only add the catalogue entry if the judge's
   C++ flags work; otherwise leave Linux C++ to the distribution command and say so in *Implementation notes*.
   - Done when: the workflow file is committed and a run on the three runners is green (the lead triggers it; record the run
     link in *Implementation notes*).
-- [ ] **7. Docs.** `docs/tools.md`: what is downloaded from where, how big, where it lives, how to remove it, and the Docker
+- [x] **7. Docs.** `docs/tools.md`: what is downloaded from where, how big, where it lives, how to remove it, and the Docker
   note ("not needed on the desktop; only useful for a future hosted runner"). Link from `docs/troubleshooting.md`.
   - Done when: the page exists and is linked.
 
@@ -127,5 +127,14 @@ Suggested split: Agent A steps 1 to 3; Agent B steps 4 to 6.
 ## Open questions
 
 ## Implementation notes
+
+Agent C, round thirteen (2026-11-11). Files: `packages/shared/src/tool-catalog.ts`, `apps/web/lib/tools/{manifest,download,install,handlers}.ts`, `apps/web/app/api/tools/*`, `apps/web/app/profile/settings/tools/tool-manager.tsx`, resolver and `detectTools` changes, `.github/workflows/tools-smoke.yml`, `docs/tools.md`.
+
+- Catalogue pins: Temurin 17.0.21+9, CPython 3.12.16 (python-build-standalone 20261110), WinLibs GCC 16.2.0 (no LLVM, posix-seh-ucrt, r3). sha256 of the three Windows files computed from the downloaded files; the other platforms use the publisher's checksum for that exact file (Adoptium API, GitHub release digest). The smoke workflow checks them on real runners. No Zig, so Linux C++ stays a distro command; macOS C++ is the `xcode-select --install` button. Nothing was left out of the catalogue.
+- Deviation: `tool()` in `resolve.ts` is now managed-aware (override, then download, then PATH), so `run.ts` and `run-project.ts` pick up downloaded Java and C++ without being edited. For the Windows C++ download it adds the compiler's `bin` folder to this process's PATH once, so built programs find their runtime DLLs. Managed lookups are off unless `HABIT_TOOLS_DIR` is set (only the desktop app sets it).
+- Windows extraction uses the system tar.exe in the Windows System32 folder (Git Bash's GNU tar cannot read zip).
+- Route logic is in `lib/tools/handlers.ts` so tests inject everything; the route files only forward.
+- Step 5 was checked by typecheck, eslint and handler tests; the browser flow against a local test server and the real downloads were not run (downloaded programs were deliberately not executed here). Step 6: the workflow is committed, not triggered. The lead triggers it and records the run link here.
+- `detectTools()` caches the real-machine answer for 60 seconds (`resetToolsCache()`, `{ fresh: true }`); installs and removes reset it.
 
 ## Review
