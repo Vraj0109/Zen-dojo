@@ -12,8 +12,8 @@ import { Results } from "./judge-panel";
 import { PaneLayout } from "./pane-layout";
 import { ProblemMicroSteps } from "./problem-micro-steps";
 
-type Lang = "cpp" | "java" | "javascript";
-const LABEL: Record<Lang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript" };
+type Lang = "cpp" | "java" | "javascript" | "python";
+const LABEL: Record<Lang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript", python: "Python" };
 const LANG_KEY = "habit-judge-lang";
 const problemLangKey = (problemId: string) => `habit-judge-lang:${problemId}`;
 const codeKey = (id: string, lang: Lang) => `habit-judge:${id}:${lang}`;
@@ -188,7 +188,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   const areaRef = useRef<HTMLDivElement>(null);
 
   const savedLang = hydrated ? (store.get(problemLangKey(id)) ?? store.get(LANG_KEY)) : null;
-  const lang: Lang = pickedLang ?? (savedLang === "java" || savedLang === "javascript" || savedLang === "cpp" ? savedLang : "cpp");
+  const lang: Lang = pickedLang ?? (savedLang === "java" || savedLang === "javascript" || savedLang === "python" || savedLang === "cpp" ? savedLang : "cpp");
 
   const loadRuns = useCallback(async () => {
     try {

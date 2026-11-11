@@ -285,7 +285,7 @@ export type SaveSolutionResult = { ok: true; solution: SavedSolution } | { ok: f
 
 /** Keeps the code as your solution for one language of a problem. `verified` is true when the last run of exactly this code passed every case. */
 export async function saveSolutionAction(problemId: string, lang: string, code: string): Promise<SaveSolutionResult> {
-  if (lang !== "cpp" && lang !== "java" && lang !== "javascript") return { ok: false, error: "Unknown language." };
+  if (lang !== "cpp" && lang !== "java" && lang !== "javascript" && lang !== "python") return { ok: false, error: "Unknown language." };
   if (typeof code !== "string" || code.length > 50_000) return { ok: false, error: "The code is too long to save (over 50,000 characters)." };
   const { JUDGE_PROBLEMS } = await import("@habit/shared");
   const known = typeof problemId === "string" && (problemId.startsWith("pack:") ? Boolean(await getPackProblemSpec(problemId)) : Boolean(JUDGE_PROBLEMS[problemId]));

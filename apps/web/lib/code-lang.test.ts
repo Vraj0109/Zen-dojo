@@ -43,3 +43,10 @@ describe("guessLang", () => {
     expect(guessLang("")).toBe("text");
   });
 });
+
+describe("the judge language labels", () => {
+  it("every judge language label maps to an editor language (Python included)", async () => {
+    const { JUDGE_LANG_LABEL, JUDGE_LANGS } = await import("@habit/shared");
+    for (const l of JUDGE_LANGS) expect(toLang(JUDGE_LANG_LABEL[l]), l).toBe(l);
+  });
+});

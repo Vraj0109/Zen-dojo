@@ -52,7 +52,7 @@ describe("saved solutions (the Save button)", () => {
 
   it("refuses unknown problems and languages and code that is too long", async () => {
     expect(await saveSolutionAction("nope", "cpp", "x")).toMatchObject({ ok: false, error: "Unknown problem." });
-    expect(await saveSolutionAction("lc-1", "python", "x")).toMatchObject({ ok: false, error: "Unknown language." });
+    expect(await saveSolutionAction("lc-1", "go", "x")).toMatchObject({ ok: false, error: "Unknown language." });
     expect(await saveSolutionAction("lc-1", "cpp", "x".repeat(50_001))).toMatchObject({ ok: false });
     expect(await getSavedSolutions("lc-1")).toEqual([]);
   });
@@ -68,5 +68,21 @@ describe("the editor small print", () => {
     expect(read("code-editor.tsx")).not.toContain("Tab indents");
     expect(read("judge-workspace.tsx")).not.toContain("Added for you");
     expect(read("judge-workspace.tsx")).toContain("aria-describedby");
+  });
+});
+
+describe("Python solutions", () => {
+  it("are saved per problem, labelled Python, and kept next to the other languages", async () => {
+    const code = "class Solution:\n    pass\n";
+    expect(await saveSolutionAction("lc-1", "python", code)).toMatchObject({ ok: true, solution: { lang: "python", code, verified: false } });
+    await saveSolutionAction("lc-1", "cpp", "class Solution {};");
+    expect((await getSavedSolutions("lc-1")).map((s) => s.lang).sort()).toEqual(["cpp", "python"]);
+    expect(await getNote("lc-1")).toMatchObject({ language: "C++" });
+    await saveSolution("lc-1", code, "Python");
+    expect(await getNote("lc-1")).toMatchObject({ code, language: "Python" });
+  });
+
+  it("the editor help names the Python imports", () => {
+    expect(editorHelp("python")).toContain("ListNode");
   });
 });

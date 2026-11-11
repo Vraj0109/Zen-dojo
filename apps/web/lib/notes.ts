@@ -24,9 +24,9 @@ export async function getNotedIds(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.id));
 }
 
-export type SolutionLang = "cpp" | "java" | "javascript";
-const SOLUTION_LANGS: Record<string, SolutionLang> = { "C++": "cpp", Java: "java", JavaScript: "javascript" };
-const LANG_LABEL: Record<SolutionLang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript" };
+export type SolutionLang = "cpp" | "java" | "javascript" | "python";
+const SOLUTION_LANGS: Record<string, SolutionLang> = { "C++": "cpp", Java: "java", JavaScript: "javascript", Python: "python" };
+const LANG_LABEL: Record<SolutionLang, string> = { cpp: "C++", java: "Java", javascript: "JavaScript", python: "Python" };
 
 /** A solution you saved for one language of a problem. `verified`: the last run of exactly this code passed every case. */
 export interface SavedSolution {
