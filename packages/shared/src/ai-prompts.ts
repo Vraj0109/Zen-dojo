@@ -1,5 +1,7 @@
 // Plans 0060 and 0067: prompts for the AI chat. Pure functions. The reference solution is added only when revealSolution is true.
 
+import type { PortfolioData } from "./portfolio";
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -164,4 +166,64 @@ export function buildLessonChatMessages(input: LessonChatInput): ChatMessage[] {
     clip(input.material, MAX_LESSON_CHARS),
   ].join("\n");
   return [{ role: "system", content: system }, ...trimChatHistory(input.history)];
+}
+
+export interface BuddyChatInput {
+  /** The companion's name: the imported pet's name, or the Buddy's own name. */
+  name: string;
+  /** What the pet is (from its pet.json). Treated as data; may be empty. */
+  description?: string;
+  tone?: "calm" | "peer" | "coach";
+  history: VisibleMessage[];
+}
+
+const cleanPersona = (s: string | undefined, max: number): string =>
+  // eslint-disable-next-line no-control-regex
+  (s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+
+const TONE_VOICE: Record<string, string> = {
+  calm: "calm and grounding",
+  peer: "friendly and relatable, like a study friend",
+  coach: "direct and motivating, like a coach",
+};
+
+/** Messages for chatting with the Buddy as a character. No problem, code or notes: only the persona and the conversation. */
+export function buildBuddyChatMessages(input: BuddyChatInput): ChatMessage[] {
+  const name = cleanPersona(input.name, 60) || "Buddy";
+  const about = cleanPersona(input.description, 300);
+  const system = [
+    `You are playing ${name}, the learner's study companion in an interview-preparation app.`,
+    about ? `About you: ${about}` : "",
+    `Speak the way this character speaks (their well-known personality and manner), with a ${TONE_VOICE[input.tone ?? "peer"] ?? TONE_VOICE.peer} undertone.`,
+    "Keep replies short: one to three sentences, unless the learner asks you to explain something. If they ask a technical question, answer it correctly and briefly, still in character.",
+    "Be kind and safe for work. No emoji. Never say you are an AI model or break character; if you do not know something, say so in character.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return [{ role: "system", content: system }, ...trimChatHistory(input.history)];
+}
+
+/** Messages for writing a short profile summary from public-safe portfolio numbers. The server passes its own data, never the browser's. */
+export function buildPortfolioSummaryMessages(d: PortfolioData, history: VisibleMessage[]): ChatMessage[] {
+  const name = cleanPersona(d.name, 60) || "The learner";
+  const lines = [
+    `Name: ${name}`,
+    `Problems solved: ${d.totalSolved} (${d.solvedByDifficulty.easy} easy, ${d.solvedByDifficulty.medium} medium, ${d.solvedByDifficulty.hard} hard)`,
+    `Streak: ${d.streak} days now, best ${d.bestStreak} days`,
+    d.activeDays !== undefined ? `Active days: ${d.activeDays}` : "",
+    d.hours !== undefined ? `Focused practice: about ${Math.round(d.hours)} hours` : "",
+    `Level ${d.level}, ${d.xp} XP; ${d.planWeeksDone} of 16 plan weeks done`,
+    ...d.courses
+      .filter((c) => c.done > 0)
+      .slice(0, 40)
+      .map((c) => `Course: ${cleanPersona(c.title, 80)}: ${c.done} of ${c.total} done${c.total > 0 && c.done >= c.total ? " (completed)" : ""}`),
+    d.badges?.length ? `Badges earned: ${d.badges.filter((b) => b.earned).map((b) => cleanPersona(b.title, 40)).join(", ") || "none yet"}` : "",
+  ].filter(Boolean);
+  const system = [
+    "You write a short, friendly, factual profile summary of someone's interview-preparation work, from the data below.",
+    "Write 3 to 5 sentences in the third person, using their name. Use only the numbers and course names given; never invent achievements, employers or dates. Highlight strengths (volume, consistency, completed courses) and mention what is in progress. No emoji, no headings, no bullet lists.",
+    "",
+    ...lines,
+  ].join("\n");
+  return [{ role: "system", content: system }, ...trimChatHistory(history)];
 }

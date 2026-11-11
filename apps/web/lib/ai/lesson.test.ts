@@ -57,3 +57,14 @@ describe("parseChatRequest with a lesson", () => {
     expect(parseChatRequest({ messages: msgs })).toBeNull();
   });
 });
+
+describe("buddy chat", () => {
+  it("parses a buddy request and rejects mixing modes", () => {
+    const msgs = [{ role: "user", content: "hi" }];
+    const r = parseChatRequest({ buddy: { name: "Shinchan", description: "A tiny mischievous boy.", tone: "peer" }, messages: msgs });
+    expect(r?.buddy?.name).toBe("Shinchan");
+    expect(r?.problemId).toBeUndefined();
+    expect(parseChatRequest({ buddy: { name: "" }, messages: msgs })).toBeNull();
+    expect(parseChatRequest({ buddy: { name: "A" }, lessonId: "x", messages: msgs })).toBeNull();
+  });
+});

@@ -21,6 +21,8 @@ import { BUDDY_SIZE_PX, DEFAULT_BUDDY_PREFS, onBuddyPrefs, readBuddyPrefs, reset
 import type { PetMeta } from "./pets/pet-package";
 import { listPets, loadPetSheetUrl } from "./pets/pet-store";
 import { type DragPos, useDrag } from "./use-drag";
+import { BuddyChat } from "./buddy-chat";
+import { type Bounds, type Motion, isSettled, snapToEdge, springStep, throwTarget } from "./throw-physics";
 
 const EDGE = 16;
 const PANEL_W = 336;
@@ -40,12 +42,13 @@ function viewport() {
   return { w: window.innerWidth, h: window.innerHeight };
 }
 
-export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings?: BuddySettings }) {
+export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS, ai }: { settings?: BuddySettings; ai?: { enabled: boolean } }) {
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [prefs, setPrefs] = useState(() => (typeof window === "undefined" ? DEFAULT_BUDDY_PREFS : readBuddyPrefs()));
   const [vp, setVp] = useState(viewport);
   const [mood, setMood] = useState<BuddyMood>("idle");
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"session" | "chat">("session");
   const [bubble, setBubble] = useState<{ text: string; fading: boolean } | null>(null);
   const [waving, setWaving] = useState(false);
   const [petAsset, setPetAsset] = useState<{ id: string; meta: PetMeta; url: string } | null>(null);
@@ -256,18 +259,72 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
     }),
     [vp, size],
   );
-  const basePos = clamp(prefs.pos ?? { x: EDGE, y: vp.h - size - EDGE });
+  // The Buddy lives on the screen edges only: its resting place is always flush with an edge (EDGE px in).
+  const bounds: Bounds = {
+    minX: EDGE,
+    maxX: Math.max(EDGE, vp.w - size - EDGE),
+    minY: EDGE,
+    maxY: Math.max(EDGE, vp.h - size - EDGE),
+  };
+  const basePos = snapToEdge(clamp(prefs.pos ?? { x: EDGE, y: vp.h - size - EDGE }), bounds);
+
+  // Thrown: a flick slides it with friction toward the edge it is headed for and it settles there on a soft spring (no gravity).
+  const [flying, setFlying] = useState<{ pos: DragPos; vx: number } | null>(null);
+  const raf = useRef<number | null>(null);
+  const stopFlying = useCallback(() => {
+    if (raf.current !== null) cancelAnimationFrame(raf.current);
+    raf.current = null;
+  }, []);
+  useEffect(() => stopFlying, [stopFlying]);
+
+  function startThrow(from: DragPos, v: DragPos) {
+    stopFlying();
+    const target = throwTarget(from, v, bounds);
+    const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      writeBuddyPrefs({ pos: target });
+      return;
+    }
+    let m: Motion = { pos: from, vel: v };
+    let last = performance.now();
+    const frame = (now: number) => {
+      m = springStep(m, target, now - last);
+      last = now;
+      if (isSettled(m, target)) {
+        raf.current = null;
+        setFlying(null);
+        writeBuddyPrefs({ pos: target });
+        return;
+      }
+      setFlying({ pos: clamp(m.pos), vx: m.vel.x });
+      raf.current = requestAnimationFrame(frame);
+    };
+    setFlying({ pos: from, vx: v.x });
+    raf.current = requestAnimationFrame(frame);
+  }
 
   const drag = useDrag({
-    getPos: () => basePos,
-    clamp,
-    onEnd: (p) => {
-      writeBuddyPrefs({ pos: p });
+    getPos: () => {
+      stopFlying();
+      setFlying(null);
+      return flying?.pos ?? basePos;
     },
+    clamp,
+    onEnd: (p, v) => startThrow(p, v),
   });
-  const pos = drag.dragPos ?? basePos;
+  const pos = drag.dragPos ?? flying?.pos ?? basePos;
   const dragDx = drag.dragPos ? drag.dragPos.x - basePos.x : 0;
-  const dragging = drag.dragPos && Math.abs(dragDx) > 2 ? (dragDx < 0 ? "left" : "right") : null;
+  const dragging = drag.dragPos
+    ? Math.abs(dragDx) > 2
+      ? dragDx < 0
+        ? "left"
+        : "right"
+      : null
+    : flying && Math.abs(flying.vx) > 0.05
+      ? flying.vx < 0
+        ? "left"
+        : "right"
+      : null;
 
   // Escape closes the panel.
   useEffect(() => {
@@ -282,17 +339,14 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
   if (!hydrated || off) return null;
 
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
-    const step = e.shiftKey ? 40 : 10;
-    const d: Record<string, DragPos> = {
-      ArrowLeft: { x: -step, y: 0 },
-      ArrowRight: { x: step, y: 0 },
-      ArrowUp: { x: 0, y: -step },
-      ArrowDown: { x: 0, y: step },
-    };
-    const delta = d[e.key];
-    if (!delta) return;
+    // Arrow keys send the Buddy to that edge of the screen (it only ever rests on an edge).
+    const edges = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "top", ArrowDown: "bottom" } as const;
+    const edge = edges[e.key as keyof typeof edges];
+    if (!edge) return;
     e.preventDefault();
-    writeBuddyPrefs({ pos: clamp({ x: basePos.x + delta.x, y: basePos.y + delta.y }) });
+    stopFlying();
+    setFlying(null);
+    writeBuddyPrefs({ pos: snapToEdge(basePos, bounds, edge) });
   };
 
   const onClick = () => {
@@ -305,11 +359,16 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
   // Panel and bubble sit next to the avatar: above it in the lower half of the screen, else below.
   const below = pos.y + size / 2 < vp.h / 2;
   const panelW = Math.min(PANEL_W, vp.w - 16);
+  const chatOn = Boolean(ai?.enabled);
+  const TAB_H = 34; // room for the Co-work / Chat switch between the avatar and the panel
+  const panelLeft = Math.min(Math.max(8, pos.x), Math.max(8, vp.w - panelW - 8));
   const panelStyle: CSSProperties = {
     width: panelW,
-    left: Math.min(Math.max(8, pos.x), Math.max(8, vp.w - panelW - 8)),
-    ...(below ? { top: pos.y + size + 8 } : { bottom: vp.h - pos.y + 8 }),
+    left: panelLeft,
+    ...(below ? { top: pos.y + size + 8 + (chatOn ? TAB_H : 0) } : { bottom: vp.h - pos.y + 8 + (chatOn ? TAB_H : 0) }),
   };
+  const tabStyle: CSSProperties = { width: panelW, left: panelLeft, ...(below ? { top: pos.y + size + 8 } : { bottom: vp.h - pos.y + 8 }) };
+  const persona = prefs.avatar === "pet" && prefs.pet ? { name: prefs.pet.name, description: prefs.pet.description } : { name, description: "" };
   const bubbleRight = pos.x + size / 2 > vp.w / 2; // avatar on the right half: bubble goes to its left
   const bubbleStyle: CSSProperties = {
     top: pos.y + size / 2,
@@ -360,7 +419,26 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
       >
         {bubble?.text}
       </div>
-      <BuddySession settings={settings} open={open} onClose={() => setOpen(false)} style={panelStyle} />
+      {open && chatOn && (
+        <div role="tablist" aria-label="Buddy" style={tabStyle} className="fixed z-40 flex gap-1 print:hidden">
+          {(["session", "chat"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium shadow ${tab === t ? "border-accent bg-accent text-on-accent" : "border-line bg-surface hover:bg-background"}`}
+            >
+              {t === "session" ? "Co-work" : "Chat"}
+            </button>
+          ))}
+        </div>
+      )}
+      <BuddySession settings={settings} open={open && (!chatOn || tab === "session")} onClose={() => setOpen(false)} style={panelStyle} />
+      {open && chatOn && tab === "chat" && (
+        <BuddyChat name={persona.name} description={persona.description} tone={settings.mode === "off" ? "peer" : settings.mode} style={panelStyle} />
+      )}
     </>
   );
 }

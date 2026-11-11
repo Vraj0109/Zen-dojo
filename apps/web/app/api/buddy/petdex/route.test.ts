@@ -42,7 +42,7 @@ describe("POST /api/buddy/petdex", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns the zip bytes and fetches only the two hosts without redirects", async () => {
+  it("returns the zip bytes and fetches only the Petdex hosts", async () => {
     fetchMock.mockImplementation(async (u: string) =>
       u === GOOD ? new Response(`<a href="${ZIP}">zip</a>`) : new Response(new Uint8Array([80, 75, 3, 4])),
     );
@@ -51,7 +51,7 @@ describe("POST /api/buddy/petdex", () => {
     expect(r.headers.get("content-type")).toBe("application/zip");
     expect(Array.from(new Uint8Array(await r.arrayBuffer()))).toEqual([80, 75, 3, 4]);
     expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([GOOD, ZIP]);
-    for (const c of fetchMock.mock.calls) expect(c[1].redirect).toBe("error");
+    for (const c of fetchMock.mock.calls) expect(c[1].redirect).toBe("manual");
   });
 
   it("is 502 not_found when the page has no zip link", async () => {
@@ -68,6 +68,24 @@ describe("POST /api/buddy/petdex", () => {
     const r = await POST(req({ url: GOOD }));
     expect(r.status).toBe(502);
     expect((await r.json()).error).toBe("too_big");
+  });
+
+  it("follows a redirect that stays on a Petdex host", async () => {
+    fetchMock.mockImplementation(async (u: string) => {
+      if (u === GOOD) return new Response(null, { status: 308, headers: { location: "https://www.petdex.dev/pets/shinchan/" } });
+      if (u === "https://www.petdex.dev/pets/shinchan/") return new Response(`<a href="${ZIP}">zip</a>`);
+      return new Response(new Uint8Array([80, 75, 3, 4]));
+    });
+    const r = await POST(req({ url: GOOD }));
+    expect(r.status).toBe(200);
+  });
+
+  it("refuses a redirect to another host", async () => {
+    fetchMock.mockImplementation(async () => new Response(null, { status: 302, headers: { location: "https://evil.example/x" } }));
+    const r = await POST(req({ url: GOOD }));
+    expect(r.status).toBe(502);
+    expect((await r.json()).error).toBe("not_found");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("is 502 fetch_failed when the network fails", async () => {

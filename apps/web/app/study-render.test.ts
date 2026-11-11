@@ -207,7 +207,7 @@ describe("ADHD Buddy session drawer: UI states and personas", () => {
   it("returns null when buddy mode is off", async () => {
     const root = createRoot(container);
     await act(async () => {
-      root.render(React.createElement(BuddySession, { settings: { mode: "off", name: "Buddy", pacing: "gentle" } }));
+      root.render(React.createElement(BuddySession, { settings: { mode: "off", name: "Buddy", pacing: "gentle" }, open: true, onClose: () => {}, style: {} }));
     });
     expect(container.innerHTML).toBe("");
     await act(async () => {
@@ -215,13 +215,24 @@ describe("ADHD Buddy session drawer: UI states and personas", () => {
     });
   });
 
-  it("renders idle floating badge button with custom persona name", async () => {
+  it("renders nothing while the panel is closed", async () => {
     const root = createRoot(container);
     await act(async () => {
-      root.render(React.createElement(BuddySession, { settings: { mode: "coach", name: "Coach Kira", pacing: "gentle" } }));
+      root.render(React.createElement(BuddySession, { settings: { mode: "coach", name: "Coach Kira", pacing: "gentle" }, open: false, onClose: () => {}, style: {} }));
     });
-    expect(container.textContent).toContain("Co-work with Coach Kira");
-    expect(container.querySelector("button")).not.toBeNull();
+    expect(container.innerHTML).toBe("");
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("opens an idle session straight to the check-in with the persona name", async () => {
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(React.createElement(BuddySession, { settings: { mode: "coach", name: "Coach Kira", pacing: "gentle" }, open: true, onClose: () => {}, style: {} }));
+    });
+    expect(container.textContent).toContain("Sprint Check-in");
+    expect(container.textContent).toContain("Coach Kira:");
     await act(async () => {
       root.unmount();
     });
@@ -234,7 +245,7 @@ describe("ADHD Buddy session drawer: UI states and personas", () => {
     );
     const root = createRoot(container);
     await act(async () => {
-      root.render(React.createElement(BuddySession, { settings: { mode: "calm", name: "Spark", pacing: "gentle" } }));
+      root.render(React.createElement(BuddySession, { settings: { mode: "calm", name: "Spark", pacing: "gentle" }, open: true, onClose: () => {}, style: {} }));
     });
 
     expect(container.textContent).toContain("Sprint Check-in");
@@ -266,7 +277,7 @@ describe("ADHD Buddy session drawer: UI states and personas", () => {
     );
     const root = createRoot(container);
     await act(async () => {
-      root.render(React.createElement(BuddySession, { settings: { mode: "peer", name: "Alex", pacing: "gentle" } }));
+      root.render(React.createElement(BuddySession, { settings: { mode: "peer", name: "Alex", pacing: "gentle" }, open: true, onClose: () => {}, style: {} }));
     });
 
     expect(container.textContent).toContain("With Alex");
@@ -293,7 +304,7 @@ describe("ADHD Buddy session drawer: UI states and personas", () => {
     );
     const root = createRoot(container);
     await act(async () => {
-      root.render(React.createElement(BuddySession, { settings: { mode: "coach", name: "Sensei", pacing: "gentle" } }));
+      root.render(React.createElement(BuddySession, { settings: { mode: "coach", name: "Sensei", pacing: "gentle" }, open: true, onClose: () => {}, style: {} }));
     });
 
     expect(container.textContent).toContain("Sprint Complete");
@@ -316,7 +327,7 @@ describe("ADHD Buddy session drawer: UI states and personas", () => {
       );
       const root = createRoot(container);
       await act(async () => {
-        root.render(React.createElement(BuddySession, { settings: { mode: tone, name: "Guide", pacing: "gentle" } }));
+        root.render(React.createElement(BuddySession, { settings: { mode: tone, name: "Guide", pacing: "gentle" }, open: true, onClose: () => {}, style: {} }));
       });
 
       expect(container.textContent).toContain("Sprint Check-in");

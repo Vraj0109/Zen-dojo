@@ -36,10 +36,39 @@ async function readCapped(res: Response, cap: number): Promise<Uint8Array> {
   return out;
 }
 
-async function get(url: string, ms: number, cap: number): Promise<Uint8Array | null> {
-  const res = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(ms), headers: { accept: "*/*" } });
-  if (!res.ok) return null;
-  return readCapped(res, cap);
+/** Hosts a Petdex fetch may touch, including after a redirect (checked on every hop). */
+const ALLOWED_HOSTS = new Set(["petdex.dev", "www.petdex.dev", "assets.petdex.dev"]);
+const MAX_HOPS = 3;
+
+class Upstream extends Error {
+  constructor(readonly code: "not_found" | "timeout" | "unreachable") {
+    super(code);
+  }
+}
+
+/** GET with manual redirects: https only, each hop must stay on a Petdex host, at most 3 hops. */
+async function get(url: string, ms: number, cap: number): Promise<Uint8Array> {
+  let cur = url;
+  for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    const u = new URL(cur);
+    if (u.protocol !== "https:" || !ALLOWED_HOSTS.has(u.hostname.toLowerCase()) || u.port || u.username || u.password) throw new Upstream("not_found");
+    let res: Response;
+    try {
+      res = await fetch(cur, { redirect: "manual", signal: AbortSignal.timeout(ms), headers: { accept: "*/*", "user-agent": "ZenDojo-pet-import" } });
+    } catch (e) {
+      const name = (e as { name?: string }).name;
+      throw new Upstream(name === "TimeoutError" || name === "AbortError" ? "timeout" : "unreachable");
+    }
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) throw new Upstream("not_found");
+      cur = new URL(loc, cur).href;
+      continue;
+    }
+    if (!res.ok) throw new Upstream("not_found");
+    return readCapped(res, cap);
+  }
+  throw new Upstream("not_found");
 }
 
 export async function POST(req: Request) {
@@ -55,17 +84,17 @@ export async function POST(req: Request) {
   const parsed = parsePetdexUrl(url);
   if (!parsed) return fail(400, "bad_url");
   try {
-    const page = await get(parsed.pageUrl, 10_000, PAGE_CAP);
-    if (!page) return fail(502, "not_found");
+    const page = await get(parsed.pageUrl, 15_000, PAGE_CAP);
     const zipUrl = findZipUrl(new TextDecoder().decode(page), parsed.slug);
     if (!zipUrl || !isAssetUrl(zipUrl)) return fail(502, "not_found");
-    const zip = await get(zipUrl, 30_000, ZIP_CAP);
-    if (!zip) return fail(502, "not_found");
+    const zip = await get(zipUrl, 45_000, ZIP_CAP);
     return new Response(zip as BodyInit, {
       status: 200,
       headers: { "content-type": "application/zip", "cache-control": "no-store", "x-content-type-options": "nosniff" },
     });
   } catch (e) {
-    return fail(502, e instanceof TooBig ? "too_big" : "fetch_failed");
+    if (e instanceof TooBig) return fail(502, "too_big");
+    if (e instanceof Upstream) return fail(502, e.code === "not_found" ? "not_found" : e.code === "timeout" ? "timeout" : "fetch_failed");
+    return fail(502, "fetch_failed");
   }
 }

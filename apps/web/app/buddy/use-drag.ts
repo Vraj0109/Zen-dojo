@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type PointerEvent } from "react";
+import { releaseVelocity } from "./throw-physics";
 
 export interface DragPos {
   x: number;
@@ -17,6 +18,7 @@ interface DragState {
   origin: DragPos;
   moved: boolean;
   last: DragPos;
+  samples: { t: number; x: number; y: number }[];
 }
 
 /**
@@ -32,7 +34,8 @@ export function useDrag({
 }: {
   getPos: () => DragPos;
   clamp: (p: DragPos) => DragPos;
-  onEnd: (p: DragPos) => void;
+  /** Final position and the release velocity in px per ms (0,0 when the pointer rested before letting go). */
+  onEnd: (p: DragPos, v: DragPos) => void;
 }) {
   const [dragPos, setDragPos] = useState<DragPos | null>(null);
   const state = useRef<DragState | null>(null);
@@ -53,7 +56,8 @@ export function useDrag({
         setTimeout(() => {
           swallowClick.current = false;
         }, 0);
-        onEnd(s.last);
+        s.samples.push({ t: performance.now(), x: e.clientX, y: e.clientY });
+        onEnd(s.last, releaseVelocity(s.samples));
       }
       setDragPos(null);
     }
@@ -68,7 +72,7 @@ export function useDrag({
       onPointerDown(e: PointerEvent<HTMLElement>) {
         if (e.button !== 0) return;
         const origin = getPos();
-        state.current = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, origin, moved: false, last: origin };
+        state.current = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, origin, moved: false, last: origin, samples: [] };
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
@@ -83,6 +87,8 @@ export function useDrag({
         if (!s.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
         s.moved = true;
         s.last = clamp({ x: s.origin.x + dx, y: s.origin.y + dy });
+        s.samples.push({ t: performance.now(), x: e.clientX, y: e.clientY });
+        if (s.samples.length > 40) s.samples.shift();
         setDragPos(s.last);
       },
       onPointerUp(e: PointerEvent<HTMLElement>) {

@@ -14,7 +14,8 @@ const PETDEX_ERRORS: Record<string, string> = {
   bad_url: "That is not a Petdex pet link. It should look like https://petdex.dev/pets/shinchan.",
   not_found: "Could not find the pet's download on that page.",
   too_big: "That pet is too big to import (over 6 MB).",
-  fetch_failed: "Could not reach petdex.dev. Check your connection, or download the zip and upload it here.",
+  fetch_failed: "Could not reach petdex.dev from this computer. Check your connection or firewall, or download the zip from the pet's page and upload it here.",
+  timeout: "petdex.dev took too long to answer. Try again, or download the zip and upload it here.",
   forbidden: "The request was refused.",
 };
 
