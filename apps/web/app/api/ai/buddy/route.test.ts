@@ -56,6 +56,14 @@ describe("POST /api/ai/buddy", () => {
     expect(all).toContain("Say it.");
   });
 
+  it("writes in a pet's voice when a persona is sent", async () => {
+    chatSpy.mockReturnValue(words("Hehe, done!"));
+    const res = await POST(req({ ...good, persona: { name: "Shinchan", description: "A mischievous boy" } }));
+    expect(res.status).toBe(200);
+    const messages = chatSpy.mock.calls[0]![1] as { role: string; content: string }[];
+    expect(messages[0]!.content).toContain("You are playing Shinchan.");
+  });
+
   it("is 404 when hosted, 403 cross-origin or disabled, 400 for a bad body", async () => {
     vi.stubEnv("HABIT_HOSTED", "1");
     expect((await POST(req(good))).status).toBe(404);

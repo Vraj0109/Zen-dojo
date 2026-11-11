@@ -1,10 +1,10 @@
 import type { BuddyLineEvent, BuddyTone } from "@habit/shared";
 
 /**
- * Ask the AI for one short Buddy line. Sends only the event, the tone and the buddy's name.
+ * Ask the AI for one short Buddy line. Sends only the event, the tone, the buddy's name and, for a pet, the pet's name and description.
  * Returns null on any failure (off, not allowed, rate limited, offline) or after 25 seconds, so the caller uses a built-in line.
  */
-export async function fetchAiLine(event: BuddyLineEvent, tone: BuddyTone, name: string, signal?: AbortSignal): Promise<string | null> {
+export async function fetchAiLine(event: BuddyLineEvent, tone: BuddyTone, name: string, signal?: AbortSignal, persona?: { name: string; description: string }): Promise<string | null> {
   const ctl = new AbortController();
   const onAbort = () => ctl.abort();
   if (signal) {
@@ -16,7 +16,7 @@ export async function fetchAiLine(event: BuddyLineEvent, tone: BuddyTone, name: 
     const res = await fetch("/api/ai/buddy", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ event, tone, name }),
+      body: JSON.stringify(persona ? { event, tone, name, persona } : { event, tone, name }),
       signal: ctl.signal,
     });
     if (!res.ok) return null;

@@ -3,7 +3,7 @@ import { aiError, guardAi, isResponse } from "@/lib/ai/guard";
 import { buildBuddyMessages, cleanBuddyLine, parseBuddyRequest } from "@/lib/ai/buddy";
 import { getProvider } from "@/lib/ai/providers";
 
-// Plan 0068. Body: { event, tone, name }. Returns { line }. Only those three values reach the model: no code, notes or problem text.
+// Plan 0068. Body: { event, tone, name, persona? }. Returns { line }. Only those values (and an imported pet's name and description) reach the model: no code, notes or problem text.
 // At most one request every 30 seconds per server process; beyond that 429 "slow_down" and the client uses a built-in line.
 const MIN_GAP_MS = 30_000;
 const TIMEOUT_MS = 25_000;

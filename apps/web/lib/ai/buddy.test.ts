@@ -29,4 +29,21 @@ describe("buddy ai prompt", () => {
     expect(cleanBuddyLine("   \n ")).toBeNull();
     expect(cleanBuddyLine('""')).toBeNull();
   });
+
+  it("accepts an optional persona, capping and cleaning it", () => {
+    const r = parseBuddyRequest({ event: "solved", tone: "peer", name: "Pip", persona: { name: "Shinchan", description: "x".repeat(500) } });
+    expect(r?.persona?.name).toBe("Shin chan");
+    expect(r?.persona?.description).toHaveLength(300);
+    expect(parseBuddyRequest({ event: "solved", tone: "peer", name: "Pip", persona: "bad" })).toBeNull();
+    expect(parseBuddyRequest({ event: "solved", tone: "peer", name: "Pip", persona: { name: "  " } })).toBeNull();
+    expect(parseBuddyRequest({ event: "solved", tone: "peer", name: "Pip" })?.persona).toBeUndefined();
+  });
+
+  it("builds the persona prompt from only the event, tone and the pet's name and description", () => {
+    const m = buildBuddyMessages({ event: "solved", tone: "coach", name: "Rex", persona: { name: "Shinchan", description: "A mischievous boy" } });
+    expect(m[0]!.content).toContain("You are playing Shinchan.");
+    expect(m[0]!.content).toContain("A mischievous boy");
+    expect(m[0]!.content).toContain("solved a practice problem");
+    expect(m[0]!.content).not.toContain("Rex");
+  });
 });
