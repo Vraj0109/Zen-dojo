@@ -274,7 +274,7 @@ function UpNextItem({ row, link }: { row: UpNextRow; link: (t: Task) => TaskLink
     <li className="hit flex items-center gap-3 p-4">
       <span aria-hidden className="size-6 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="font-medium">{row.title}</p>
+        <p className="break-words font-medium">{row.title}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
           <span className="font-medium text-accent">{row.label}</span>
           <span>· {row.detail}</span>
@@ -320,7 +320,7 @@ function TaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
         </SubmitButton>
       </form>
       <div className="min-w-0 flex-1">
-        <p className={done ? "text-muted line-through" : "font-medium"}>{t.title}</p>
+        <p className={done ? "break-words text-muted line-through" : "break-words font-medium"}>{t.title}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           <span className={`inline-block size-2 rounded-full ${CATEGORY_STYLES[cat]}`} />
           {CATEGORIES[cat].label}

@@ -81,7 +81,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         </section>
       )}
 
-      <div className="grid gap-8 xl:grid-cols-2">
+      <div className="xl:columns-2 xl:gap-8 [&>section]:mb-8 [&>section]:break-inside-avoid">
       {sections.map((s) => {
         const covered = s.concepts.filter((c) => c.confidence >= COVERED_CONFIDENCE).length;
         return (

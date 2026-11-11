@@ -148,7 +148,7 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
           <span className="block truncate font-medium">{user.name}</span>
           {user.admin && <span className="block text-[11px] text-muted">Admin</span>}
         </span>
-        <span className={`text-muted transition-transform ${open ? "" : "rotate-180"}`}>
+        <span className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}>
           <Icon d={ICON.chevron} />
         </span>
       </button>
