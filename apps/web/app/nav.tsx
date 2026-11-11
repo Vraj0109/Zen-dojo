@@ -25,7 +25,7 @@ type NavLink = {
 
 // Five items: the daily list, practice, learning, review, and you. Everything else is a tab inside one of them.
 const MAIN: NavLink[] = [
-  { href: "/", label: "Today", icon: "today", matches: [] },
+  { href: "/", label: "Today", icon: "today", matches: ["/backlog"] },
   { href: "/dsa", label: "Practice", icon: "dsa", matches: ["/dsa"] },
   { href: "/study", label: "Learn", icon: "learn", matches: ["/study"] },
   { href: "/review", label: "Review", icon: "review", matches: ["/review", "/revise"] },
@@ -40,7 +40,7 @@ const within = (pathname: string, base: string) => pathname === base || pathname
 /** Which nav item a path belongs to (exported for tests). */
 export function isActive(link: Pick<NavLink, "href" | "matches">, pathname: string | null): boolean {
   if (pathname === null) return false;
-  if (link.href === "/") return pathname === "/";
+  if (link.href === "/" && pathname === "/") return true;
   return link.matches.some((m) => within(pathname, m));
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isActive } from "./nav";
 
-const today = { href: "/", matches: [] };
+const today = { href: "/", matches: ["/backlog"] };
 const practice = { href: "/dsa", matches: ["/dsa"] };
 const learn = { href: "/study", matches: ["/study"] };
 const review = { href: "/review", matches: ["/review", "/revise"] };
@@ -9,6 +9,7 @@ const profile = { href: "/profile", matches: ["/profile", "/roadmap"] };
 
 const ACTIVE: Record<string, string> = {
   "/": "today",
+  "/backlog": "today",
   "/dsa": "practice",
   "/dsa/boss": "practice",
   "/dsa/pattern/hash-map": "practice",
