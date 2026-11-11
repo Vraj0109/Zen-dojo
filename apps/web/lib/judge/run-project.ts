@@ -3,6 +3,7 @@ import { execFile, spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { tool } from "./resolve";
 
 export interface Diagnostic {
   file: string;
@@ -31,8 +32,6 @@ export interface RunJavaProjectOptions {
 const DEFAULT_TIMEOUT_MS = 5000;
 const COMPILE_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_CHARS = 500_000;
-
-const tool = (envName: string, fallback: string) => process.env[envName] || fallback;
 
 export function cleanDirFromOutput(text: string, dir: string): string {
   const norm = dir.replace(/\\/g, "/");

@@ -1,9 +1,11 @@
 import type { JudgeLang, ProblemSpec, Ty } from "@habit/shared";
 import { cppDesignCase, javaDesignCase, jsDesignCase } from "./harness-design";
 import { cppNodeIo, cppPrelude, javaNodeHelpers, javaNodeWriter, jsArg, jsNodePrelude, jsResult } from "./harness-nodes";
+import { pythonProgram as buildPythonProgram } from "./harness-python";
 import { isSpecialProblem, specialCppCase, specialJavaCase, specialJsCase } from "./harness-special";
 
 export { javaSupportFiles } from "./harness-nodes";
+export { PYTHON_PRELUDE_LINES } from "./harness-python";
 
 // Builds the program that runs your function on the test cases. Your code is placed first, then this harness reads
 // the cases from standard input (line 1: how many; then one JSON array of arguments per line), calls your function,
@@ -296,5 +298,8 @@ for (let t = 1; t <= __n; t++) {
 `
   );
 }
+
+/** The Python program: hidden prelude, your code, harness (see harness-python.ts). */
+export const pythonProgram = (spec: ProblemSpec, userCode: string) => buildPythonProgram(spec, userCode, MEMORY_LIMIT_MB);
 
 export type { JudgeLang };

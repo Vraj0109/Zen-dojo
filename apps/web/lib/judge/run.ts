@@ -6,10 +6,11 @@ import os from "node:os";
 import path from "node:path";
 import type { JudgeLang, ProblemSpec } from "@habit/shared";
 import { firstDifference, sameAnswer } from "./compare";
-import { CPP_PRELUDE_LINES, JAVA_PRELUDE, JAVA_PRELUDE_LINES, MEMORY_LIMIT_MB, cppProgram, javaProgram, javaSupportFiles, javascriptProgram } from "./harness";
+import { CPP_PRELUDE_LINES, JAVA_PRELUDE, JAVA_PRELUDE_LINES, MEMORY_LIMIT_MB, PYTHON_PRELUDE_LINES, cppProgram, javaProgram, javaSupportFiles, javascriptProgram, pythonProgram } from "./harness";
+import { pythonCommand, resolveTool, tool } from "./resolve";
 
 // Runs your code on a problem's test cases, on this computer, like LeetCode's Run button. It compiles with the
-// compilers installed here (g++, a JDK, Node) and runs the program with time, memory and output limits. Nothing leaves
+// tools installed here (g++, a JDK, Node, Python 3) and runs the program with time, memory and output limits. Nothing leaves
 // the machine. The programs are your own code: the route that calls this only accepts same-origin requests.
 //
 // How the answers get out: the test program writes each answer to a file (results.txt) and keeps standard output free
@@ -20,7 +21,7 @@ import { CPP_PRELUDE_LINES, JAVA_PRELUDE, JAVA_PRELUDE_LINES, MEMORY_LIMIT_MB, c
 // Three kinds of case: the examples, more tests (answers written into the problem), and "large inputs" that check speed
 // and memory. A large input has no stored answer: the reference solution computes it once (and the result is kept while
 // the app runs). Each large input runs in its own process with its own time limit (1.5 s for C++, 3 times that for Java,
-// 5 times for JavaScript, unless the problem says otherwise), and every program is limited to 256 MB.
+// 5 times for JavaScript, 10 times for Python, unless the problem says otherwise), and every program is limited to 256 MB.
 
 export const JUDGE_LIMITS = {
   code: 100_000,
@@ -40,14 +41,15 @@ export const JUDGE_LIMITS = {
 
 /** Default time limit of a large input in C++, in milliseconds. */
 export const DEFAULT_LIMIT_MS = 1500;
-/** Java starts slowly and JavaScript is slower, so they get longer. */
-export const TIME_MULTIPLIER: Record<JudgeLang, number> = { cpp: 1, java: 3, javascript: 5 };
+/** Java starts slowly, JavaScript is slower and Python slower still, so they get longer. */
+export const TIME_MULTIPLIER: Record<JudgeLang, number> = { cpp: 1, java: 3, javascript: 5, python: 10 };
 
 /** Default time limit per test case in milliseconds, by language. */
 export const DEFAULT_TIME_LIMIT_MS: Record<JudgeLang, number> = {
   cpp: 1000,
   java: 2500,
   javascript: 4000,
+  python: 5000,
 };
 
 export type CaseResult = {
@@ -77,9 +79,7 @@ export type RunResult =
   | { status: "compile_error"; message: string }
   | { status: "done"; message?: string; results: CaseResult[]; passed: number; total: number; beforeTests?: string; saved?: boolean };
 
-/** Where each tool is. Set HABIT_GPP / HABIT_JAVAC / HABIT_JAVA / HABIT_NODE if yours are not on PATH. */
-const tool = (envName: string, fallback: string) => process.env[envName] || fallback;
-const nodeBinary = () => process.env.HABIT_NODE || (process.versions.electron ? "node" : process.execPath);
+// Where each tool is: see resolve.ts. Set HABIT_GPP / HABIT_JAVAC / HABIT_JAVA / HABIT_NODE / HABIT_PYTHON if yours are not on PATH.
 
 interface Exec {
   code: number | null;
@@ -144,7 +144,7 @@ function killProcessTree(child: ReturnType<typeof spawn>): void {
 function runProcess(
   file: string,
   args: string[],
-  opts: { cwd: string; timeout: number; input?: string; perCaseTimeout?: number }
+  opts: { cwd: string; timeout: number; input?: string; perCaseTimeout?: number; env?: Record<string, string> }
 ): Promise<Exec> {
   return new Promise((resolve) => {
     const startedAt = Date.now();
@@ -161,7 +161,7 @@ function runProcess(
     let child: ReturnType<typeof spawn>;
     const isWindows = process.platform === "win32";
     try {
-      child = spawn(file, args, { cwd: opts.cwd, windowsHide: true, stdio: ["pipe", fd, fd], detached: !isWindows });
+      child = spawn(file, args, { cwd: opts.cwd, windowsHide: true, stdio: ["pipe", fd, fd], detached: !isWindows, ...(opts.env ? { env: { ...process.env, ...opts.env } } : {}) });
     } catch (e) {
       // Some failures (Windows "spawn UNKNOWN") are thrown instead of sent as an error event.
       closeSync(fd);
@@ -237,6 +237,7 @@ const MISSING: Record<JudgeLang, string> = {
   cpp: "g++ was not found. Install a C++ compiler (on Windows: winget install BrechtSanders.WinLibs.POSIX.UCRT) and restart the app, or set HABIT_GPP to its path.",
   java: "A JDK was not found (javac and java). Install one (on Windows: winget install EclipseAdoptium.Temurin.17.JDK) and restart the app, or set HABIT_JAVAC and HABIT_JAVA.",
   javascript: "Node was not found. Install Node.js and restart the app, or set HABIT_NODE.",
+  python: "Python 3 was not found. Install it (on Windows: winget install Python.Python.3.12) and restart the app, or set HABIT_PYTHON to the python program. The Microsoft Store shortcut named python does not count.",
 };
 
 /** Hide the temporary folder name in compiler messages. */
@@ -248,9 +249,9 @@ const clean = (text: string, dir: string) => text.split(dir).join(".").replaceAl
  */
 export function shiftLines(text: string, preludeLines: number, userLines: number): string {
   const inUser = (n: number) => n > preludeLines && n <= preludeLines + userLines;
-  const lined = text.replace(/(?:\.\/)?(main\.cpp|Solution\.java|[A-Za-z]+\.java):(\d+)(?::\d+)?/g, (_m, file: string, n: string) => {
+  const lined = text.replace(/(?:\.\/)?(main\.cpp|main\.py|Solution\.java|[A-Za-z]+\.java):(\d+)(?::\d+)?/g, (_m, file: string, n: string) => {
     const k = Number(n);
-    if (file === "main.cpp" || file === "Solution.java") return inUser(k) ? `line ${k - preludeLines}` : "code added by the judge";
+    if (file === "main.cpp" || file === "main.py" || file === "Solution.java") return inUser(k) ? `line ${k - preludeLines}` : "code added by the judge";
     return "code added by the judge";
   });
   // gcc also quotes the source line with its number: "   12 | int x"
@@ -279,10 +280,10 @@ export function splitOutput(output: string): { before: string; perCase: Map<numb
 
 const cap = (text: string) => (text.length > JUDGE_LIMITS.perCaseOutput ? text.slice(0, JUDGE_LIMITS.perCaseOutput) + "\n... (output cut off)" : text);
 const brief = (text: string, n = 240) => (text.length > n ? text.slice(0, n) + "..." : text);
-const OUT_OF_MEMORY = /bad_alloc|OutOfMemoryError|heap out of memory|Allocation failed|out of memory/i;
+const OUT_OF_MEMORY = /bad_alloc|OutOfMemoryError|MemoryError|heap out of memory|Allocation failed|out of memory/i;
 
 interface Prepared {
-  run: { file: string; args: string[] };
+  run: { file: string; args: string[]; env?: Record<string, string> };
 }
 
 /** Writes the program into `dir` and compiles it. Returns how to start it, or the result to report instead. */
@@ -311,8 +312,25 @@ async function prepare(spec: ProblemSpec, lang: JudgeLang, code: string, dir: st
     if (!c.ok) return { ok: false, result: { status: "compile_error", message: shift ? shiftLines(clean(c.text, dir), JAVA_PRELUDE_LINES, code.split("\n").length) : clean(c.text, dir) } };
     return { ok: true, value: { run: { file: tool("HABIT_JAVA", "java"), args: [`-Xmx${MEMORY_LIMIT_MB}m`, "-Xss64m", "-cp", ".", "Main"] } } };
   }
+  if (lang === "python") {
+    const py = pythonCommand();
+    if (!py.found) return { ok: false, result: { status: "unavailable", message: MISSING.python } };
+    await writeFile(path.join(dir, "main.py"), pythonProgram(spec, code));
+    // Check the syntax first, so a typo is reported as a compile error with your line number (not as a crash).
+    const check =
+      "import sys\ntry:\n    compile(open('main.py', encoding='utf-8').read(), 'main.py', 'exec')\nexcept SyntaxError as e:\n" +
+      "    print('main.py:%s: %s: %s' % (e.lineno, type(e).__name__, e.msg))\n    print('    ' + (e.text or '').strip())\n    sys.exit(1)\n";
+    await writeFile(path.join(dir, "check.py"), check);
+    const c = await runCompiler(py.file, [...py.args, "check.py"], dir);
+    if (c.missing) return { ok: false, result: { status: "unavailable", message: MISSING.python } };
+    if (c.timedOut) return { ok: false, result: { status: "compile_error", message: "Python took too long to check the code." } };
+    if (!c.ok) return { ok: false, result: { status: "compile_error", message: shift ? shiftLines(clean(c.text, dir), PYTHON_PRELUDE_LINES, code.split("\n").length) : clean(c.text, dir) } };
+    // -u: unbuffered, so what your code prints keeps its order and survives a crash. -X utf8: UTF-8 whatever the console is.
+    return { ok: true, value: { run: { file: py.file, args: [...py.args, "-X", "utf8", "-u", "main.py"] } } };
+  }
   await writeFile(path.join(dir, "main.js"), javascriptProgram(spec, code));
-  return { ok: true, value: { run: { file: nodeBinary(), args: [`--max-old-space-size=${MEMORY_LIMIT_MB}`, "main.js"] } } };
+  const node = resolveTool("node");
+  return { ok: true, value: { run: { ...node, args: [...node.args, `--max-old-space-size=${MEMORY_LIMIT_MB}`, "main.js"] } } };
 }
 
 interface RunCase {
@@ -361,8 +379,9 @@ async function runSet(
       timeout: limit,
       input: stdin,
       perCaseTimeout: caseTimeLimitMs,
+      env: run.env,
     });
-    budget -= Date.now() - started;
+    budget -=Date.now() - started;
     if (r.missing) {
       unavailable = true;
       break;

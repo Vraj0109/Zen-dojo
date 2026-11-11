@@ -108,7 +108,7 @@ export function nodeCommand(deps: ResolveDeps = {}): ToolCommand {
   const own: ToolCommand = { file: execPath, args: [], env: { ELECTRON_RUN_AS_NODE: "1" } };
   let works = false;
   try {
-    const r = run(own.file, ["-e", "process.exit(0)"], { env: { ...env, ELECTRON_RUN_AS_NODE: "1" }, timeout: PROBE_MS, windowsHide: true });
+    const r = run(own.file, ["-e", "process.exit(0)"], { env: { ...env, ELECTRON_RUN_AS_NODE: "1" } as unknown as NodeJS.ProcessEnv, timeout: PROBE_MS, windowsHide: true });
     works = !r.error && r.status === 0;
   } catch {
     works = false;

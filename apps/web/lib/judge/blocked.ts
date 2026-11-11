@@ -1,4 +1,4 @@
-export type JudgeLang = "cpp" | "java" | "javascript";
+export type JudgeLang = "cpp" | "java" | "javascript" | "python";
 
 /** True when a failed start means the OS blocked the program, not that the tool is missing. */
 export function isBlockedSpawnError(e: unknown): boolean {
