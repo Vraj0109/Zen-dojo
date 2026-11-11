@@ -15,6 +15,7 @@ export * from "./cp-algorithms";
 export * from "./packs";
 export * from "./content-items";
 export * from "./buddy";
+export * from "./buddy-lines";
 export * from "./tool-hints";
 export * from "./ai-models";
 export * from "./ai-prompts";
