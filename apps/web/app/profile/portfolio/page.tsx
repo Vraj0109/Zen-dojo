@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getPortfolio } from "@/lib/portfolio";
+import { getAiSettings } from "@/lib/ui-prefs";
 import { PageMain } from "../../ui";
 import { PortfolioView } from "../../u/portfolio-view";
 import { ProfileTabs } from "../profile-ui";
@@ -22,7 +23,7 @@ export default function PortfolioPage() {
 
 async function Portfolio() {
   await connection();
-  const data = await getPortfolio();
+  const [data, ai] = await Promise.all([getPortfolio(), process.env.HABIT_HOSTED === "1" ? null : getAiSettings()]);
   return (
     <div className="space-y-8">
       <p className="text-sm">
@@ -34,7 +35,7 @@ async function Portfolio() {
           Edit your name
         </Link>
       </p>
-      <PortfolioView data={data} certificateHref={(id) => `/profile/certificates/${encodeURIComponent(id)}`} />
+      <PortfolioView data={data} aiEnabled={Boolean(ai?.enabled)} certificateHref={(id) => `/profile/certificates/${encodeURIComponent(id)}`} />
       <section className="rounded-xl border border-line bg-surface p-4">
         <h3 className="text-lg font-semibold">Share</h3>
         <p className="mt-1 text-sm text-muted">
