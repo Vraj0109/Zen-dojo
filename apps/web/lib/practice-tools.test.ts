@@ -1,3 +1,4 @@
+import { parseWeekKey } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { pickBoss, getBossView, saveBossFight } from "./boss";
 import { addDiagram, getDiagramImage, getDiagrams, sniffImage } from "./diagrams";
@@ -170,7 +171,7 @@ describe("boss fight", () => {
     expect(all.find((p) => p.id === a)!.status.state).toBe("solved");
     expect(all.find((p) => p.id === b)!.struggling).toBe(true);
     const today = await getTodayView();
-    expect(today.dayTasks.find((t) => t.templateKey === "timed-set")!.status).toBe("done");
+    expect(today.dayTasks.find((t) => (parseWeekKey(t.templateKey)?.key ?? t.templateKey) === "timed-set")!.status).toBe("done");
     expect((await getBossView()).foughtToday).toMatchObject({ minutes: 110 });
   });
 });

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, like } from "drizzle-orm";
 import { PROBLEMS, RESOLVE_AFTER_DAYS, RESOLVE_XP, SOLVE_XP, daysBetween, solveXp, toLocalDate } from "@habit/shared";
 import { getDb } from "../db";
 import { leetcodeProblems, leetcodeSubmissions, problemSolves, settings, tasks } from "../schema";
@@ -170,7 +170,7 @@ export async function recordAccepted(accepted: AcceptedSubmission[], syncedAt: s
     await db
       .update(tasks)
       .set({ status: "done", doneOn: today })
-      .where(and(eq(tasks.date, today), eq(tasks.templateKey, "dsa-warmup"), eq(tasks.status, "todo")));
+      .where(and(eq(tasks.date, today), like(tasks.templateKey, "w%:dsa-warmup"), eq(tasks.status, "todo")));
   }
 
   return { added, resolved };

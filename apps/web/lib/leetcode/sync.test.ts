@@ -1,3 +1,4 @@
+import { parseWeekKey } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDsaView, undoSolve, markSolved } from "../dsa";
 import { getTodayView } from "../tasks";
@@ -167,7 +168,7 @@ describe("importing submissions", () => {
     await getTodayView(); // generates today's tasks
     mockLeetCode({ recent: [{ id: "x", titleSlug: "two-sum", timestamp: ts("2026-11-06") }] });
     await connectLeetCode("vraj");
-    const warmup = (await getTodayView()).dayTasks.find((t) => t.templateKey === "dsa-warmup")!;
+    const warmup = (await getTodayView()).dayTasks.find((t) => (parseWeekKey(t.templateKey)?.key ?? t.templateKey) === "dsa-warmup")!;
     expect(warmup).toMatchObject({ status: "done", doneOn: "2026-11-06" });
   });
 
@@ -175,7 +176,7 @@ describe("importing submissions", () => {
     await getTodayView();
     mockLeetCode({ recent: [{ id: "x", titleSlug: "two-sum", timestamp: ts("2026-11-04") }] });
     await connectLeetCode("vraj");
-    expect((await getTodayView()).dayTasks.find((t) => t.templateKey === "dsa-warmup")!.status).toBe("todo");
+    expect((await getTodayView()).dayTasks.find((t) => (parseWeekKey(t.templateKey)?.key ?? t.templateKey) === "dsa-warmup")!.status).toBe("todo");
   });
 });
 

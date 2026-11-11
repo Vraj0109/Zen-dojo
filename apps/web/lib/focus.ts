@@ -10,6 +10,7 @@ import {
   studyHref,
   weekFocus,
   type PlanWeek,
+  parseWeekKey,
 } from "@habit/shared";
 import { getDsaView, type ProblemView } from "./dsa";
 import type { Task } from "./schema";
@@ -124,7 +125,7 @@ export function taskLink(
     const item = (prefer && focus.sd.items.find((i) => !i.done && i.kind === prefer)) || focus.sd.next;
     return item ? { href: item.href, label: item.title } : { href: "/study/sd", label: "System design" };
   };
-  switch (task.templateKey) {
+  switch (parseWeekKey(task.templateKey)?.key ?? task.templateKey) {
     case "dsa-warmup":
       return due.resolve > 0 ? { href: "/dsa?tab=resolve", label: `${due.resolve} re-solve${due.resolve === 1 ? "" : "s"} due` } : dsaNext;
     case "timed-set":

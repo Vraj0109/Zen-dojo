@@ -1,3 +1,4 @@
+import { parseWeekKey } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as knownRoute } from "@/app/api/ext/known/route";
 import { POST as submissionsRoute } from "@/app/api/ext/submissions/route";
@@ -56,7 +57,7 @@ describe("import from the extension", () => {
       ["11", "Java", ""],
     ]);
     expect(d).toMatchObject({ auto: true, status: { state: "solved", solvedOn: "2026-11-06" } });
-    expect((await getTodayView()).dayTasks.find((t) => t.templateKey === "dsa-warmup")?.status).toBe("done");
+    expect((await getTodayView()).dayTasks.find((t) => (parseWeekKey(t.templateKey)?.key ?? t.templateKey) === "dsa-warmup")?.status).toBe("done");
     expect((await getExtensionStatus()).last).toMatchObject({ stored: 2, added: 1 });
   });
 

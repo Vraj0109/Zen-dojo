@@ -1,3 +1,4 @@
+import { parseWeekKey } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { markSolved } from "./dsa";
 import { getStats } from "./stats";
@@ -29,7 +30,7 @@ describe("getStats", () => {
   it("combines tasks, solves, practice and concepts into XP, heatmap, balance and badges", async () => {
     setDay(3);
     const view = await getTodayView();
-    await toggleTask(view.dayTasks.find((t) => t.templateKey === "deep-block")!.id); // 30 XP system design, 75 min
+    await toggleTask(view.dayTasks.find((t) => (parseWeekKey(t.templateKey)?.key ?? t.templateKey) === "deep-block")!.id); // 30 XP system design, 75 min
     setDay(4);
     await markSolved("lc-239"); // hard: 30 XP DSA
     await logPractice("sdd-url-shortener", { minutes: 45, scores: { req: 4 }, notes: "", link: "" }); // 30 XP sd
