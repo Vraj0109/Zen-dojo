@@ -118,6 +118,7 @@ async function start() {
       NODE_ENV: "production",
       NEXT_TELEMETRY_DISABLED: "1",
       HABIT_DESKTOP: "1",
+      HABIT_TOOLS_DIR: process.env.HABIT_TOOLS_DIR || path.join(app.getPath("userData"), "tools"),
       HOSTNAME: "127.0.0.1",
       PORT: String(port),
       DATABASE_URL: databaseUrl(dbFile),

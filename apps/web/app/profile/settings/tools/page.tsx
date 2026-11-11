@@ -3,9 +3,11 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { detectTools } from "@/lib/judge/tools";
+import { realDeps, toolCards } from "@/lib/tools/handlers";
 import { PageMain } from "../../../ui";
 import { ProfileTabs } from "../../profile-ui";
 import { CopyCommand } from "./copy-command";
+import { ToolManager } from "./tool-manager";
 
 export const metadata: Metadata = { title: "Tools for running code" };
 
@@ -25,8 +27,12 @@ export default function ToolsPage() {
 
 async function Tools() {
   await connection();
-  const tools = await detectTools();
+  const tools = await detectTools({ fresh: true });
   const missing = tools.filter((t) => !t.found).length;
+  // The desktop app can download Java, Python and a Windows C++ compiler; the web build only shows install commands.
+  const desktop = process.env.HABIT_DESKTOP === "1" && process.env.HABIT_HOSTED !== "1";
+  const cards = desktop ? await toolCards(realDeps()) : null;
+  const listed = cards ? tools.filter((t) => t.id === "javascript") : tools;
   return (
     <div className="space-y-6">
       <p className="max-w-3xl text-sm text-muted">
@@ -34,8 +40,9 @@ async function Tools() {
         the languages you want to practise in.{" "}
         {missing === 0 ? "Everything below was found." : `${missing} of ${tools.length} not found.`}
       </p>
+      {cards && <ToolManager cards={cards} />}
       <ul className="grid gap-4 xl:grid-cols-2">
-        {tools.map((t) => (
+        {listed.map((t) => (
           <li key={t.id} className="space-y-3 rounded-xl border border-line bg-surface p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold">{t.label}</h3>
