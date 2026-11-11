@@ -4,7 +4,7 @@ import type { AvatarId } from "./buddy-prefs";
 
 export type { AvatarId } from "./buddy-prefs";
 
-export const BUILTIN_AVATARS: { id: Exclude<AvatarId, "custom">; label: string }[] = [
+export const BUILTIN_AVATARS: { id: Exclude<AvatarId, "custom" | "pet">; label: string }[] = [
   { id: "fox", label: "Fox" },
   { id: "robot", label: "Robot" },
   { id: "cat", label: "Cat" },
@@ -134,7 +134,7 @@ function Blob() {
   );
 }
 
-const SHAPES: Record<Exclude<AvatarId, "custom">, () => JSX.Element> = { fox: Fox, robot: Robot, cat: Cat, blob: Blob };
+const SHAPES: Record<Exclude<AvatarId, "custom" | "pet">, () => JSX.Element> = { fox: Fox, robot: Robot, cat: Cat, blob: Blob };
 
 export function BuddyAvatar({
   id,
@@ -159,7 +159,7 @@ export function BuddyAvatar({
       </span>
     );
   }
-  const Shape = SHAPES[id === "custom" ? "fox" : id];
+  const Shape = SHAPES[id === "custom" || id === "pet" ? "fox" : id];
   return (
     <span className="bav" data-mood={mood} style={box} aria-hidden="true">
       <style>{AVATAR_CSS}</style>
