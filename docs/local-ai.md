@@ -32,6 +32,15 @@ With a graphics card the card's memory counts. Without one, about 60% of your RA
 
 Smaller is always fine. Without a graphics card, long answers are slow.
 
+## Settings: who answers
+
+Settings > Local AI has an **Answers from** list. It shows **This computer (Ollama)** (the default) and, if found on this computer, Claude Code, Antigravity, Gemini CLI and Codex CLI.
+
+- A cloud tool cannot be chosen until you tick its box ("I understand my problem text and code go to ..."). Each has a **Test** button that sends the word "ping" and shows the reply or the error.
+- To remove consent, untick the box. If that tool was in use, answers go back to Ollama.
+- The choice (`ai_provider`) and the ticked boxes (`ai_cloud_consent`) are device-specific settings. They never sync to other devices. The server checks the consent on every request, not only the UI.
+- The model picker and download appear only while Ollama is the chosen source.
+
 ## Remove a model
 
 Turn the switch off in Settings to hide all AI features. To free disk space run `ollama rm <model>`, for example `ollama rm llama3.2:3b`.
