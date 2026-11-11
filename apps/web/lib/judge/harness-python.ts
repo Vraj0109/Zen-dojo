@@ -12,7 +12,7 @@ const PY_STACK_MB = 128;
 export const PYTHON_PRELUDE = String.raw`import sys, math, heapq, bisect, itertools, functools, collections, random
 from typing import *
 from collections import deque, defaultdict, Counter
-sys.setrecursionlimit(1000000)
+sys.setrecursionlimit(1000000); getattr(sys, "set_int_max_str_digits", lambda n: None)(0)
 
 
 class ListNode:

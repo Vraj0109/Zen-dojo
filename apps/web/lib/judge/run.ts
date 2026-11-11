@@ -550,8 +550,11 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
         const i = known.length + s;
         const limit = (stress[s].limitMs ?? DEFAULT_LIMIT_MS) * TIME_MULTIPLIER[lang];
         const timeout = limit + 1500; // startup and reading the input come on top of the work itself
+        const startedAt = Date.now();
         const part = await runSet(dir, run, cases, [i], timeout, Math.min(timeout, stressBudget), limit);
-        stressBudget -= Math.min(timeout, stressBudget);
+        // Charge the time the run really took, not its whole allowance: Python's allowance is 15 s per input,
+        // so charging it in full used up the 30 s budget after two large inputs and the rest were never run.
+        stressBudget -= Math.min(Date.now() - startedAt, stressBudget);
         beforeTests += part.beforeTests;
         const o = part.outcomes.get(i);
         if (o) outcomes.set(i, o);
