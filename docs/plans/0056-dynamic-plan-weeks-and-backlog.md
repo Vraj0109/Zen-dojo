@@ -106,7 +106,7 @@ Local commits with explicit paths; no push, no attribution; never touch `data/ha
 
 Suggested split: Agent A (steps 1 to 3 and 6), Agent B (steps 4, 5 and 7).
 
-- [ ] **1. Pure rules** in a new `packages/shared/src/plan-weeks.ts` (export it from the package index) with
+- [x] **1. Pure rules** in a new `packages/shared/src/plan-weeks.ts` (export it from the package index) with
   `SLOTS_PER_WEEK = 7`, `weekKey(week, key)`, `parseWeekKey(key)`, `slotDueDate(start, slot)`,
   `todaySlot(start, today)`, `weeksLeft(cursor, finished)`, `isWeekComplete(rows, week, start)` and
   `splitBacklog(rows, week, start, today)` returning `{ overdue, today, upcoming, goals: { open, overdue } }`.
@@ -114,12 +114,12 @@ Suggested split: Agent A (steps 1 to 3 and 6), Agent B (steps 4, 5 and 7).
   - Done when: `packages/shared/src/plan-weeks.test.ts` passes (`pnpm exec vitest run packages/shared/src/plan-weeks.test.ts`)
     covering: slot clamping at 1 and 7, a week not complete with one open row, complete when all 24 are done, old
     rows outside the date window ignored, legacy keys ignored, goals overdue only after day 7.
-- [ ] **2. Position and generation** in `apps/web/lib/tasks.ts`: add `getPlanPosition()`, `ensurePlanWeek(week, start)`
+- [x] **2. Position and generation** in `apps/web/lib/tasks.ts`: add `getPlanPosition()`, `ensurePlanWeek(week, start)`
   (single `insert ... onConflictDoNothing` of all 24 rows, titles from `weekFor(week)` templates),
   `advancePlanWeekIfComplete(today)`, `skipPlanWeek(today)`. Remove `ensureTasks`. Change `setPlanStart` as in Design.
   - Done when: after `getPlanPosition()` on an empty database the settings rows exist and 24 rows exist for the week;
     calling it twice creates no duplicates.
-- [ ] **3. Today** in `apps/web/lib/tasks.ts` `getTodayView()` and `apps/web/app/page.tsx`: `weekNo` becomes the cursor;
+- [x] **3. Today** in `apps/web/lib/tasks.ts` `getTodayView()` and `apps/web/app/page.tsx`: `weekNo` becomes the cursor;
   `dayTasks` are today's slot, `weekTasks` the three goals of this plan week; add `weeksLeft`, `backlogCount`,
   `finished` to `TodayView`. In the header show `Week 3 of 16` with a muted `14 weeks left`, and a plain link
   `Backlog: 9 tasks` to `/backlog` (hidden at 0; no red styling). `toggleTask` calls `advancePlanWeekIfComplete`.
@@ -138,11 +138,11 @@ Suggested split: Agent A (steps 1 to 3 and 6), Agent B (steps 4, 5 and 7).
   Today item in `apps/web/app/nav.tsx` so Today stays highlighted. Empty state: "Nothing behind. Good."
   - Done when: with a copy of the database whose `plan_week_start` is 10 days ago, the page lists 6 overdue days,
     ticking one updates the count on Today after `refresh()`.
-- [ ] **6. Remove the superseded shift feature:** delete `shiftPlanSchedule` and its test in `lib/tasks.ts` /
+- [x] **6. Remove the superseded shift feature:** delete `shiftPlanSchedule` and its test in `lib/tasks.ts` /
   `lib/tasks.test.ts`, `shiftPlanScheduleAction` in `app/actions.ts`, and the shift forms in `app/profile/settings/page.tsx`
   (Settings keeps the start-date control). Add one line to plan 0036: "Schedule shifting superseded by 0056."
   - Done when: Grep finds no `shiftPlanSchedule` anywhere except the 0036 plan text.
-- [ ] **7. Tests** in `apps/web/lib/tasks.test.ts` (and adjust the roadmap, weekly, boss tests that assumed calendar
+- [x] **7. Tests** in `apps/web/lib/tasks.test.ts` (and adjust the roadmap, weekly, boss tests that assumed calendar
   weeks): first run for an existing user; 10 idle days gives today = slot 7 and 6 overdue days; ticking everything
   advances the week and starts the next one today; working ahead finishes a week early; `skipPlanWeek`;
   `setPlanStart` reset; week 16 completes into `plan_finished`; ensure is idempotent; legacy rows are ignored.
@@ -173,5 +173,7 @@ Suggested split: Agent A (steps 1 to 3 and 6), Agent B (steps 4, 5 and 7).
 ## Open questions
 
 ## Implementation notes
+
+Agent A (steps 1, 2, 3, 6, 7): plan-weeks.ts + tests; getPlanPosition, getBacklogView, skipPlanWeek, advancePlanWeekIfComplete in lib/tasks.ts; skipPlanWeekAction; Today header shows weeks left and a Backlog link; shift feature removed (0036 already carried the superseded line). Custom tasks still show on Today (today for day, this calendar Monday for week). TodayView also has beforeStart. Step 7 roadmap/weekly/boss tests are Agent B. Known breakage outside A: prefixed keys break exact-key lookups in boss.ts, leetcode/sync.ts, focus.ts taskLink and the tests for them.
 
 ## Review

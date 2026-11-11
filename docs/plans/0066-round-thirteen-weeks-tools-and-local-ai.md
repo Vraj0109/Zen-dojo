@@ -189,5 +189,6 @@ End with the 0066 report format.
 ## Implementation notes
 
 (Agents: add one line each, e.g. `A: done, commits abc123..def456, no deviations.`)
+A: engine done (0056 steps 1, 2, 3, 6, 7 except consumer tests), see commit "Add plan weeks".
 
 ## Review
