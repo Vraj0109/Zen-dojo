@@ -56,7 +56,8 @@ Open work, in plan order (index: `docs/plans/README.md`):
 
 | Plan | What | Status |
 |---|---|---|
-| 0056 | **Next:** dynamic plan weeks (week follows what you finished) and a Backlog page | ready |
+| 0066 | **Next: round thirteen** = 0056 + 0064 + 0060 split over four Claude agents (file ownership, contracts and paste-ready prompts inside) | ready |
+| 0056 | Dynamic plan weeks (week follows what you finished) and a Backlog page | ready |
 | 0064 | Portable tool manager (download Java, Python, C++ compiler on request) | ready, after 0061 A and 0062 |
 | 0060 | Local AI helper through Ollama, opt-in, desktop only | ready |
 | 0061 B3/B4 | Windows and macOS code signing | waits for the user's route and GitHub secrets |

@@ -13,11 +13,11 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
   Java editor in "Your classes" (0052), ticks, filters and search (0053), delete-my-data (0054), round plan 0055.
   Plans 0051 to 0055 still say `ready` in their files and are waiting for the user to confirm the installed desktop app
   signs in; the lead then marks them `implemented`.
-- **Round twelve (next): plan 0065** = 0062 (Python in the judge) + 0063 (Java and Python solutions as plain files) + 0061 part A
-  and B1/B2 (tools check, install notes) + 0057 (three UI fixes). Three Claude agents (A, B, C) and three Antigravity agents
-  (D, E, F) who write the solution files.
-- **After that, in this order:** 0056 (dynamic plan weeks and Backlog), 0064 (portable tool manager), 0060 (local AI),
-  0061 B3/B4 (signing, waits for the user's choice and secrets), 0058 (hosted web app), 0059 (phone read-only mode, needs 0058).
+- **Round twelve is done (plan 0065, committed locally):** Python in the judge, Java and Python solutions for all 486 problems,
+  the tools check and install notes, three UI fixes.
+- **Round thirteen (next): plan 0066** = 0056 (dynamic plan weeks and Backlog, agents A and B) + 0064 (portable tool manager,
+  agent C) + 0060 (local AI helper, agent D). Four Claude agents; 0066 has the file ownership, contracts and a paste-ready prompt per agent.
+- **After that, in this order:** 0061 B3/B4 (signing, waits for the user's choice and secrets), 0058 (hosted web app), 0059 (phone read-only mode, needs 0058).
 - **Still open from older rounds:** 0045 step 3 (admin study pages), 0022 (more problem sources), 0032 (old hosted roadmap,
   superseded by 0058), un-synced tables (reading list, stuck list, boss fights).
 
@@ -149,3 +149,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0063 | [Reference solutions in C++, Java and Python as plain files, with a verifier](0063-solutions-in-three-languages.md) | implemented |
 | 0064 | [Portable tool manager: download Java, Python and a C++ compiler on request](0064-portable-tool-manager.md) | ready (after 0061 A and 0062) |
 | 0065 | [Round twelve: Python, three-language solutions and the tools check (six agents)](0065-round-twelve-python-and-solutions.md) | implemented |
+| 0066 | [Round thirteen: dynamic weeks and Backlog, portable tool manager, local AI (four agents)](0066-round-thirteen-weeks-tools-and-local-ai.md) | ready |
