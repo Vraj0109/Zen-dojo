@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { TOTAL_WEEKS, type Category, type HeatCell } from "@habit/shared";
@@ -14,6 +15,12 @@ export default function ProfilePage() {
   return (
     <PageMain title="Profile">
       <ProfileTabs active="/profile" />
+      <p className="mb-6 text-sm">
+        <Link href="/profile/portfolio" className="font-medium text-accent hover:underline">
+          Portfolio and certificates
+        </Link>
+        <span className="text-muted"> · share your streaks, solved problems and finished courses</span>
+      </p>
       <Suspense fallback={<ProfileStatsSkeleton />}>
         <Stats />
       </Suspense>

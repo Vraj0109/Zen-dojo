@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { refresh } from "next/cache";
 import { connection } from "next/server";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -7,7 +8,7 @@ import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus } from "@/lib/leetcode/sync";
 import { getFeedUrl, listLessonPatches } from "@/lib/packs";
 import { getPlanStart } from "@/lib/tasks";
-import { getAiSettings, getBuddySettings, getSimpleMode, type AiProviderId } from "@/lib/ui-prefs";
+import { getAiSettings, getBuddySettings, getProfileName, getSimpleMode, setProfileName, type AiProviderId } from "@/lib/ui-prefs";
 import { setBuddySettingsAction, setPlanStartAction, setSimpleModeAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { PackImporter } from "../../pack-importer";
@@ -51,6 +52,9 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             <h4 className="mb-3 font-semibold">Profile</h4>
             <ProfileEditor />
           </section>
+          <Suspense fallback={<ProfileSettingsSkeleton rows={1} />}>
+            <PortfolioNameSection />
+          </Suspense>
           <section className="space-y-5 rounded-xl border border-line bg-surface p-4">
             <h4 className="font-semibold">Make it yours</h4>
             <CustomColours />
@@ -167,6 +171,34 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </div>
       </div>
     </PageMain>
+  );
+}
+
+async function PortfolioNameSection() {
+  await connection();
+  const name = await getProfileName();
+  async function save(formData: FormData) {
+    "use server";
+    await setProfileName(String(formData.get("profileName") ?? ""));
+    refresh();
+  }
+  return (
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <h4 className="mb-1 font-semibold">Portfolio name</h4>
+      <p className="mb-3 text-sm text-muted">Shown on your portfolio and certificates. Leave it empty to use &quot;Learner&quot;.</p>
+      <form action={save} className="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          name="profileName"
+          defaultValue={name === "Learner" ? "" : name}
+          placeholder="Learner"
+          maxLength={60}
+          aria-label="Portfolio name"
+          className="rounded-lg border border-line bg-background px-3 py-2"
+        />
+        <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">Save</SubmitButton>
+      </form>
+    </section>
   );
 }
 
