@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getAppearanceSetting, getBuddySettings, getSimpleMode, setAppearanceSetting, setBuddySettings, setSimpleMode } from "./ui-prefs";
+import { getAiSettings, getAppearanceSetting, getBuddySettings, getSimpleMode, setAiSettings, setAppearanceSetting, setBuddySettings, setSimpleMode } from "./ui-prefs";
 import { DEFAULT_APPEARANCE, type Appearance } from "./theme";
 
 beforeEach(() => {
@@ -77,5 +77,16 @@ describe("buddy and pacing settings", () => {
     s = await getBuddySettings();
     expect(s.mode).toBe("peer");
     expect(s.name).toBe("Sensei Kai");
+  });
+});
+
+describe("local AI settings", () => {
+  it("is off by default with the loopback URL", async () => {
+    expect(await getAiSettings()).toEqual({ enabled: false, model: "", url: "http://127.0.0.1:11434" });
+  });
+  it("persists the switch and a valid model, and ignores a bad model name", async () => {
+    await setAiSettings({ enabled: true, model: "llama3.2:3b" });
+    await setAiSettings({ model: "bad name;" });
+    expect(await getAiSettings()).toMatchObject({ enabled: true, model: "llama3.2:3b" });
   });
 });

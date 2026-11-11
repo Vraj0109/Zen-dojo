@@ -49,7 +49,7 @@ describe("sync table map and settings denylist", () => {
 
   it("refuses private settings", () => {
     expect(SYNC_SETTINGS_DENYLIST).toEqual(expect.arrayContaining(["extension_token", "content_feed_url"]));
-    for (const k of ["extension_token", "content_feed_url", "api_token", "client_secret", "my_Key", "PASSWORD_hint"]) {
+    for (const k of ["ai_enabled", "ai_model", "ai_ollama_url", "extension_token", "content_feed_url", "api_token", "client_secret", "my_Key", "PASSWORD_hint"]) {
       expect(isSyncableSettingKey(k), k).toBe(false);
     }
     for (const k of ["interview_date", "theme", "daily_goal"]) expect(isSyncableSettingKey(k), k).toBe(true);
@@ -189,7 +189,7 @@ describe("triggers", () => {
     expect(await dirty()).toEqual([{ tbl: "settings", row_key: "theme", deleted: 1 }]);
 
     await clearTracking();
-    for (const key of ["extension_token", "content_feed_url", "my_api_token", "client_secret", "private_key", "db_password"]) {
+    for (const key of ["ai_enabled", "ai_model", "ai_ollama_url", "extension_token", "content_feed_url", "my_api_token", "client_secret", "private_key", "db_password"]) {
       await c.execute({ sql: "INSERT INTO settings (key, value) VALUES (?, 'v')", args: [key] });
       await c.execute({ sql: "UPDATE settings SET value = 'w' WHERE key = ?", args: [key] });
       await c.execute({ sql: "DELETE FROM settings WHERE key = ?", args: [key] });

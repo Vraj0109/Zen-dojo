@@ -78,3 +78,39 @@ export async function setBuddySettings(prefs: Partial<BuddySettings>): Promise<v
     await db.insert(settings).values({ key: ADHD_PACING_KEY, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
   }
 }
+
+// Plan 0060: local AI settings. Device-specific, so they are on the sync denylist (sync-triggers.ts).
+export const AI_ENABLED_KEY = "ai_enabled";
+export const AI_MODEL_KEY = "ai_model";
+export const AI_URL_KEY = "ai_ollama_url";
+
+export interface AiSettings {
+  enabled: boolean;
+  model: string;
+  url: string;
+}
+
+const AI_DEFAULT_URL = "http://127.0.0.1:11434";
+const AI_MODEL_RE = /^[a-zA-Z0-9._:/-]{1,100}$/;
+
+async function putSetting(key: string, value: string): Promise<void> {
+  const db = await getDb();
+  await db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
+}
+
+/** Off by default. The URL is returned as saved; the Ollama client refuses anything that is not loopback. */
+export async function getAiSettings(): Promise<AiSettings> {
+  const db = await getDb();
+  const [e, m, u] = await Promise.all([
+    db.query.settings.findFirst({ where: eq(settings.key, AI_ENABLED_KEY) }),
+    db.query.settings.findFirst({ where: eq(settings.key, AI_MODEL_KEY) }),
+    db.query.settings.findFirst({ where: eq(settings.key, AI_URL_KEY) }),
+  ]);
+  return { enabled: e?.value === "1", model: m?.value && AI_MODEL_RE.test(m.value) ? m.value : "", url: u?.value || AI_DEFAULT_URL };
+}
+
+export async function setAiSettings(prefs: Partial<AiSettings>): Promise<void> {
+  if (prefs.enabled !== undefined) await putSetting(AI_ENABLED_KEY, prefs.enabled ? "1" : "0");
+  if (prefs.model !== undefined && (prefs.model === "" || AI_MODEL_RE.test(prefs.model))) await putSetting(AI_MODEL_KEY, prefs.model);
+  if (prefs.url !== undefined) await putSetting(AI_URL_KEY, prefs.url.slice(0, 200));
+}

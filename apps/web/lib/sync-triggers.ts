@@ -38,7 +38,7 @@ export const SYNC_TABLE_MAP: readonly SyncTableDef[] = [
 ];
 
 /** Settings that never leave this machine (exact keys). Any key containing a word in SECRET_WORDS is also private. */
-export const SYNC_SETTINGS_DENYLIST: readonly string[] = ["extension_token", "content_feed_url", "tools_notice_dismissed"];
+export const SYNC_SETTINGS_DENYLIST: readonly string[] = ["extension_token", "content_feed_url", "tools_notice_dismissed", "ai_enabled", "ai_model", "ai_ollama_url"];
 
 const SECRET_WORDS = ["token", "secret", "key", "password"] as const;
 
