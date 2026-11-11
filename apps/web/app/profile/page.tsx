@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { TOTAL_WEEKS, planWeekNumber, type Category, type HeatCell } from "@habit/shared";
+import { TOTAL_WEEKS, type Category, type HeatCell } from "@habit/shared";
 import { BALANCE_DAYS, getStats } from "@/lib/stats";
-import { getPlanStart } from "@/lib/tasks";
+import { getPlanPosition, getPlanStart } from "@/lib/tasks";
 import { PageMain, ProgressBar, Stat, StatusMark } from "../ui";
 import { ProfileTabs } from "./profile-ui";
 import { ProfileStatsSkeleton } from "@/app/components/profile-skeleton";
@@ -28,11 +28,11 @@ const fmt = (d: string, opts: Intl.DateTimeFormatOptions = { weekday: "short", m
 
 async function Stats() {
   await connection();
-  const [s, planStart] = await Promise.all([getStats(), getPlanStart()]);
+  const [s, planStart, position] = await Promise.all([getStats(), getPlanStart(), getPlanPosition()]);
   const { totals } = s;
   const { level } = totals;
   const earned = s.badges.filter((b) => b.earned).length;
-  const weekNo = planWeekNumber(planStart, s.today);
+  const weekNo = position.finished ? TOTAL_WEEKS + 1 : position.cursor;
   const toNext = level.xpForNext - level.xpIntoLevel;
 
   return (

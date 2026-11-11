@@ -1,11 +1,11 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
-import { PROBLEMS, TOTAL_WEEKS, planWeekNumber, toLocalDate, weekFocus } from "@habit/shared";
+import { and, desc, eq, like, or } from "drizzle-orm";
+import { PROBLEMS, TOTAL_WEEKS, toLocalDate, weekFocus } from "@habit/shared";
 import { getDb } from "./db";
 import { getDsaView, markSolved, type ProblemView } from "./dsa";
 import { bossFights, tasks } from "./schema";
 import { logStruggle } from "./struggles";
-import { getPlanStart } from "./tasks";
+import { getPlanPosition } from "./tasks";
 
 // Boss fight: 2 unsolved problems from your weakest patterns so far, solved against a 2-hour timer
 // (the roadmap's weekend "timed set"). Picks are stable for the day; "Different problems" re-rolls.
@@ -44,8 +44,8 @@ export function pickBoss<T extends { problem: { id: string; difficulty?: string 
 
 export async function getBossView(reroll = 0) {
   const today = toLocalDate();
-  const [dsa, planStart, db] = await Promise.all([getDsaView(), getPlanStart(), getDb()]);
-  const weekNo = Math.min(Math.max(planWeekNumber(planStart, today), 1), TOTAL_WEEKS);
+  const [dsa, position, db] = await Promise.all([getDsaView(), getPlanPosition(), getDb()]);
+  const weekNo = Math.min(Math.max(position.cursor, 1), TOTAL_WEEKS);
 
   // Patterns the plan has reached so far, weakest first
   const reached = new Set<string>();
@@ -86,6 +86,6 @@ export async function saveBossFight(input: { results: { problemId: string; resul
   await db
     .update(tasks)
     .set({ status: "done", doneOn: today })
-    .where(and(eq(tasks.date, today), eq(tasks.templateKey, "timed-set"), eq(tasks.status, "todo")));
+    .where(and(eq(tasks.date, today), or(eq(tasks.templateKey, "timed-set"), like(tasks.templateKey, "w%:timed-set")), eq(tasks.status, "todo")));
   return true;
 }

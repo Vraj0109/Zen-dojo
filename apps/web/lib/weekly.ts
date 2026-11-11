@@ -1,9 +1,9 @@
 import "server-only";
 import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
-import { PROBLEMS, TOTAL_WEEKS, addDays, planWeekNumber, startOfWeek, toLocalDate } from "@habit/shared";
+import { PROBLEMS, TOTAL_WEEKS, addDays, startOfWeek, toLocalDate } from "@habit/shared";
 import { getDb } from "./db";
-import { getPlanStart } from "./tasks";
+import { getPlanPosition } from "./tasks";
 import { xpEvents } from "./progress";
 import { getWeakSpots } from "./revise";
 import { siteTimeInRange } from "./site-time";
@@ -127,15 +127,18 @@ async function topSiteProblems(monday: string, limit = 5) {
 }
 
 export async function getWeeklyReview(monday: string) {
-  const [planStart, stats, previous, reflection, topProblems, weak] = await Promise.all([
-    getPlanStart(),
+  const [position, stats, previous, reflection, topProblems, weak] = await Promise.all([
+    getPlanPosition(),
     weekStats(monday),
     weekStats(addDays(monday, -7)),
     getReflection(monday),
     topSiteProblems(monday),
     getWeakSpots(),
   ]);
-  const weekNo = planWeekNumber(planStart, monday);
+  // The plan week whose run overlaps this calendar week (history entry, or the current week), else null.
+  const sunday = addDays(monday, 6);
+  const runs = [...position.history, ...(position.finished ? [] : [{ week: position.cursor, start: position.start, end: addDays(position.start, 6) }])];
+  const weekNo = runs.find((r) => r.start <= sunday && r.end >= monday)?.week ?? 0;
   return {
     monday,
     sunday: addDays(monday, 6),

@@ -124,14 +124,15 @@ describe("roadmap", () => {
     await toggleTask(today.dayTasks[0].id); // daily, 10 XP
     await markSolved("lc-560"); // 15 XP
 
-    setToday("2026-11-10"); // week 2
+    setToday("2026-11-10"); // still plan week 1: the plan follows what is finished, not the calendar
     await markSolved("lc-1");
 
     const r = await getRoadmapView();
-    expect(r.currentWeek).toBe(2);
+    expect(r.currentWeek).toBe(1);
+    expect(r.weeksLeft).toBe(16);
     expect(r.weeks).toHaveLength(16);
-    expect(r.weeks[0]).toMatchObject({ start: "2026-11-02", end: "2026-11-08", goalsDone: 1, tasksDone: 1, problemsSolved: 1, xp: 65 });
-    expect(r.weeks[1]).toMatchObject({ start: "2026-11-09", problemsSolved: 1, xp: 5, goalsDone: 0 });
+    expect(r.weeks[0]).toMatchObject({ start: "2026-11-02", end: "2026-11-10", goalsDone: 1, tasksDone: 1, problemsSolved: 2, xp: 70, state: "current" });
+    expect(r.weeks[1]).toMatchObject({ problemsSolved: 0, xp: 0, goalsDone: 0, state: "upcoming" });
     expect(r.weeks[2]).toMatchObject({ problemsSolved: 0, xp: 0 });
   });
 });

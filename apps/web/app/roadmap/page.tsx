@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { TOTAL_WEEKS } from "@habit/shared";
 import { getRoadmapView, type RoadmapWeek } from "@/lib/roadmap";
-import { shiftPlanScheduleAction } from "../actions";
 import { ProfileTabs } from "../profile/profile-ui";
 import { PageMain, ProgressBar } from "../ui";
 import { DsaRoadmapSkeleton } from "@/app/components/roadmap-skeleton";
@@ -29,8 +28,8 @@ const fmt = (d: string) => {
 
 async function Roadmap() {
   await connection();
-  const { weeks, currentWeek } = await getRoadmapView();
-  const elapsed = Math.min(Math.max(currentWeek, 0), TOTAL_WEEKS);
+  const { weeks, currentWeek, finished, weeksLeft, currentDone, currentTotal, backlogCount } = await getRoadmapView();
+  const doneWeeks = finished ? TOTAL_WEEKS : currentWeek - 1;
 
   return (
     <div className="space-y-6">
@@ -38,36 +37,25 @@ async function Roadmap() {
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="font-semibold">16-week plan</h2>
           <span className="text-sm text-muted">
-            {currentWeek < 1 ? "Not started" : currentWeek > TOTAL_WEEKS ? "Complete" : `Week ${currentWeek} of ${TOTAL_WEEKS}`}
+            {finished ? "Complete" : `Week ${currentWeek} of ${TOTAL_WEEKS} · ${weeksLeft} ${weeksLeft === 1 ? "week" : "weeks"} left`}
           </span>
         </div>
-        <ProgressBar value={elapsed} max={TOTAL_WEEKS} label="Weeks elapsed" />
+        <ProgressBar value={doneWeeks} max={TOTAL_WEEKS} label="Weeks finished" />
         <p className="mt-2 text-xs text-muted">
           Roughly 40% DSA, 35% system design, 15% behavioral/LLD, 10% mocks and applications.
         </p>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-          <span className="text-xs text-muted">Taking a holiday or break? Shift the schedule:</span>
-          <form action={shiftPlanScheduleAction} className="flex items-center gap-2">
-            <button type="submit" name="days" value="7" className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background">
-              +1 week
-            </button>
-            <button type="submit" name="days" value="14" className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background">
-              +2 weeks
-            </button>
-          </form>
-        </div>
       </section>
 
       <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {weeks.map((w) => (
-          <WeekCard key={w.week} w={w} state={w.week < currentWeek ? "past" : w.week === currentWeek ? "current" : "future"} />
+          <WeekCard key={w.week} w={w} state={w.state === "done" ? "past" : w.state === "current" ? "current" : "future"} progress={w.state === "current" ? { done: currentDone, total: currentTotal, backlog: backlogCount } : null} />
         ))}
       </ol>
     </div>
   );
 }
 
-function WeekCard({ w, state }: { w: RoadmapWeek; state: "past" | "current" | "future" }) {
+function WeekCard({ w, state, progress }: { w: RoadmapWeek; state: "past" | "current" | "future"; progress: { done: number; total: number; backlog: number } | null }) {
   const border = state === "current" ? "border-accent ring-1 ring-accent" : "border-line";
   return (
     <li
@@ -98,6 +86,11 @@ function WeekCard({ w, state }: { w: RoadmapWeek; state: "past" | "current" | "f
               Goals {w.goalsDone}/{w.goalsTotal}
             </span>
             <span>{w.tasksDone} daily tasks</span>
+            {progress && (
+              <span>
+                {progress.done} of {progress.total} plan tasks done{progress.backlog > 0 ? `, ${progress.backlog} in the backlog` : ""}
+              </span>
+            )}
             <span>{w.problemsSolved} problems</span>
             <span className="gamify-only">+{w.xp} XP</span>
           </div>
