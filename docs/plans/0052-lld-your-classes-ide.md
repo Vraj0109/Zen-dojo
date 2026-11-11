@@ -1,6 +1,6 @@
 # 0052: An IDE in the LLD "Your classes" section
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-10
 - **Implemented by:** (implementer fills in) Claude Code agent C, Antigravity agents E and F (see "Agents")
 - **Spec:** builds on plan 0043 (Java IDE) and plan 0050 (sync of notes)

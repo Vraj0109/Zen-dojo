@@ -1,6 +1,6 @@
 # 0051: Sign in from the desktop app (deep link back into the app)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-10
 - **Implemented by:** (implementer fills in) Claude Code agents A and B, Antigravity agent D (see "Agents")
 - **Spec:** extends plan 0049 (accounts)

@@ -65,8 +65,7 @@ Open work, in plan order (index: `docs/plans/README.md`):
 | 0022 / 0032 | More problem sources; old hosted roadmap (superseded by 0058) | open |
 
 Known gaps: no phone account button (0059), some tables do not sync yet (reading list, stuck list, boss fights), 0036's schedule shift is replaced by 0056.
-User-side chores: replace the broad Cloudflare API token, delete the R2 key and the old `SYNC_TOKEN` Worker secret, fix the OAuth app homepage typo, confirm sign-in from
-the installed desktop app.
+User-side chores (optional tidy-ups, nothing depends on them): replace the broad Cloudflare API token, delete the R2 key and the old `SYNC_TOKEN` Worker secret, fix the OAuth app homepage typo. Desktop sign-in was confirmed working on 2026-11-11.
 
 ## 4. Things that have bitten before
 

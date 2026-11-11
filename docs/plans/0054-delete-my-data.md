@@ -1,6 +1,6 @@
 # 0054: Delete my data (cloud copy and this device, separately)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-10
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on plans 0049 (accounts) and 0050 (sync)

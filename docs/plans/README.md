@@ -11,8 +11,7 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 - **Built and released (0.7.0 / 0.7.1):** accounts and GitHub sign-in (0049), cloud sync (0044, 0050), desktop sign-in (0051),
   Java editor in "Your classes" (0052), ticks, filters and search (0053), delete-my-data (0054), round plan 0055.
-  Plans 0051 to 0055 still say `ready` in their files and are waiting for the user to confirm the installed desktop app
-  signs in; the lead then marks them `implemented`.
+  Plans 0051 to 0055 are implemented (desktop sign-in confirmed by the user on 2026-11-11).
 - **Round twelve is done (plan 0065, committed locally):** Python in the judge, Java and Python solutions for all 486 problems,
   the tools check and install notes, three UI fixes.
 - **Round thirteen (next): plan 0066** = 0056 (dynamic plan weeks and Backlog, agents A and B) + 0064 (portable tool manager,
@@ -134,11 +133,11 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0048 | [Round nine: six-agent parallel sprint (Cloudflare D1 sync, admin portal & app-wide skeletons)](0048-round-nine-six-agent-parallel-work.md) | ready |
 | 0049 | [Accounts, sign-in, admin-by-account and abuse protection (six parallel agents)](0049-accounts-sign-in-and-abuse-protection.md) | implemented |
 | 0050 | [Connect the app's data to cloud sync (triggers, server-side sync engine, first-link upload)](0050-connect-app-data-to-cloud-sync.md) | implemented |
-| 0051 | [Sign in from the desktop app (deep link back into the app)](0051-desktop-sign-in.md) | ready |
-| 0052 | [An IDE in the LLD "Your classes" section](0052-lld-your-classes-ide.md) | ready |
-| 0053 | [Solved ticks (accent plus grey) and DSA search with multi-select filters](0053-solved-ticks-and-dsa-search-filters.md) | ready |
-| 0054 | [Delete my data (cloud copy and this device, separately)](0054-delete-my-data.md) | ready |
-| 0055 | [Round eleven: finish plans 0053 and 0054 (six agents, balanced)](0055-round-eleven-finish-everything.md) | ready |
+| 0051 | [Sign in from the desktop app (deep link back into the app)](0051-desktop-sign-in.md) | implemented |
+| 0052 | [An IDE in the LLD "Your classes" section](0052-lld-your-classes-ide.md) | implemented |
+| 0053 | [Solved ticks (accent plus grey) and DSA search with multi-select filters](0053-solved-ticks-and-dsa-search-filters.md) | implemented |
+| 0054 | [Delete my data (cloud copy and this device, separately)](0054-delete-my-data.md) | implemented |
+| 0055 | [Round eleven: finish plans 0053 and 0054 (six agents, balanced)](0055-round-eleven-finish-everything.md) | implemented |
 | 0056 | [Dynamic plan weeks and a Backlog page](0056-dynamic-plan-weeks-and-backlog.md) | implemented |
 | 0057 | [Three UI fixes: Today scroll, course page columns, account arrow](0057-three-ui-fixes.md) | implemented |
 | 0058 | [Hosted web app (sign in, track progress; no code running on the server)](0058-hosted-web-app.md) | ready |

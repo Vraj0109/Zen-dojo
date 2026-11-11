@@ -1,6 +1,6 @@
 # 0053: Solved ticks (accent plus grey) and DSA search with multi-select filters
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-10
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on plan 0022 follow-ups (solved means tests passed) and `apps/web/lib/dsa-filters.ts`
