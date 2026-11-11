@@ -11,6 +11,18 @@ type Info = {
   tiers: Tier[];
   ollama: { running: boolean; version?: string };
   installed: string[];
+  providers?: ProviderInfo[];
+  provider?: ProviderId;
+  consent?: ProviderId[];
+};
+type ProviderId = "ollama" | "claude" | "agy" | "gemini" | "codex";
+type ProviderInfo = { id: ProviderId; label: string; found: boolean; cloud: boolean };
+
+const CLOUD_WHAT: Record<string, string> = {
+  claude: "Claude Code (Anthropic)",
+  agy: "Antigravity (Google)",
+  gemini: "Gemini CLI (Google)",
+  codex: "Codex CLI (OpenAI)",
 };
 
 const post = (url: string, body: unknown, signal?: AbortSignal) =>
@@ -24,6 +36,7 @@ export function AiSettings() {
   const [progress, setProgress] = useState<{ text: string; pct: number | null } | null>(null);
   const [pickModel, setPickModel] = useState("");
   const cancel = useRef<AbortController | null>(null);
+  const [tests, setTests] = useState<Record<string, { busy: boolean; text?: string; ok?: boolean }>>({});
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -46,9 +59,27 @@ export function AiSettings() {
     void load();
   }, [load]);
 
-  async function save(body: { enabled?: boolean; model?: string }) {
+  async function save(body: { enabled?: boolean; model?: string; provider?: ProviderId; consent?: ProviderId[] }) {
     await post("/api/ai/settings", body);
     await load();
+  }
+
+  async function setConsent(id: ProviderId, on: boolean) {
+    const now = info?.consent ?? [];
+    const next = on ? [...new Set([...now, id])] : now.filter((x) => x !== id);
+    // Taking consent away from the tool in use puts the answers back on this computer.
+    await save(!on && info?.provider === id ? { consent: next, provider: "ollama" } : { consent: next });
+  }
+
+  async function runTest(id: ProviderId) {
+    setTests((t) => ({ ...t, [id]: { busy: true } }));
+    try {
+      const r = await post("/api/ai/test", { provider: id });
+      const j = (await r.json()) as { ok: boolean; reply?: string; error?: string };
+      setTests((t) => ({ ...t, [id]: { busy: false, ok: j.ok, text: j.ok ? `It answered: ${(j.reply ?? "").slice(0, 120)}` : testError(j.error) } }));
+    } catch {
+      setTests((t) => ({ ...t, [id]: { busy: false, ok: false, text: "The test could not run." } }));
+    }
   }
 
   async function download() {
@@ -88,6 +119,10 @@ export function AiSettings() {
   if (!info) return <p className="text-sm text-muted">Checking this computer...</p>;
 
   const have = info.installed.includes(pickModel);
+  const chosen: ProviderId = info.provider ?? "ollama";
+  const consent = info.consent ?? [];
+  // Only tools that were found are offered; Ollama is always listed because it is the default.
+  const choices = (info.providers ?? []).filter((p) => p.id === "ollama" || p.found);
   return (
     <div className="space-y-4">
       <p className="text-sm">{info.summary}</p>
@@ -113,7 +148,48 @@ export function AiSettings() {
         <input type="checkbox" className="size-4" checked={info.enabled} onChange={(e) => void save({ enabled: e.target.checked })} />
         Turn on local AI help
       </label>
-      {info.enabled && (
+      {info.enabled && choices.length > 0 && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Answers from</legend>
+          {choices.map((p) => {
+            const ok = consent.includes(p.id);
+            const t = tests[p.id];
+            return (
+              <div key={p.id} className="space-y-2 rounded-lg border border-line p-3 text-sm">
+                <label className="flex items-center gap-2 font-medium">
+                  <input type="radio" name="aiProvider" className="size-4" checked={chosen === p.id} disabled={p.cloud && !ok} onChange={() => void save({ provider: p.id })} />
+                  {p.cloud ? CLOUD_WHAT[p.id] ?? p.label : "This computer (Ollama)"}
+                </label>
+                {!p.cloud ? (
+                  <p className="text-xs text-muted">Runs on your computer. Nothing leaves it.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted">
+                      Found on this computer. Using it sends the problem text, your chat, and your code if you include it, to that company under your own login on this
+                      computer. This app never sees or stores a key.
+                    </p>
+                    <label className="flex items-start gap-2 text-xs">
+                      <input type="checkbox" className="mt-0.5 size-4" checked={ok} onChange={(e) => void setConsent(p.id, e.target.checked)} />
+                      <span>I understand my problem text and code go to {CLOUD_WHAT[p.id] ?? p.label}.</span>
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button type="button" onClick={() => void runTest(p.id)} disabled={!ok || t?.busy} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-background disabled:opacity-50">
+                        {t?.busy ? "Testing..." : "Test"}
+                      </button>
+                      {t?.text && (
+                        <span role="status" className={`text-xs ${t.ok ? "text-muted" : "text-foreground"}`}>
+                          {t.text}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </fieldset>
+      )}
+      {info.enabled && (chosen === "ollama" || !info.providers) && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor="aiModel" className="text-sm font-medium">
@@ -155,8 +231,22 @@ export function AiSettings() {
         </div>
       )}
       <p className="text-xs text-muted">
-        Runs on your computer through Ollama. Nothing is sent to the internet. Answers can be wrong. See <code>docs/local-ai.md</code>.
+        The default runs on your computer through Ollama and sends nothing to the internet. A cloud tool is used only after you tick its box above. Answers can be wrong. See{" "}
+        <code>docs/local-ai.md</code>.
       </p>
     </div>
   );
+}
+
+function testError(code?: string): string {
+  switch (code) {
+    case "consent_required":
+      return "Tick the box first.";
+    case "timeout":
+      return "No answer within a minute.";
+    case "empty_reply":
+      return "The tool ran but gave no answer.";
+    default:
+      return "The tool did not answer. Is it installed and signed in?";
+  }
 }
