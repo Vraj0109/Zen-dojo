@@ -1,6 +1,6 @@
 # 0068: Buddy companion avatar (draggable, animated, optional AI lines) plus backlog cleanup (four agents)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (agents fill in their line under *Implementation notes*)
 - **Spec:** builds on `0035-adhd-accountability-and-pacing.md` (the Buddy) and `0067-ai-chat-tab-and-providers.md` (AI providers)

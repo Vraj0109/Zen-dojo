@@ -47,7 +47,7 @@ Built: accounts, GitHub sign-in, abuse guard, cloud sync (SQLite triggers, `lib/
 Java editor for "Your classes", multi-select filters and deep search on `/dsa`, accent plus grey solved ticks, separate delete-cloud-data and delete-device-data,
 admin problem editor, solved-means-tests-passed, TLE handling. Cloudflare: Worker `zen-dojo-sync`, D1 `zen-dojo-db`, deploy workflow `deploy-worker.yml`.
 
-**Round thirteen is done (plan 0066, `pnpm check` green, not yet released):** dynamic plan weeks and the Backlog page (0056), the portable tool manager (0064), the opt-in local AI helper (0060). Still to check by hand: the Backlog on a database copy with `plan_week_start` ten days back, run `tools-smoke.yml` on GitHub, Settings > Tools > Set up in the desktop dev build, and the Local AI panel with real Ollama.
+**Rounds thirteen to sixteen are done. Released up to 0.7.3; plans 0068 (Buddy avatar, AI lines, `/admin/study`) and 0069 (Petdex pets, pet-voice AI, chat with the Buddy, edge-snapping throw physics, Portfolio and certificates) are implemented with `pnpm check` green and not yet released.** Still to check by hand: importing a Petdex pet in the Settings screen and watching it animate, the Portfolio page and a certificate print, Gemini and Codex through the Test button once installed. The public profile page (`/u/<userId>`) needs the hosted site (plan 0058).
 
 **Round twelve is done (plan 0065, `pnpm check` green, not yet released):** Python in the judge (0062), Java and Python reference solutions for all 486 problems as
 plain files plus a verifier (0063, see `docs/solutions.md`), the "tools for running code" check and install notes (0061 part A and B1/B2), three UI fixes (0057).

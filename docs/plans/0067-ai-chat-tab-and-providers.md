@@ -1,6 +1,6 @@
 # 0067: Ask AI as a chat tab, with starter questions and a choice of AI provider
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** replaces the "Ask local AI" panel of `0060-local-ai-helper.md`; keeps all of 0060's privacy rules for the local model

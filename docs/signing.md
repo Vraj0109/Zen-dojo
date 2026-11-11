@@ -46,6 +46,6 @@ tag; test with a new pre-release tag such as `v0.7.2-rc1`.
 ## Open points
 
 - **Intel Macs:** the macOS build is Apple Silicon (arm64) only. An Intel build is a separate decision.
-- **macOS first run without a Developer ID:** right-click the app and choose *Open*, or run
-  `xattr -dr com.apple.quarantine "/Applications/Zen Dojo.app"`.
+- **macOS first run without a Developer ID:** on macOS 15 (Sequoia) and newer, right-click then *Open* no longer works: use System Settings,
+  Privacy & Security, *Open Anyway* (or on any version run `xattr -dr com.apple.quarantine "/Applications/Zen Dojo.app"`).
 - **Windows Smart App Control** can also block unsigned programs the judge compiles. See `docs/troubleshooting.md`.
