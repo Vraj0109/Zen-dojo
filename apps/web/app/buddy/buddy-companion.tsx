@@ -18,6 +18,8 @@ import { BuddyAvatar } from "./avatar";
 import { fetchAiLine } from "./ai-line";
 import { onBuddy } from "./buddy-events";
 import { BUDDY_SIZE_PX, DEFAULT_BUDDY_PREFS, onBuddyPrefs, readBuddyPrefs, resetBuddyPosition, writeBuddyPrefs } from "./buddy-prefs";
+import type { PetMeta } from "./pets/pet-package";
+import { listPets, loadPetSheetUrl } from "./pets/pet-store";
 import { type DragPos, useDrag } from "./use-drag";
 
 const EDGE = 16;
@@ -26,6 +28,7 @@ const BUBBLE_MS = 8_000;
 const FADE_MS = 500;
 const TICK_MS = 30_000;
 const ACTIVITY_THROTTLE_MS = 1_000;
+const WAVE_MS = 2_500;
 const AI_WAIT_MS = 10_000;
 const AI_EVENT_COOLDOWN_MS = 60_000;
 const CHATTER_MS = { rare: 12 * 60_000, normal: 5 * 60_000 } as const;
@@ -44,6 +47,8 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
   const [mood, setMood] = useState<BuddyMood>("idle");
   const [open, setOpen] = useState(false);
   const [bubble, setBubble] = useState<{ text: string; fading: boolean } | null>(null);
+  const [waving, setWaving] = useState(false);
+  const [petAsset, setPetAsset] = useState<{ id: string; meta: PetMeta; url: string } | null>(null);
 
   const off = settings.mode === "off";
   const tone: BuddyTone = settings.mode === "off" ? "calm" : settings.mode;
@@ -61,12 +66,41 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
   const bubbleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const calmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aiAbort = useRef<AbortController | null>(null);
+  const waveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     moodRef.current = mood;
     openRef.current = open;
     bubbleRef.current = bubble !== null;
   });
+
+  // Load the selected pet from IndexedDB; a missing pet falls back to the fox.
+  const petId = prefs.avatar === "pet" ? prefs.pet?.id : undefined;
+  useEffect(() => {
+    if (!petId) return;
+    let alive = true;
+    let url: string | null = null;
+    void (async () => {
+      try {
+        const meta = (await listPets()).find((m) => m.id === petId);
+        const u = meta ? await loadPetSheetUrl(petId) : null;
+        if (!alive) {
+          if (u) URL.revokeObjectURL(u);
+          return;
+        }
+        if (meta && u) {
+          url = u;
+          setPetAsset({ id: petId, meta, url: u });
+        }
+      } catch {
+        // IndexedDB blocked: keep the fox
+      }
+    })();
+    return () => {
+      alive = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [petId]);
 
   // Preferences changed elsewhere (Settings) or here (drag).
   useEffect(() => onBuddyPrefs(setPrefs), []);
@@ -87,6 +121,9 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
       if (openRef.current || !text) return;
       clearBubbleTimers();
       setBubble({ text, fading: false });
+      setWaving(true);
+      if (waveTimer.current) clearTimeout(waveTimer.current);
+      waveTimer.current = setTimeout(() => setWaving(false), WAVE_MS);
       bubbleTimers.current = [
         setTimeout(() => setBubble((b) => (b ? { ...b, fading: true } : b)), BUBBLE_MS - FADE_MS),
         setTimeout(() => setBubble(null), BUBBLE_MS),
@@ -130,14 +167,15 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
       const ctl = new AbortController();
       aiAbort.current = ctl;
       const giveUp = setTimeout(() => ctl.abort(), AI_WAIT_MS);
-      void fetchAiLine(lineEvent, tone, name, ctl.signal).then((line) => {
+      const persona = prefs.avatar === "pet" && prefs.pet ? { name: prefs.pet.name, description: prefs.pet.description } : undefined;
+      void fetchAiLine(lineEvent, tone, name, ctl.signal, persona).then((line) => {
         clearTimeout(giveUp);
         if (ctl.signal.aborted && aiAbort.current !== ctl) return; // a newer line replaced this one
         if (aiAbort.current === ctl) aiAbort.current = null;
         say(line ?? fallback);
       });
     },
-    [tone, name, prefs.aiLines, say],
+    [tone, name, prefs.aiLines, prefs.avatar, prefs.pet, say],
   );
 
   // Buddy events from the rest of the app.
@@ -206,6 +244,7 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
     () => () => {
       clearBubbleTimers();
       aiAbort.current?.abort();
+      if (waveTimer.current) clearTimeout(waveTimer.current);
     },
     [clearBubbleTimers],
   );
@@ -227,6 +266,8 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
     },
   });
   const pos = drag.dragPos ?? basePos;
+  const dragDx = drag.dragPos ? drag.dragPos.x - basePos.x : 0;
+  const dragging = drag.dragPos && Math.abs(dragDx) > 2 ? (dragDx < 0 ? "left" : "right") : null;
 
   // Escape closes the panel.
   useEffect(() => {
@@ -294,7 +335,16 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS }: { settings
           drag.dragPos ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
-        <BuddyAvatar id={prefs.avatar} mood={mood} size={size} customSrc={prefs.customSrc} />
+        <BuddyAvatar
+          id={prefs.avatar === "pet" && !(petAsset && petAsset.id === petId) ? "fox" : prefs.avatar}
+          mood={mood}
+          size={size}
+          customSrc={prefs.customSrc}
+          pet={petAsset?.meta}
+          sheetUrl={petAsset?.url}
+          speaking={waving}
+          dragging={dragging}
+        />
       </button>
       <div
         role="status"

@@ -1,6 +1,9 @@
 import type { CSSProperties, JSX } from "react";
 import type { BuddyMood } from "@habit/shared";
 import type { AvatarId } from "./buddy-prefs";
+import type { PetMeta } from "./pets/pet-package";
+import { rowForMood } from "./pets/pet-anim";
+import { PetSprite } from "./pets/pet-sprite";
 
 export type { AvatarId } from "./buddy-prefs";
 
@@ -141,13 +144,28 @@ export function BuddyAvatar({
   mood,
   size,
   customSrc,
+  pet,
+  sheetUrl,
+  speaking,
+  dragging,
 }: {
   id: AvatarId;
   mood: BuddyMood;
   size: number;
   customSrc?: string;
+  pet?: PetMeta;
+  sheetUrl?: string;
+  speaking?: boolean;
+  dragging?: "left" | "right" | null;
 }): JSX.Element {
   const box: CSSProperties = { width: size, height: size };
+  if (id === "pet" && pet && sheetUrl) {
+    return (
+      <span className="bav" data-mood={mood} style={box} aria-hidden="true">
+        <PetSprite sheetUrl={sheetUrl} meta={pet} row={rowForMood(mood, { speaking, dragging })} size={size} />
+      </span>
+    );
+  }
   if (id === "custom" && customSrc) {
     return (
       <span className="bav" data-mood={mood} style={box} aria-hidden="true">

@@ -37,3 +37,6 @@ const DELAY: Record<PetAnimRow, number> = {
 export function frameDelayMs(row: PetAnimRow): number {
   return DELAY[row];
 }
+
+/** Row order of a Petdex sheet, top to bottom. */
+export const PET_ROW_ORDER: readonly PetAnimRow[] = ["idle", "running-right", "running-left", "waving", "jumping", "failed", "waiting", "running", "review"];
