@@ -535,7 +535,10 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
     if (!prepared.ok) return prepared.result;
     const { run } = prepared.value;
 
-    const first = await runSet(dir, run, cases, known.map((_, i) => i), Math.max(JUDGE_LIMITS.batchMs, timeLimitMs), JUDGE_LIMITS.totalMs, timeLimitMs);
+    // Every case has its own limit (timeLimitMs, watched while the program runs), so the run of all normal cases may last as long as
+    // the whole budget. Slow languages get a bigger budget the way judging sites give them longer limits: Python gets twice as much.
+    const budgetMs = Math.round(JUDGE_LIMITS.totalMs * Math.max(1, TIME_MULTIPLIER[lang] / 5));
+    const first = await runSet(dir, run, cases, known.map((_, i) => i), Math.max(JUDGE_LIMITS.batchMs, budgetMs), budgetMs, timeLimitMs);
     if (first.unavailable) return { status: "unavailable", message: MISSING[lang] };
     if (first.blocked) return { status: "unavailable", message: blockedMessage(lang) };
     const outcomes = first.outcomes;

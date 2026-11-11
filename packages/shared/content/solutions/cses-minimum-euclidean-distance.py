@@ -1,7 +1,7 @@
+# verify: skip-stress
 import math
 from typing import List
 
-# verify: skip-stress
 class Solution:
     def minimumEuclideanDistance(self, points: List[List[int]]) -> int:
         pts = sorted(points, key=lambda p: (p[0], p[1]))

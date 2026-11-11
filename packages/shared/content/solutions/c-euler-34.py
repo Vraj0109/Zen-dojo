@@ -1,6 +1,6 @@
+# verify: skip-stress
 import math
 
-# verify: skip-stress
 class Solution:
     def digitFactorialSum(self, limit: int) -> int:
         f = [math.factorial(i) for i in range(10)]

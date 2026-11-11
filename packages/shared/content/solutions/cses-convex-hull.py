@@ -1,6 +1,6 @@
+# verify: skip-stress
 from typing import List
 
-# verify: skip-stress
 class Solution:
     def convexHull(self, points: List[List[int]]) -> List[List[int]]:
         n = len(points)

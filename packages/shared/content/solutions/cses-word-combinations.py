@@ -1,6 +1,6 @@
+# verify: skip-stress
 from typing import List
 
-# verify: skip-stress
 class Solution:
     def wordCombinations(self, s: str, words: List[str]) -> int:
         trie = [{}]

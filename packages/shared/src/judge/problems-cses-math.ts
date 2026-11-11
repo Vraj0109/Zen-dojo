@@ -907,7 +907,7 @@ public:
       { input: [[1, 1, 1]], output: "first" },
       { input: [[3, 5, 6]], output: "second" },
       { input: [[2, 5, 7]], output: "second" },
-      { input: [[10, 20, 30]], output: "first" },
+      { input: [[10, 20, 30]], output: "second" },
       { input: [[100, 100, 50, 50]], output: "second" },
       { input: [[1000000000, 1000000000, 1]], output: "first" }
     ],

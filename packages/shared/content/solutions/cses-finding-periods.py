@@ -1,6 +1,6 @@
+# verify: skip-stress
 from typing import List
 
-# verify: skip-stress
 class Solution:
     def findingPeriods(self, s: str) -> List[int]:
         n = len(s)

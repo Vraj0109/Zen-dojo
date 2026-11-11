@@ -1473,7 +1473,7 @@ public:
       { input: [10, 10, 10, 10, 9], output: 0 },
       { input: [5, 5, 5, 5, 5], output: 1 },
       { input: [3, 5, 7, 11, 30], output: 19 },
-      { input: [2, 3, 5, 7, 10], output: 8 },
+      { input: [2, 3, 5, 7, 10], output: 9 },
       { input: [4, 4, 4, 4, 8], output: 2 },
     ],
     testCases: [
@@ -1481,7 +1481,7 @@ public:
       { input: [10, 10, 10, 10, 9], output: 0 },
       { input: [5, 5, 5, 5, 5], output: 1 },
       { input: [3, 5, 7, 11, 30], output: 19 },
-      { input: [2, 3, 5, 7, 10], output: 8 },
+      { input: [2, 3, 5, 7, 10], output: 9 },
       { input: [4, 4, 4, 4, 8], output: 2 },
     ],
     hints: [

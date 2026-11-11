@@ -1,6 +1,6 @@
+# verify: skip-stress
 from typing import List
 
-# verify: skip-stress
 class Solution:
     def palindromeQueries(self, s: str, queries: List[List[str]]) -> List[str]:
         n = len(s)

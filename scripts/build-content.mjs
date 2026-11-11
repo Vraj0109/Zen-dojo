@@ -262,6 +262,7 @@ export function readAll(dir = CONTENT_DIR) {
   for (const area of fs.readdirSync(dir).sort()) {
     const ad = path.join(dir, area);
     if (!fs.statSync(ad).isDirectory()) continue;
+    if (area === "solutions") continue; // reference solutions (.java/.py), built by scripts/solutions.mjs
     for (const f of fs.readdirSync(ad).sort()) {
       if (!f.endsWith(".md")) continue;
       const rel = `packages/shared/content/${area}/${f}`;
