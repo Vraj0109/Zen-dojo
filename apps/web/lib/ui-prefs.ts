@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { settings } from "./schema";
 import { type Appearance, parseAppearance } from "./theme";
-import type { BuddyMode, BuddySettings, AdhdPacing } from "@habit/shared";
+import { cleanPortfolioName, type BuddyMode, type BuddySettings, type AdhdPacing } from "@habit/shared";
 
 // Interface preferences kept in the settings table.
 
@@ -77,6 +77,21 @@ export async function setBuddySettings(prefs: Partial<BuddySettings>): Promise<v
     const value = prefs.pacing === "standard" ? "standard" : "gentle";
     await db.insert(settings).values({ key: ADHD_PACING_KEY, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
   }
+}
+
+// Plan 0069: the name shown on the portfolio and certificates (may sync).
+export const PROFILE_NAME_KEY = "profile_name";
+
+export async function getProfileName(): Promise<string> {
+  const db = await getDb();
+  const row = await db.query.settings.findFirst({ where: eq(settings.key, PROFILE_NAME_KEY) });
+  return cleanPortfolioName(row?.value);
+}
+
+export async function setProfileName(name: string): Promise<void> {
+  const db = await getDb();
+  const value = name.trim() ? cleanPortfolioName(name) : "";
+  await db.insert(settings).values({ key: PROFILE_NAME_KEY, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
 }
 
 // Plan 0060: local AI settings. Device-specific, so they are on the sync denylist (sync-triggers.ts).
