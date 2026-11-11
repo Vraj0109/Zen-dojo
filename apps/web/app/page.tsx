@@ -42,8 +42,8 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
   const params = await searchParams;
   const [v, resolveDue, reviews, countdown, keepLearning] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue(), getCountdown(), getContinue()]);
   const { dueToday, backlog } = splitReviewQueue(reviews);
-  const beforeStart = v.weekNo < 1;
-  const finished = v.weekNo > TOTAL_WEEKS;
+  const beforeStart = v.beforeStart;
+  const finished = v.finished;
   const currentWeek = Math.min(Math.max(v.weekNo, 1), TOTAL_WEEKS);
   // ?week=N shows another week's focus, so you can work ahead (or catch up).
   const asked = Number(Array.isArray(params.week) ? params.week[0] : params.week);
@@ -92,6 +92,20 @@ async function Today({ searchParams }: { searchParams: PageProps<"/">["searchPar
         <div>
           <p className="text-sm font-medium text-muted">
             {beforeStart ? "Plan not started" : finished ? "Plan finished" : `Week ${v.weekNo} of ${TOTAL_WEEKS}`}
+            {!beforeStart && !finished && (
+              <span className="font-normal">
+                {" · "}
+                {v.weeksLeft} {v.weeksLeft === 1 ? "week" : "weeks"} left
+              </span>
+            )}
+            {!beforeStart && !finished && v.backlogCount > 0 && (
+              <>
+                {" · "}
+                <Link href="/backlog" className="font-medium hover:text-foreground hover:underline">
+                  Backlog: {v.backlogCount} {v.backlogCount === 1 ? "task" : "tasks"}
+                </Link>
+              </>
+            )}
           </p>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{formatLong(v.today)}</h2>
         </div>

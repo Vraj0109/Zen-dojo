@@ -8,7 +8,7 @@ import { getLeetCodeStatus } from "@/lib/leetcode/sync";
 import { getFeedUrl, listLessonPatches } from "@/lib/packs";
 import { getPlanStart } from "@/lib/tasks";
 import { getBuddySettings, getSimpleMode } from "@/lib/ui-prefs";
-import { setBuddySettingsAction, setPlanStartAction, setSimpleModeAction, shiftPlanScheduleAction } from "../../actions";
+import { setBuddySettingsAction, setPlanStartAction, setSimpleModeAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { PackImporter } from "../../pack-importer";
 import { CustomColours, CustomFontPicker, ProfileEditor } from "../../custom-appearance";
@@ -188,15 +188,6 @@ async function PlanSettings() {
           className="rounded-lg border border-line bg-background px-3 py-2"
         />
         <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">Save</SubmitButton>
-      </form>
-      <form action={shiftPlanScheduleAction} className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-        <span className="text-sm font-medium">Shift schedule for holidays or breaks:</span>
-        <button type="submit" name="days" value="7" className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
-          +1 week
-        </button>
-        <button type="submit" name="days" value="14" className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
-          +2 weeks
-        </button>
       </form>
     </section>
   );

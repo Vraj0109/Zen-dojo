@@ -2,8 +2,9 @@
 // in-memory SQLite database (same libSQL driver the app uses).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb } from "./db";
-import { problemSolves } from "./schema";
-import { addCustomTask, deleteCustomTask, getPlanStart, getTodayView, setPlanStart, shiftPlanSchedule, toggleTask } from "./tasks";
+import { eq, like } from "drizzle-orm";
+import { settings, tasks } from "./schema";
+import { addCustomTask, deleteCustomTask, getBacklogView, getPlanPosition, getPlanStart, getTodayView, setPlanStart, skipPlanWeek, toggleTask } from "./tasks";
 
 /** Set the clock to a local date at noon. Only Date is faked so the DB driver's timers still work. */
 function setToday(date: string) {
@@ -27,8 +28,8 @@ describe("first run", () => {
     const v = await getTodayView();
     expect(v.planStart).toBe("2026-11-02");
     expect(v.weekNo).toBe(1);
-    expect(v.dayTasks.map((t) => t.templateKey)).toEqual(["dsa-warmup", "deep-block", "behavioral"]);
-    expect(v.weekTasks.map((t) => t.templateKey)).toEqual(["week-dsa", "week-sd", "week-other"]);
+    expect(v.dayTasks.map((t) => t.templateKey)).toEqual(["w1:dsa-warmup", "w1:deep-block", "w1:behavioral"]);
+    expect(v.weekTasks.map((t) => t.templateKey)).toEqual(["w1:week-dsa", "w1:week-sd", "w1:week-other"]);
     expect(v.dayTasks.every((t) => t.status === "todo")).toBe(true);
     expect(v.weekTasks.every((t) => t.date === "2026-11-02")).toBe(true);
     expect(v).toMatchObject({ totalXp: 0, todayXp: 0, streak: 0 });
@@ -45,7 +46,7 @@ describe("first run", () => {
     const friday = await getTodayView();
     setToday("2026-11-07");
     const saturday = await getTodayView();
-    expect(saturday.dayTasks.map((t) => t.templateKey)).toEqual(["timed-set", "design-session", "review"]);
+    expect(saturday.dayTasks.map((t) => t.templateKey)).toEqual(["w1:timed-set", "w1:design-session", "w1:review"]);
     expect(saturday.weekTasks.map((t) => t.id)).toEqual(friday.weekTasks.map((t) => t.id));
   });
 });
@@ -114,80 +115,151 @@ describe("custom tasks", () => {
   });
 });
 
+
+/** Tick every open generated row of the current plan week, newest data each time. */
+async function tickWholeWeek() {
+  const db = await getDb();
+  const pos = await getPlanPosition();
+  const rows = await db.select().from(tasks).where(like(tasks.templateKey, `w${pos.cursor}:%`));
+  for (const r of rows) if (r.status === "todo") await toggleTask(r.id);
+}
+
+async function settingValue(key: string) {
+  const db = await getDb();
+  return (await db.query.settings.findFirst({ where: eq(settings.key, key) }))?.value ?? null;
+}
+
+describe("plan position", () => {
+  it("creates the settings rows and 24 prefixed tasks, once", async () => {
+    const pos = await getPlanPosition();
+    expect(pos).toMatchObject({ cursor: 1, start: "2026-11-02", finished: false, weeksLeft: 16, history: [] });
+    await getPlanPosition();
+    const db = await getDb();
+    const rows = await db.select().from(tasks);
+    expect(rows).toHaveLength(24);
+    expect(rows.every((r) => r.templateKey?.startsWith("w1:"))).toBe(true);
+    expect(await settingValue("plan_week_cursor")).toBe("1");
+  });
+
+  it("takes the calendar week once for an existing user and drops legacy open tasks", async () => {
+    const db = await getDb();
+    await getPlanStart();
+    await db.insert(tasks).values([
+      { date: "2026-11-06", scope: "day", templateKey: "dsa-warmup", title: "old open", category: "dsa", xp: 10 },
+      { date: "2026-11-05", scope: "day", templateKey: "dsa-warmup", title: "old done", category: "dsa", xp: 10, status: "done", doneOn: "2026-11-05" },
+    ]);
+    setToday("2026-11-18"); // plan started 2026-11-02, so calendar week 3
+    const pos = await getPlanPosition();
+    expect(pos).toMatchObject({ cursor: 3, start: "2026-11-16", weeksLeft: 14 });
+    const titles = (await db.select().from(tasks)).map((t) => t.title);
+    expect(titles).not.toContain("old open");
+    expect(titles).toContain("old done");
+  });
+
+  it("counts the days already behind on a Friday", async () => {
+    const v = await getTodayView();
+    expect(v.weekNo).toBe(1);
+    expect(v.backlogCount).toBe(12); // slots 1 to 4 (Mon to Thu), 3 tasks each, are behind on Friday
+  });
+});
+
+describe("backlog and catching up", () => {
+  it("ten idle days put you on slot 7 with six overdue days", async () => {
+    await getTodayView();
+    setToday("2026-11-12"); // start 2026-11-02, 10 days later
+    const v = await getTodayView();
+    expect(v.weekNo).toBe(1);
+    expect(v.dayTasks).toHaveLength(3);
+    expect(v.dayTasks.every((t) => t.date === "2026-11-08")).toBe(true);
+    const b = await getBacklogView();
+    expect(b.overdue).toHaveLength(6);
+    expect(b.overdue[0].date).toBe("2026-11-02");
+    expect(b.goalsOverdue).toBe(true);
+    expect(v.backlogCount).toBe(18 + 3);
+  });
+
+  it("ticking the whole week advances and starts the next week today", async () => {
+    await getTodayView();
+    setToday("2026-11-12");
+    await tickWholeWeek();
+    const v = await getTodayView();
+    expect(v.weekNo).toBe(2);
+    expect(v.weeksLeft).toBe(15);
+    expect(v.backlogCount).toBe(0);
+    expect(await settingValue("plan_week_start")).toBe("2026-11-12");
+    expect(JSON.parse((await settingValue("plan_week_history"))!)).toEqual([{ week: 1, start: "2026-11-02", end: "2026-11-12" }]);
+    expect(v.dayTasks.every((t) => t.date === "2026-11-12")).toBe(true);
+  });
+
+  it("working ahead finishes a week early", async () => {
+    await getTodayView(); // Friday, slot 5
+    await tickWholeWeek();
+    const v = await getTodayView();
+    expect(v.weekNo).toBe(2);
+    expect(await settingValue("plan_week_start")).toBe("2026-11-06");
+  });
+
+  it("getBacklogView lists upcoming slots and counts done rows", async () => {
+    await getTodayView();
+    const v = await getTodayView();
+    await toggleTask(v.dayTasks[0].id);
+    const b = await getBacklogView();
+    expect(b.upcoming.map((d) => d.date)).toEqual(["2026-11-07", "2026-11-08"]);
+    expect(b.doneCount).toBe(1);
+    expect(b.totalCount).toBe(24);
+    expect(b.goals).toHaveLength(3);
+    expect(b.goalsOverdue).toBe(false);
+  });
+});
+
+describe("skipPlanWeek", () => {
+  it("deletes open tasks, records the week and moves on", async () => {
+    const v = await getTodayView();
+    await toggleTask(v.dayTasks[0].id);
+    await skipPlanWeek();
+    const after = await getTodayView();
+    expect(after.weekNo).toBe(2);
+    const db = await getDb();
+    const week1 = await db.select().from(tasks).where(like(tasks.templateKey, "w1:%"));
+    expect(week1).toHaveLength(1);
+    expect(week1[0].status).toBe("done");
+    expect(JSON.parse((await settingValue("plan_week_history"))!)).toHaveLength(1);
+  });
+});
+
 describe("plan start date", () => {
   it("shows no tasks before the plan starts", async () => {
     await getTodayView();
     await setPlanStart("2026-11-09");
     const v = await getTodayView();
-    expect(v.weekNo).toBe(0);
+    expect(v.beforeStart).toBe(true);
+    expect(v.weekNo).toBe(1);
     expect(v.dayTasks).toHaveLength(0);
     expect(v.weekTasks).toHaveLength(0);
   });
 
-  it("regenerates open tasks for the new week but keeps completed ones", async () => {
+  it("resets to week 1, clears history, and keeps completed tasks", async () => {
     const v = await getTodayView();
     await toggleTask(v.dayTasks[0].id);
-    await setPlanStart("2026-10-26"); // today becomes week 2
-
+    await skipPlanWeek();
+    await setPlanStart("2026-10-26");
     const after = await getTodayView();
-    expect(after.weekNo).toBe(2);
-    expect(after.dayTasks[0]).toMatchObject({ status: "done", title: v.dayTasks[0].title });
-    expect(after.dayTasks[1].title).toContain("Fundamentals: networking, APIs, estimation");
-    expect(after.totalXp).toBe(10);
-  });
-
-  it("stops generating tasks after week 16", async () => {
-    await setPlanStart("2026-07-06"); // 2026-11-06 is day 123 → week 18
-    const v = await getTodayView();
-    expect(v.weekNo).toBeGreaterThan(16);
-    expect(v.dayTasks).toHaveLength(0);
-  });
-});
-
-describe("schedule shifting", () => {
-  it("shifts plan_start by N days and regenerates open tasks", async () => {
-    const v = await getTodayView();
-    expect(v.planStart).toBe("2026-11-02");
-    expect(v.weekNo).toBe(1);
-
-    await shiftPlanSchedule(7);
-    expect(await getPlanStart()).toBe("2026-11-09");
-    const after = await getTodayView();
-    expect(after.planStart).toBe("2026-11-09");
-    expect(after.weekNo).toBe(0); // Today is 2026-11-06, so plan starts in future
-  });
-
-  it("offsets pending problemSolves re-solve dates but keeps already resolved ones intact", async () => {
+    expect(after.weekNo).toBe(1);
+    expect(await settingValue("plan_week_history")).toBe("[]");
+    expect(await settingValue("plan_finished")).toBeNull();
     const db = await getDb();
-    // Problem 1: solved on Nov 1, not yet resolved (pending re-solve)
-    await db.insert(problemSolves).values({
-      problemId: "lc-1",
-      kind: "solve",
-      solvedOn: "2026-11-01",
-      xp: 10,
-    });
-
-    // Problem 2: solved on Oct 10 and resolved on Oct 24 (completed re-solve)
-    await db.insert(problemSolves).values([
-      { problemId: "lc-2", kind: "solve", solvedOn: "2026-10-10", xp: 10 },
-      { problemId: "lc-2", kind: "resolve", solvedOn: "2026-10-24", xp: 15 },
-    ]);
-
-    await shiftPlanSchedule(7);
-
-    const rows = await db.select().from(problemSolves);
-    const p1Solve = rows.find((r) => r.problemId === "lc-1" && r.kind === "solve")!;
-    expect(p1Solve.solvedOn).toBe("2026-11-08"); // 2026-11-01 + 7 days
-
-    const p2Solve = rows.find((r) => r.problemId === "lc-2" && r.kind === "solve")!;
-    const p2Resolve = rows.find((r) => r.problemId === "lc-2" && r.kind === "resolve")!;
-    expect(p2Solve.solvedOn).toBe("2026-10-10"); // unchanged because already resolved
-    expect(p2Resolve.solvedOn).toBe("2026-10-24"); // unchanged
+    expect((await db.select().from(tasks).where(eq(tasks.status, "done")))).toHaveLength(1);
   });
 
-  it("ignores zero or invalid days", async () => {
-    const before = await getPlanStart();
-    await shiftPlanSchedule(0);
-    expect(await getPlanStart()).toBe(before);
+  it("completing week 16 finishes the plan", async () => {
+    await setPlanStart("2026-11-02");
+    const db = await getDb();
+    await db.insert(settings).values({ key: "plan_week_cursor", value: "16" }).onConflictDoUpdate({ target: settings.key, set: { value: "16" } });
+    await tickWholeWeek();
+    const v = await getTodayView();
+    expect(v.finished).toBe(true);
+    expect(v.weeksLeft).toBe(0);
+    expect(v.dayTasks).toHaveLength(0);
+    expect(await settingValue("plan_finished")).toBe("1");
   });
 });

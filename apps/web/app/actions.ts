@@ -10,7 +10,7 @@ import { getPackProblemSpec, fetchPackText, installPack, removePack, setPackItem
 import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
-import { addCustomTask, deleteCustomTask, setPlanStart, shiftPlanSchedule, toggleTask } from "@/lib/tasks";
+import { addCustomTask, deleteCustomTask, setPlanStart, skipPlanWeek, toggleTask } from "@/lib/tasks";
 import { deletePractice, logPractice, rateConcept, saveConcept } from "@/lib/study";
 import { saveBossFight } from "@/lib/boss";
 import { deleteDiagram } from "@/lib/diagrams";
@@ -111,12 +111,11 @@ export async function setPlanStartAction(formData: FormData) {
   refresh();
 }
 
-export async function shiftPlanScheduleAction(formData: FormData) {
-  const days = Number(formData.get("days"));
-  if (Number.isInteger(days) && days !== 0) {
-    await shiftPlanSchedule(days);
-    refresh();
-  }
+/** Give up the rest of this plan week. Does nothing unless the confirmation box is ticked. */
+export async function skipPlanWeekAction(formData: FormData) {
+  if (formData.get("confirm") !== "on") return;
+  await skipPlanWeek();
+  refresh();
 }
 
 /** Star or un-star a course on the Learn page. */
