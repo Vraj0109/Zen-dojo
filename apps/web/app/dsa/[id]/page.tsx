@@ -18,7 +18,8 @@ import { Code } from "../../code";
 import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { Tabs, type TabItem } from "../../tabs";
-import { getSimpleMode } from "@/lib/ui-prefs";
+import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
+import { AskAi } from "../ask-ai";
 import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 import { ProblemWorkspaceSkeleton } from "./problem-skeleton";
 
@@ -83,12 +84,13 @@ async function Problem({
   const p = await getProblemDetail(decodeURIComponent(id));
   if (!p) notFound();
   const slug = p.url ? /\/problems\/([a-z0-9-]+)/.exec(p.url)?.[1] : undefined;
-  const [struggles, focused, cheats, simple, onSite] = await Promise.all([
+  const [struggles, focused, cheats, simple, onSite, ai] = await Promise.all([
     getStruggles(p.id),
     focusMinutes(p.id),
     getPatternNotes(),
     getSimpleMode(),
     slug ? siteMinutesForSlug(slug) : 0,
+    process.env.HABIT_HOSTED === "1" ? null : getAiSettings(),
   ]);
   const open = struggles.filter((x) => !x.clearedOn);
 
@@ -196,6 +198,7 @@ async function Problem({
           </div>
         </header>
         <JudgeWorkspace id={p.id} templates={startersFor(spec)} tabs={judgedTabs} initialTab={wanted === "solve" ? "description" : wanted} />
+        {ai?.enabled && <AskAi problemId={p.id} hintCount={spec.hints.length} />}
       </article>
     );
   }
