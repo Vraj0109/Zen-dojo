@@ -26,5 +26,6 @@ export async function POST(req: Request) {
   return textStream(
     provider.chat(built.messages, { signal: abort.signal, model: provider.cloud ? undefined : s.model, url: s.url }),
     abort,
+    provider.cloud ? `\n\n[${provider.label} stopped or could not answer. Is it installed and signed in? Try the Test button in Settings.]` : undefined,
   );
 }

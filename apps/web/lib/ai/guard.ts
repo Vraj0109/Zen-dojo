@@ -24,14 +24,18 @@ export const isResponse = (v: AiSettings | NextResponse): v is NextResponse => v
 export { json as aiError };
 
 /** Stream text pieces as a plain-text response. Errors end the stream with a short note; never log bodies. */
-export function textStream(pieces: AsyncGenerator<string>, abort: AbortController): Response {
+export function textStream(
+  pieces: AsyncGenerator<string>,
+  abort: AbortController,
+  failure = "\n\n[The local model stopped. Is Ollama running and the model downloaded?]",
+): Response {
   const enc = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(c) {
       try {
         for await (const t of pieces) c.enqueue(enc.encode(t));
       } catch {
-        if (!abort.signal.aborted) c.enqueue(enc.encode("\n\n[The local model stopped. Is Ollama running and the model downloaded?]"));
+        if (!abort.signal.aborted) c.enqueue(enc.encode(failure));
       }
       try {
         c.close();

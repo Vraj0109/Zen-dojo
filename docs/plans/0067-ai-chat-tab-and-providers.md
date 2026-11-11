@@ -213,7 +213,7 @@ Rules for everyone are the same as in `0066-round-thirteen-weeks-tools-and-local
   `no_code`, `no_model`, `unknown_problem`, `consent_required`; stream through the selected provider.
   - Done when: route tests (stubbed provider) cover: hosted 404, disabled 403, cross-origin 403, bad role 400, over-long history trimmed, review without code 400,
     reference solution absent from the prompt without `revealSolution` and present with it, cloud provider without consent 403.
-- [ ] **3. [B] Providers.** `apps/web/lib/ai/providers/*` as in Design: Ollama wrapper, the CLI runner, one file per CLI, `detectProviders()` (3 s timeout each, never throws).
+- [x] **3. [B] Providers.** `apps/web/lib/ai/providers/*` as in Design: Ollama wrapper, the CLI runner, one file per CLI, `detectProviders()` (3 s timeout each, never throws).
   - Done when: `pnpm.cmd exec vitest run apps/web/lib/ai/providers` passes using a **fake CLI** (a tiny Node script in a temp folder that reads stdin and prints text) to
     prove: prompt arrives on stdin and not in argv, output streams, timeout kills the process, abort kills it, output cap stops it, cwd is a temp folder that is removed,
     `.cmd` path handling is unit-tested as a pure function that builds (file, args). Then, on this machine only, run `claude` and `agy` once each through the runner

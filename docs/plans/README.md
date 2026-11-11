@@ -149,3 +149,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0064 | [Portable tool manager: download Java, Python and a C++ compiler on request](0064-portable-tool-manager.md) | implemented |
 | 0065 | [Round twelve: Python, three-language solutions and the tools check (six agents)](0065-round-twelve-python-and-solutions.md) | implemented |
 | 0066 | [Round thirteen: dynamic weeks and Backlog, portable tool manager, local AI (four agents)](0066-round-thirteen-weeks-tools-and-local-ai.md) | implemented |
+| 0067 | [Ask AI as a chat tab, with starter questions and a choice of AI provider](0067-ai-chat-tab-and-providers.md) | ready |
