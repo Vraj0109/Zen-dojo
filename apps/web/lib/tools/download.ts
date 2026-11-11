@@ -7,7 +7,7 @@ import { MAX_REDIRECTS, allowedHosts, sizeCap, verifyPlan, type CatalogEntry } f
 export class ToolError extends Error {
   constructor(
     message: string,
-    readonly code: "bad_entry" | "host" | "redirects" | "http" | "too_large" | "hash" | "aborted" | "network",
+    readonly code: "bad_entry" | "host" | "redirects" | "http" | "too_large" | "hash" | "aborted" | "network" | "busy" | "unsafe" | "extract" | "unsupported",
   ) {
     super(message);
     this.name = "ToolError";
