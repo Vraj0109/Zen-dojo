@@ -7,7 +7,7 @@ import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus } from "@/lib/leetcode/sync";
 import { getFeedUrl, listLessonPatches } from "@/lib/packs";
 import { getPlanStart } from "@/lib/tasks";
-import { getBuddySettings, getSimpleMode } from "@/lib/ui-prefs";
+import { getAiSettings, getBuddySettings, getSimpleMode, type AiProviderId } from "@/lib/ui-prefs";
 import { setBuddySettingsAction, setPlanStartAction, setSimpleModeAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { PackImporter } from "../../pack-importer";
@@ -18,10 +18,19 @@ import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
 import { FeedUpdater } from "./feed-updater";
 import { AiSettings } from "./ai-settings";
+import { BuddyAppearance } from "./buddy-appearance";
 import { AccountLink } from "@/app/components/account-menu";
 import { ProfileSettingsSkeleton } from "@/app/components/profile-skeleton";
 
 export const metadata: Metadata = { title: "Settings" };
+
+const PROVIDER_LABEL: Record<AiProviderId, string> = {
+  ollama: "Ollama (on this computer)",
+  claude: "Claude Code (Anthropic)",
+  agy: "Antigravity (Google)",
+  gemini: "Gemini CLI (Google)",
+  codex: "Codex CLI (OpenAI)",
+};
 
 export default function SettingsPage({ searchParams }: PageProps<"/profile/settings">) {
   return (
@@ -256,6 +265,7 @@ async function ContentFeedSection() {
 async function BuddySettingsSection() {
   await connection();
   const settings = await getBuddySettings();
+  const ai = process.env.HABIT_HOSTED === "1" ? null : await getAiSettings();
   return (
     <section className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <div>
@@ -322,6 +332,7 @@ async function BuddySettingsSection() {
           Save pacing preferences
         </SubmitButton>
       </form>
+      <BuddyAppearance aiEnabled={ai?.enabled ?? false} providerLabel={ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={ai ? ai.provider !== "ollama" : false} />
     </section>
   );
 }
