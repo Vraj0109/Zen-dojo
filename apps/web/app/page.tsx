@@ -38,7 +38,7 @@ type UpNextRow =
 async function Today({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   // Today's date and the database are per-request; render at request time.
   await connection();
-  after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
+  if (process.env.HABIT_HOSTED !== "1") after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
   const params = await searchParams;
   const [v, resolveDue, reviews, countdown, keepLearning] = await Promise.all([getTodayView(), getResolveDueCount(), getReviewQueue(), getCountdown(), getContinue()]);
   const { dueToday, backlog } = splitReviewQueue(reviews);

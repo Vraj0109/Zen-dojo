@@ -58,7 +58,7 @@ function dsaTabHref(id: string, params: Record<string, string | string[] | undef
 async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchParams"] }) {
   const params = await searchParams;
   await connection();
-  after(syncLeetCodeIfStale);
+  if (process.env.HABIT_HOSTED !== "1") after(syncLeetCodeIfStale); // hosted: no database access inside after()
   const [{ groups, due, extras, topics, totals }, leetcode, extension, simple] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus(), getSimpleMode()]);
 
   const anywhere = params.platforms === "all";
