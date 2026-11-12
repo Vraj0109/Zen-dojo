@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { tick } from "@/lib/haptics";
+import { tick, tickOnRelease } from "@/lib/haptics";
 
 type Item = { el: HTMLElement; title: string; level: 1 | 2 };
 
@@ -13,10 +13,30 @@ const MAX_WITH_SUBSECTIONS = 60;
 const SLOT = 22; // px per dot: close together, but far enough apart to tell apart with a finger
 const SPREAD = 2.4; // how many dots either side of the finger are magnified
 
-/** Instant jump (the page has smooth scrolling, and an animated scroll fights a finger that is still dragging). */
+let scrollAnim = 0;
+
+/**
+ * Scroll to a heading with our own short ease-out animation. (The browser's smooth scrolling fights a finger that keeps
+ * dragging, so each frame here is a plain instant scroll.) A new target replaces the one still animating.
+ */
 function jump(el: HTMLElement) {
-  const top = el.getBoundingClientRect().top + window.scrollY - 72;
-  window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+  const target = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 72);
+  cancelAnimationFrame(scrollAnim);
+  const from = window.scrollY;
+  const dist = target - from;
+  if (Math.abs(dist) < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.scrollTo({ top: target, behavior: "instant" });
+    return;
+  }
+  const duration = Math.min(420, 160 + Math.abs(dist) / 12);
+  const t0 = performance.now();
+  const step = (now: number) => {
+    const p = Math.min(1, (now - t0) / duration);
+    const eased = 1 - (1 - p) ** 3;
+    window.scrollTo({ top: from + dist * eased, behavior: "instant" });
+    if (p < 1) scrollAnim = requestAnimationFrame(step);
+  };
+  scrollAnim = requestAnimationFrame(step);
 }
 
 /** The main section a sub-section sits in (the closest earlier level-1 item). */
@@ -105,6 +125,11 @@ export function SectionScrubber() {
     setFocus(null);
     last.current = -1;
   };
+  // The finger lifted: a real touch end, so iPhone can give its one best-effort tick here.
+  const release = () => {
+    if (focus !== null) tickOnRelease(10);
+    end();
+  };
 
   const shown = focus === null ? active : Math.round(focus);
   return (
@@ -127,7 +152,7 @@ export function SectionScrubber() {
         onPointerMove={(e) => {
           if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e.clientY);
         }}
-        onPointerUp={end}
+        onPointerUp={release}
         onPointerCancel={end}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
