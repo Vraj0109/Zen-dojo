@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { settings } from "./schema";
 import { type Appearance, parseAppearance } from "./theme";
+import { SYNCED_PREFS_SETTING_KEY, parseSyncedPrefs, serializeSyncedPrefs } from "./synced-prefs";
 import { cleanPortfolioName, type BuddyMode, type BuddySettings, type AdhdPacing } from "@habit/shared";
 
 // Interface preferences kept in the settings table.
@@ -159,4 +160,20 @@ export async function setAiSettings(prefs: Partial<AiSettings>): Promise<void> {
   if (prefs.url !== undefined) await putSetting(AI_URL_KEY, prefs.url.slice(0, 200));
   if (prefs.provider !== undefined && isAiProviderId(prefs.provider)) await putSetting(AI_PROVIDER_KEY, prefs.provider);
   if (prefs.consent !== undefined) await putSetting(AI_CONSENT_KEY, JSON.stringify([...new Set(prefs.consent.filter(isAiProviderId))]));
+}
+
+/** Browser-only preferences kept in step across devices (see lib/synced-prefs.ts). Stored as validated JSON. */
+export async function getSyncedPrefsSetting(): Promise<string | null> {
+  const db = await getDb();
+  const row = await db.query.settings.findFirst({ where: eq(settings.key, SYNCED_PREFS_SETTING_KEY) });
+  return parseSyncedPrefs(row?.value) ? (row?.value ?? null) : null;
+}
+
+export async function setSyncedPrefsSetting(json: string): Promise<void> {
+  const parsed = parseSyncedPrefs(json);
+  if (!parsed) return;
+  const value = serializeSyncedPrefs(parsed.updatedAt, parsed.values);
+  if (!value) return;
+  const db = await getDb();
+  await db.insert(settings).values({ key: SYNCED_PREFS_SETTING_KEY, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
 }

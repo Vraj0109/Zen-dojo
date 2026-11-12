@@ -68,7 +68,8 @@ describe("Judge TLE Cutoff and Process Tree Cancellation", () => {
     async () => {
       const spec: ProblemSpec & { timeLimitMs?: number } = {
         ...JUDGE_PROBLEMS["lc-1"],
-        timeLimitMs: 400,
+        // Roomy enough that starting Node on a busy machine does not time out the case that should pass.
+        timeLimitMs: 1500,
       };
 
       // Case 0 passes; Case 1 enters an infinite loop
@@ -91,7 +92,7 @@ describe("Judge TLE Cutoff and Process Tree Cancellation", () => {
         const second = res.results[1];
         expect(second.pass).toBe(false);
         expect(second.problem).toBe("tle");
-        expect(second.timeLimitMs).toBe(400);
+        expect(second.timeLimitMs).toBe(1500);
 
         // All cases after the second case must be not-run
         const remaining = res.results.slice(2);

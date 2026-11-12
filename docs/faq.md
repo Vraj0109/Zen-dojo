@@ -378,6 +378,10 @@ Sign in with GitHub in Settings, Sync across devices (or the Sign in card on Tod
 
 On the desktop app the sign-in finishes in your browser and returns through the `zendojo://` link. See the Linux section if that fails on Linux.
 
+### Do my interface preferences follow me to another device?
+
+Yes, when you are signed in. Theme, accent, custom colours, the problem page pane layout, your preferred editor and solution language, the haptics switch and the plain Buddy choices (built-in character, size and how often it speaks) sync. They stay on each device: the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync.
+
 ### What syncs, and what never syncs?
 
 Syncs: task progress, problem solves, notes and saved code (per problem), run results (including the code you ran), content pack progress, practice sessions, focus timer sessions, reading progress and your own reading links, the stuck list, boss fight results, and most settings.

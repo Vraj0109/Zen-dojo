@@ -19,7 +19,7 @@ import { addCustomReading, deleteCustomReading, setReadingDone } from "@/lib/rea
 import { clearStruggles, logStruggle } from "@/lib/struggles";
 import { logFocus } from "@/lib/timer";
 import { setInterviewDate } from "@/lib/revise";
-import { getAppearanceSetting, setAppearanceSetting, setBuddySettings, setSimpleMode } from "@/lib/ui-prefs";
+import { getAppearanceSetting, getSyncedPrefsSetting, setAppearanceSetting, setBuddySettings, setSimpleMode, setSyncedPrefsSetting } from "@/lib/ui-prefs";
 import type { Appearance } from "@/lib/theme";
 import type { AdhdPacing, BuddyMode } from "@habit/shared";
 
@@ -372,4 +372,23 @@ export async function setReaderModeAction(formData: FormData) {
   if (value === null) store.delete(READER_COOKIE);
   else store.set(READER_COOKIE, value, { sameSite: "lax", maxAge: READER_COOKIE_MAX_AGE, path: "/" });
   refresh();
+}
+
+/** Browser preferences that sync between devices (JSON string), or null when none or signed out. */
+export async function getSyncedPrefsAction(): Promise<string | null> {
+  try {
+    return await getSyncedPrefsSetting();
+  } catch {
+    return null;
+  }
+}
+
+/** Saves the synced browser preferences. Invalid, oversized or off-allowlist input is ignored. Never throws. */
+export async function setSyncedPrefsAction(json: string): Promise<void> {
+  try {
+    if (typeof json !== "string") return;
+    await setSyncedPrefsSetting(json);
+  } catch {
+    // signed out on the hosted site: nothing to save to
+  }
 }

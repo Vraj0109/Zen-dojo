@@ -523,6 +523,14 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     ],
   },
   {
+    id: "sync-interface-prefs",
+    category: "accounts",
+    question: "Do my interface preferences follow me to another device?",
+    answer: [
+      p("Yes, when you are signed in. Theme, accent, custom colours, the problem page pane layout, your preferred editor and solution language, the haptics switch and the plain Buddy choices (built-in character, size and how often it speaks) sync. They stay on each device: the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync."),
+    ],
+  },
+  {
     id: "sync-what",
     category: "accounts",
     question: "What syncs, and what never syncs?",
