@@ -37,7 +37,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Zen Dojo", template: "%s · Zen Dojo" },
-  description: "Offline, open-source engineering course: DSA, system design, low-level design and core CS",
+  description:
+    process.env.HABIT_HOSTED === "1"
+      ? "Interview-prep course: DSA, system design, low-level design and core CS"
+      : "Offline, open-source engineering course: DSA, system design, low-level design and core CS",
   icons: { apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "Zen Dojo", statusBarStyle: "default" },
 };
@@ -87,7 +90,7 @@ const asideNode = (
               <Logo className="size-9 shrink-0" />
               <span className="block leading-tight">
                 <span className="block text-base font-semibold tracking-tight">Zen Dojo</span>
-                <span className="block whitespace-nowrap text-[11px] text-muted">Offline learning</span>
+                <span className="block whitespace-nowrap text-[11px] text-muted">{process.env.HABIT_HOSTED === "1" ? "Interview prep" : "Offline learning"}</span>
               </span>
             </Link>
             {/* Phones: no back/forward arrows or Sign in up here; the bottom tab bar has Today, Practice, Learn, Review and You. */}
