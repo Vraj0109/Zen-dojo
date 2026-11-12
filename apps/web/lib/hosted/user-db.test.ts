@@ -2,6 +2,8 @@ import { createClient } from "@libsql/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/auth/session", () => ({ getSession: vi.fn() }));
+const cookieJar = vi.hoisted(() => ({ value: undefined as string | undefined }));
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: (n: string) => (n === "zd_anon" && cookieJar.value ? { value: cookieJar.value } : undefined) }) }));
 
 import { getSession } from "@/lib/auth/session";
 import { clearUserDbCacheForTest, getDb, getDbFor } from "../db";
@@ -47,9 +49,23 @@ describe("getDbFor", () => {
 });
 
 describe("requireUserDb", () => {
-  it("throws 401 when signed out", async () => {
+  it("throws 401 when there is neither a session nor an anonymous cookie", async () => {
     vi.mocked(getSession).mockResolvedValue(null);
+    cookieJar.value = undefined;
     await expect(requireUserDb()).rejects.toMatchObject({ status: 401 });
+  });
+  it("ignores a malformed anonymous cookie", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    cookieJar.value = "../evil";
+    await expect(requireUserDb()).rejects.toMatchObject({ status: 401 });
+  });
+  it("an anonymous visitor gets their own database named anon:<id>", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    cookieJar.value = "3f2b8c1e-9d4a-4e6b-8a1c-0b7d5e2f4a91";
+    vi.stubEnv("HABIT_HOSTED", "1");
+    await expect(requireUserDb()).rejects.toThrow(); // no provider configured here, but it got past the cookie check, not a 401
+    await expect(requireUserDb()).rejects.not.toMatchObject({ status: 401 });
+    vi.unstubAllEnvs();
   });
   it("hosted getDb binds to the session user", async () => {
     vi.stubEnv("HABIT_HOSTED", "1");

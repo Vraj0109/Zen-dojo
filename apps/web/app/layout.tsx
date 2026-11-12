@@ -15,9 +15,7 @@ import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
 import { SidebarAccount } from "./components/sidebar-account";
 import { Logo } from "./logo";
 import { Shell } from "./shell";
-import { RegisterSw } from "./register-sw";
-import { getSession } from "@/lib/auth/session";
-import { HostedSyncOnRequest } from "./components/hosted-sync";
+import { RegisterSw } from "./register-sw";import { HostedSyncOnRequest } from "./components/hosted-sync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,8 +65,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
 async function BuddySessionLoader() {
   await connection();
-  // Hosted: there is no database for a signed-out visitor (the welcome page), so no Buddy there.
-  if (process.env.HABIT_HOSTED === "1" && !(await getSession())) return null;
   const [settings, ai] = await Promise.all([getBuddySettings(), process.env.HABIT_HOSTED === "1" ? null : getAiSettings()]);
   return <BuddyCompanion settings={settings} ai={{ enabled: process.env.HABIT_HOSTED === "1" || Boolean(ai?.enabled) }} />;
 }
