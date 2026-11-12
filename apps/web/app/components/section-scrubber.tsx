@@ -4,23 +4,30 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { tick } from "@/lib/haptics";
 
-type Item = { el: HTMLElement; title: string };
+type Item = { el: HTMLElement; title: string; level: 1 | 2 };
 
 /** Pages with long reading: lessons, pattern guides and the help page. */
 const READING = /^\/(study|dsa\/pattern|help)(\/|$)/;
-const MIN_SECTIONS = 4;
+const MIN_ITEMS = 4;
+const MAX_WITH_SUBSECTIONS = 60;
+const SLOT = 16; // px per dot: dots sit close together, like the macOS Dock
+const SPREAD = 2.6; // how many dots either side of the finger are magnified
+
+/** 0 at the edge of the magnified zone, 1 under the finger. Smooth, like the Dock's fisheye. */
+const near = (d: number) => Math.max(0, 1 - Math.abs(d) / SPREAD) ** 2;
 
 /**
- * Phones only. A rail of dots on the right edge, one per section heading (h2) of the page you are reading. Press and drag
- * along it to jump through the sections: a bubble names the section and each step gives a light haptic tick (see
- * lib/haptics.ts for what each phone supports). It also shows where you are while you scroll normally.
+ * Phones only. A compact column of dots on the right edge: big dots are sections (h2), small dots are the sub-sections
+ * inside them (h3). Press and drag along it to move through the page: the dots under your finger grow like the macOS
+ * Dock and show their names, and each step gives a light haptic tick (see lib/haptics.ts). When you are not touching it
+ * the dot for the part you are reading is highlighted.
  */
 export function SectionScrubber() {
   const pathname = usePathname();
   const enabled = READING.test(pathname ?? "");
   const [items, setItems] = useState<Item[]>([]);
   const [active, setActive] = useState(0);
-  const [drag, setDrag] = useState<number | null>(null);
+  const [focus, setFocus] = useState<number | null>(null);
   const rail = useRef<HTMLDivElement | null>(null);
   const last = useRef(-1);
 
@@ -28,9 +35,13 @@ export function SectionScrubber() {
     if (!enabled) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const scan = () => {
-      const found = [...document.querySelectorAll<HTMLElement>("main h2")]
-        .filter((h) => h.offsetParent !== null && (h.textContent ?? "").trim() !== "")
-        .map((el) => ({ el, title: (el.textContent ?? "").trim() }));
+      const all = [...document.querySelectorAll<HTMLElement>("main h2, main h3")].filter(
+        (h) => h.offsetParent !== null && (h.textContent ?? "").trim() !== "",
+      );
+      const withSub = all.length <= MAX_WITH_SUBSECTIONS;
+      const found: Item[] = all
+        .filter((h) => withSub || h.tagName === "H2")
+        .map((el) => ({ el, title: (el.textContent ?? "").trim(), level: el.tagName === "H3" ? 2 : 1 }));
       setItems((prev) => (prev.length === found.length && prev.every((p, i) => p.el === found[i].el) ? prev : found));
     };
     scan();
@@ -47,7 +58,7 @@ export function SectionScrubber() {
   }, [enabled, pathname]);
 
   useEffect(() => {
-    if (items.length < MIN_SECTIONS) return;
+    if (items.length < MIN_ITEMS) return;
     const onScroll = () => {
       let idx = 0;
       for (let i = 0; i < items.length; i++) {
@@ -61,39 +72,37 @@ export function SectionScrubber() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [items]);
 
-  if (!enabled || items.length < MIN_SECTIONS) return null;
+  if (!enabled || items.length < MIN_ITEMS) return null;
 
+  const n = items.length;
+  const go = (idx: number) => {
+    if (idx === last.current) return;
+    last.current = idx;
+    tick(items[idx].level === 1 ? 10 : 5);
+    items[idx].el.scrollIntoView({ block: "start" });
+  };
   const pick = (clientY: number) => {
     const r = rail.current?.getBoundingClientRect();
     if (!r || r.height === 0) return;
-    const f = Math.min(0.999, Math.max(0, (clientY - r.top) / r.height));
-    const idx = Math.floor(f * items.length);
-    setDrag(idx);
-    if (idx !== last.current) {
-      last.current = idx;
-      tick(8);
-      items[idx].el.scrollIntoView({ block: "start" });
-    }
+    const f = (clientY - r.top) / (r.height / n) - 0.5; // fractional index under the finger
+    const clamped = Math.min(n - 1, Math.max(0, f));
+    setFocus(clamped);
+    go(Math.round(clamped));
+  };
+  const end = () => {
+    setFocus(null);
+    last.current = -1;
   };
 
-  const shown = drag ?? active;
+  const shown = focus === null ? active : Math.round(focus);
   return (
     <div className="md:hidden print:hidden">
-      {drag !== null && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed right-12 z-40 max-w-[14rem] -translate-y-1/2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium shadow-lg"
-          style={{ top: `calc(50% + ${((drag + 0.5) / items.length - 0.5) * 60}dvh)` }}
-        >
-          <span className="line-clamp-2">{items[drag].title}</span>
-        </div>
-      )}
       <div
         ref={rail}
         role="slider"
         aria-label="Jump between sections"
         aria-valuemin={1}
-        aria-valuemax={items.length}
+        aria-valuemax={n}
         aria-valuenow={shown + 1}
         aria-valuetext={items[shown]?.title}
         tabIndex={0}
@@ -106,25 +115,51 @@ export function SectionScrubber() {
         onPointerMove={(e) => {
           if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e.clientY);
         }}
-        onPointerUp={() => setDrag(null)}
-        onPointerCancel={() => setDrag(null)}
+        onPointerUp={end}
+        onPointerCancel={end}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
-            const n = Math.min(items.length - 1, Math.max(0, shown + (e.key === "ArrowDown" ? 1 : -1)));
-            tick(8);
-            items[n].el.scrollIntoView({ block: "start" });
+            go(Math.min(n - 1, Math.max(0, shown + (e.key === "ArrowDown" ? 1 : -1))));
           }
         }}
-        className="fixed right-0 top-1/2 z-30 flex h-[60dvh] w-10 -translate-y-1/2 touch-none select-none flex-col items-end justify-between py-1 pr-2"
+        className="fixed right-0 top-1/2 z-30 w-14 -translate-y-1/2 touch-none select-none"
+        style={{ height: `min(60dvh, ${n * SLOT}px)` }}
       >
-        {items.map((_, i) => (
-          <span
-            key={i}
-            aria-hidden
-            className={`block rounded-full transition-all ${i === shown ? "h-2.5 w-2.5 bg-accent" : "h-1.5 w-1.5 bg-muted/60"}`}
-          />
-        ))}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 right-1 w-5 rounded-full bg-surface/80 backdrop-blur transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
+        />
+        {items.map((it, i) => {
+          const m = focus === null ? 0 : near(i - focus);
+          const isActive = i === shown;
+          const base = it.level === 1 ? 6 : 4;
+          return (
+            <div key={i} className="relative flex items-center justify-end" style={{ height: `${100 / n}%` }}>
+              {focus !== null && m > 0.12 && (
+                <span
+                  className="pointer-events-none absolute right-9 max-w-[13rem] origin-right truncate rounded-md border border-line bg-surface px-2 py-0.5 text-xs font-medium shadow-md"
+                  style={{
+                    opacity: Math.min(1, m * 1.6),
+                    transform: `translateX(${(1 - m) * 6}px) scale(${0.82 + 0.3 * m})`,
+                    paddingLeft: it.level === 2 ? "0.9rem" : undefined,
+                  }}
+                >
+                  {it.title}
+                </span>
+              )}
+              <span
+                className={`mr-2.5 block rounded-full ${isActive ? "bg-accent" : it.level === 1 ? "bg-muted/80" : "bg-muted/50"}`}
+                style={{
+                  width: base,
+                  height: base,
+                  transform: `translateX(${-m * 8}px) scale(${1 + m * 1.7})`,
+                  transition: focus === null ? "transform 160ms ease-out" : "none",
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
