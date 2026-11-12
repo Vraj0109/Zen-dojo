@@ -172,9 +172,7 @@ pre.code-block {
 @keyframes habit-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes habit-pop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes habit-pulse { 50% { opacity: 0.45; } }
-@keyframes scrub-in { from { opacity: 0; scale: 0.9; } to { opacity: 1; scale: 1; } }
-.scrub-bubble { transform-origin: right center; animation: scrub-in 120ms ease-out; }
-@media (prefers-reduced-motion: reduce) { .scrub-bubble { animation: none; } }
+
 .anim-fade-up { animation: habit-fade-up 0.28s ease-out backwards; }
 .anim-pop { animation: habit-pop 0.22s ease-out both; }
 .anim-pulse { animation: habit-pulse 1.4s ease-in-out infinite; }
