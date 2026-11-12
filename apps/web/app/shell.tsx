@@ -56,6 +56,8 @@ function ShellInner({ aside, children, account }: { aside: ReactNode; children: 
 
   useEffect(() => {
     initZenMode();
+    // Phones have no Zen mode: it would only hide the tab bar, and the toggle is not shown there.
+    if (window.matchMedia("(max-width: 767px)").matches && getZenMode()) setZenMode(false);
     try {
       localStorage.removeItem("habit-bar-hidden");
     } catch {
@@ -137,22 +139,23 @@ function ShellInner({ aside, children, account }: { aside: ReactNode; children: 
           aria-controls="shell-drawer"
           aria-label="Menu"
           title="Menu (Ctrl+B)"
-          className="grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground max-md:size-10"
+          className="grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground max-md:hidden"
         >
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="[&_button]:size-6 [&_button]:rounded-md [&_button]:border-0 max-md:[&_button]:size-10">
+        <div className="[&_button]:size-6 [&_button]:rounded-md [&_button]:border-0 max-md:hidden">
           <HistoryButtons />
         </div>
         <Link
           href={pathname?.startsWith("/study/") ? "/study" : "/dsa"}
           aria-label={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
           title={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
-          className="grid size-6 place-items-center rounded-md text-sm text-muted hover:bg-background hover:text-foreground max-md:size-10"
+          className="grid size-6 place-items-center rounded-md text-sm text-muted hover:bg-background hover:text-foreground max-md:flex max-md:h-10 max-md:w-auto max-md:items-center max-md:gap-2 max-md:px-2"
         >
           <span aria-hidden>↩</span>
+          <span className="hidden text-sm font-medium max-md:inline">{pathname?.startsWith("/study/") ? "Learn" : "Practice"}</span>
         </Link>
         <button
           type="button"
@@ -160,15 +163,15 @@ function ShellInner({ aside, children, account }: { aside: ReactNode; children: 
           aria-pressed={zen}
           aria-label="Zen mode"
           title="Zen mode: focus purely on problem and code (Ctrl+Shift+Z)"
-          className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors max-md:min-h-10 max-md:px-3 ${
+          className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors max-md:hidden ${
             zen ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
           }`}
         >
           <span aria-hidden className="inline-block size-1.5 rounded-full bg-current" />
           <span>Zen</span>
         </button>
-        {zen && <span className="text-[11px] text-muted italic ml-1">focus mode (Esc to exit)</span>}
-        <div className="ml-auto flex items-center gap-1.5 max-md:[&_button]:min-h-10 max-md:[&_button]:min-w-10 max-md:[&_a]:flex max-md:[&_a]:min-h-10 max-md:[&_a]:items-center">
+        {zen && <span className="text-[11px] text-muted italic ml-1 max-md:hidden">focus mode (Esc to exit)</span>}
+        <div className="ml-auto flex items-center gap-1.5 max-md:hidden max-md:[&_button]:min-h-10 max-md:[&_button]:min-w-10 max-md:[&_a]:flex max-md:[&_a]:min-h-10 max-md:[&_a]:items-center">
           <SyncStatusPill compact />
           {account}
         </div>
