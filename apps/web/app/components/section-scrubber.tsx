@@ -165,16 +165,16 @@ export function SectionScrubber() {
       >
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-y-0 right-1 w-5 rounded-full bg-surface/80 backdrop-blur transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
+          className={`pointer-events-none absolute inset-y-0 right-1 w-6 rounded-full bg-foreground/15 backdrop-blur-md transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
         />
         {focus !== null && (
           <div
             aria-hidden
-            className="pointer-events-none absolute right-16 z-10 w-max max-w-[min(16rem,calc(100vw-6rem))] -translate-y-1/2 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-xl"
+            className="scrub-bubble pointer-events-none absolute right-14 z-10 w-max max-w-[min(17rem,calc(100vw-5rem))] -translate-y-1/2 rounded-2xl bg-foreground/90 px-4 py-2.5 text-background shadow-[0_10px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150"
             style={{ top: `${((shown + 0.5) / n) * 100}%` }}
           >
-            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs text-muted">{parentOf(items, shown)}</p>}
-            <p className="line-clamp-3 text-base leading-snug font-semibold">{items[shown].title}</p>
+            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs font-medium opacity-60">{parentOf(items, shown)}</p>}
+            <p className="line-clamp-3 text-[17px] leading-snug font-semibold tracking-tight">{items[shown].title}</p>
           </div>
         )}
         {items.map((it, i) => {
@@ -184,7 +184,7 @@ export function SectionScrubber() {
           return (
             <div key={i} className="relative flex items-center justify-end" style={{ height: `${100 / n}%` }}>
               <span
-                className={`mr-2.5 block rounded-full ${isActive ? "bg-accent" : it.level === 1 ? "bg-muted/80" : "bg-muted/50"}`}
+                className={`mr-2.5 block rounded-full ${isActive ? "bg-accent" : it.level === 1 ? "bg-foreground/55" : "bg-foreground/35"}`}
                 style={{
                   width: base,
                   height: base,
