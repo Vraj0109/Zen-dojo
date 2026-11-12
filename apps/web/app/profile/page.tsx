@@ -8,12 +8,16 @@ import { getPlanPosition, getPlanStart } from "@/lib/tasks";
 import { PageMain, ProgressBar, Stat, StatusMark } from "../ui";
 import { ProfileTabs } from "./profile-ui";
 import { ProfileStatsSkeleton } from "@/app/components/profile-skeleton";
+import { SignInCard } from "@/app/components/sign-in-card";
 
 export const metadata: Metadata = { title: "Profile" };
 
 export default function ProfilePage() {
   return (
     <PageMain title="Profile">
+      <Suspense fallback={null}>
+        <SignInCard next="/profile" />
+      </Suspense>
       <ProfileTabs active="/profile" />
       <p className="mb-6 text-sm">
         <Link href="/profile/portfolio" className="font-medium text-accent hover:underline">

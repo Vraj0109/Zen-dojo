@@ -139,7 +139,7 @@ export function SettingsShell({
 
       <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
         <nav aria-label="Settings categories" className="min-w-0 lg:sticky lg:top-4 lg:self-start">
-          <ul className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
+          <ul className="flex touch-pan-x gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
             {navCats.map((c) => (
               <li key={c.id} className="shrink-0">
                 <a

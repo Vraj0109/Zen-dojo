@@ -11,7 +11,7 @@ export function Tabs({
   active,
   hrefFor,
   label,
-  className = "flex gap-6 border-b border-line overflow-x-auto print:hidden",
+  className = "flex touch-pan-x gap-6 border-b border-line overflow-x-auto overflow-y-hidden overscroll-x-contain print:hidden",
 }: {
   tabs: readonly TabItem[];
   active: string;

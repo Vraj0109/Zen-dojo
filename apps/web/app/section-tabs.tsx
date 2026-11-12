@@ -57,7 +57,7 @@ export function ReviewTabs({ active, due }: { active: ReviewTab; due?: number })
       active={active}
       hrefFor={(id) => href[id as ReviewTab]}
       label="Review sections"
-      className="mb-6 flex gap-6 overflow-x-auto border-b border-line print:hidden"
+      className="mb-6 flex touch-pan-x gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-line print:hidden"
     />
   );
 }

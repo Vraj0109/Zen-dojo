@@ -349,7 +349,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
 
   const problemPane = (
     <div className="flex h-full min-h-0 flex-col">
-      <div role="tablist" aria-label="Problem sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div role="tablist" aria-label="Problem sections" className="flex shrink-0 touch-pan-x gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-line px-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {effectiveTabs.map((t) => (
           <button
             key={t.id}
