@@ -270,12 +270,30 @@ ALTER TABLE solution_runs ADD COLUMN failed_cases TEXT NOT NULL DEFAULT '';
   syncMigrationSqlV2(),
 ];
 
-async function migrate(client: Client) {
-  const { rows } = await client.execute("PRAGMA user_version");
+/** Names the step in the error so a log line says what failed (never any data or token). */
+async function named<T>(step: string, f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } catch (e) {
+    throw new Error(`[${step}] ${e instanceof Error ? e.message : "failed"}`);
+  }
+}
+
+/**
+ * Runs pending migrations. Local databases run each migration and its version bump atomically. A remote database (Turso over
+ * HTTPS) rejected the BEGIN/COMMIT script with a 400, so there each migration and the version bump are separate calls;
+ * the version only moves after the migration succeeded, so a failure is retried from that migration on the next request.
+ */
+async function migrate(client: Client, remote = false) {
+  const { rows } = await named("version-read", () => client.execute("PRAGMA user_version"));
   const current = Number(rows[0]?.[0] ?? 0);
   for (let v = current; v < MIGRATIONS.length; v++) {
-    // Run each migration and its version bump atomically.
-    await client.executeMultiple(`BEGIN;\n${MIGRATIONS[v]}\nPRAGMA user_version = ${v + 1};\nCOMMIT;`);
+    if (remote) {
+      await named(`migration-${v}`, () => client.executeMultiple(MIGRATIONS[v]));
+      await named(`version-${v + 1}`, () => client.execute(`PRAGMA user_version = ${v + 1}`));
+    } else {
+      await client.executeMultiple(`BEGIN;\n${MIGRATIONS[v]}\nPRAGMA user_version = ${v + 1};\nCOMMIT;`);
+    }
   }
 }
 
@@ -336,7 +354,7 @@ export function getDbFor(
     const token = await step("mint-token", () => mintDbToken(userId, deps));
     const client = deps.makeClient ? deps.makeClient(url, token) : createClient({ url: hostedHttpUrl(url), authToken: token });
     const db = drizzle(client, { schema });
-    await step("migrate", () => migrate(client));
+    await step("migrate", () => migrate(client, true));
     return db;
   })();
   const entry = { db: undefined as never, ready } as UserDb;
