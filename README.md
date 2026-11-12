@@ -31,6 +31,10 @@ Reading, plans and notes work right away. The Run button needs a C++ compiler, a
 | **Profile** (`/profile`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
 | **Settings** (`/profile/settings`) | Plan start date, LeetCode username sync and extension pairing key, backup: download all data as one JSON file; restore from one (all or nothing, safety copy saved to a `backups` folder next to the database first) |
 
+### Accounts and cloud sync
+
+Sign-in with GitHub and syncing between devices go through the website's own `/hub` routes (Vercel) and a Turso database; no Cloudflare is involved after the move in `docs/migration-cloudflare-to-vercel.md`. Before cutover the old Cloudflare Worker still serves them. See `docs/hosting.md` and `docs/account-data.md`.
+
 ### LeetCode auto-sync
 
 In Profile → Settings, connect your LeetCode username. The app reads your **public** recent accepted

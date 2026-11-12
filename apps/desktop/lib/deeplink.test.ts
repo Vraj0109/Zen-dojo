@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROTOCOL, findDeepLink, isWorkerRedirect, parseAuthDeepLink } from "./deeplink.js";
+import { PROTOCOL, findDeepLink, hubOrigins, isWorkerRedirect, parseAuthDeepLink } from "./deeplink.js";
 
 describe("PROTOCOL", () => {
   it("equals zendojo", () => {
@@ -146,5 +146,25 @@ describe("isWorkerRedirect", () => {
     expect(isWorkerRedirect(null, workerOrigin)).toBe(false);
     expect(isWorkerRedirect("https://example.com", "not a url")).toBe(false);
     expect(isWorkerRedirect(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("hubOrigins and both origins", () => {
+  const site = "https://zen-dojo.example.app";
+  const list = hubOrigins({ HUB_URL: `${site}/hub`, PUBLIC_SITE_URL: "not a url" });
+
+  it("always includes the old Worker and adds the new site origin", () => {
+    expect(list).toContain("https://zen-dojo-sync.habit-sync-worker.workers.dev");
+    expect(list).toContain(site);
+    expect(hubOrigins({})).toEqual(["https://zen-dojo-sync.habit-sync-worker.workers.dev"]);
+  });
+
+  it("accepts the new and the old origin, refuses look-alikes", () => {
+    expect(isWorkerRedirect(`${site}/hub/auth/github/start`, list)).toBe(true);
+    expect(isWorkerRedirect("https://zen-dojo-sync.habit-sync-worker.workers.dev/auth/x", list)).toBe(true);
+    expect(isWorkerRedirect("https://zen-dojo.example.app.evil.com/hub", list)).toBe(false);
+    expect(isWorkerRedirect("https://evil-zen-dojo.example.app/", list)).toBe(false);
+    expect(isWorkerRedirect("http://zen-dojo.example.app/", list)).toBe(false);
+    expect(isWorkerRedirect("https://github.com/login", list)).toBe(false);
   });
 });

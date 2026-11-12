@@ -58,20 +58,53 @@ export function findDeepLink(argv) {
   return null;
 }
 
+/** The old Cloudflare Worker origin. Still accepted while old and new builds sign in during the move (plan 0073). */
+export const LEGACY_WORKER_ORIGIN = "https://zen-dojo-sync.habit-sync-worker.workers.dev";
+
 /**
- * Safely parses url and checks if its origin equals new URL(workerOrigin).origin.
- * Never throws.
+ * Origins the sign-in may legitimately bounce through: the old Worker, plus the new site (HUB_URL, the old
+ * AUTH_WORKER_URL override, or PUBLIC_SITE_URL). Invalid values are skipped. Never throws.
+ *
+ * @param {Record<string, string | undefined>} env
+ * @returns {string[]}
+ */
+export function hubOrigins(env) {
+  const out = new Set([LEGACY_WORKER_ORIGIN]);
+  for (const v of [env.HUB_URL, env.AUTH_WORKER_URL, env.SYNC_WORKER_URL, env.PUBLIC_SITE_URL]) {
+    if (!v) continue;
+    try {
+      const o = new URL(v.trim()).origin;
+      if (o !== "null") out.add(o);
+    } catch {
+      // ignore a malformed override
+    }
+  }
+  return [...out];
+}
+
+/**
+ * Safely parses url and checks if its origin equals the origin of workerOrigin (a string, or a list of strings:
+ * any match is enough). Exact origin match only, so look-alike hosts are refused. Never throws.
  *
  * @param {unknown} url
  * @param {unknown} workerOrigin
  * @returns {boolean}
  */
 export function isWorkerRedirect(url, workerOrigin) {
-  if (typeof url !== "string" || typeof workerOrigin !== "string") return false;
+  if (typeof url !== "string") return false;
+  const list = Array.isArray(workerOrigin) ? workerOrigin : [workerOrigin];
   try {
     const targetOrigin = new URL(url).origin;
-    const expectedOrigin = new URL(workerOrigin).origin;
-    return targetOrigin !== "null" && targetOrigin === expectedOrigin;
+    if (targetOrigin === "null") return false;
+    for (const o of list) {
+      if (typeof o !== "string") continue;
+      try {
+        if (new URL(o).origin === targetOrigin) return true;
+      } catch {
+        // skip a malformed origin
+      }
+    }
+    return false;
   } catch {
     return false;
   }

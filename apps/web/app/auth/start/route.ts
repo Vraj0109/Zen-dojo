@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getWorkerUrl } from "@/lib/auth/jwks";
+import { hubUrl } from "@/lib/hub/url";
 import { computeS256, randomBase64Url, requestOrigin, safeNext } from "@/lib/auth/util";
 
 export async function GET(req: Request) {
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
       : new URL("/auth/callback", requestOrigin(req)).toString();
 
   const workerUrl = getWorkerUrl();
-  const targetUrl = new URL("/auth/github/start", workerUrl);
+  const targetUrl = new URL(hubUrl("/auth/github/start", workerUrl));
   targetUrl.searchParams.set("redirect_uri", callbackUrl);
   targetUrl.searchParams.set("state", state);
   targetUrl.searchParams.set("code_challenge", challenge);

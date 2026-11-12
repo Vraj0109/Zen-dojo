@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getWorkerUrl } from "@/lib/auth/jwks";
+import { hubUrl } from "@/lib/hub/url";
 import { getCookieOptions } from "@/lib/auth/session";
 import { requestOrigin, safeNext } from "@/lib/auth/util";
 
@@ -42,7 +43,7 @@ export async function GET(req: Request) {
   }
 
   const workerUrl = getWorkerUrl();
-  const tokenUrl = new URL("/auth/token", workerUrl).toString();
+  const tokenUrl = hubUrl("/auth/token", workerUrl);
 
   const userAgent = req.headers.get("user-agent") ?? "";
   const deviceName = userAgent ? userAgent.slice(0, 64) : "Web browser";

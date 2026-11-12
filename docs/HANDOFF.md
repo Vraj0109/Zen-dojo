@@ -18,7 +18,7 @@ round is and what is blocked on me. Then wait for my go.
 **Zen Dojo** (repo `Vraj0109/Zen-dojo`, local remote still named `habit-manager`; old names HabitManager, Prepwise) is an interview-prep
 course and practice platform: DSA with a local code judge (C++, Java, JavaScript; Python is coming in plan 0062), system design depth, low-level design
 Java projects, core CS, diagrams, reading tracker, spaced-repetition review, a 16-week plan. Local-first Next.js 16 + libSQL app, packaged as an
-Electron desktop app, with optional **accounts and cloud sync** (GitHub sign-in through a Cloudflare Worker + D1). pnpm workspace: `apps/web`,
+Electron desktop app, with optional **accounts and cloud sync** (GitHub sign-in through the site's `/hub` routes + a Turso hub database; before the plan 0073 cutover: Cloudflare Worker + D1). pnpm workspace: `apps/web`,
 `apps/desktop`, `apps/extension`, `packages/shared`, `packages/sync-worker`. Layout and conventions are in `AGENTS.md`.
 
 ## 2. How we work (the user's rules)
@@ -45,7 +45,7 @@ Electron desktop app, with optional **accounts and cloud sync** (GitHub sign-in 
 
 Built: accounts, GitHub sign-in, abuse guard, cloud sync (SQLite triggers, `lib/sync-engine.ts`, Worker pull by server time), desktop sign-in through `zendojo://`,
 Java editor for "Your classes", multi-select filters and deep search on `/dsa`, accent plus grey solved ticks, separate delete-cloud-data and delete-device-data,
-admin problem editor, solved-means-tests-passed, TLE handling. Cloudflare: Worker `zen-dojo-sync`, D1 `zen-dojo-db`, deploy workflow `deploy-worker.yml`.
+admin problem editor, solved-means-tests-passed, TLE handling. Cloudflare (retired by plan 0073, see `docs/migration-cloudflare-to-vercel.md`): Worker `zen-dojo-sync`, D1 `zen-dojo-db`, deploy workflow `deploy-worker.yml` (kept until decommission).
 
 **Rounds thirteen to sixteen are done. Released up to 0.7.3; plans 0068 (Buddy avatar, AI lines, `/admin/study`) and 0069 (Petdex pets, pet-voice AI, chat with the Buddy, edge-snapping throw physics, Portfolio and certificates) are implemented with `pnpm check` green and not yet released.** Still to check by hand: importing a Petdex pet in the Settings screen and watching it animate, the Portfolio page and a certificate print, Gemini and Codex through the Test button once installed. The public profile page (`/u/<userId>`) needs the hosted site (plan 0058).
 

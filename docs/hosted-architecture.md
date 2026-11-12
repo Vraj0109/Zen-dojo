@@ -9,8 +9,8 @@ Last updated 2026-11-12. Items marked **unverified** were not confirmed against 
   database URL. No query carries a `user_id`; isolation comes from each person having a separate database.
 - **Signed-out visitors:** browse everything as guests on a throwaway in-memory database made per request. Nothing is
   saved. Progress saves only after GitHub sign-in. There is no anonymous cookie and no `proxy.ts`.
-- **Sync:** the existing sync engine and the Cloudflare sync Worker (`packages/sync-worker`, free plan, D1) are
-  unchanged. A signed-in user's hosted database acts as one more device in that sync.
+- **Sync:** the existing sync engine and the sync code in `packages/sync-worker` are unchanged, but since plan 0073 they run
+  inside the site under `/hub` on a Turso hub database (`zen-dojo-hub`) instead of on Cloudflare. Before cutover the Cloudflare Worker (D1) still serves them. A signed-in user's hosted database acts as one more device in that sync.
 - **No code execution on the server.** Judge and tools routes answer 403 `hosted-no-run`.
 
 ## Why Vercel and not Cloudflare Workers
@@ -50,7 +50,7 @@ Request flow (hosted mode, `HABIT_HOSTED=1`):
 3. Delete-my-data: `dropHostedUserData(userId)` deletes the user's Turso database and the control row and forgets the
    cached client. It returns false when `TURSO_API_TOKEN` is not set.
 4. Sync: `lib/hosted/sync.ts` syncs on request (at most once per 20 s per user) and after each change, not in the
-   background, against the sync Worker at `SYNC_WORKER_URL`.
+   background, against the hub at `HUB_URL` (the site's own `/hub`).
 
 The control database is created by hand once (see `docs/hosting.md`); the app creates its table on first use
 (`ensureControlSchema`). `libsql://` URLs are converted to `https://`, so the client talks HTTP.
@@ -67,11 +67,10 @@ The control database is created by hand once (see `docs/hosting.md`); the app cr
 
 ### GitHub sign-in
 
-The GitHub OAuth app's callback stays on the sync Worker (`/auth/github/callback`); nothing changes in GitHub. The
-site starts sign-in with `redirect_uri=https://<site>/auth/callback`. The Worker accepts that only if it is listed in
+After plan 0073 the GitHub OAuth app's callback is `https://<site>/hub/auth/github/callback` (before cutover it is the Worker's `/auth/github/callback`). The
+site starts sign-in with `redirect_uri=https://<site>/auth/callback`. The hub accepts that only if it is listed in
 `ALLOWED_REDIRECTS` (comma list, exact match, no wildcards), so a look-alike host is refused (test:
-`packages/sync-worker/src/auth/routes.test.ts`). `wrangler.jsonc` keeps `ALLOWED_REDIRECTS` empty in the repo because the
-site address is not known until the first deploy.
+`packages/sync-worker/src/auth/routes.test.ts`). `ALLOWED_REDIRECTS` is a Vercel environment variable, never in the repo.
 
 ## Environment variables (Vercel project settings)
 
@@ -83,7 +82,11 @@ site address is not known until the first deploy.
 | `TURSO_API_TOKEN` | yes | Platform API token; creates and deletes user databases and mints their tokens |
 | `TURSO_ORG` | no | Turso organization slug |
 | `TURSO_GROUP` | no | Turso group that new user databases join |
-| `SYNC_WORKER_URL` | no | base URL of the deployed sync Worker |
+| `HUB_URL` | no | base URL of sign-in and sync, `https://<site>/hub` |
+| `HUB_DATABASE_URL` | no | `libsql://` URL of the hub database |
+| `HUB_DATABASE_AUTH_TOKEN` | yes | token for the hub database |
+| `GITHUB_CLIENT_SECRET`, `JWT_PRIVATE_JWK` | yes | former Worker secrets |
+| `GITHUB_CLIENT_ID`, `JWT_PUBLIC_JWK`, `ADMIN_USER_IDS`, `ALLOWED_REDIRECTS`, `ALLOWED_ORIGIN` | no | former Worker variables |
 | `PUBLIC_SITE_URL` | no | public origin of the site, for example `https://zen-dojo.vercel.app`, no trailing slash |
 
 ## Limits
@@ -96,7 +99,8 @@ site address is not known until the first deploy.
 - Vercel Hobby is for non-commercial, personal use only (stated on the Hobby plan page, via its fair use guidelines).
   Charging for the site or running it for a business needs Pro.
 - Vercel Hobby also has 100 deployments per day and 1,000,000 function invocations per month included.
-- The sync Worker's free-plan limits are covered in `docs/sync-security.md`.
+- The hub is one more Turso database (so about 98 signed-in users fit in the 100-database limit). Its writes count toward the same 10 million rows a month. The one-time import counts once; daily sync writes are small (a few rows per change).
+- The old Worker's free-plan limits in `docs/sync-security.md` apply only until cutover.
 
 ## Not available hosted
 

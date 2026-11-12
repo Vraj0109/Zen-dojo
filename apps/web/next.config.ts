@@ -9,8 +9,8 @@ const nextConfig: NextConfig = {
   // The desktop server runs from the install folder, which is read-only on macOS and in a Linux AppImage,
   // so it keeps Next's page cache in memory instead of writing it to .next/.
   experimental: desktop ? { isrFlushToDisk: false } : undefined,
-  // Shared package ships TypeScript source.
-  transpilePackages: ["@habit/shared"],
+  // Shared package and the sync Worker ship TypeScript source (the Worker runs inside /hub, plan 0073).
+  transpilePackages: ["@habit/shared", "@habit/sync-worker"],
   // The cp-algorithms articles are read from disk at request time; make sure the standalone build ships them.
   outputFileTracingIncludes: { "/dsa/pattern/[id]": ["./content/cp-algorithms/**/*"] },
   cacheComponents: true,

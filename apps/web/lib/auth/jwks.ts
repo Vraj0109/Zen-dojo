@@ -1,11 +1,12 @@
 import type { AccessTokenClaims } from "./types";
+import { hubBaseUrl, hubUrl } from "../hub/url";
 
 const ISSUER = "zen-dojo-sync";
 const SKEW_SECONDS = 30;
 const ALG = { name: "ECDSA", hash: "SHA-256" } as const;
 
 export function getWorkerUrl(): string {
-  return process.env.AUTH_WORKER_URL || "https://zen-dojo-sync.habit-sync-worker.workers.dev";
+  return hubBaseUrl("auth");
 }
 
 function getCacheTtlMs(): number {
@@ -64,7 +65,7 @@ export async function fetchJwks(forceRefresh = false): Promise<JwkKey[]> {
   }
 
   const workerUrl = getWorkerUrl();
-  const jwksUrl = new URL("/.well-known/jwks.json", workerUrl).toString();
+  const jwksUrl = hubUrl("/.well-known/jwks.json", workerUrl);
   const res = await fetch(jwksUrl, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Failed to fetch JWKS: status ${res.status}`);

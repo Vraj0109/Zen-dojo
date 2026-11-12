@@ -81,21 +81,21 @@ Local commits are the lead's job. No agent runs `pnpm check`, `pnpm desktop:buil
 
 ### Agent A: hub storage (D1 shim, hub database, import)
 
-- [ ] **A1. Hub client and migrations.** `apps/web/lib/hub/db.ts` (`getHubDb`, URL and token from `HUB_DATABASE_URL` /
+- [x] **A1. Hub client and migrations.** `apps/web/lib/hub/db.ts` (`getHubDb`, URL and token from `HUB_DATABASE_URL` /
   `HUB_DATABASE_AUTH_TOKEN`, `libsql://` converted with `hostedHttpUrl`, cached per process, migrated with the table-based
   version method) and `apps/web/lib/hub/migrations.ts` (copy the SQL of `packages/sync-worker/migrations/0002` to `0006` and the
   tables of `schema.sql` that the migrations assume, in the right order; add `rate_counters`).
   - Done when: a test opens a temp `file:` database, runs the migrations twice (second run changes nothing) and finds every
     table the Worker queries (list them by grepping `FROM|INTO|UPDATE|JOIN` in `packages/sync-worker/src`).
-- [ ] **A2. D1 shim.** `apps/web/lib/hub/d1.ts`. Read every `env.DB` use in `packages/sync-worker/src` first and implement exactly
+- [x] **A2. D1 shim.** `apps/web/lib/hub/d1.ts`. Read every `env.DB` use in `packages/sync-worker/src` first and implement exactly
   that surface. `batch` must be atomic. `meta.changes` and `meta.last_row_id` must be right. No `PRAGMA user_version`, no
   BEGIN/COMMIT scripts.
   - Done when: a test runs a copy of the Worker's own D1 test setup (`src/auth/test-helpers.ts`, `src/index.test.ts` helpers)
     through the shim on a temp libSQL file and the same assertions pass.
-- [ ] **A3. Rate limiter.** `apps/web/lib/hub/rate-limit.ts` with the `{ limit({ key }) }` shape the Worker calls (check
+- [x] **A3. Rate limiter.** `apps/web/lib/hub/rate-limit.ts` with the `{ limit({ key }) }` shape the Worker calls (check
   `src/guard/guard.ts`). Fixed windows, expired rows deleted lazily.
   - Done when: tests show allow up to the limit, deny after, and allow again in the next window (fake `Date` only).
-- [ ] **A4. One-time import.** `scripts/hub-import.mjs`: reads a D1 SQL dump file (output of `wrangler d1 export zen-dojo-db --remote
+- [x] **A4. One-time import.** `scripts/hub-import.mjs`: reads a D1 SQL dump file (output of `wrangler d1 export zen-dojo-db --remote
   --output dump.sql`, which the user runs) and loads its INSERT statements into the hub through the shim, table by table, in
   batches under 100 bound parameters per statement, idempotent (`INSERT OR REPLACE`), then prints row counts per table. It
   takes the hub URL and token from the environment and never prints them.
@@ -206,5 +206,66 @@ Local commits are the lead's job. No agent runs `pnpm check`, `pnpm desktop:buil
 ## Implementation notes
 
 (Each agent adds a short dated note for its steps: files changed, tests run, anything left.)
+
+**Agent A, 2026-11-12 (A1 to A4 done, not committed).**
+- Files: `apps/web/lib/hub/{migrations,db,d1,rate-limit}.ts`, `scripts/hub-import.mjs` (+ `scripts/hub-import.d.mts`), tests
+  `apps/web/lib/hub/hub-storage.test.ts` and `hub-import.test.ts`.
+- `HUB_MIGRATIONS` has 6 entries: 0002 to 0006 and `rate_counters` (0007). 0004's `DROP TABLE` lines are left out (the hub starts empty).
+  `migrations.ts` also exports `HUB_TABLES` (every table the Worker touches) and `migrateHub(client)` (table-based version in
+  `zd_schema_version`, one call per migration, no PRAGMA user_version, no BEGIN). It has no imports so the script can load it.
+- `getHubDb()` reads `HUB_DATABASE_URL` / `HUB_DATABASE_AUTH_TOKEN` at first use, converts `libsql://` to `https://`, caches the
+  promise on `globalThis`, and does not cache a failure. `resetHubDb()` is for tests.
+- `createD1FromLibsql`: `prepare().bind().first(col?)/all()/run()/raw()`, `batch()` (one `client.batch(..., "write")`, atomic,
+  verified by a rollback test), `exec()`. `meta.changes` is 0 for plain SELECTs; `DELETE/UPDATE ... RETURNING` work through `first()`.
+  It defines its own `D1Database` types (no workers-types needed); B casts to the Worker's `Env["DB"]` as already done.
+- Rate limiter: one atomic upsert with `RETURNING count` per call (so every guarded request is one Turso write: about
+  3 writes per sync request; keep in mind for the 10M rows/month estimate). Fails open if the database errors. Extra export
+  `createHubRateLimiters(client)` returns `{ RL_AUTH, RL_SYNC, RL_IP }` at 20/60/300 per 60 s.
+- The shim test runs the real Worker (`packages/sync-worker/src/index.ts`) on a temp libSQL file: refresh rotation and reuse
+  revoke, push, pull, delete tombstone, delete cloud data.
+- Import: `node --disable-warning=DEP0205 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/lib/register-ts.mjs
+  scripts/hub-import.mjs dump.sql` with the hub env vars. Values are parsed and bound (strings, numbers, NULL, X'..', `char(n)`
+  joins), so each statement binds fewer than 100 values; 50 statements per batch; tables not used by the Worker are skipped by name.
+- Checked: `vitest run` of the two test files (16 tests pass), `pnpm.cmd --filter web exec tsc --noEmit` clean, eslint clean on
+  the changed `apps/web` files (the root `scripts/` folder is outside eslint's base path), CLI smoke test on a temp file.
+- Not verified: anything against real Turso (HTTPS) or a real `wrangler d1 export` file; the dump parser follows the standard
+  SQLite dump shape, so the lead should do a first run on a copy of the hub (or a scratch Turso database) before cutover.
+
+**Agent D, 2026-11-12.**
+
+- D1: `docs/migration-cloudflare-to-vercel.md`. Key finding: the Worker's `JWT_PRIVATE_JWK` is a Worker secret (not readable from Cloudflare); the user's copy is the git-ignored `packages/sync-worker/jwt-private.jwk.json` (from `scripts/gen-keys.mjs`). `JWT_PUBLIC_JWK`, `GITHUB_CLIENT_ID`, `ADMIN_USER_IDS` are committed in `wrangler.jsonc` vars. `GITHUB_CLIENT_SECRET` is only in the Worker and the GitHub app; if unsaved, generate a new one (no logout). If the key file is lost or differs, everyone signs in once more. The runbook pipes the key file into `vercel env add` so it never prints. I did not read the key file.
+- D2: retirement header added to `.github/workflows/deploy-worker.yml` (not deleted). `ci.yml` runs `pnpm test`, so the new tests are covered; no change.
+- D3: updated `docs/hosting.md`, `docs/hosted-architecture.md`, `docs/account-data.md`, `docs/HANDOFF.md`, `README.md`, `apps/web/lib/faq.ts` (one sentence), ran `pnpm faq:build` (`docs/faq.md`). `docs/signing.md` does not mention the Worker. Remaining "Cloudflare" mentions are history, "before cutover" notes and the runbook. `docs/sync-security.md` still describes Worker operations (wrangler); it is outside this step's list and should be revisited at decommission.
+- D4: `apps/web/lib/hub/hub-e2e.test.ts`, 5 tests through `hubFetch` on a temp libSQL file hub: sign-in with stubbed GitHub and the JWKS key, push and pull, delete tombstone, delete cloud data (400 without confirm, then empties rows and profile, keeps account and local copy), profile publish and unpublish. Temp folder cleanup is best effort (Windows holds the file).
+- Checks: `pnpm exec vitest run apps/web/lib/faq.test.ts apps/web/lib/hub/hub-e2e.test.ts` pass; `pnpm.cmd --filter web exec tsc --noEmit` clean at the time; eslint on the new test.
+
+**Agent C, 2026-11-12 (C1, C2, C4 done; C3 partly):**
+- New `apps/web/lib/hub/url.ts`: `hubBaseUrl(prefer)` (HUB_URL, then AUTH_WORKER_URL / SYNC_WORKER_URL, then PUBLIC_SITE_URL + `/hub`, then `LEGACY_WORKER_URL`) and `hubUrl(path, base)`. Clients must use `hubUrl`: `new URL(path, base)` would drop the `/hub` prefix. Tests: `url.test.ts`.
+- Switched to `hubUrl`: `lib/auth/jwks.ts` (`getWorkerUrl` now returns `hubBaseUrl`), `lib/auth/session.ts` (refresh, `workerFetch`), `lib/public-profile.ts` (`publicWorkerUrl` uses the sync-first order), `app/auth/{start,callback,logout}/route.ts`. `sync-engine.ts` has no URL of its own (it goes through `workerFetch`), so it needed no change.
+- C2: `apps/desktop/lib/deeplink.js` adds `hubOrigins(env)` and `isWorkerRedirect` takes a string or a list (exact origin match; look-alikes refused); `main.js` passes `hubOrigins(process.env)`. Scheme `zendojo://` unchanged. New cases in `deeplink.test.ts`.
+- C4: `lib/hosted/sync.ts` needed no code change: it calls `runSync`, which uses `workerFetch` and so `hubBaseUrl()`. Chosen over in-process calls because it is the same path the desktop uses and the base URL is the only switch. `hosted/sync.test.ts` passes.
+- C3 not done as specified: the test against `hubFetch` needs Agent B's handler. The site's redirect is `new URL('/auth/callback', requestOrigin)`, so `ALLOWED_REDIRECTS` must list `https://<site>/auth/callback` (and `zendojo://auth/callback` for desktop); I did not check `packages/sync-worker/src/auth/oauth.ts` against it.
+- Needs a decision at release: the desktop build only uses the new hub if `HUB_URL` or `PUBLIC_SITE_URL` is set in its environment; otherwise it still falls back to the old Worker. The release must bake in the site URL (open question: custom domain).
+- Ran: `pnpm.cmd exec vitest run apps/desktop apps/web/lib/hub/url.test.ts apps/web/lib/public-profile.test.ts apps/web/lib/auth apps/web/lib/hosted/sync.test.ts` (68 pass), eslint on changed web files, desktop typecheck. Web `tsc` only fails in Agent B's `lib/hub/handler.ts` (missing `./db`, `./d1`, `./rate-limit` from Agent A).
+
+### Agent B (2026-11-12)
+
+- Files: `apps/web/lib/hub/handler.ts` (`hubFetch`, `buildHubEnv`, `stripHubPrefix`), `apps/web/app/hub/[...path]/route.ts`
+  (GET, POST, PUT, DELETE, OPTIONS; `maxDuration = 60`), `apps/web/lib/hub/handler.test.ts`; wiring: `packages/sync-worker/package.json`
+  (`exports: { ".": "./src/index.ts" }`), `apps/web/package.json` (`@habit/sync-worker: workspace:*`, lockfile updated with
+  `pnpm install --offline`), `apps/web/next.config.ts` (`transpilePackages`).
+- The web typecheck passes with the Worker source imported (no `@cloudflare/workers-types` needed in the web app; the Worker uses
+  local D1 types).
+- No `dynamic = "force-dynamic"` on the route: `cacheComponents` forbids route segment `dynamic`, and handlers that read the
+  request are dynamic anyway. Runtime is Node by default.
+- Security fix not in the plan: the Worker's `clientIp` trusts `CF-Connecting-IP`, which any client can send to Vercel. `hubFetch`
+  deletes that header and rebuilds it from `x-real-ip` / `x-vercel-forwarded-for` / `x-forwarded-for` (set by Vercel's edge), so
+  rate limits and bans cannot be dodged. Tested.
+- The plan's B2 test "POST /hub/api/sync/run" is not a Worker route (it returns 404); the test uses `POST /hub/api/sync` (401 without a token).
+- `ctx.waitUntil` uses `after()`; outside a request scope (tests) it falls back to a swallowed promise.
+- B4: `apps/web` has no `proxy.ts` or `middleware.ts` (checked), so nothing touches `/hub/*`. If one is added later, exclude `/hub`.
+- Longest route: `/hub/api/sync` (up to 500 mutations in one batch plus a 12-table pull); `maxDuration = 60` is far under Hobby's 300 s.
+  Nothing else should exceed the limit; `/hub/auth/github/callback` makes one GitHub call (a few seconds at most).
+- Tests: `pnpm exec vitest run apps/web/lib/hub/handler.test.ts` (9 pass, A's modules stubbed with `vi.mock`).
 
 ## Review

@@ -24,6 +24,7 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.15",
     "@habit/shared": "workspace:*",
+    "@habit/sync-worker": "workspace:*",
     "@lezer/highlight": "^1.2.5",
     "@libsql/client": "^0.18.0",
     "drizzle-orm": "^0.45.4",

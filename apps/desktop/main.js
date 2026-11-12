@@ -10,7 +10,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import updaterPkg from "electron-updater";
-import { PROTOCOL, findDeepLink, isWorkerRedirect, parseAuthDeepLink } from "./lib/deeplink.js";
+import { PROTOCOL, findDeepLink, hubOrigins, isWorkerRedirect, parseAuthDeepLink } from "./lib/deeplink.js";
 import { appCommandAction, swipeAction, withFeature } from "./lib/navigation.js";
 import { DEFAULT_PORT, databaseUrl, importDatabase, isExternal, pickPort, waitForServer } from "./lib/setup.js";
 import { CHECK_EVERY_MS, RELEASES_REPO, backupName, backupsToPrune, isNewer, needsBackup } from "./lib/updates.js";
@@ -28,7 +28,8 @@ if (process.env.HABIT_DATA_DIR) app.setPath("userData", path.resolve(process.env
 // Two-finger swipe on a touchpad = back/forward (Chrome has it; Electron needs the feature switched on).
 app.commandLine.appendSwitch("enable-features", withFeature(app.commandLine.getSwitchValue("enable-features")));
 
-const workerOrigin = process.env.AUTH_WORKER_URL || "https://zen-dojo-sync.habit-sync-worker.workers.dev";
+// Hub origins (new site + old Worker) that sign-in may bounce through; they open in the browser, not in the app window.
+const workerOrigin = hubOrigins(process.env);
 
 /** @type {Electron.UtilityProcess | null} */
 let server = null;

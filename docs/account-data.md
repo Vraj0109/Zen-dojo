@@ -1,6 +1,6 @@
 # Account Data Management & Deletion Guide
 
-This document describes how user data is stored, synced, and deleted in Zen Dojo across local offline SQLite databases and optional Cloudflare D1 cloud sync.
+This document describes how user data is stored, synced, and deleted in Zen Dojo across local offline SQLite databases and optional cloud sync.
 
 ---
 
@@ -9,8 +9,8 @@ This document describes how user data is stored, synced, and deleted in Zen Dojo
 Zen Dojo is architected as a **local-first, offline-capable application**:
 
 - **Primary Source of Truth**: Your local SQLite database (`data/habit.db` in production, or `:memory:` in tests) is always the primary store. All roadmap navigation, problem solving, code execution, note taking, and task updates execute against local tables immediately with zero network latency.
-- **Optional Cloud Sync**: Users can sign in with GitHub to synchronize progress across multiple devices. The sync backend is hosted on Cloudflare Workers backed by a multi-tenant Cloudflare D1 database (`packages/sync-worker`).
-- **Trigger-Based Mutation Tracking**: Local changes to synchronized tables (`problem_solves`, `problem_notes`, `tasks`, `solution_runs`, `pack_progress`, `practice_sessions`, `focus_sessions`, `settings`) are captured by SQLite triggers into side tables (`sync_dirty`, `sync_stamps`, `sync_ids`). When online, the sync engine batches dirty mutations and pushes them to D1, while pulling remote changes using a high-water mark timestamp (`sync_heads`).
+- **Optional Cloud Sync**: Users can sign in with GitHub to synchronize progress across multiple devices. Sign in and sync go through the site's `/hub` routes (the code in `packages/sync-worker`), backed by a multi-tenant Turso database (`zen-dojo-hub`). Before cutover (plan 0073) they are still served by a Cloudflare Worker and D1.
+- **Trigger-Based Mutation Tracking**: Local changes to synchronized tables (`problem_solves`, `problem_notes`, `tasks`, `solution_runs`, `pack_progress`, `practice_sessions`, `focus_sessions`, `settings`) are captured by SQLite triggers into side tables (`sync_dirty`, `sync_stamps`, `sync_ids`). When online, the sync engine batches dirty mutations and pushes them to the cloud hub, while pulling remote changes using a high-water mark timestamp (`sync_heads`).
 
 Because local data and cloud data serve distinct purposes, **data deletion is split into two completely separate operations**, each with its own typed confirmation (`DELETE`).
 
@@ -24,10 +24,10 @@ Because local data and cloud data serve distinct purposes, **data deletion is sp
 |                                                                                 |
 |   +------------------------------------+   +--------------------------------+   |
 |   |       Delete Cloud Data            |   |     Delete Local Data          |   |
-|   |    (Cloudflare D1 / Worker)        |   |   (This Device's SQLite DB)    |   |
+|   |    (Cloud hub: site + Turso)       |   |   (This Device's SQLite DB)    |   |
 |   +------------------------------------+   +--------------------------------+   |
 |     |                                        |                                  |
-|     | Removes cloud rows in D1:              | Silences triggers:               |
+|     | Removes cloud rows:                    | Silences triggers:               |
 |     | - problem_solves, notes, tasks         | - sync_flags.applying = '1'      |
 |     | - runs, pack_progress, timer_rows      |                                  |
 |     | - sync_heads, user_quota               | Deletes local rows:              |
@@ -37,7 +37,7 @@ Because local data and cloud data serve distinct purposes, **data deletion is sp
 |     | untouched!                             | Restores sync_flags:             |
 |     |                                        | - applying = '0', account = NULL |
 |     | Device unlinks to prevent              |                                  |
-|     | accidental re-upload.                  | Leaves Cloud D1 untouched!       |
+|     | accidental re-upload.                  | Leaves cloud untouched!          |
 |     v                                        v                                  |
 |   Cloud copy erased;                       Local copy erased;                   |
 |   Local devices retain history.            Cloud backup survives for restore.   |
@@ -46,10 +46,10 @@ Because local data and cloud data serve distinct purposes, **data deletion is sp
 
 ### Operation 1: Deleting Cloud Data
 
-Cloud deletion removes your synchronized records from Cloudflare D1 without modifying the database on your current device or any other device.
+Cloud deletion removes your synchronized records from the cloud hub without modifying the database on your current device or any other device.
 
 #### Endpoint & Calling Convention
-- **Route**: Proxied through Next.js `POST /api/account/cloud-delete` to Worker endpoint `POST /api/account/delete-data`.
+- **Route**: Proxied through Next.js `POST /api/account/cloud-delete` to hub endpoint `POST /hub/api/account/delete-data`.
 - **Authentication**: Requires a valid Bearer JWT access token.
 - **Payload**:
   ```json
@@ -115,7 +115,7 @@ export interface EraseOptions {
 #### The Trigger Silencing Mechanism (`applying = '1'`)
 In Zen Dojo's local SQLite schema, triggers are installed on user tables (`AFTER DELETE ON problem_solves`, etc.) to log deletions into `sync_dirty`.
 
-If an application were to issue standard `DELETE FROM problem_solves` statements, the SQLite triggers would treat every deleted row as a user action and queue a delete mutation into `sync_dirty`. On the next sync cycle, the engine would push those delete mutations to Cloudflare D1 and **wipe out the user's cloud data**.
+If an application were to issue standard `DELETE FROM problem_solves` statements, the SQLite triggers would treat every deleted row as a user action and queue a delete mutation into `sync_dirty`. On the next sync cycle, the engine would push those delete mutations to the cloud hub and **wipe out the user's cloud data**.
 
 To prevent this critical failure mode:
 1. The erase transaction begins with:
@@ -131,7 +131,7 @@ To prevent this critical failure mode:
 As a result:
 - Local tables are completely cleared.
 - `sync_dirty` has **0** queued operations.
-- The cloud copy in D1 remains safe and intact.
+- The cloud copy remains safe and intact.
 - A fresh device link or another device can continue using or restoring the cloud progress.
 
 ---

@@ -1,15 +1,15 @@
 import "server-only";
 import type { PortfolioData } from "@habit/shared";
 import { getPortfolio } from "./portfolio";
+import { hubBaseUrl, hubUrl } from "./hub/url";
 
 // Opt-in public profile (plan 0069). The owner uploads the PortfolioData snapshot to the sync Worker; the Worker serves it
 // at GET /api/public/u/:id. Nothing here reads notes, code, emails or tokens: only getPortfolio() output goes up.
 
-const DEFAULT_WORKER = "https://zen-dojo-sync.habit-sync-worker.workers.dev";
 const PUBLIC_ID_RE = /^[A-Za-z0-9_-]{16,40}$/;
 
 export function publicWorkerUrl(): string {
-  return process.env.SYNC_WORKER_URL || process.env.AUTH_WORKER_URL || DEFAULT_WORKER;
+  return hubBaseUrl("sync");
 }
 
 export function isPublicProfileId(id: string): boolean {
@@ -31,7 +31,7 @@ export function publicProfileLink(id: string, fallbackOrigin = ""): string {
 export async function fetchPublicProfile(id: string, fetchFn: typeof fetch = fetch): Promise<PortfolioData | null> {
   if (!isPublicProfileId(id)) return null;
   try {
-    const res = await fetchFn(new URL(`/api/public/u/${id}`, publicWorkerUrl()).toString(), {
+    const res = await fetchFn(hubUrl(`/api/public/u/${id}`, publicWorkerUrl()), {
       headers: { Accept: "application/json" },
       redirect: "error",
       signal: AbortSignal.timeout(8_000),

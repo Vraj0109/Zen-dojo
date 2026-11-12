@@ -3,6 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getWorkerUrl, verifyAccessToken } from "./jwks";
+import { hubUrl } from "../hub/url";
 import type { AccessTokenClaims, Session } from "./types";
 
 export type { Session } from "./types";
@@ -49,7 +50,7 @@ async function doRefresh(refreshToken: string): Promise<RefreshResult | null> {
   const promise = (async () => {
     try {
       const workerUrl = getWorkerUrl();
-      const tokenUrl = new URL("/auth/token", workerUrl).toString();
+      const tokenUrl = hubUrl("/auth/token", workerUrl);
       const res = await fetch(tokenUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -241,7 +242,7 @@ export async function workerFetch(path: string, init?: RequestInit): Promise<Res
   const url =
     path.startsWith("http://") || path.startsWith("https://")
       ? path
-      : new URL(path, workerUrl).toString();
+      : hubUrl(path, workerUrl);
 
   const cookieStore = await cookies();
   let at = cookieStore.get(ACCESS_COOKIE)?.value;

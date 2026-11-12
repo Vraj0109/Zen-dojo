@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getWorkerUrl } from "@/lib/auth/jwks";
+import { hubUrl } from "@/lib/hub/url";
 import { checkSameOrigin } from "@/lib/auth/util";
 
 export async function POST(req: Request) {
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
   if (rt) {
     try {
       const workerUrl = getWorkerUrl();
-      const logoutUrl = new URL("/auth/logout", workerUrl).toString();
+      const logoutUrl = hubUrl("/auth/logout", workerUrl);
       await fetch(logoutUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

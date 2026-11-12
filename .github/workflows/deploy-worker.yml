@@ -1,3 +1,7 @@
+# RETIRED by plan 0073 (docs/plans/0073-move-from-cloudflare-to-vercel.md): sign-in and sync move to the site (/hub) and Turso.
+# Keep this file until the decommission step in docs/migration-cloudflare-to-vercel.md, then delete it.
+# Do not add new Worker features here.
+
 name: Deploy sync worker
 
 on:

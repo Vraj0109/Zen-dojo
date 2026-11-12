@@ -35,10 +35,18 @@ environment variables, never in the repo.
 | `TURSO_API_TOKEN` | yes | Turso Platform API token (creates and deletes user databases) |
 | `TURSO_ORG` | no | Turso organization slug |
 | `TURSO_GROUP` | no | Turso group for new user databases |
-| `SYNC_WORKER_URL` | no | base URL of the deployed sync Worker |
+| `HUB_URL` | no | base URL of sign-in and sync, `https://<site>/hub` (defaults to the site's own `/hub`; old `SYNC_WORKER_URL` still works as an override) |
+| `HUB_DATABASE_URL` | no | `libsql://` URL of the hub database `zen-dojo-hub` |
+| `HUB_DATABASE_AUTH_TOKEN` | yes | token for the hub database |
+| `GITHUB_CLIENT_ID` | no | GitHub OAuth app id |
+| `GITHUB_CLIENT_SECRET` | yes | GitHub OAuth app secret |
+| `JWT_PRIVATE_JWK` | yes | private signing key for sign-in tokens |
+| `JWT_PUBLIC_JWK` | no | matching public key |
+| `ADMIN_USER_IDS`, `ALLOWED_REDIRECTS`, `ALLOWED_ORIGIN` | no | admin ids, allowed sign-in return addresses, CORS origin |
 | `PUBLIC_SITE_URL` | no | public origin of the site, no trailing slash |
 
-The sync Worker's own secrets (`GITHUB_CLIENT_SECRET`, `JWT_PRIVATE_JWK`) are set with `wrangler secret put` and are separate.
+After the move (plan 0073) sign in and sync go through the site's own `/hub` routes and the hub database; the former Worker secrets are Vercel environment variables.
+Before cutover the Cloudflare Worker `zen-dojo-sync` still serves them; the steps to move are in `docs/migration-cloudflare-to-vercel.md`.
 
 First deploy checklist:
 
@@ -46,13 +54,12 @@ First deploy checklist:
 2. In Turso, create a group and note the organization slug and the group name.
 3. Create the control database in that group, create a token for it, and note its `libsql://` URL.
 4. Create a Platform API token in Turso (account settings, API tokens).
-5. Make sure the sync Worker is deployed and note its URL.
+5. Create the hub database `zen-dojo-hub` and its token (`docs/migration-cloudflare-to-vercel.md`).
 6. In Vercel, import the GitHub repo as a new project. Set Root Directory to `apps/web`. Add the environment
    variables from the table above and mark the secret ones as sensitive. If you do not know the site address yet, set
    `PUBLIC_SITE_URL` after the first deploy and redeploy.
 7. Deploy.
-8. Set `ALLOWED_REDIRECTS` in `packages/sync-worker/wrangler.jsonc` to `https://<site>/auth/callback` (exact, no
-   trailing slash) and redeploy the sync Worker.
+8. Set `ALLOWED_REDIRECTS` in Vercel to `https://<site>/auth/callback` (exact, no trailing slash) and redeploy.
 9. Open the site, sign in with GitHub, and check that your progress appears after the first sync.
 10. For later releases: deploy the new app version first, then let each user's database migrate on first use. Never
     run two versions against one database at once.

@@ -374,7 +374,7 @@ _GitHub sign-in, what syncs, deleting data and the hosted site._
 
 ### How do I sign in and what does it do?
 
-Sign in with GitHub in Settings, Sync across devices (or the Sign in card on Today or the You tab). It is optional. Your local database stays the main copy and everything works offline. When signed in, your progress is kept in step across your devices through a small sync service.
+Sign in with GitHub in Settings, Sync across devices (or the Sign in card on Today or the You tab). It is optional. Your local database stays the main copy and everything works offline. When signed in, your progress is kept in step across your devices through a small sync service that runs on the website itself (its `/hub` address).
 
 On the desktop app the sign-in finishes in your browser and returns through the `zendojo://` link. See the Linux section if that fails on Linux.
 
