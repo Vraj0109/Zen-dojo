@@ -166,7 +166,7 @@ describe("SyncManager Thin Poller (Plan 0050)", () => {
       const fetchMock = vi.fn().mockImplementation(async (url: string) => {
         if (url === "/api/sync/status") {
           statusCallCount++;
-          const pending = statusCallCount === 1 ? 0 : 5;
+          const pending = statusCallCount <= 2 ? 0 : 5; // call 1 is start asking who is signed in
           return {
             ok: true,
             status: 200,
@@ -202,18 +202,19 @@ describe("SyncManager Thin Poller (Plan 0050)", () => {
 
       manager.start();
       await flushPromises();
-      expect(runCallCount).toBe(1); // from initial start
+      expect(statusCallCount).toBe(1); // start asks who is signed in first
+      expect(runCallCount).toBe(1); // then runs, because someone is
 
       // First tick (5s): pending === 0 -> only status is checked, no extra run
       await vi.advanceTimersByTimeAsync(5000);
       await flushPromises();
-      expect(statusCallCount).toBe(1);
+      expect(statusCallCount).toBe(2);
       expect(runCallCount).toBe(1);
 
       // Second tick (5s more): pending === 5 -> triggers POST /api/sync/run
       await vi.advanceTimersByTimeAsync(5000);
       await flushPromises();
-      expect(statusCallCount).toBe(2);
+      expect(statusCallCount).toBe(3);
       expect(runCallCount).toBe(2);
 
       manager.destroy();

@@ -338,8 +338,13 @@ export class SyncManager {
     this.startTimers();
 
     if (!this.isOffline() && this.status !== "signed-out") {
-      // Trigger run on start / page load
-      this.flushSyncQueue().catch(() => {});
+      // On start / page load, learn whether anyone is signed in first: a signed-out visitor never calls the run endpoint.
+      this.checkStatus()
+        .catch(() => {})
+        .then(() => {
+          if (!this.isOffline() && this.status !== "signed-out") return this.flushSyncQueue();
+        })
+        .catch(() => {});
     }
   }
 

@@ -300,10 +300,13 @@ function create() {
 type UserDb = { db: ReturnType<typeof drizzle<typeof schema>>; ready: Promise<ReturnType<typeof drizzle<typeof schema>>> };
 const MAX_CACHED_USER_DBS = 50;
 const userDbs = new Map<string, UserDb>();
+/** Users whose Durable Object database is known to be migrated in this isolate (plain data, safe to keep across requests). */
+const migratedUsers = new Set<string>();
 
 /** Clears the per-user client cache (tests). */
 export function clearUserDbCacheForTest() {
   userDbs.clear();
+  migratedUsers.clear();
 }
 
 /** Name of the Durable Object namespace binding in apps/web/wrangler.jsonc. */
@@ -329,19 +332,25 @@ async function userDbNamespace(): Promise<UserDbNamespace | undefined> {
  * inside the object once per database. Otherwise the superseded Turso path is used (lib/hosted/control.ts and
  * provision.ts; kept for its tests and for a Node host).
  */
-export function getDbFor(
+export async function getDbFor(
   userId: string,
   deps: ProvisionDeps & { namespace?: UserDbNamespace; control?: Client; makeClient?: (url: string, token: string) => Client } = {},
 ) {
+  // Durable Object path: a Worker cannot reuse an RPC stub (an I/O object) created in an earlier request, so this path
+  // builds a fresh client for every call and caches only the plain "migrations done" fact for this isolate.
+  const ns = deps.namespace ?? (deps.control || deps.makeClient ? undefined : await userDbNamespace());
+  if (ns) {
+    const client: DoClient = createDoClient(ns.get(ns.idFromName(userId) as never));
+    if (!migratedUsers.has(userId)) {
+      await client.applyMigrations(MIGRATIONS);
+      migratedUsers.add(userId);
+      while (migratedUsers.size > 5000) migratedUsers.delete(migratedUsers.values().next().value as string);
+    }
+    return drizzle(client, { schema });
+  }
   const hit = userDbs.get(userId);
   if (hit) return hit.ready;
   const ready = (async () => {
-    const ns = deps.namespace ?? (deps.control || deps.makeClient ? undefined : await userDbNamespace());
-    if (ns) {
-      const client: DoClient = createDoClient(ns.get(ns.idFromName(userId) as never));
-      await client.applyMigrations(MIGRATIONS);
-      return drizzle(client, { schema });
-    }
     const [{ getControlClient }, { ensureUserDbUrl, mintDbToken }] = await Promise.all([import("./hosted/control"), import("./hosted/provision")]);
     const control = deps.control ?? getControlClient();
     const url = await ensureUserDbUrl(control, userId, deps);
@@ -368,6 +377,7 @@ export async function dropHostedUserData(userId: string, deps: { namespace?: Use
   const ns = deps.namespace ?? (await userDbNamespace());
   if (!ns) return null;
   userDbs.delete(userId);
+  migratedUsers.delete(userId);
   return createDoClient(ns.get(ns.idFromName(userId) as never)).dropAll();
 }
 

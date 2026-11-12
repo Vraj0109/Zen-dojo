@@ -188,13 +188,13 @@ describe("getDbFor on Cloudflare", () => {
     const { ns, cores, asked } = namespace();
     const a1 = await getDbFor("user-a", { namespace: ns });
     const a2 = await getDbFor("user-a", { namespace: ns });
-    expect(a2).toBe(a1);
+    expect(a2).not.toBe(a1); // a fresh client per call: a Worker cannot reuse an RPC stub across requests
     await a1.insert(schema.settings).values({ key: "k", value: "v" });
-    const row = await a1.select().from(schema.settings).where(eq(schema.settings.key, "k"));
-    expect(row).toEqual([{ key: "k", value: "v" }]);
+    const row = await a2.select().from(schema.settings).where(eq(schema.settings.key, "k"));
+    expect(row).toEqual([{ key: "k", value: "v" }]); // same user, same database
     const b = await getDbFor("user-b", { namespace: ns });
     expect(await b.select().from(schema.settings)).toEqual([]); // isolated from user-a
-    expect(asked).toEqual(["user-a", "user-b"]);
+    expect([...new Set(asked)]).toEqual(["user-a", "user-b"]);
     expect(cores.get("user-a")!.schemaVersion()).toBe(MIGRATIONS.length);
   });
 
