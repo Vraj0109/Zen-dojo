@@ -42,7 +42,7 @@ describe("Auth route handlers", () => {
       const location = res.headers.get("location");
       expect(location).toBeTruthy();
       const redirectUrl = new URL(location!);
-      expect(redirectUrl.pathname).toBe("/auth/github/start");
+      expect(redirectUrl.pathname).toBe("/hub/auth/github/start");
       expect(redirectUrl.searchParams.get("redirect_uri")).toBe("http://localhost:3000/auth/callback");
       expect(redirectUrl.searchParams.get("state")).toBeTruthy();
       expect(redirectUrl.searchParams.get("code_challenge")).toBeTruthy();
@@ -75,7 +75,7 @@ describe("Auth route handlers", () => {
       const location = res.headers.get("location")!;
       expect(location).toContain("redirect_uri=zendojo%3A%2F%2Fauth%2Fcallback");
       const redirectUrl = new URL(location);
-      expect(redirectUrl.pathname).toBe("/auth/github/start");
+      expect(redirectUrl.pathname).toBe("/hub/auth/github/start");
       expect(redirectUrl.searchParams.get("state")).toBeTruthy();
       expect(redirectUrl.searchParams.get("code_challenge")).toBeTruthy();
       const parsed = JSON.parse(res.cookies.get("zd_pkce")!.value);

@@ -58,6 +58,9 @@ export function findDeepLink(argv) {
   return null;
 }
 
+/** The hosted site, where the hub (sign-in and sync) lives. Always accepted. */
+export const DEFAULT_HUB_ORIGIN = "https://zen-dojo-lovat.vercel.app";
+
 /** The old Cloudflare Worker origin. Still accepted while old and new builds sign in during the move (plan 0073). */
 export const LEGACY_WORKER_ORIGIN = "https://zen-dojo-sync.habit-sync-worker.workers.dev";
 
@@ -69,7 +72,7 @@ export const LEGACY_WORKER_ORIGIN = "https://zen-dojo-sync.habit-sync-worker.wor
  * @returns {string[]}
  */
 export function hubOrigins(env) {
-  const out = new Set([LEGACY_WORKER_ORIGIN]);
+  const out = new Set([DEFAULT_HUB_ORIGIN, LEGACY_WORKER_ORIGIN]);
   for (const v of [env.HUB_URL, env.AUTH_WORKER_URL, env.SYNC_WORKER_URL, env.PUBLIC_SITE_URL]) {
     if (!v) continue;
     try {

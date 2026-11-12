@@ -156,7 +156,7 @@ describe("hubOrigins and both origins", () => {
   it("always includes the old Worker and adds the new site origin", () => {
     expect(list).toContain("https://zen-dojo-sync.habit-sync-worker.workers.dev");
     expect(list).toContain(site);
-    expect(hubOrigins({})).toEqual(["https://zen-dojo-sync.habit-sync-worker.workers.dev"]);
+    expect(hubOrigins({})).toEqual(["https://zen-dojo-lovat.vercel.app", "https://zen-dojo-sync.habit-sync-worker.workers.dev"]);
   });
 
   it("accepts the new and the old origin, refuses look-alikes", () => {

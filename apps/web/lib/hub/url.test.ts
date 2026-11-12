@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LEGACY_WORKER_URL, hubBaseUrl, hubUrl } from "./url";
+import { DEFAULT_HUB_URL, hubBaseUrl, hubUrl } from "./url";
 
 const NAMES = ["HUB_URL", "AUTH_WORKER_URL", "SYNC_WORKER_URL", "PUBLIC_SITE_URL"];
 function clear() {
@@ -9,9 +9,9 @@ function clear() {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("hubBaseUrl", () => {
-  it("falls back to the old Worker URL", () => {
+  it("falls back to the hosted site's hub", () => {
     clear();
-    expect(hubBaseUrl()).toBe(LEGACY_WORKER_URL);
+    expect(hubBaseUrl()).toBe(DEFAULT_HUB_URL);
   });
 
   it("uses PUBLIC_SITE_URL + /hub, trimming slashes", () => {
