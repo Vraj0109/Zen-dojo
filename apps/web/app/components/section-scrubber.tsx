@@ -165,7 +165,7 @@ export function SectionScrubber() {
         {focus !== null && (
           <div
             aria-hidden
-            className="pointer-events-none absolute right-14 z-10 w-max max-w-[min(16rem,calc(100vw-5rem))] -translate-y-1/2 rounded-2xl bg-foreground/[0.16] px-3 py-2 text-right text-foreground ring-1 ring-foreground/15 backdrop-blur-xl backdrop-saturate-150"
+            className="pointer-events-none absolute right-14 z-10 w-max max-w-[min(16rem,calc(100vw-5rem))] -translate-y-1/2 rounded-2xl bg-foreground/[0.07] px-3 py-2 text-right text-foreground ring-1 ring-foreground/10 backdrop-blur-[5px] [text-shadow:0_0_5px_var(--background)]"
             style={{ top: `${((shown + 0.5) / n) * 100}%` }}
           >
             {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs font-medium text-foreground/75">{parentOf(items, shown)}</p>}
