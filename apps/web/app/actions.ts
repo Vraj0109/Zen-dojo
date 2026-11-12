@@ -152,11 +152,20 @@ export async function setSimpleModeAction(formData: FormData) {
 }
 
 export async function getAppearanceAction(): Promise<Appearance | null> {
-  return await getAppearanceSetting();
+  try {
+    return await getAppearanceSetting();
+  } catch {
+    // Hosted site, signed out: there is no database yet. The theme stays in this browser.
+    return null;
+  }
 }
 
 export async function setAppearanceAction(prefs: Appearance): Promise<void> {
-  await setAppearanceSetting(prefs);
+  try {
+    await setAppearanceSetting(prefs);
+  } catch {
+    // Same as above: nothing to save to until the visitor signs in.
+  }
 }
 
 export async function setBuddySettingsAction(formData: FormData) {
