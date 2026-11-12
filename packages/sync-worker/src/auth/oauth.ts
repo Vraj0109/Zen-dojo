@@ -50,8 +50,10 @@ export async function start(req: Request, env: AuthEnv, ctx: AuthCtx, now: numbe
     await env.DB.prepare("INSERT INTO oauth_states (state, redirect_uri, code_challenge, created_at) VALUES (?, ?, ?, ?)")
       .bind(state, redirectUri, challenge, now)
       .run();
-  } catch {
-    return fail(400, "invalid_state"); // duplicate state
+  } catch (e) {
+    // A duplicate state, or the database refused: say which (never the state itself or any other value).
+    console.error("oauth start: could not store the state:", e instanceof Error ? e.message.slice(0, 200) : "unknown error");
+    return fail(400, "invalid_state");
   }
   // Housekeeping off the request path.
   ctx.waitUntil(
@@ -136,6 +138,7 @@ export async function callback(
           .first<{ redirect_uri: string; code_challenge: string; created_at: number }>()
       : null;
   if (!row || now - row.created_at > STATE_TTL_MS) {
+    console.error("oauth callback: state " + (!row ? "not found (already used, never stored, or removed)" : "expired"));
     if (deps.noteAuthFailure) ctx.waitUntil(deps.noteAuthFailure(env, clientIp(req), "oauth-state"));
     return fail(400, "invalid_state");
   }
