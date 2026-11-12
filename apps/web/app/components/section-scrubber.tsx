@@ -11,7 +11,13 @@ const READING = /^\/(study|dsa\/pattern|help)(\/|$)/;
 const MIN_ITEMS = 4;
 const MAX_WITH_SUBSECTIONS = 60;
 const SLOT = 16; // px per dot: dots sit close together, like the macOS Dock
-const SPREAD = 2.6; // how many dots either side of the finger are magnified
+const SPREAD = 3.2; // how many dots either side of the finger are magnified
+
+/** Instant jump (the page has smooth scrolling, and an animated scroll fights a finger that is still dragging). */
+function jump(el: HTMLElement) {
+  const top = el.getBoundingClientRect().top + window.scrollY - 72;
+  window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+}
 
 /** 0 at the edge of the magnified zone, 1 under the finger. Smooth, like the Dock's fisheye. */
 const near = (d: number) => Math.max(0, 1 - Math.abs(d) / SPREAD) ** 2;
@@ -79,7 +85,7 @@ export function SectionScrubber() {
     if (idx === last.current) return;
     last.current = idx;
     tick(items[idx].level === 1 ? 10 : 5);
-    items[idx].el.scrollIntoView({ block: "start" });
+    jump(items[idx].el);
   };
   const pick = (clientY: number) => {
     const r = rail.current?.getBoundingClientRect();
@@ -153,7 +159,7 @@ export function SectionScrubber() {
                 style={{
                   width: base,
                   height: base,
-                  transform: `translateX(${-m * 8}px) scale(${1 + m * 1.7})`,
+                  transform: `translateX(${-m * 12}px) scale(${1 + m * 2.6})`,
                   transition: focus === null ? "transform 160ms ease-out" : "none",
                 }}
               />
