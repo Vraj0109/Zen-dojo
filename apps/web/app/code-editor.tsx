@@ -131,6 +131,7 @@ export function EditorField({ children, languageSelectId, rows = 14, fill = fals
               if (u.docChanged) textarea.value = u.state.doc.toString();
             }),
             theme,
+            ...(textarea.readOnly ? [state.EditorState.readOnly.of(true), view.EditorView.editable.of(false)] : []),
           ],
         }),
       });

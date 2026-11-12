@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { summarizePortfolio, type PortfolioData } from "@habit/shared";
 import { errorText } from "../dsa/ai-chat";
+import { currentByokHeaders } from "@/lib/ai-key-store";
 
 /**
  * "Summarize": a plain-language summary of the person's work, written from the numbers (instant, no AI). On the owner's own
@@ -30,7 +31,7 @@ export function PortfolioSummary({ data, aiEnabled }: { data: PortfolioData; aiE
     try {
       const r = await fetch("/api/ai/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...currentByokHeaders() },
         body: JSON.stringify({ portfolioSummary: true, messages: [{ role: "user", content: "Summarize this profile." }] }),
         signal: c.signal,
       });

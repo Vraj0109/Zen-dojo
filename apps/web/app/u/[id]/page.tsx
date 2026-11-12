@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import type { PortfolioData } from "@habit/shared";
 import { getPortfolio } from "@/lib/portfolio";
 import { getAiSettings } from "@/lib/ui-prefs";
+import { fetchPublicProfile } from "@/lib/public-profile";
 import { PageMain } from "../../ui";
 import { PortfolioView } from "../portfolio-view";
 
@@ -35,8 +36,13 @@ export default function PublicPortfolioPage({ params }: PageProps<"/u/[id]">) {
 async function Loader({ params }: { params: PageProps<"/u/[id]">["params"] }) {
   await connection();
   const { id } = await params;
-  // No hosted per-user data exists yet (plan 0058): only the local preview is served.
-  if (id !== "me" || process.env.HABIT_HOSTED === "1") notFound();
-  const [data, ai] = await Promise.all([getPortfolio(), getAiSettings()]);
-  return <PublicPortfolio data={data} preview aiEnabled={ai.enabled} />;
+  // /u/me is the owner's own preview from local data (desktop only). Any other id is an opt-in snapshot served by the Worker.
+  if (id === "me") {
+    if (process.env.HABIT_HOSTED === "1") notFound();
+    const [data, ai] = await Promise.all([getPortfolio(), getAiSettings()]);
+    return <PublicPortfolio data={data} preview aiEnabled={ai.enabled} />;
+  }
+  const data = await fetchPublicProfile(id);
+  if (!data) notFound();
+  return <PublicPortfolio data={data} />;
 }

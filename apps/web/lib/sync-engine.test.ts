@@ -2,7 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MIGRATIONS } from "./db";
 import { getSyncStatus, linkAccount, runSync, unlinkAccount } from "./sync-engine";
-import { syncMigrationSql } from "./sync-triggers";
+import { syncMigrationSql, syncMigrationSqlV2 } from "./sync-triggers";
 
 // ---- a tiny in-memory Worker (same rules as packages/sync-worker: last write wins on updated_at, pull by synced_at) ----
 
@@ -105,6 +105,7 @@ async function newDb(): Promise<Client> {
     if (!m.includes("sync_dirty")) await client.executeMultiple(m);
   }
   await client.executeMultiple(syncMigrationSql());
+  await client.executeMultiple(syncMigrationSqlV2());
   return client;
 }
 

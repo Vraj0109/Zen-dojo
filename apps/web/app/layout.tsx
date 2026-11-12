@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Geist, Geist_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
@@ -15,6 +15,8 @@ import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
 import { SidebarAccount } from "./components/sidebar-account";
 import { Logo } from "./logo";
 import { Shell } from "./shell";
+import { RegisterSw } from "./register-sw";
+import { HostedSyncOnRequest } from "./components/hosted-sync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +35,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "Zen Dojo", template: "%s · Zen Dojo" },
   description: "Offline, open-source engineering course: DSA, system design, low-level design and core CS",
+  icons: { apple: "/icons/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Zen Dojo", statusBarStyle: "default" },
 };
+
+export const viewport: Viewport = { themeColor: "#1c1715", viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -43,7 +49,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full">
-        <Shell aside={asideNode}>{children}</Shell>
+        <Shell aside={asideNode} account={<Suspense fallback={null}><SidebarAccount compact /></Suspense>}>{children}</Shell>
+        <RegisterSw />
+        <Suspense fallback={null}>
+          <HostedSyncOnRequest />
+        </Suspense>
         <FocusReading />
         <CustomFontLoader />
         <Suspense fallback={null}>
@@ -57,7 +67,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 async function BuddySessionLoader() {
   await connection();
   const [settings, ai] = await Promise.all([getBuddySettings(), process.env.HABIT_HOSTED === "1" ? null : getAiSettings()]);
-  return <BuddyCompanion settings={settings} ai={{ enabled: Boolean(ai?.enabled) }} />;
+  return <BuddyCompanion settings={settings} ai={{ enabled: process.env.HABIT_HOSTED === "1" || Boolean(ai?.enabled) }} />;
 }
 
 const asideNode = (
@@ -72,7 +82,15 @@ const asideNode = (
                 <span className="block whitespace-nowrap text-[11px] text-muted">Offline learning</span>
               </span>
             </Link>
-            <HistoryButtons />
+            <div className="flex items-center gap-1">
+              <HistoryButtons />
+              {/* Phones: the account button (the sidebar footer is wide-screen only). Hidden inside the drawer. */}
+              <div className="lg:hidden [.drawer-panel_&]:hidden">
+                <Suspense fallback={null}>
+                  <SidebarAccount compact />
+                </Suspense>
+              </div>
+            </div>
           </div>
           <Suspense fallback={<NavLinks pathname={null} />}>
             <Nav />

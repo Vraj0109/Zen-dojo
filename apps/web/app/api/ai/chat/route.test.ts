@@ -55,9 +55,9 @@ async function saveCode(code: string) {
 }
 
 describe("POST /api/ai/chat", () => {
-  it("404 when hosted, 403 cross-origin, 403 when disabled", async () => {
+  it("400 (no key) when hosted, 403 cross-origin, 403 when disabled", async () => {
     vi.stubEnv("HABIT_HOSTED", "1");
-    expect((await ask()).status).toBe(404);
+    expect((await ask()).status).toBe(400); // hosted: no key header
     vi.stubEnv("HABIT_HOSTED", "");
     expect((await POST(req({ problemId: PID, messages: [user("hi")] }, "http://evil.example"))).status).toBe(403);
     await setAiSettings({ enabled: false });

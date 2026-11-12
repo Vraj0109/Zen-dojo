@@ -1,5 +1,7 @@
 "use client";
 
+import { FailureText, HostedProjectNotice } from "./hosted-run-notice";
+import { PhoneCodeNote } from "./phone-study";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EditorField } from "../code-editor";
 
@@ -92,6 +94,10 @@ export type ProjectEditorProps = {
   onChange?: (files: ProjectFile[]) => void;
   storageKey?: string;
   showReset?: boolean;
+  /** Reader mode: files are shown read-only; no Run, add, delete or reset. */
+  readOnly?: boolean;
+  /** Hosted site: Java projects cannot run here. No Run Project or console; a notice with the desktop download link instead. */
+  noRun?: boolean;
 };
 
 export function ProjectEditor({
@@ -101,6 +107,8 @@ export function ProjectEditor({
   onChange,
   storageKey,
   showReset = true,
+  readOnly = false,
+  noRun = false,
 }: ProjectEditorProps) {
   const defaultFiles = value ?? initialFiles ?? [];
   const [files, setFiles] = useState<ProjectFile[]>(defaultFiles);
@@ -335,11 +343,18 @@ export function ProjectEditor({
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-surface">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-        <button type="button" onClick={run} disabled={running} className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60">
-          <Icon d={ICON_PLAY} />
-          {running ? "Running..." : "Run Project"}
-        </button>
+      {noRun && (
+        <div className="border-b border-line p-3">
+          <HostedProjectNotice />
+        </div>
+      )}
+      {!readOnly && <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 max-md:hidden">
+        {!noRun && (
+          <button type="button" onClick={run} disabled={running} className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60">
+            <Icon d={ICON_PLAY} />
+            {running ? "Running..." : "Run Project"}
+          </button>
+        )}
         <button type="button" onClick={() => setAdding((v) => !v)} className={BUTTON}>
           <Icon d={ICON_PLUS} />
           New Class / File
@@ -354,10 +369,10 @@ export function ProjectEditor({
             Reset Code
           </button>
         )}
-      </div>
+      </div>}
 
-      {adding && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
+      {!readOnly && adding && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 max-md:hidden">
           <label htmlFor={`${selectId}-new`} className="text-xs text-muted">
             File name
           </label>
@@ -386,7 +401,7 @@ export function ProjectEditor({
         </div>
       )}
 
-      <div role="tablist" aria-label="Project files" className="flex gap-px overflow-x-auto border-b border-line bg-line/30">
+      <div role="tablist" aria-label="Project files" className="flex max-md:hidden gap-px overflow-x-auto border-b border-line bg-line/30">
         {files.map((f) => {
           const selected = f.name === activeFile?.name;
           const errors = diagnostics.filter((d) => d.file === f.name && d.severity === "error").length;
@@ -406,7 +421,18 @@ export function ProjectEditor({
         })}
       </div>
 
-      <div ref={editorRef} className="h-[28rem]">
+      {/* Phones: no editor at all, only each file as plain read-only text (CSS only, so no hydration mismatch). */}
+      <div className="space-y-2 p-3 md:hidden">
+        <PhoneCodeNote />
+        {files.map((f) => (
+          <details key={f.name} className="rounded-lg border border-line bg-background">
+            <summary className="min-h-10 cursor-pointer select-none px-3 py-2 font-mono text-xs">{f.name}</summary>
+            <pre className="max-h-96 overflow-auto border-t border-line p-3 text-xs whitespace-pre">{f.content}</pre>
+          </details>
+        ))}
+      </div>
+
+      <div ref={editorRef} className="h-[28rem] max-md:hidden">
         {activeFile && (
           <>
             <select id={selectId} hidden defaultValue="Java" aria-hidden="true" tabIndex={-1}>
@@ -416,6 +442,7 @@ export function ProjectEditor({
               <textarea
                 defaultValue={activeFile.content}
                 aria-label={`Code of ${activeFile.name}`}
+                readOnly={readOnly}
                 spellCheck={false}
                 className="h-full w-full resize-none bg-background p-3 font-mono text-sm"
               />
@@ -424,7 +451,7 @@ export function ProjectEditor({
         )}
       </div>
 
-      <div className="border-t border-line bg-background" aria-live="polite">
+      {!readOnly && !noRun && <div className="border-t border-line bg-background max-md:hidden" aria-live="polite">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line px-3 py-1.5 text-xs text-muted">
           <span className="font-medium text-foreground">Console</span>
           {result && (
@@ -440,7 +467,7 @@ export function ProjectEditor({
         <div className="max-h-72 overflow-auto px-3 py-2 font-mono text-xs leading-relaxed">
           {running && <p className="text-muted">Compiling and running...</p>}
           {!running && !result && !failure && <p className="text-muted">Press Run Project to compile all files and run the program.</p>}
-          {failure && <p className="text-red-600 dark:text-red-400">{failure}</p>}
+          {failure && <p className="text-red-600 dark:text-red-400"><FailureText text={failure} /></p>}
           {!running && result && (
             <>
               {diagnostics.length > 0 && (
@@ -465,7 +492,7 @@ export function ProjectEditor({
             </>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

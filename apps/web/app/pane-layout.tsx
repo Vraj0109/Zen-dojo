@@ -100,6 +100,8 @@ export interface PaneDef {
   title: string;
   /** Extra controls shown in the pane's title bar */
   actions?: ReactNode;
+  /** Not shown below the `md` breakpoint (phones), for panes that only make sense with a keyboard. */
+  phoneHidden?: boolean;
   children: ReactNode;
 }
 
@@ -177,12 +179,12 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
     return (
       <div className="space-y-4">
         {saved.order.map((id) => (
-          <section key={id} aria-label={panes[id].title} className="overflow-hidden rounded-xl border border-line bg-surface">
+          <section key={id} aria-label={panes[id].title} className={`overflow-hidden rounded-xl border border-line bg-surface ${panes[id].phoneHidden ? "max-md:hidden" : ""}`}>
             <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-1">
               <h3 className="text-sm font-semibold">{panes[id].title}</h3>
               {panes[id].actions}
             </header>
-            <div className={id === "code" ? "h-[28rem]" : "p-3"}>{panes[id].children}</div>
+            <div className={id === "code" ? "md:h-[28rem] max-md:p-3" : "p-3"}>{panes[id].children}</div>
           </section>
         ))}
       </div>

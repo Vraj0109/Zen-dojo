@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, workerFetch } from "@/lib/auth/session";
 import { checkSameOrigin } from "@/lib/auth/util";
+import { isHosted } from "@/lib/hosted";
 import { unlinkAccount } from "@/lib/sync-engine";
 
 export async function POST(req: Request) {
@@ -55,6 +56,11 @@ export async function POST(req: Request) {
 
   try {
     await unlinkAccount(); // nothing should re-upload unless the user links again
+    if (isHosted()) {
+      // On the hosted site this person's copy lives in their own Durable Object: drop it too.
+      const { dropHostedUserData } = await import("@/lib/db");
+      await dropHostedUserData(session.userId);
+    }
   } catch {
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }

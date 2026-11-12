@@ -59,7 +59,8 @@ function MenuLink({ href, icon, onNavigate, children }: { href: string; icon: st
 }
 
 /** Profile button at the bottom of the sidebar: your name and avatar, a menu with Account, Settings and Sign out. */
-export function AccountPopover({ user, renew }: { user: AccountUser | null; renew: boolean }) {
+/** `compact`: just the avatar (phone top bar); the menu opens downward from the right edge and the sync pill is left out. */
+export function AccountPopover({ user, renew, compact = false }: { user: AccountUser | null; renew: boolean; compact?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -94,6 +95,14 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  if (!user && compact) {
+    return renew ? null : (
+      <Link href="/login" className="rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-on-accent hover:opacity-90">
+        Sign in
+      </Link>
+    );
+  }
 
   if (!user) {
     return (
@@ -135,26 +144,39 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
   }
 
   return (
-    <div ref={box} className="relative space-y-2">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm hover:bg-background"
-      >
-        <Avatar user={user} size="size-8" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{user.name}</span>
-          {user.admin && <span className="block text-[11px] text-muted">Admin</span>}
-        </span>
-        <span className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}>
-          <Icon d={ICON.chevron} />
-        </span>
-      </button>
+    <div ref={box} className={compact ? "relative" : "relative space-y-2"}>
+      {compact ? (
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label="Account"
+          onClick={() => setOpen((v) => !v)}
+          className="grid size-8 place-items-center rounded-full hover:bg-background"
+        >
+          <Avatar user={user} size="size-6" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm hover:bg-background"
+        >
+          <Avatar user={user} size="size-8" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{user.name}</span>
+            {user.admin && <span className="block text-[11px] text-muted">Admin</span>}
+          </span>
+          <span className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}>
+            <Icon d={ICON.chevron} />
+          </span>
+        </button>
+      )}
 
       {open && (
-        <div role="menu" aria-label="Account" className="absolute bottom-full left-0 z-30 mb-2 w-full min-w-56 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+        <div role="menu" aria-label="Account" className={`absolute z-60 min-w-56 rounded-xl border border-line bg-surface p-1.5 shadow-lg ${compact ? "top-full right-0 mt-2 w-64 max-w-[calc(100vw-1rem)]" : "bottom-full left-0 z-30 mb-2 w-full"}`}>
           <div className="flex items-center gap-2.5 px-2.5 py-2">
             <Avatar user={user} size="size-9" />
             <span className="min-w-0">
@@ -198,7 +220,7 @@ export function AccountPopover({ user, renew }: { user: AccountUser | null; rene
         </div>
       )}
 
-      <SyncStatusPill className="w-full justify-between" user={{ id: user.id, isGuest: false }} />
+      {!compact && <SyncStatusPill className="w-full justify-between" user={{ id: user.id, isGuest: false }} />}
     </div>
   );
 }

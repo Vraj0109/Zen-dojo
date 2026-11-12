@@ -1,7 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MIGRATIONS } from "./db";
-import { SYNC_SETTINGS_DENYLIST, SYNC_TABLE_MAP, isSyncableSettingKey, syncMigrationSql } from "./sync-triggers";
+import { SYNC_SETTINGS_DENYLIST, SYNC_TABLE_MAP, isSyncableSettingKey, syncMigrationSql, syncMigrationSqlV2 } from "./sync-triggers";
 
 let c: Client;
 
@@ -26,7 +26,7 @@ beforeEach(async () => {
 afterEach(() => c.close());
 
 describe("sync table map and settings denylist", () => {
-  it("covers the eight tables with their cloud names", () => {
+  it("covers the twelve tables with their cloud names", () => {
     expect(SYNC_TABLE_MAP.map((t) => [t.local, t.cloud])).toEqual([
       ["tasks", "tasks"],
       ["problem_solves", "problem_solves"],
@@ -36,6 +36,10 @@ describe("sync table map and settings denylist", () => {
       ["pack_progress", "pack_progress"],
       ["practice_sessions", "practice_sessions"],
       ["focus_sessions", "timer_rows"],
+      ["reading_progress", "reading_progress"],
+      ["reading_custom", "reading_custom"],
+      ["problem_struggles", "problem_struggles"],
+      ["boss_fights", "boss_fights"],
     ]);
   });
 
@@ -64,9 +68,11 @@ describe("migration", () => {
     expect(Number(trg[0].n)).toBe(SYNC_TABLE_MAP.length * 3);
   });
 
-  it("is the last migration and can run twice", async () => {
-    expect(MIGRATIONS[MIGRATIONS.length - 1]).toBe(syncMigrationSql());
+  it("are the last two migrations and can run twice", async () => {
+    expect(MIGRATIONS[MIGRATIONS.length - 2]).toBe(syncMigrationSql());
+    expect(MIGRATIONS[MIGRATIONS.length - 1]).toBe(syncMigrationSqlV2());
     await c.executeMultiple(syncMigrationSql());
+    await c.executeMultiple(syncMigrationSqlV2());
     await c.execute("INSERT INTO settings (key, value) VALUES ('theme', 'dark')");
     expect(await dirty()).toEqual([{ tbl: "settings", row_key: "theme", deleted: 0 }]);
   });
@@ -74,7 +80,7 @@ describe("migration", () => {
   it("leaves every user table's rows unchanged on an upgraded database", async () => {
     c.close();
     c = createClient({ url: ":memory:" });
-    await migrate(MIGRATIONS.length - 1);
+    await migrate(MIGRATIONS.length - 2);
     await c.executeMultiple(`
       INSERT INTO tasks (date, scope, template_key, title, category, xp) VALUES ('2026-11-01', 'day', 'k1', 'T', 'dsa', 10);
       INSERT INTO problem_solves (problem_id, kind, solved_on, xp) VALUES ('lc-1', 'solve', '2026-11-01', 5);
@@ -92,12 +98,54 @@ describe("migration", () => {
       return out;
     };
     const before = await snapshot();
+    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 2]);
     await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
     const after = await snapshot();
     for (const t of tables) expect(after[t], t).toEqual(before[t]);
     expect(Object.keys(after).filter((t) => t.startsWith("sync_"))).toEqual([]);
     // Existing rows are not queued by the migration; linking does that.
     expect(await all("SELECT count(*) AS n FROM sync_dirty")).toEqual([{ n: 0 }]);
+  });
+});
+
+describe("second sync migration (reading, stuck list, boss fights)", () => {
+  async function upgraded(linked: boolean) {
+    c.close();
+    c = createClient({ url: ":memory:" });
+    await migrate(MIGRATIONS.length - 1);
+    await c.executeMultiple(`
+      INSERT INTO reading_progress (reading_id, done_on, notes) VALUES ('r1', '2026-11-01', 'n');
+      INSERT INTO reading_custom (item_id, title, url, added_on) VALUES ('i', 'T', 'https://x', '2026-11-01');
+      INSERT INTO problem_struggles (problem_id, kind, logged_on) VALUES ('lc-1', 'solve', '2026-11-01');
+      INSERT INTO boss_fights (fought_on, results) VALUES ('2026-11-01', '[]');
+    `);
+    if (linked) await c.execute("INSERT INTO sync_flags (k, v) VALUES ('account', 'u1')");
+    await clearTracking();
+    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
+  }
+
+  it("queues existing rows once when the device is already linked, without duplicates", async () => {
+    await upgraded(true);
+    const d = await dirty();
+    expect(d.map((r) => r.tbl).sort()).toEqual(["boss_fights", "problem_struggles", "reading_custom", "reading_progress"]);
+    expect(d.find((r) => r.tbl === "reading_progress")?.row_key).toBe("r1");
+    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
+    expect(await dirty()).toHaveLength(4);
+    expect(await all("SELECT count(*) AS n FROM sync_ids WHERE tbl IN ('reading_custom','problem_struggles','boss_fights')")).toEqual([{ n: 3 }]);
+  });
+
+  it("queues nothing when the device is not linked (linkAccount does it later)", async () => {
+    await upgraded(false);
+    expect(await dirty()).toEqual([]);
+  });
+
+  it("tracks inserts, updates and deletes", async () => {
+    await upgraded(false);
+    await c.execute("UPDATE boss_fights SET minutes = 30");
+    await c.execute("DELETE FROM reading_progress WHERE reading_id = 'r1'");
+    const d = await dirty();
+    expect(d.find((r) => r.tbl === "reading_progress")).toEqual({ tbl: "reading_progress", row_key: "r1", deleted: 1 });
+    expect(d.find((r) => r.tbl === "boss_fights")?.deleted).toBe(0);
   });
 });
 

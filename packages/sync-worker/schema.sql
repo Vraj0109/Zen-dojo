@@ -1,4 +1,4 @@
--- Multi-tenant sync tables (Cloudflare D1), state after migration 0004 (plan 0050).
+-- Multi-tenant sync tables (Cloudflare D1), state after migration 0005 (plans 0050 and the reading/stuck/boss sync).
 -- Mirrors apps/web/lib/schema.ts, plus user_id / updated_at / deleted_at / synced_at.
 -- "notes" mirrors problem_notes; "timer_rows" mirrors focus_sessions.
 -- Cloud ids are TEXT and device-independent, so (user_id, id) is the key.
@@ -137,4 +137,72 @@ CREATE INDEX IF NOT EXISTS timer_rows_user_synced ON timer_rows (user_id, synced
 CREATE TABLE IF NOT EXISTS sync_heads (
   user_id TEXT PRIMARY KEY,
   head INTEGER NOT NULL
+);
+
+-- Added by migration 0005.
+CREATE TABLE IF NOT EXISTS reading_progress (
+  user_id TEXT NOT NULL,
+  id TEXT NOT NULL, -- the reading item id
+  reading_id TEXT NOT NULL,
+  done_on TEXT,
+  notes TEXT NOT NULL DEFAULT '',
+  updated_at INTEGER NOT NULL,
+  deleted_at INTEGER,
+  synced_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, id)
+);
+CREATE INDEX IF NOT EXISTS reading_progress_user_updated ON reading_progress (user_id, updated_at);
+CREATE INDEX IF NOT EXISTS reading_progress_user_synced ON reading_progress (user_id, synced_at);
+
+CREATE TABLE IF NOT EXISTS reading_custom (
+  user_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  added_on TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  deleted_at INTEGER,
+  synced_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, id)
+);
+CREATE INDEX IF NOT EXISTS reading_custom_user_updated ON reading_custom (user_id, updated_at);
+CREATE INDEX IF NOT EXISTS reading_custom_user_synced ON reading_custom (user_id, synced_at);
+
+CREATE TABLE IF NOT EXISTS problem_struggles (
+  user_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  problem_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  logged_on TEXT NOT NULL,
+  cleared_on TEXT,
+  updated_at INTEGER NOT NULL,
+  deleted_at INTEGER,
+  synced_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, id)
+);
+CREATE INDEX IF NOT EXISTS problem_struggles_user_updated ON problem_struggles (user_id, updated_at);
+CREATE INDEX IF NOT EXISTS problem_struggles_user_synced ON problem_struggles (user_id, synced_at);
+
+CREATE TABLE IF NOT EXISTS boss_fights (
+  user_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  fought_on TEXT NOT NULL,
+  results TEXT NOT NULL,
+  minutes INTEGER,
+  notes TEXT NOT NULL DEFAULT '',
+  updated_at INTEGER NOT NULL,
+  deleted_at INTEGER,
+  synced_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, id)
+);
+CREATE INDEX IF NOT EXISTS boss_fights_user_updated ON boss_fights (user_id, updated_at);
+CREATE INDEX IF NOT EXISTS boss_fights_user_synced ON boss_fights (user_id, synced_at);
+
+CREATE TABLE IF NOT EXISTS public_profiles (
+  user_id TEXT PRIMARY KEY,
+  public_id TEXT NOT NULL UNIQUE,
+  data TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
 );

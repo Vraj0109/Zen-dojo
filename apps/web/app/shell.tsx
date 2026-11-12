@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { THEME_EVENT, applyTheme, readStoredAppearance } from "@/lib/theme";
 import { getZenMode, initZenMode, setZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
 import { getAppearanceAction, setAppearanceAction } from "./actions";
 import { HistoryButtons } from "./history-buttons";
 import { SyncStatusPill } from "./components/sync-status";
+import { BottomNav } from "./components/bottom-nav";
+import { StudyModeSuggestion } from "./components/phone-study";
 
 /** Pages where the work (a problem and its editor) should fill the window: the sidebar becomes a slim bar. */
 export function isFocusPage(pathname: string | null): boolean {
@@ -21,7 +23,7 @@ export function isFocusPage(pathname: string | null): boolean {
  * sidebar slides in from the left on demand (button, or Ctrl+B), so the problem and the editor get the room.
  */
 /** The pathname is unknown while prerendering a dynamic route, so the full layout is the fallback. */
-export function Shell(props: { aside: ReactNode; children: ReactNode }) {
+export function Shell(props: { aside: ReactNode; children: ReactNode; account?: ReactNode }) {
   return (
     <Suspense fallback={<FullShell {...props} />}>
       <ShellInner {...props} />
@@ -29,16 +31,22 @@ export function Shell(props: { aside: ReactNode; children: ReactNode }) {
   );
 }
 
-function FullShell({ aside, children }: { aside: ReactNode; children: ReactNode }) {
+const BAR_PAD = "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]";
+
+function FullShell({ aside, children, pathname = null }: { aside: ReactNode; children: ReactNode; pathname?: string | null }) {
   return (
-    <div className="min-h-full lg:flex">
+    <div className={`min-h-full lg:flex ${BAR_PAD}`}>
       {aside}
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <StudyModeSuggestion />
+        {children}
+      </div>
+      <BottomNav pathname={pathname} />
     </div>
   );
 }
 
-function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode }) {
+function ShellInner({ aside, children, account }: { aside: ReactNode; children: ReactNode; account?: ReactNode }) {
   const pathname = usePathname();
   const compact = isFocusPage(pathname);
   const [openFor, setOpenFor] = useState<string | null>(null);
@@ -117,11 +125,11 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
     return () => window.removeEventListener("keydown", onKey);
   }, [pathname]);
 
-  if (!compact) return <FullShell aside={aside}>{children}</FullShell>;
+  if (!compact) return <FullShell aside={aside} pathname={pathname}>{children}</FullShell>;
 
   return (
-    <div className="shell-compact flex min-h-full flex-col" style={{ "--pane-h": "calc(100dvh - 7.75rem)" } as CSSProperties}>
-      <div className="sticky top-0 z-30 flex h-7 items-center gap-1 border-b border-line bg-surface px-2 print:hidden">
+    <div className={`shell-compact flex min-h-full flex-col [--pane-h:calc(100dvh-7.75rem)] max-md:[--pane-h:calc(100dvh-11.25rem)] ${BAR_PAD}`}>
+      <div className="sticky top-0 z-30 flex h-7 items-center gap-1 max-md:h-12 border-b border-line bg-surface px-2 print:hidden">
         <button
           type="button"
           onClick={() => setOpenFor(open ? null : pathname)}
@@ -129,20 +137,20 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
           aria-controls="shell-drawer"
           aria-label="Menu"
           title="Menu (Ctrl+B)"
-          className="grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground"
+          className="grid size-6 place-items-center rounded-md text-muted hover:bg-background hover:text-foreground max-md:size-10"
         >
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="[&_button]:size-6 [&_button]:rounded-md [&_button]:border-0">
+        <div className="[&_button]:size-6 [&_button]:rounded-md [&_button]:border-0 max-md:[&_button]:size-10">
           <HistoryButtons />
         </div>
         <Link
           href={pathname?.startsWith("/study/") ? "/study" : "/dsa"}
           aria-label={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
           title={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
-          className="grid size-6 place-items-center rounded-md text-sm text-muted hover:bg-background hover:text-foreground"
+          className="grid size-6 place-items-center rounded-md text-sm text-muted hover:bg-background hover:text-foreground max-md:size-10"
         >
           <span aria-hidden>↩</span>
         </Link>
@@ -152,7 +160,7 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
           aria-pressed={zen}
           aria-label="Zen mode"
           title="Zen mode: focus purely on problem and code (Ctrl+Shift+Z)"
-          className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
+          className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors max-md:min-h-10 max-md:px-3 ${
             zen ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
           }`}
         >
@@ -160,8 +168,9 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
           <span>Zen</span>
         </button>
         {zen && <span className="text-[11px] text-muted italic ml-1">focus mode (Esc to exit)</span>}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5 max-md:[&_button]:min-h-10 max-md:[&_button]:min-w-10 max-md:[&_a]:flex max-md:[&_a]:min-h-10 max-md:[&_a]:items-center">
           <SyncStatusPill compact />
+          {account}
         </div>
       </div>
       <div
@@ -176,7 +185,11 @@ function ShellInner({ aside, children }: { aside: ReactNode; children: ReactNode
       >
         {aside}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <StudyModeSuggestion />
+        {children}
+      </div>
+      {!zen && <BottomNav pathname={pathname} />}
     </div>
   );
 }

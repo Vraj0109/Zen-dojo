@@ -141,6 +141,22 @@ describe("start", () => {
     expect((await start(env, "https://app.example.com/auth/callback2", "state-cccccccccccccccc"))!.status).toBe(400);
   });
 
+  it("accepts the hosted site origin and refuses look-alikes (plan 0058)", async () => {
+    const HOSTED = "https://zen.example.com/auth/callback";
+    const env = await makeEnv({ ALLOWED_REDIRECTS: HOSTED });
+    expect((await start(env, HOSTED, "state-hhhhhhhhhhhhhhhh"))!.status).toBe(302);
+    for (const [i, bad] of [
+      "https://zen.example.evil.com/auth/callback",
+      "https://zen.example.com.evil.com/auth/callback",
+      "https://evil.com/?https://zen.example.com/auth/callback",
+      "http://zen.example.com/auth/callback",
+      "https://zen.example.com/auth/callback/",
+      "https://zen.example.com@evil.com/auth/callback",
+    ].entries()) {
+      expect((await start(env, bad, `state-bad${i}bbbbbbbbbbbbbb`))!.status).toBe(400);
+    }
+  });
+
   it("accepts the desktop deep link and hands code and state back in Location", async () => {
     // No new secret or var is needed for this: the rule is code in oauth.ts, live once the Worker is deployed.
     const DEEP = "zendojo://auth/callback";

@@ -35,7 +35,9 @@ export function getProvider(id: AiProviderId): AiProvider {
 }
 
 /** Which providers exist on this computer. Never throws; each check gives up after 3 seconds. */
-export async function detectProviders(): Promise<{ id: AiProviderId; label: string; found: boolean; cloud: boolean }[]> {
+export async function detectProviders(): Promise<{ id: string; label: string; found: boolean; cloud: boolean }[]> {
+  // Hosted site: no local tools can run there. The only choice is the person's own API key.
+  if (process.env.HABIT_HOSTED === "1") return [{ id: "byok", label: "Your own API key", found: true, cloud: true }];
   const list = AI_PROVIDER_IDS.map((id) => PROVIDERS[id]).filter((p): p is AiProvider => Boolean(p));
   return Promise.all(
     list.map(async (p) => {

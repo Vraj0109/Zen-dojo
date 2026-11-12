@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh } from "@/lib/hosted/refresh";
 import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
 import { getProblemDetail, markSolvedManually, undoSolve } from "@/lib/dsa";
 import { getSavedSolutions, saveNote, saveSolutionFor, type SavedSolution, type SolutionLang } from "@/lib/notes";
@@ -351,5 +351,16 @@ export async function togglePackItemAction(formData: FormData) {
   const pack = String(formData.get("pack") ?? "");
   const item = String(formData.get("item") ?? "");
   if (/^[a-z0-9-]+$/.test(pack) && /^[a-z0-9-]+$/.test(item)) await setPackItemDone(pack, item, formData.get("done") === "1");
+  refresh();
+}
+
+/** Reader mode on or off (Settings): a comfort cookie, not a permission. */
+export async function setReaderModeAction(formData: FormData) {
+  const { cookies } = await import("next/headers");
+  const { READER_COOKIE, READER_COOKIE_MAX_AGE, readerCookieValue } = await import("@/lib/reader-mode");
+  const value = readerCookieValue(formData.get("reader") === "1");
+  const store = await cookies();
+  if (value === null) store.delete(READER_COOKIE);
+  else store.set(READER_COOKIE, value, { sameSite: "lax", maxAge: READER_COOKIE_MAX_AGE, path: "/" });
   refresh();
 }

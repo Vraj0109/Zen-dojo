@@ -152,3 +152,30 @@ Before executing either a Cloud Data deletion or a Local Device erase:
    - Automated backups are also created in `backups/` prior to schema migrations during app updates.
 3. **Restore**:
    - A previously downloaded backup JSON file can be restored at any time via `/settings` -> **Restore backup** (`POST /api/backup/import`).
+
+---
+
+## 4. Public profile (opt-in)
+
+Off by default. In **Profile > Portfolio > Public profile** a signed-in user can switch on **Make my profile public**. Nothing is uploaded before that.
+
+**Exactly what becomes public** (the `PortfolioData` snapshot, rebuilt field by field by the Worker from a whitelist; unknown fields are rejected):
+
+- Display name (the profile name, max 60 characters), level, XP, streak, best streak, active days, hours
+- Total solved, solved by difficulty (easy, medium, hard), roadmap problem total, interview-plan weeks done
+- Course progress: id, title, done, total, completion date (study areas, DSA patterns, the plan)
+- The 16-week activity heatmap (date, XP, level) and badges (title, description, earned, progress)
+- The date the snapshot was generated
+
+**Never included:** email, GitHub login or numeric id, avatar, notes, code, solutions, reflections, tokens, keys, the interview date, LeetCode data.
+
+**The link** is `/u/<publicId>`. The public id is a random 22-character id created by the Worker. It is not the account id (the account id is `gh:<GitHub numeric id>` and is never shown or stored in the public row's data).
+
+**How it works**
+- Worker table `public_profiles` (migration `0006_public_profile.sql`): `user_id`, `public_id`, `data` (JSON), `updated_at`.
+- `PUT /api/profile/public` (signed in, body `{ "data": PortfolioData }`, max 60 KB) stores or refreshes the snapshot; `GET` returns whether it is on and the id; `DELETE` removes it.
+- `GET /api/public/u/<publicId>` is open (no sign-in), rate limited per IP, cached for 60 s, `noindex`. It returns 404 when the profile is private or missing.
+- Refresh: the app re-uploads when the owner opens the Portfolio page or presses **Update public profile**. There is no background job.
+- Turning it off deletes the stored snapshot; the link stops working (cached copies expire within 60 s). Turning it on again creates a new link.
+- **Delete cloud data** (section 2) also removes the public profile. The owner's own preview at `/u/me` always renders from local data.
+- `PUBLIC_SITE_URL` (optional env on the app) sets the host used for the copied link; without it the link is shown as a path and the current origin is used when copying.

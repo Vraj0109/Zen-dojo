@@ -1,3 +1,4 @@
+import { hostedNoRun } from "@/lib/hosted/no-run";
 import { runJavaProject } from "@/lib/judge/run-project";
 
 export const maxDuration = 90;
@@ -16,6 +17,8 @@ function sameOrigin(request: Request): boolean {
 }
 
 export async function POST(request: Request) {
+  const blocked = hostedNoRun();
+  if (blocked) return blocked;
   if (!sameOrigin(request) || !(request.headers.get("content-type") ?? "").startsWith("application/json")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }

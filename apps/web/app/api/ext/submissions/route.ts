@@ -1,7 +1,10 @@
+import { hostedNotFound } from "@/lib/hosted/no-run";
 import { EXT_LIMITS, authorizeExtension, importFromExtension } from "@/lib/leetcode/extension";
 
 /** Extension: store your accepted LeetCode submissions and record the solves. Body: { submissions: [...], topics?: [{ slug, tags }] } */
 export async function POST(request: Request) {
+  const gone = hostedNotFound();
+  if (gone) return gone;
   const denied = await authorizeExtension(request);
   if (denied) return denied;
   const text = await request.text();

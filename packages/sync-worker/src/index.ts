@@ -7,6 +7,7 @@ import { handleAuth, verifyAccessToken } from "./auth/routes";
 import { guard, checkQuota, noteAuthFailure, checkAccountCreation, clientIp, type Route } from "./guard/guard";
 import { checkCors, readBodyLimited, securityHeaders } from "./guard/headers";
 import type { RateLimiter } from "./guard/types";
+import { handleProfile } from "./profile";
 
 export interface D1Result<T = Record<string, unknown>> {
   results?: T[];
@@ -66,6 +67,10 @@ const PK: Record<string, string> = {
   pack_progress: "id",
   practice_sessions: "id",
   timer_rows: "id",
+  reading_progress: "id",
+  reading_custom: "id",
+  problem_struggles: "id",
+  boss_fights: "id",
 };
 
 // Writable data columns per table (never includes user_id, updated_at, deleted_at, or the pk).
@@ -78,6 +83,10 @@ const COLUMNS: Record<string, readonly string[]> = {
   pack_progress: ["pack_id", "item_id", "done_on"],
   practice_sessions: ["item_id", "practiced_on", "minutes", "scores", "score", "notes", "link", "xp"],
   timer_rows: ["item_id", "focused_on", "minutes"],
+  reading_progress: ["reading_id", "done_on", "notes"],
+  reading_custom: ["item_id", "title", "url", "added_on"],
+  problem_struggles: ["problem_id", "kind", "reason", "logged_on", "cleared_on"],
+  boss_fights: ["fought_on", "results", "minutes", "notes"],
 };
 
 const TABLES = Object.keys(PK);
@@ -389,6 +398,7 @@ async function handleDeleteData(
     ...TABLES.map((t): [string, string] => [t, "user_id"]),
     ["sync_heads", "user_id"],
     ["user_quota", "user_id"],
+    ["public_profiles", "user_id"],
   ];
   if (scope === "account") targets.push(["sessions", "user_id"], ["users", "id"]);
   const results = await env.DB.batch(
@@ -465,6 +475,16 @@ export default {
       }
       try {
         return await handleDeleteData(req, env, executionCtx, pathname, cors.headers);
+      } catch {
+        return json({ ok: false, error: "internal_error" }, 500, pathname, cors.headers);
+      }
+    }
+
+    // Public profile (plan 0069): owner routes need a token; /api/public/u/:id is open (IP rate limited by the guard above).
+    if (pathname === "/api/profile/public" || pathname.startsWith("/api/public/u/")) {
+      try {
+        const res = await handleProfile(req, env, pathname, cors.headers, () => authenticate(req, env, executionCtx, pathname, cors.headers));
+        if (res) return res;
       } catch {
         return json({ ok: false, error: "internal_error" }, 500, pathname, cors.headers);
       }

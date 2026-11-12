@@ -14,7 +14,8 @@ export type SyncTableDef = {
   cols: string[];
 };
 
-export const SYNC_TABLE_MAP: readonly SyncTableDef[] = [
+/** Tables covered by the first sync migration (0050). Frozen: that migration is generated from this list. */
+export const SYNC_TABLE_MAP_V1: readonly SyncTableDef[] = [
   { local: "tasks", cloud: "tasks", key: "sync_id", keyCols: ["id"], cols: ["date", "scope", "template_key", "title", "category", "xp", "minutes", "status", "done_on"] },
   { local: "problem_solves", cloud: "problem_solves", key: "composite", keyCols: ["problem_id", "kind"], cols: ["problem_id", "kind", "solved_on", "xp", "source"] },
   { local: "settings", cloud: "settings", key: "single", keyCols: ["key"], cols: ["value"] },
@@ -36,6 +37,16 @@ export const SYNC_TABLE_MAP: readonly SyncTableDef[] = [
   },
   { local: "focus_sessions", cloud: "timer_rows", key: "sync_id", keyCols: ["id"], cols: ["item_id", "focused_on", "minutes"] },
 ];
+
+/** Tables added by the second sync migration: reading list, stuck list and boss fights. */
+export const SYNC_TABLE_MAP_V2: readonly SyncTableDef[] = [
+  { local: "reading_progress", cloud: "reading_progress", key: "single", keyCols: ["reading_id"], cols: ["reading_id", "done_on", "notes"] },
+  { local: "reading_custom", cloud: "reading_custom", key: "sync_id", keyCols: ["id"], cols: ["item_id", "title", "url", "added_on"] },
+  { local: "problem_struggles", cloud: "problem_struggles", key: "sync_id", keyCols: ["id"], cols: ["problem_id", "kind", "reason", "logged_on", "cleared_on"] },
+  { local: "boss_fights", cloud: "boss_fights", key: "sync_id", keyCols: ["id"], cols: ["fought_on", "results", "minutes", "notes"] },
+];
+
+export const SYNC_TABLE_MAP: readonly SyncTableDef[] = [...SYNC_TABLE_MAP_V1, ...SYNC_TABLE_MAP_V2];
 
 /** Settings that never leave this machine (exact keys). Any key containing a word in SECRET_WORDS is also private. */
 export const SYNC_SETTINGS_DENYLIST: readonly string[] = ["extension_token", "content_feed_url", "tools_notice_dismissed", "ai_enabled", "ai_model", "ai_ollama_url", "ai_provider", "ai_cloud_consent"];
@@ -138,5 +149,37 @@ function triggersFor(t: SyncTableDef): string {
 
 /** The SQL for one `MIGRATIONS` entry: side tables plus all triggers. Safe to run twice. */
 export function syncMigrationSql(): string {
-  return SIDE_TABLES + SYNC_TABLE_MAP.map(triggersFor).join("");
+  return SIDE_TABLES + SYNC_TABLE_MAP_V1.map(triggersFor).join("");
+}
+
+/**
+ * The SQL for the second `MIGRATIONS` entry: triggers for the V2 tables. When this database is already linked to an
+ * account (sync_flags has `account`), their existing rows are queued so they upload on the next sync; otherwise
+ * `linkAccount` queues them at first link. Safe to run twice (queueing is an upsert, ids are INSERT OR IGNORE).
+ */
+export function syncMigrationSqlV2(): string {
+  const linked = "EXISTS (SELECT 1 FROM sync_flags WHERE k = 'account')";
+  const queue = SYNC_TABLE_MAP_V2.map((t) => {
+    let from = `${t.local} t`;
+    let key = t.keyCols.map((c) => `t.${c}`).join(" || ':' || ");
+    let ids = "";
+    if (t.key === "sync_id") {
+      ids =
+        `INSERT OR IGNORE INTO sync_ids (tbl, local_id, sync_id) SELECT '${t.local}', id, lower(hex(randomblob(16))) FROM ${t.local} ` +
+        `WHERE id NOT IN (SELECT local_id FROM sync_ids WHERE tbl = '${t.local}');
+`;
+      from = `${t.local} t JOIN sync_ids s ON s.tbl = '${t.local}' AND s.local_id = t.id`;
+      key = "s.sync_id";
+    }
+    return (
+      ids +
+      `INSERT INTO sync_dirty (tbl, row_key, changed_at, deleted) SELECT '${t.local}', ${key}, ${NOW}, 0 FROM ${from} WHERE ${linked} ` +
+      `ON CONFLICT (tbl, row_key) DO UPDATE SET changed_at = excluded.changed_at, deleted = 0;
+` +
+      `INSERT INTO sync_stamps (tbl, row_key, updated_at, deleted_at) SELECT '${t.local}', ${key}, ${NOW}, NULL FROM ${from} WHERE ${linked} ` +
+      `ON CONFLICT (tbl, row_key) DO UPDATE SET updated_at = excluded.updated_at, deleted_at = NULL;
+`
+    );
+  }).join("");
+  return SYNC_TABLE_MAP_V2.map(triggersFor).join("") + queue;
 }

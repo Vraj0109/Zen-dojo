@@ -1,3 +1,4 @@
+import { currentByokHeaders } from "@/lib/ai-key-store";
 import type { BuddyLineEvent, BuddyTone } from "@habit/shared";
 
 /**
@@ -15,7 +16,7 @@ export async function fetchAiLine(event: BuddyLineEvent, tone: BuddyTone, name: 
   try {
     const res = await fetch("/api/ai/buddy", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...currentByokHeaders() },
       body: JSON.stringify(persona ? { event, tone, name, persona } : { event, tone, name }),
       signal: ctl.signal,
     });

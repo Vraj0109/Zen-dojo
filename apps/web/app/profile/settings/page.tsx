@@ -20,6 +20,7 @@ import { ProfileTabs } from "../profile-ui";
 import { FeedUpdater } from "./feed-updater";
 import { AiSettings } from "./ai-settings";
 import { BuddyAppearance } from "./buddy-appearance";
+import { ReaderModeToggle } from "./reader-mode-toggle";
 import { SettingsShell } from "./settings-shell";
 import { SettingsBlock, SettingsSection } from "./settings-section";
 import type { SettingsCategory, SettingsEntry } from "./settings-search";
@@ -42,35 +43,38 @@ const CATEGORIES: SettingsCategory[] = [
   { id: "appearance", title: "Appearance and reading" },
   { id: "plan", title: "Study plan" },
   { id: "practice", title: "Practice and running code" },
-  ...(HOSTED ? [] : [{ id: "ai", title: "AI and chat" }]),
+  { id: "ai", title: "AI and chat" },
   { id: "buddy", title: "Buddy and focus" },
   { id: "account", title: "Account and sync" },
   { id: "content", title: "Content and packs" },
   { id: "connections", title: "Connections" },
   { id: "profile", title: "Profile and portfolio" },
-  { id: "backup", title: "Backup and restore" },
+  ...(HOSTED ? [] : [{ id: "backup", title: "Backup and restore" }]),
 ];
 
 const ENTRIES: SettingsEntry[] = [
   { id: "theme", category: "appearance", title: "Appearance and reading", description: "Light, dark or system theme and reading style, saved in this browser.", keywords: ["theme", "dark mode", "light", "style", "font", "reading", "text size"] },
   { id: "customize", category: "appearance", title: "Make it yours", description: "Custom colours and fonts.", keywords: ["colour", "color", "accent", "font", "custom", "personalise"] },
   { id: "simple-mode", category: "appearance", title: "Simple mode", description: "Hides the power tools so each page shows what to do next.", keywords: ["simple mode", "boss fight", "cheat sheets", "diagrams", "reading list", "stuck list", "hide"] },
+  { id: "reader-mode", category: "appearance", title: "Reader mode", description: "Read-only study for phones: hides Run and Submit, shows saved code read-only.", keywords: ["reader", "read only", "phone", "mobile", "study mode", "hide run", "submit"] },
   { id: "plan-start", category: "plan", title: "Plan start", description: "The Monday week 1 began; changing it regenerates unfinished tasks.", keywords: ["plan start date", "week", "shift", "monday", "schedule", "16 weeks"] },
   { id: "tools", category: "practice", title: "Tools for running code", description: "See which compilers and runtimes are installed on this computer.", keywords: ["tools", "compiler", "C++", "Java", "Node", "Python", "run code", "installed", "check my tools"] },
-  ...(HOSTED
-    ? []
-    : [
-        { id: "ai", category: "ai", title: "AI help on your own computer", description: "Off until you turn it on; explains hints and reviews code with a model.", keywords: ["AI model", "Ollama", "Claude Code", "Gemini", "Codex", "Antigravity", "local ai", "chat", "provider", "review my code"] },
-      ]),
+  HOSTED
+    ? { id: "ai", category: "ai", title: "AI help with your own key", description: "Paste an API key from Anthropic, OpenAI or Google; it stays in this browser only.", keywords: ["AI model", "API key", "Claude", "OpenAI", "Gemini", "chat", "provider", "bring your own key", "review my code"] }
+    : { id: "ai", category: "ai", title: "AI help on your own computer", description: "Off until you turn it on; explains hints and reviews code with a model.", keywords: ["AI model", "Ollama", "Claude Code", "Gemini", "Codex", "Antigravity", "local ai", "chat", "provider", "review my code"] },
   { id: "buddy", category: "buddy", title: "Accountability Buddy and Gentle Pacing", description: "A shame-free companion, gentle timers and pacing.", keywords: ["buddy name", "buddy tone", "pacing", "pomodoro", "timer", "focus", "adhd", "streak freeze", "pet", "petdex", "appearance"] },
   { id: "sync", category: "account", title: "Sync across devices", description: "Sign in to keep progress in step across devices.", keywords: ["sync", "sign in", "account", "devices", "log in", "sign out"] },
   { id: "packs", category: "content", title: "Add problems and lessons", description: "Import a content pack: a JSON file of lessons and problems.", keywords: ["packs", "content pack", "import", "json", "lessons", "problems", "course"] },
   { id: "feed", category: "content", title: "Updates and feeds", description: "Check an over-the-air content feed for new and updated packs.", keywords: ["feed", "updates", "ota", "url", "patches"] },
-  { id: "connections", category: "connections", title: "LeetCode and browser extension", description: "LeetCode username, and the browser extension pairing key.", keywords: ["LeetCode", "LeetCode username", "pairing key", "extension", "browser", "sync solves", "chrome"] },
+  { id: "connections", category: "connections", title: HOSTED ? "LeetCode" : "LeetCode and browser extension", description: HOSTED ? "Your LeetCode username." : "LeetCode username, and the browser extension pairing key.", keywords: ["LeetCode", "LeetCode username", "pairing key", "extension", "browser", "sync solves", "chrome"] },
   { id: "profile-editor", category: "profile", title: "Profile", description: "Your display profile.", keywords: ["avatar", "display", "profile"] },
   { id: "portfolio-name", category: "profile", title: "Portfolio name", description: "Shown on your portfolio and certificates.", keywords: ["name", "learner", "certificate", "portfolio"] },
-  { id: "backup-download", category: "backup", title: "Download a backup", description: "One JSON file with everything.", keywords: ["backup", "export", "download", "save data", "move computer"] },
-  { id: "backup-restore", category: "backup", title: "Restore from a backup", description: "Replaces all current data with a backup file.", keywords: ["restore", "import", "delete data", "replace", "undo", "reset"] },
+  ...(HOSTED
+    ? []
+    : [
+        { id: "backup-download", category: "backup", title: "Download a backup", description: "One JSON file with everything.", keywords: ["backup", "export", "download", "save data", "move computer"] },
+        { id: "backup-restore", category: "backup", title: "Restore from a backup", description: "Replaces all current data with a backup file.", keywords: ["restore", "import", "delete data", "replace", "undo", "reset"] },
+      ]),
 ];
 
 export default function SettingsPage({ searchParams }: PageProps<"/profile/settings">) {
@@ -102,6 +106,11 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
               <InterfaceSettings />
             </Suspense>
           </SettingsSection>
+          <SettingsSection id="reader-mode">
+            <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
+              <ReaderModeToggle />
+            </Suspense>
+          </SettingsSection>
         </SettingsBlock>
 
         <SettingsBlock id="plan" title="Study plan">
@@ -124,17 +133,17 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
           </SettingsSection>
         </SettingsBlock>
 
-        {!HOSTED && (
-          <SettingsBlock id="ai" title="AI and chat">
-            <SettingsSection id="ai">
-              <section className="rounded-xl border border-line bg-surface p-4">
-                <h4 className="mb-1 font-semibold">AI help on your own computer</h4>
-                <p className="mb-3 text-sm text-muted">Off until you turn it on. Explains hints and reviews your code with a model that runs here.</p>
-                <AiSettings />
-              </section>
-            </SettingsSection>
-          </SettingsBlock>
-        )}
+        <SettingsBlock id="ai" title="AI and chat">
+          <SettingsSection id="ai">
+            <section className="rounded-xl border border-line bg-surface p-4">
+              <h4 className="mb-1 font-semibold">{HOSTED ? "AI help with your own key" : "AI help on your own computer"}</h4>
+              <p className="mb-3 text-sm text-muted">
+                {HOSTED ? "Uses an API key you paste here. It stays in this browser only." : "Off until you turn it on. Explains hints and reviews your code with a model that runs here."}
+              </p>
+              <AiSettings />
+            </section>
+          </SettingsSection>
+        </SettingsBlock>
 
         <SettingsBlock id="buddy" title="Buddy and focus">
           <SettingsSection id="buddy">
@@ -200,7 +209,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
           </SettingsSection>
         </SettingsBlock>
 
-        <SettingsBlock id="backup" title="Backup and restore">
+        {!HOSTED && <SettingsBlock id="backup" title="Backup and restore">
           <Suspense>
             <Status searchParams={searchParams} />
           </Suspense>
@@ -241,7 +250,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
               </form>
             </section>
           </SettingsSection>
-        </SettingsBlock>
+        </SettingsBlock>}
       </SettingsShell>
     </PageMain>
   );
@@ -321,11 +330,11 @@ async function PlanSettings() {
 
 async function Connections() {
   await connection();
-  const [leetcode, extension] = await Promise.all([getLeetCodeStatus(), getExtensionStatus()]);
+  const [leetcode, extension] = await Promise.all([getLeetCodeStatus(), HOSTED ? null : getExtensionStatus()]);
   return (
     <>
       <LeetCodeCard {...leetcode} />
-      <ExtensionCard {...extension} />
+      {extension && <ExtensionCard {...extension} />}
     </>
   );
 }
@@ -437,7 +446,7 @@ async function BuddySettingsSection() {
           Save pacing preferences
         </SubmitButton>
       </form>
-      <BuddyAppearance aiEnabled={ai?.enabled ?? false} providerLabel={ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={ai ? ai.provider !== "ollama" : false} />
+      <BuddyAppearance aiEnabled={HOSTED || (ai?.enabled ?? false)} providerLabel={HOSTED ? "your AI provider" : ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={HOSTED || (ai ? ai.provider !== "ollama" : false)} />
     </section>
   );
 }

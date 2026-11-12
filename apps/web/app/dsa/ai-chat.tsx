@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { emitBuddy } from "@/app/buddy/buddy-events";
+import { AiKeySetup } from "@/app/ai-key-setup";
+import { BYOK_ERROR_TEXT, type ByokErrorCode } from "@/lib/ai/byok";
+import { BYOK_PROVIDERS, currentByokHeaders } from "@/lib/ai-key-store";
+import { useByok } from "@/lib/use-byok";
 
 export type ChatIntent = "question" | "hint" | "review" | "solution" | "free" | "explain" | "quiz" | "example" | "interview";
 export interface ChatMsg {
@@ -104,6 +108,7 @@ export function splitFences(text: string): { code: boolean; text: string }[] {
 }
 
 export function errorText(code: string | undefined): string {
+  if (code && Object.prototype.hasOwnProperty.call(BYOK_ERROR_TEXT, code)) return BYOK_ERROR_TEXT[code as ByokErrorCode];
   switch (code) {
     case "no_code":
       return "Save some code in the Notes tab first, then ask for a review.";
@@ -169,9 +174,12 @@ const LESSON_CHIPS: { intent: ChatIntent; label: string; title: string }[] = [
 function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, hasCode = false }: AiChatProps) {
   const lesson = Boolean(lessonId);
   const problemId = lesson ? `lesson:${lessonId}` : (pid ?? ""); // storage key part
+  // Hosted site: the only provider is "byok" (the person's own API key, kept in this browser).
+  const hosted = provider === "byok" || providers.some((p) => p.id === "byok");
+  const byok = useByok();
   const info = providers.find((p) => p.id === provider);
-  const cloud = info ? info.cloud : provider !== "ollama";
-  const providerLabel = info?.label ?? (provider === "ollama" ? "Ollama" : provider);
+  const cloud = hosted ? true : info ? info.cloud : provider !== "ollama";
+  const providerLabel = hosted ? (byok ? BYOK_PROVIDERS[byok.provider].label : "Your own API key") : (info?.label ?? (provider === "ollama" ? "Ollama" : provider));
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => readStored(problemId));
   const [pending, setPending] = useState(false);
@@ -240,7 +248,7 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
     try {
       const r = await fetch("/api/ai/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(hosted ? currentByokHeaders() : {}) },
         body: JSON.stringify({
           ...(lesson ? { lessonId } : { problemId: pid }),
           messages: sent,
@@ -332,6 +340,13 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
   }
 
   const lastIdx = messages.length - 1;
+  if (hosted && !byok) {
+    return (
+      <section aria-label="Set up AI" className="rounded-xl border border-line bg-surface p-4">
+        <AiKeySetup compact />
+      </section>
+    );
+  }
   return (
     <section aria-label="Ask AI" className="flex min-h-[28rem] flex-col gap-3 rounded-xl border border-line bg-surface p-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

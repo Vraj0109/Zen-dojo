@@ -24,9 +24,11 @@ import {
 } from "@habit/shared";
 import { getDiagrams } from "@/lib/diagrams";
 import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
-import { detectProviders } from "@/lib/ai/providers";
-import { aiAvailable } from "@/lib/ai/guard";
+import { isReaderMode } from "@/lib/reader-mode";
+import { isHosted } from "@/lib/hosted";
+import { detectProviders } from "@/lib/ai/detect";
 import { LessonAi } from "./lesson-ai";
+import { resolveLesson } from "@/lib/packs";
 import { getReadingFor } from "@/lib/reading";
 import { focusMinutes } from "@/lib/timer";
 import { PRACTICE_LIMITS, getConceptDetail, getExerciseDetail } from "@/lib/study";
@@ -133,7 +135,7 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
 
   const title = concept?.title ?? exercise?.title ?? "Lesson";
   const { prev, next } = getAdjacentLessons(area, id);
-  const ai = aiAvailable() ? await getAiSettings() : null;
+  const ai = process.env.HABIT_HOSTED === "1" ? ({ enabled: true, provider: "byok" } as unknown as Awaited<ReturnType<typeof getAiSettings>>) : await getAiSettings();
   const aiProviders = ai?.enabled ? await detectProviders() : [];
 
   return (
@@ -164,7 +166,7 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
 async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; next?: LessonLink }) {
   const [d0, reading, focused, simple] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id), getSimpleMode()]);
   const d = d0!;
-  const lesson = LESSONS[id];
+  const lesson = (await resolveLesson(id, LESSONS[id])) ?? undefined;
   const extra = LESSON_EXTRA[id];
   const readMin = readingMinutes(id);
   // Read, then answer the interview questions aloud: about twice the reading time, rounded to 5.
@@ -285,11 +287,12 @@ async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; 
 }
 
 async function ExerciseView({ id, diagramError, prev, next }: { id: string; diagramError?: string; prev?: LessonLink; next?: LessonLink }) {
-  const [d0, reading, focused, diagrams, simple] = await Promise.all([getExerciseDetail(id), getReadingFor(id), focusMinutes(id), getDiagrams(id), getSimpleMode()]);
+  const [d0, reading, focused, diagrams, simple, readOnly] = await Promise.all([getExerciseDetail(id), getReadingFor(id), focusMinutes(id), getDiagrams(id), getSimpleMode(), isReaderMode()]);
   const d = d0!;
   const { exercise, area, sessions, practice } = d;
   const steps = area.exercises.steps;
   const isDesign = area.id === "sd";
+  const noRun = isHosted(); // hosted: Java projects cannot run, the editors show a desktop-app notice
 
   const hasWalkthrough = isDesign && !!WALKTHROUGHS[id];
   const hasLldGuide = !isDesign && !!LLD_GUIDES[id];
@@ -360,6 +363,8 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
           <ProjectPlayground
             projectId={`sd-${id}`}
             files={designDeep.code.map((f) => ({ name: f.name, content: f.code }))}
+            readOnly={readOnly}
+            noRun={noRun}
           />
         )}
 
@@ -370,6 +375,8 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
               <ProjectPlayground
                 projectId={`lld-${id}`}
                 files={LLD_PROJECTS[id].files.map((f) => ({ name: f.name, content: f.code }))}
+                readOnly={readOnly}
+                noRun={noRun}
               />
             )}
           </>
@@ -506,6 +513,8 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
               }
               codeHelp={!isDesign ? "Write your design as Java files and run them. Saved with this problem." : undefined}
               javaProject={!isDesign}
+              readOnly={readOnly}
+              noRun={noRun}
             />
           </div>
         </ArticleSection>

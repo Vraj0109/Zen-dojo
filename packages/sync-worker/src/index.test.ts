@@ -566,7 +566,7 @@ describe("Sync Worker Index & Integration", () => {
 
   describe("Delete my data (plan 0054)", () => {
     const URL_ = "https://sync.example/api/account/delete-data";
-    const DATA_TABLES = ["tasks", "problem_solves", "settings", "notes", "solution_runs", "pack_progress", "practice_sessions", "timer_rows"];
+    const DATA_TABLES = ["tasks", "problem_solves", "settings", "notes", "solution_runs", "pack_progress", "practice_sessions", "timer_rows", "reading_progress", "reading_custom", "problem_struggles", "boss_fights"];
 
     async function tokenFor(sub: string): Promise<string> {
       return (await signAccessToken(testEnv, { sub, sid: "s-" + sub, adm: false })).token;
@@ -693,6 +693,10 @@ describe("Sync Worker Index & Integration", () => {
       pack_progress: ["pack_id", "item_id", "done_on"],
       practice_sessions: ["item_id", "practiced_on", "minutes", "scores", "score", "notes", "link", "xp"],
       timer_rows: ["item_id", "focused_on", "minutes"],
+      reading_progress: ["reading_id", "done_on", "notes"],
+      reading_custom: ["item_id", "title", "url", "added_on"],
+      problem_struggles: ["problem_id", "kind", "reason", "logged_on", "cleared_on"],
+      boss_fights: ["fought_on", "results", "minutes", "notes"],
     };
     const pkOf = (table: string) => (table === "settings" ? "key" : "id");
 
@@ -727,7 +731,7 @@ describe("Sync Worker Index & Integration", () => {
       );
     }
 
-    it("accepts exactly the planned columns for each of the eight tables", async () => {
+    it("accepts exactly the planned columns for each synced table", async () => {
       const token = await tokenFor("gh:cols");
       const mutations = Object.entries(COLS).map(([table, cols]) => ({
         table,
@@ -743,6 +747,22 @@ describe("Sync Worker Index & Integration", () => {
           (k) => !["user_id", "id", "key", "updated_at", "deleted_at", "synced_at"].includes(k),
         );
         expect(stored.sort(), table).toEqual([...cols].sort());
+      }
+    });
+
+    it("migration 0005 declares exactly the allow-listed columns of the new tables", async () => {
+      const { readFileSync } = await import("node:fs");
+      const sql = readFileSync(new URL("../migrations/0005_sync_reading_struggles_boss.sql", import.meta.url), "utf8");
+      for (const table of ["reading_progress", "reading_custom", "problem_struggles", "boss_fights"]) {
+        const start = sql.indexOf(`CREATE TABLE IF NOT EXISTS ${table} (`);
+        expect(start, table).toBeGreaterThanOrEqual(0);
+        const block = sql.slice(start, sql.indexOf(");", start));
+        const cols = block
+          .split("\n")
+          .slice(1)
+          .map((l) => l.trim().split(/\s+/)[0])
+          .filter((n) => n && n !== "PRIMARY" && !["user_id", "id", "updated_at", "deleted_at", "synced_at"].includes(n));
+        expect(cols.sort(), table).toEqual([...COLS[table]].sort());
       }
     });
 

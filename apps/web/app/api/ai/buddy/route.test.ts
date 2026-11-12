@@ -66,7 +66,7 @@ describe("POST /api/ai/buddy", () => {
 
   it("is 404 when hosted, 403 cross-origin or disabled, 400 for a bad body", async () => {
     vi.stubEnv("HABIT_HOSTED", "1");
-    expect((await POST(req(good))).status).toBe(404);
+    expect((await POST(req(good))).status).toBe(400); // hosted: no key header
     vi.stubEnv("HABIT_HOSTED", "");
     expect((await POST(req(good, "http://evil.example"))).status).toBe(403);
     expect((await POST(req({ ...good, tone: "evil" }))).status).toBe(400);

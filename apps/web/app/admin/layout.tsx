@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth/session";
+import { isHosted } from "@/lib/hosted";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -16,8 +18,16 @@ const LINKS = [
   { href: "/admin/study", label: "Study Content" },
 ];
 
+/** Plan 0058: the admin portal does not exist on the hosted site. */
+async function HostedGate({ children }: { children: React.ReactNode }) {
+  await connection();
+  if (isHosted()) notFound();
+  return <>{children}</>;
+}
+
 async function AdminNav() {
   await connection();
+  if (isHosted()) notFound();
   const session = await requireAdmin();
   return (
     <header className="mb-6 flex flex-wrap items-center gap-3 border-b border-line pb-3">
@@ -48,7 +58,9 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
       <Suspense fallback={<div className="mb-6 h-10 border-b border-line" />}>
         <AdminNav />
       </Suspense>
-      {children}
+      <Suspense fallback={null}>
+        <HostedGate>{children}</HostedGate>
+      </Suspense>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { hostedNotFound } from "@/lib/hosted/no-run";
 import { restoreBackup } from "@/lib/backup";
 
 const MAX_BACKUP_BYTES = 50_000_000;
@@ -10,6 +11,8 @@ const back = (request: Request, params: Record<string, string>) =>
  * a form on another website can't post here and wipe your data.
  */
 export async function POST(request: Request) {
+  const gone = hostedNotFound();
+  if (gone) return gone;
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(request.url).origin) {
     return Response.json({ error: "Restore is only allowed from the Zen Dojo settings page." }, { status: 403 });

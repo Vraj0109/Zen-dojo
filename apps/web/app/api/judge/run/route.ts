@@ -1,3 +1,4 @@
+import { hostedNoRun } from "@/lib/hosted/no-run";
 import { JUDGE_LANGS, JUDGE_LANG_LABEL, matchesTy, type JudgeLang, type ProblemSpec } from "@habit/shared";
 import { JUDGE_LIMITS, runCode, runCustom } from "@/lib/judge/run";
 import { revalidatePath } from "next/cache";
@@ -32,6 +33,8 @@ async function specFor(id: unknown): Promise<ProblemSpec | undefined> {
 
 /** Your latest run of each language for a problem (for the editor and the Notes tab). */
 export async function GET(request: Request) {
+  const blocked = hostedNoRun();
+  if (blocked) return blocked;
   if (!sameOrigin(request)) return Response.json({ error: "Forbidden" }, { status: 403 });
   const id = new URL(request.url).searchParams.get("id");
   const spec = await specFor(id);
@@ -57,6 +60,8 @@ function checkInput(spec: ProblemSpec, input: unknown): { ok: true; values: unkn
 }
 
 export async function POST(request: Request) {
+  const blocked = hostedNoRun();
+  if (blocked) return blocked;
   if (!sameOrigin(request) || !(request.headers.get("content-type") ?? "").startsWith("application/json")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }

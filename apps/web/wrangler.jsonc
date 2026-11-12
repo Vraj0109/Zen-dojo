@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // The hosted Zen Dojo website (plan 0058). The sync Worker is a different Worker (packages/sync-worker).
+  "name": "zen-dojo-web",
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  // Per-user data lives in one SQLite-backed Durable Object per user (class UserDb, lib/hosted/user-do.ts, exported by
+  // worker.ts next to the OpenNext worker). The object id comes from the user id: no database to create per user.
+  // Other plain settings (SYNC_WORKER_URL) come from the deploy workflow (--var) or the dashboard. Secrets are never
+  // written here (docs/hosting.md).
+  "keep_vars": true,
+  "durable_objects": {
+    "bindings": [{ "name": "USER_DB", "class_name": "UserDb" }]
+  },
+  // Never edit a shipped migration; add a new tag for any later class change.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["UserDb"] }],
+  "vars": {
+    "HABIT_HOSTED": "1"
+  }
+}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { emitBuddy } from "./buddy-events";
 import { errorText } from "../dsa/ai-chat";
+import { currentByokHeaders } from "@/lib/ai-key-store";
 
 interface Msg {
   role: "user" | "assistant";
@@ -90,7 +91,7 @@ export function BuddyChat({
     try {
       const r = await fetch("/api/ai/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...currentByokHeaders() },
         body: JSON.stringify({ buddy: { name, description, tone }, messages: history.slice(-MAX_KEPT) }),
         signal: c.signal,
       });

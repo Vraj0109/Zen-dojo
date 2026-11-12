@@ -1,8 +1,11 @@
+import { hostedNotFound } from "@/lib/hosted/no-run";
 import { authorizeExtension } from "@/lib/leetcode/extension";
 import { SITE_TIME_LIMITS, addSiteTime } from "@/lib/site-time";
 
 /** Extension: add seconds spent on LeetCode problem pages. Body: { entries: [{ day, slug, seconds }] } */
 export async function POST(request: Request) {
+  const gone = hostedNotFound();
+  if (gone) return gone;
   const denied = await authorizeExtension(request);
   if (denied) return denied;
   const text = await request.text();

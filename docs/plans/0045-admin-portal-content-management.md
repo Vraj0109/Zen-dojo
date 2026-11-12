@@ -46,7 +46,7 @@ Provide a web-based `/admin` content management portal where administrators can 
     - Reports passing status, output mismatches, and execution runtime before saving.
   - Done when: An admin can create a new problem, verify it with the judge, and save it to `content_items`.
 
-- [ ] **3. Study Material & Lessons Management Interface (`/admin/study`).**
+- [~] **3. Study Material & Lessons Management Interface (`/admin/study`).**
   - Create `/admin/study` dashboard:
     - Navigation tree: Areas (`sd`, `lld`, `core`) -> Sections -> Lessons.
     - Ability to reorder lessons, create new topics, or create subsections.
@@ -59,14 +59,14 @@ Provide a web-based `/admin` content management portal where administrators can 
       5. **Code Snippets / Java Project Files:** Multi-file editor for lesson code.
   - Done when: An admin can edit a System Design or LLD topic, save it, and see changes live on `/study/sd/...` or `/study/lld/...`.
 
-- [ ] **4. Instant publishing & revision sync.**
+- [~] **4. Instant publishing & revision sync.**
   - When saving in `/admin`:
     - Write to `content_items` with incremented `rev` and updated timestamp.
     - Trigger sync notification so active clients pull updated content items without page reloads.
     - Provide a "Revert to Built-in" button for problems or lessons that were patched.
   - Done when: Editing a problem in `/admin` immediately reflects on the learner's `/dsa/[id]` page upon reload.
 
-- [ ] **5. Tests.**
+- [~] **5. Tests.**
   - In `apps/web/app/admin/admin.test.ts`:
     - Test unauthorized access rejection on `/admin` and `/api/admin/*`.
     - Test saving a new problem spec to `content_items`.
@@ -89,7 +89,22 @@ Provide a web-based `/admin` content management portal where administrators can 
 
 ## Implementation notes
 
-(Implementer fills in)
+Agent E, steps 3 to 5 (study content). Partly done; step markers `[~]` mean partly built.
+
+Built:
+- `/admin/study` lists every concept with an Edit link (exercises, i.e. system design and LLD problems, stay read-only).
+- `/admin/study/[area]/[id]` (`page.tsx`, `lesson-editor.tsx`): edits the overview, one explanation per checklist point, the interview questions and the common mistakes. Each text has a Markdown preview; questions and mistakes can be added, removed and reordered (Move up and Move down). "Revert to built-in" deletes the stored item.
+- Saving writes a `patch` item (`patch:<concept>`) to `content_items` through `upsertItem` (source `admin`; same validation as packs, no migration). Server actions are in `apps/web/app/admin/study-actions.ts` (both call `requireAdmin()`), form parsing is in `apps/web/lib/admin-study.ts`.
+- The learner page `apps/web/app/study/[area]/[id]/page.tsx` now reads the concept lesson through `resolveLesson`, so a saved patch shows on the next load with no redeploy (before this change patches were only used in packs pages). A learner-side "reset patch" setting still hides a patch; saving again clears it.
+- Tests: `apps/web/app/admin/study.test.ts` (non-admin refused, save and resolveLesson, validation, revert). Typecheck and eslint are clean.
+
+Not built (too big for this pass):
+- Mermaid diagram editor, architecture cards and scorecards, multi-file Java project editor, creating new topics or subsections, reordering lessons in the tree.
+- Reordering explanations: they pair 1:1 with the concept's checklist points on the learner page, so they follow the checklist order. The "deeper" sections (`LESSON_EXTRA`) cannot be replaced by a patch yet; that needs a pack format change.
+- Editing system design and LLD exercises (walkthroughs, guides), and a push notification to open clients (reload picks the change up).
+- Tests for `/api/admin/*` do not exist because no such routes exist.
+
+Also: `cses-grid-path-description.py` was sped up (memo at step 29, about 1.7x) and passes `solutions:verify` without `# verify: skip-stress`. The solutions bundle needs `pnpm solutions:build` (the lead runs it).
 
 ## Review
 

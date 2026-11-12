@@ -31,7 +31,12 @@ afterEach(() => {
 describe("ai routes", () => {
   it("404 when hosted", async () => {
     vi.stubEnv("HABIT_HOSTED", "1");
-    for (const r of [status, chat, pull]) expect((await r(req({}))).status).toBe(404);
+    expect((await pull(req({}))).status).toBe(404);
+    // Hosted: the status route only says "hosted" and the chat needs the person's own key (plan 0058).
+    expect(await (await status(req({}))).json()).toEqual({ ok: true, hosted: true });
+    const noKey = await chat(req({}));
+    expect(noKey.status).toBe(400);
+    expect(await noKey.json()).toEqual({ ok: false, error: "no_key" });
   });
 
   it("403 when cross-origin", async () => {

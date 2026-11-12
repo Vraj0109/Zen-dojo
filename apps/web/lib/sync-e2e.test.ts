@@ -158,6 +158,47 @@ describe("Sync End-to-End Integration Tests", () => {
     resetGuardState();
   });
 
+  it("reading list, stuck list and boss fights sync between devices; existing rows upload once", async () => {
+    const { rawDb, makeFetcher } = await setupWorker();
+    const userId = "gh:user-rsb";
+    const fetcher = makeFetcher(userId);
+    const run = (db: Client) => runSync({ db, fetch: fetcher, getUserId: async () => userId });
+
+    const deviceA = await createLocalDb();
+    const deviceB = await createLocalDb();
+    // Rows that exist before the first link must upload on the first sync.
+    await deviceA.executeMultiple(`
+      INSERT INTO reading_progress (reading_id, done_on, notes) VALUES ('r1', '2026-11-01', 'good');
+      INSERT INTO reading_custom (item_id, title, url, added_on) VALUES ('i1', 'Title', 'https://example.com', '2026-11-01');
+      INSERT INTO problem_struggles (problem_id, kind, reason, logged_on) VALUES ('two-sum', 'solve', 'stuck', '2026-11-01');
+      INSERT INTO boss_fights (fought_on, results, minutes, notes) VALUES ('2026-11-02', '[1,2]', 45, 'ok');
+    `);
+    await linkAccount(userId, deviceA);
+    await linkAccount(userId, deviceB);
+
+    expect((await run(deviceA)).pushed).toBe(4);
+    expect((await run(deviceB)).pulled).toBe(4);
+    // A second round trip must not duplicate anything.
+    await run(deviceA);
+    await run(deviceB);
+    const n = async (db: Client, t: string) => Number((await db.execute(`SELECT count(*) AS n FROM ${t}`)).rows[0].n);
+    for (const t of ["reading_progress", "reading_custom", "problem_struggles", "boss_fights"]) {
+      expect(await n(deviceB, t), t).toBe(1);
+      expect(Number((rawDb.prepare(`SELECT count(*) AS n FROM ${t}`).get() as { n: number }).n), `cloud ${t}`).toBe(1);
+    }
+    expect((await deviceB.execute("SELECT done_on, notes FROM reading_progress WHERE reading_id = 'r1'")).rows[0].notes).toBe("good");
+    expect((await deviceB.execute("SELECT cleared_on, reason FROM problem_struggles")).rows[0].cleared_on).toBeNull();
+    expect((await deviceB.execute("SELECT minutes FROM boss_fights")).rows[0].minutes).toBe(45);
+
+    // Update and delete propagate.
+    await deviceB.execute("UPDATE problem_struggles SET cleared_on = '2026-11-05'");
+    await deviceB.execute("DELETE FROM reading_custom");
+    await run(deviceB);
+    await run(deviceA);
+    expect((await deviceA.execute("SELECT cleared_on FROM problem_struggles")).rows[0].cleared_on).toBe("2026-11-05");
+    expect(await n(deviceA, "reading_custom")).toBe(0);
+  });
+
   // a) Solve sync
   it("a) Solve sync: Device A marks a problem solved, pushes. Device B pulls and receives the solve", async () => {
     const { makeFetcher } = await setupWorker();

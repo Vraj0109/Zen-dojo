@@ -19,7 +19,8 @@ import { NotesForm } from "../../notes-form";
 import { SubmitButton } from "../../submit-button";
 import { Tabs, type TabItem } from "../../tabs";
 import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
-import { detectProviders } from "@/lib/ai/providers";
+import { isReaderMode } from "@/lib/reader-mode";
+import { detectProviders } from "@/lib/ai/detect";
 import { AiChat } from "../ai-chat";
 import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 import { ProblemWorkspaceSkeleton } from "./problem-skeleton";
@@ -85,13 +86,14 @@ async function Problem({
   const p = await getProblemDetail(decodeURIComponent(id));
   if (!p) notFound();
   const slug = p.url ? /\/problems\/([a-z0-9-]+)/.exec(p.url)?.[1] : undefined;
-  const [struggles, focused, cheats, simple, onSite, ai] = await Promise.all([
+  const [struggles, focused, cheats, simple, onSite, ai, readOnly] = await Promise.all([
     getStruggles(p.id),
     focusMinutes(p.id),
     getPatternNotes(),
     getSimpleMode(),
     slug ? siteMinutesForSlug(slug) : 0,
-    process.env.HABIT_HOSTED === "1" ? null : getAiSettings(),
+    process.env.HABIT_HOSTED === "1" ? Promise.resolve({ enabled: true, provider: "byok" } as unknown as Awaited<ReturnType<typeof getAiSettings>>) : getAiSettings(),
+    isReaderMode(),
   ]);
   const open = struggles.filter((x) => !x.clearedOn);
   const aiProviders = ai?.enabled ? await detectProviders() : [];
@@ -115,6 +117,7 @@ async function Problem({
             note={p.note}
             notesPlaceholder={NOTES_TEMPLATE}
             codePlaceholder="Your accepted solution is saved here automatically when every test passes. You can also paste code yourself."
+            readOnly={readOnly}
           />
         ),
       },
@@ -174,17 +177,17 @@ async function Problem({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 zen-dim">
-            {p.judgeable && s.state === "unsolved" && (
+            {!readOnly && p.judgeable && s.state === "unsolved" && (
               <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
                 Run & pass all tests to solve on Zen Dojo
               </span>
             )}
-            {p.judgeable && s.state === "solved" && s.resolveDue && (
+            {!readOnly && p.judgeable && s.state === "solved" && s.resolveDue && (
               <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
                 Run & pass all tests to re-solve
               </span>
             )}
-            {!p.judgeable && p.kind === "roadmap" && s.state !== "resolved" && (
+            {!readOnly && !p.judgeable && p.kind === "roadmap" && s.state !== "resolved" && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
@@ -193,7 +196,7 @@ async function Problem({
                 </SubmitButton>
               </form>
             )}
-            {p.kind === "roadmap" && s.state !== "unsolved" && (
+            {!readOnly && p.kind === "roadmap" && s.state !== "unsolved" && (
               <form action={undoSolveAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm">Undo</SubmitButton>
@@ -208,7 +211,7 @@ async function Problem({
             />
           </div>
         </header>
-        <JudgeWorkspace id={p.id} templates={startersFor(spec)} tabs={judgedTabs} initialTab={wanted === "solve" ? "description" : wanted} />
+        <JudgeWorkspace id={p.id} templates={startersFor(spec)} tabs={judgedTabs} initialTab={wanted === "solve" ? "description" : wanted} readOnly={readOnly} />
       </article>
     );
   }
@@ -280,7 +283,7 @@ async function Problem({
         </div>
         {p.kind === "roadmap" && (
           <div className="flex gap-2">
-            {!p.judgeable && s.state !== "resolved" && (
+            {!readOnly && !p.judgeable && s.state !== "resolved" && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
@@ -289,12 +292,12 @@ async function Problem({
                 </SubmitButton>
               </form>
             )}
-            {p.judgeable && s.state !== "resolved" && (
+            {!readOnly && p.judgeable && s.state !== "resolved" && (
               <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
                 Run & pass all tests to solve on Zen Dojo
               </span>
             )}
-            {s.state !== "unsolved" && (
+            {!readOnly && s.state !== "unsolved" && (
               <form action={undoSolveAction}>
                 <input type="hidden" name="problemId" value={p.id} />
                 <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm">Undo</SubmitButton>
@@ -336,6 +339,7 @@ async function Problem({
           note={p.note}
           notesPlaceholder={NOTES_TEMPLATE}
           codePlaceholder="Paste the code you submitted. When you re-solve, write it fresh first, then compare."
+          readOnly={readOnly}
         />
       )}
 

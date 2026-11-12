@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AiKeySetup } from "@/app/ai-key-setup";
 import { AI_INSTALL, OS_LABEL, installCommands, toOsId } from "@habit/shared";
 
 type Tier = { model: string; label: string; downloadGb: number };
@@ -34,6 +35,7 @@ const post = (url: string, body: unknown, signal?: AbortSignal) =>
 export function AiSettings() {
   const [info, setInfo] = useState<Info | null>(null);
   const [failed, setFailed] = useState(false);
+  const [hosted, setHosted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ text: string; pct: number | null } | null>(null);
   const [pickModel, setPickModel] = useState("");
@@ -45,7 +47,11 @@ export function AiSettings() {
     try {
       const r = await post("/api/ai/status", {});
       if (!r.ok) throw new Error();
-      const j = (await r.json()) as Info;
+      const j = (await r.json()) as Info & { hosted?: boolean };
+      if (j.hosted) {
+        setHosted(true);
+        return;
+      }
       setInfo(j);
       setFailed(false);
       setPickModel((m) => m || j.model || j.recommended.model);
@@ -117,6 +123,7 @@ export function AiSettings() {
     }
   }
 
+  if (hosted) return <AiKeySetup />;
   if (failed && !info) return null; // not available here (for example the hosted site)
   if (!info) return <p className="text-sm text-muted">Checking this computer...</p>;
 

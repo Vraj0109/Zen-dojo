@@ -7,6 +7,7 @@ import { parseProjectCode, serializeProject, type ProjectFile } from "@/lib/proj
 import { saveNoteAction } from "./actions";
 import { EditorField } from "./code-editor";
 import { ProjectEditor } from "./components/project-editor";
+import { PhoneCodeNote } from "./components/phone-study";
 import { SubmitButton } from "./submit-button";
 
 /** Notes + saved code for a DSA problem, design or LLD problem (stored in problem_notes). */
@@ -20,6 +21,8 @@ export function NotesForm({
   codeHelp,
   defaultLanguage = "Java",
   javaProject = false,
+  readOnly = false,
+  noRun = false,
 }: {
   id: string;
   note: ProblemNote | null;
@@ -30,6 +33,10 @@ export function NotesForm({
   codeHelp?: string;
   defaultLanguage?: string;
   javaProject?: boolean;
+  /** Reader mode: the saved code is shown read-only (notes stay editable). */
+  readOnly?: boolean;
+  /** Hosted site: LLD Java projects cannot run here, so the project editor shows a notice instead of Run Project. */
+  noRun?: boolean;
 }) {
   const [files, setFiles] = useState<ProjectFile[]>(() => parseProjectCode(note?.code ?? "", note?.language ?? ""));
   const initialSerialized = useMemo(() => serializeProject(parseProjectCode(note?.code ?? "", note?.language ?? "")), [note]);
@@ -77,7 +84,7 @@ export function NotesForm({
             </div>
             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Unsaved changes</span>}
           </div>
-          <ProjectEditor projectId={id} value={files} onChange={setFiles} storageKey={`zen-dojo:lld:${id}`} />
+          <ProjectEditor projectId={id} value={files} onChange={setFiles} storageKey={`zen-dojo:lld:${id}`} readOnly={readOnly} noRun={noRun} />
         </div>
       ) : (
         <div>
@@ -90,25 +97,39 @@ export function NotesForm({
               name="language"
               aria-label="Language"
               defaultValue={note?.language || defaultLanguage}
-              className="rounded-lg border border-line bg-background px-2 py-1 text-sm"
+              disabled={readOnly}
+              className="rounded-lg border border-line bg-background px-2 py-1 text-sm max-md:hidden"
             >
               {LANGUAGES.map((l) => (
                 <option key={l}>{l}</option>
               ))}
             </select>
+            {readOnly && <input type="hidden" name="language" value={note?.language || defaultLanguage} />}
           </div>
+          {/* Phones: no editor, only the saved code as plain text (the hidden textarea below keeps the form's value). */}
+          <div className="space-y-2 md:hidden">
+            <PhoneCodeNote />
+            {note?.code ? (
+              <pre className="max-h-96 overflow-auto rounded-lg border border-line bg-background p-3 text-xs whitespace-pre">{note.code}</pre>
+            ) : (
+              <p className="text-sm text-muted">No saved code yet.</p>
+            )}
+          </div>
+          <div className="max-md:hidden">
           <EditorField languageSelectId="code-language" rows={16}>
             <textarea
               id="code"
               name="code"
               rows={16}
               maxLength={NOTE_LIMITS.code}
+              readOnly={readOnly}
               spellCheck={false}
               defaultValue={note?.code ?? ""}
               placeholder={codePlaceholder}
               className={`${field} font-mono text-sm`}
             />
           </EditorField>
+          </div>
         </div>
       )}
 

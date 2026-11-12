@@ -138,4 +138,39 @@ Suggested split: Agent A steps 1 to 4; Agent B steps 5 to 7; Agent C step 8 and 
 
 ## Implementation notes
 
+### Steps 5 to 8 (Agent B)
+
+- Step 5: `lib/hosted/sync.ts` (`syncOnRequest`, `syncAfterMutation`, 20 s throttle, links the database on first
+  sign-in, never throws; the engine's own head check is the cheap check). `lib/hosted/refresh.ts` is a drop-in
+  `refresh()` that also schedules `syncAfterMutation` through `after()`; `app/actions.ts` now imports it (one line).
+  `app/components/hosted-sync.tsx` (`HostedSyncOnRequest`) must be mounted once in `layout.tsx` inside `<Suspense>`
+  (not mounted by me: layout belongs to another agent). Admin/tools actions still use `next/cache` refresh.
+  Tests: `lib/hosted/sync.test.ts` (desktop row reaches the hosted db, hosted write reaches the Worker, throttle,
+  account mismatch, Worker down).
+- Step 6: `lib/hosted/no-run.ts` (`hostedNoRun()` 403 `{ ok:false, error:"hosted-no-run", message }`) guards
+  `api/judge/run` (GET and POST), `api/judge/run-project` and `api/tools/{install,remove,status}`. AI routes already
+  disabled hosted via `guardAi`. UI: `app/components/hosted-run-notice.tsx` (`FailureText`) shows the notice with a
+  download link in `judge-workspace.tsx` and `project-editor.tsx` (one-line changes). Test: `lib/hosted/no-run.test.ts`.
+- Step 7: look-alike test in `packages/sync-worker/src/auth/routes.test.ts`. `ALLOWED_REDIRECTS` stays empty in
+  `wrangler.jsonc` on purpose: the site address is unknown and a guessed host could be claimed by someone else; set at
+  deploy (documented). `docs/hosting.md` has the "Hosted Zen Dojo" section; OAuth note added to `docs/hosted-architecture.md`.
+- Step 8: settings page hides the extension card (and skips `getExtensionStatus`), and the whole Backup block
+  (download and restore) when hosted; `api/ext/*` and `api/backup/restore` return 404 hosted; `/admin` layout calls
+  `notFound()` hosted. There is no "Desktop updates box" in the web app (updates live in Electron), so nothing to hide.
+  The account page's own backup link (`delete-data.tsx`) and the admin link in `account-popover.tsx` are not touched.
+
+Agent A, steps 1 to 4 (status left `ready`/in-progress; steps 5 to 8 belong to others).
+
+- Step 1: `docs/hosted-architecture.md`. Token model and libSQL-over-HTTP pages were not fetched: marked unverified.
+- Step 2: `lib/hosted/control.ts` (+test). `isHosted()` already existed.
+- Step 3: `lib/hosted/provision.ts` (+test): `provisionUserDb`, `mintDbToken` (1-day per-database token), `ensureUserDbUrl`.
+  `lib/db.ts`: `getDbFor(userId, deps?)` with a 50-entry Map, lazy migrate, no cache on failure; `getDb()` hosted branch
+  uses a dynamic import of `lib/hosted/require-user-db.ts`. Tests in `lib/hosted/user-db.test.ts`.
+- Step 4: the gate is `apps/web/proxy.ts` (Next 16 proxy) plus pure `lib/hosted/gate.ts` (+test), so `layout.tsx` was not
+  touched. The proxy only checks that a `zd_at`/`zd_rt` cookie exists; pages still verify the session. `/api/*` is open
+  at the proxy and relies on `requireUserDb()` (401). `app/welcome/page.tsx` links to `/auth/start`.
+  Server actions already call `getDb()`, so they are bound to the user through the hosted branch.
+- Tests: `pnpm.cmd exec vitest run apps/web/lib/hosted` passes; `pnpm.cmd -r typecheck` and eslint on changed files clean.
+- Left: the hosted `getDb()` test only proves the branch is taken; `/login` still exists beside `/welcome`.
+
 ## Review

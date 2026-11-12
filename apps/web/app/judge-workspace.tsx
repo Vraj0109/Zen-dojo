@@ -1,5 +1,7 @@
 "use client";
 
+import { FailureText } from "./components/hosted-run-notice";
+import { PhoneCodeNote } from "./components/phone-study";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { RunResult } from "@/lib/judge/run";
@@ -93,7 +95,7 @@ function HelpTip({ text, id }: { text: string; id: string }) {
   );
 }
 /** The Notes tab starts with your latest run of each language (read-only), above the saved accepted solution. */
-function LastRuns({ runs, saved, onLoad, children }: { runs: SavedRun[]; saved: SavedSolutionView[]; onLoad: (s: SavedSolutionView) => void; children: ReactNode }) {
+function LastRuns({ runs, saved, onLoad, readOnly, children }: { runs: SavedRun[]; saved: SavedSolutionView[]; onLoad: (s: SavedSolutionView) => void; readOnly: boolean; children: ReactNode }) {
   return (
     <div className="space-y-4">
       {saved.length > 0 && (
@@ -104,9 +106,11 @@ function LastRuns({ runs, saved, onLoad, children }: { runs: SavedRun[]; saved: 
                 <p className="text-sm font-medium">
                   Saved solution ({LABEL[v.lang]}), {v.verified ? "verified" : "not verified"}, {v.savedOn}
                 </p>
-                <button type="button" onClick={() => onLoad(v)} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-surface">
-                  Load into editor
-                </button>
+                {!readOnly && (
+                  <button type="button" onClick={() => onLoad(v)} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-surface">
+                    Load into editor
+                  </button>
+                )}
               </div>
               <pre className="mt-2 max-h-72 overflow-auto text-xs whitespace-pre">{v.code}</pre>
             </div>
@@ -156,7 +160,7 @@ export interface ProblemTab {
  * button, and the results. The three are panes you can resize, swap and maximise (see pane-layout.tsx). When every test
  * passes, the server keeps the solution with the problem. `templates` has the starter code for each language.
  */
-export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string; templates: Record<Lang, string>; tabs: ProblemTab[]; initialTab?: string }) {
+export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = false }: { id: string; templates: Record<Lang, string>; tabs: ProblemTab[]; initialTab?: string; readOnly?: boolean }) {
   const router = useRouter();
   // False while rendering on the server and during hydration, so saved code is read only in the browser.
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
@@ -335,8 +339,11 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
     setResult(null);
   }
 
-  // Your draft first, else the code you last ran, else the starter.
-  const initial = hydrated ? (draft ?? lastRun?.code ?? templates[lang]) : templates[lang];
+  // Your draft first, else the code you last ran, else the starter. Reader mode shows the saved solution first.
+  const savedForLang = savedSolutions.find((v) => v.lang === lang);
+  const initial = readOnly
+    ? (savedForLang?.code ?? lastRun?.code ?? (hydrated ? draft : null) ?? templates[lang])
+    : hydrated ? (draft ?? lastRun?.code ?? templates[lang]) : templates[lang];
   const selectId = `judge-lang-${id}`;
   const active = effectiveTabs.find((t) => t.id === tab) ?? effectiveTabs[0];
 
@@ -361,7 +368,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {effectiveTabs.map((t) => (
           <div key={t.id} role="tabpanel" hidden={t.id !== active.id} className="anim-fade-up">
-            {t.id === "notes" ? <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved}>{t.node}</LastRuns> : t.node}
+            {t.id === "notes" ? <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved} readOnly={readOnly}>{t.node}</LastRuns> : t.node}
           </div>
         ))}
       </div>
@@ -369,7 +376,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
   );
 
   const codeActions = (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 max-md:hidden">
       <label htmlFor={selectId} className="sr-only">
         Language
       </label>
@@ -396,7 +403,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       >
         Zen
       </button>
-      {lastRun && (
+      {!readOnly && lastRun && (
         <button
           type="button"
           onClick={restoreLastRun}
@@ -406,30 +413,58 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
           Last run
         </button>
       )}
-      <button type="button" onClick={reset} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
-        Reset
-      </button>
-      <button type="button" onClick={() => void save()} title="Save your solution (Ctrl+S)" className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
-        Save
-      </button>
-      <span role="status" aria-live="polite" className="text-xs text-muted">
-        {saveNote}
-      </span>
-      <button
-        type="button"
-        onClick={run}
-        disabled={running || !hydrated}
-        title="Run (Ctrl+Enter)"
-        className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-on-accent disabled:opacity-60"
-      >
-        {running ? "Running…" : "Run"}
-      </button>
-      <HelpTip text={editorHelp(lang)} id={`editor-help-${id}`} />
+      {readOnly ? (
+        <span className="text-xs text-muted">Read-only</span>
+      ) : (
+        <>
+          <button type="button" onClick={reset} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
+            Reset
+          </button>
+          <button type="button" onClick={() => void save()} title="Save your solution (Ctrl+S)" className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
+            Save
+          </button>
+          <span role="status" aria-live="polite" className="text-xs text-muted">
+            {saveNote}
+          </span>
+          <button
+            type="button"
+            onClick={run}
+            disabled={running || !hydrated}
+            title="Run (Ctrl+Enter)"
+            className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-on-accent disabled:opacity-60"
+          >
+            {running ? "Running…" : "Run"}
+          </button>
+          <HelpTip text={editorHelp(lang)} id={`editor-help-${id}`} />
+        </>
+      )}
+    </div>
+  );
+
+  // Below `md` (phones) the editor is not shown at all: plain read-only text of the saved code instead (CSS only).
+  const phoneSaved = savedForLang ?? savedSolutions[0];
+  const phoneRun = lastRun ?? runs[0];
+  const phoneCode = phoneSaved ?? phoneRun;
+  const phoneCodePane = (
+    <div className="space-y-2 md:hidden">
+      <PhoneCodeNote />
+      {phoneCode ? (
+        <>
+          <p className="text-xs text-muted">
+            {phoneSaved ? `Saved solution (${LABEL[phoneSaved.lang]})` : `Last run (${LABEL[phoneCode.lang]}): ${verdict(phoneRun!)}`}
+          </p>
+          <pre data-testid="phone-code" className="max-h-96 overflow-auto rounded-lg border border-line bg-background p-3 text-xs whitespace-pre">{phoneCode.code}</pre>
+        </>
+      ) : (
+        <p className="text-sm text-muted">No saved code yet.</p>
+      )}
     </div>
   );
 
   const codePane = (
-    <div className="flex h-full min-h-0 flex-col">
+    <>
+    {phoneCodePane}
+    <div className="flex h-full min-h-0 flex-col max-md:hidden">
       {blockedBanner && (
         <div role="alert" className="flex shrink-0 items-start justify-between gap-2 border-b border-line bg-surface p-2.5 text-xs text-foreground">
           <p>{blockedBanner}</p>
@@ -446,8 +481,9 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       <div
       ref={areaRef}
       className="min-h-0 flex-1"
-      onBlurCapture={saveDraft}
+      onBlurCapture={readOnly ? undefined : saveDraft}
       onKeyDown={(e) => {
+        if (readOnly) return;
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
           e.preventDefault();
           void run();
@@ -459,11 +495,12 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       }}
     >
       {/* Remounted when the language changes or the code is reset, so the editor starts from the right text. */}
-      <EditorField key={`${lang}-${resetCount}-${hydrated}-${draft === null && lastRun ? "r" : "s"}`} languageSelectId={selectId} rows={16} fill>
+      <EditorField key={`${lang}-${resetCount}-${hydrated}-${draft === null && lastRun ? "r" : "s"}-${readOnly ? (savedForLang ? "v" : "n") : ""}`} languageSelectId={selectId} rows={16} fill>
         <textarea
           aria-label="Your code"
           aria-describedby={`editor-help-text-${id}`}
           defaultValue={initial}
+          readOnly={readOnly}
           spellCheck={false}
           rows={16}
           maxLength={100000}
@@ -480,7 +517,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
             Last run: {verdict(lastRun)}, {lastRun.ranOn}
           </p>
         )}
-        <details>
+        {!readOnly && <details>
           <summary className="cursor-pointer select-none">Custom input</summary>
           <div className="mt-1.5 space-y-1.5">
             <label htmlFor={`custom-${id}`} className="block">
@@ -512,9 +549,10 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
               </div>
             )}
           </div>
-        </details>
+        </details>}
       </div>
     </div>
+    </>
   );
 
   const resultsPane = (
@@ -522,10 +560,11 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       {running && <p className="anim-pulse text-sm text-muted">Compiling and running your code…</p>}
       {failure && (
         <p role="alert" className="rounded-xl border border-cat-mock bg-surface p-3 text-sm">
-          {failure}
+          <FailureText text={failure} />
         </p>
       )}
-      {!running && !failure && !result && <p className="text-sm text-muted">Press Run (or Ctrl+Enter) to test your code on the examples and the extra cases. {id.startsWith("pack:") ? "When every case passes, the problem is marked done in its course." : "When every case passes, your solution is saved with the problem."}</p>}
+      {readOnly && <p className="text-sm text-muted">Reader mode: code is shown read-only and cannot be run here. Turn it off in Settings to run code.</p>}
+      {!readOnly && !running && !failure && !result && <p className="text-sm text-muted">Press Run (or Ctrl+Enter) to test your code on the examples and the extra cases. {id.startsWith("pack:") ? "When every case passes, the problem is marked done in its course." : "When every case passes, your solution is saved with the problem."}</p>}
       {result && <Results result={result} />}
       {result?.status === "done" && result.saved && (
         <p role="status" className="anim-pop rounded-xl border border-diff-easy bg-surface p-3 text-sm">
@@ -540,7 +579,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab }: { id: string
       panes={{
         problem: { title: "Problem", children: problemPane },
         code: { title: "Code", actions: codeActions, children: codePane },
-        results: { title: result?.status === "done" ? `Results · ${result.passed}/${result.total}` : "Results", children: resultsPane },
+        results: { title: result?.status === "done" ? `Results · ${result.passed}/${result.total}` : "Results", phoneHidden: true, children: resultsPane },
       }}
     />
   );

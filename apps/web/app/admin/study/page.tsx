@@ -36,7 +36,7 @@ async function StudyTables() {
   return (
     <div className="space-y-8">
       <p className="text-sm text-muted">
-        Read-only overview. Lessons are edited as Markdown; see <code className="font-mono">docs/content-editing.md</code>.
+        Pick a Concept to edit its lesson text. Saved edits replace the built-in text for learners without a release. Exercises (system designs, LLD) stay read-only here.
       </p>
       {STUDY_AREAS.map((area) => {
         const rows: Row[] = [
@@ -77,6 +77,9 @@ async function StudyTables() {
                       <td className="px-4 py-2 text-right">{r.deeper}</td>
                       <td className="px-4 py-2 text-right">{r.chars.toLocaleString("en-US")}</td>
                       <td className="px-4 py-2 text-right">
+                        {r.kind === "Concept" && (
+                          <Link href={`/admin/study/${area.id}/${r.id}`} className="mr-3 text-accent hover:underline">Edit</Link>
+                        )}
                         <Link href={`/study/${area.id}/${r.id}`} className="text-accent hover:underline">View</Link>
                       </td>
                     </tr>

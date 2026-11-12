@@ -45,6 +45,10 @@ const DEFAULTS: Record<string, Record<string, InValue>> = {
   pack_progress: { done_on: "" },
   practice_sessions: { item_id: "", practiced_on: "", scores: "{}", score: 0, notes: "", xp: 0 },
   focus_sessions: { item_id: "", focused_on: "", minutes: 0 },
+  reading_progress: { notes: "" },
+  reading_custom: { item_id: "", title: "", url: "", added_on: "" },
+  problem_struggles: { problem_id: "", kind: "", reason: "", logged_on: "" },
+  boss_fights: { fought_on: "", results: "", notes: "" },
 };
 
 type RawClient = Pick<Client, "execute" | "batch">;

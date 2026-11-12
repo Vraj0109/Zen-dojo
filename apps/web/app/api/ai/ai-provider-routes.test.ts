@@ -68,7 +68,8 @@ describe("ai provider settings", () => {
     expect((await test(req({}, "http://evil.example"))).status).toBe(403);
     expect((await settings(req({}, "http://evil.example"))).status).toBe(403);
     vi.stubEnv("HABIT_HOSTED", "1");
-    expect((await test(req({}))).status).toBe(404);
+    expect((await settings(req({}))).status).toBe(404);
+    expect((await test(req({}))).status).toBe(400); // hosted: needs a key header
   });
 });
 
