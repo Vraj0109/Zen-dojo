@@ -155,3 +155,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0070 | [Mobile apps overview: PWA vs Capacitor vs React Native vs native (decision record, readiness pass, privacy page)](0070-mobile-apps-overview.md) | ready |
 | 0071 | [Android app: Capacitor shell around the hosted site, system-browser sign-in, Play release](0071-android-app.md) | ready (after you choose in 0070) |
 | 0072 | [iOS and iPad app: same Capacitor project, iPad layout and keyboard, TestFlight and App Store](0072-ios-and-ipad-app.md) | ready (after 0071 step 5 and your choice in 0070) |
+| 0073 | [Move the sync Worker and D1 to Vercel and Turso: hub database, D1 shim, /hub routes, clients, cutover (four agents)](0073-move-from-cloudflare-to-vercel.md) | ready |
