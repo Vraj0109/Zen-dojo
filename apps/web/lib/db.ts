@@ -6,7 +6,6 @@ import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 import { syncMigrationSql, syncMigrationSqlV2 } from "./sync-triggers";
 import { isHosted } from "./hosted";
-import { createDoClient, type DoClient, type UserDbNamespace } from "./hosted/do-client";
 import type { ProvisionDeps } from "./hosted/provision";
 
 /** Walk up from cwd to the repo root (the folder with pnpm-workspace.yaml). */
@@ -280,10 +279,7 @@ async function migrate(client: Client) {
   }
 }
 
-/**
- * Hosted (Cloudflare Workers): use libSQL over HTTPS, never WebSocket. A WebSocket stream belongs to the request that
- * opened it and cannot be reused by the next request on a Worker, but the HTTP client keeps no connection.
- */
+/** Hosted: use libSQL over HTTPS (stateless, fine for serverless) instead of a WebSocket. */
 export function hostedHttpUrl(url: string): string {
   return url.startsWith("libsql://") ? "https://" + url.slice("libsql://".length) : url;
 }
@@ -300,54 +296,29 @@ function create() {
 type UserDb = { db: ReturnType<typeof drizzle<typeof schema>>; ready: Promise<ReturnType<typeof drizzle<typeof schema>>> };
 const MAX_CACHED_USER_DBS = 50;
 const userDbs = new Map<string, UserDb>();
-/** Users whose Durable Object database is known to be migrated in this isolate (plain data, safe to keep across requests). */
-const migratedUsers = new Set<string>();
+
+/** An empty, fully migrated in-memory database for a signed-out visitor on the hosted site. Never shared or cached. */
+export async function createGuestDb() {
+  const client = createClient({ url: ":memory:" });
+  const db = drizzle(client, { schema });
+  await migrate(client);
+  return db;
+}
 
 /** Clears the per-user client cache (tests). */
 export function clearUserDbCacheForTest() {
   userDbs.clear();
-  migratedUsers.clear();
-}
-
-/** Name of the Durable Object namespace binding in apps/web/wrangler.jsonc. */
-export const USER_DB_BINDING = "USER_DB";
-
-/** The per-user Durable Object namespace when running on Workers with the binding configured, else undefined. */
-async function userDbNamespace(): Promise<UserDbNamespace | undefined> {
-  try {
-    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    const env = (await getCloudflareContext({ async: true })).env as unknown as Record<string, unknown>;
-    return (env[USER_DB_BINDING] as UserDbNamespace | undefined) ?? undefined;
-  } catch {
-    return undefined; // not on Workers (desktop, tests, next dev without the binding)
-  }
 }
 
 /**
- * Hosted mode: the database of one user, cached per process (50 clients, oldest dropped). A failure caches nothing, so
- * the next request retries.
- *
- * On Cloudflare (the `USER_DB` Durable Object binding exists, or `deps.namespace` is given) each user is one SQLite
- * Durable Object whose id comes from the user id: no control database, no provisioning, no tokens. Migrations run
- * inside the object once per database. Otherwise the superseded Turso path is used (lib/hosted/control.ts and
- * provision.ts; kept for its tests and for a Node host).
+ * Hosted mode: the database of one user (one Turso database each), cached per process (50 clients, oldest dropped).
+ * A failure caches nothing, so the next request retries. The control database maps the user to their database; the
+ * first request provisions it and runs the migrations (lib/hosted/control.ts and provision.ts).
  */
-export async function getDbFor(
+export function getDbFor(
   userId: string,
-  deps: ProvisionDeps & { namespace?: UserDbNamespace; control?: Client; makeClient?: (url: string, token: string) => Client } = {},
+  deps: ProvisionDeps & { control?: Client; makeClient?: (url: string, token: string) => Client } = {},
 ) {
-  // Durable Object path: a Worker cannot reuse an RPC stub (an I/O object) created in an earlier request, so this path
-  // builds a fresh client for every call and caches only the plain "migrations done" fact for this isolate.
-  const ns = deps.namespace ?? (deps.control || deps.makeClient ? undefined : await userDbNamespace());
-  if (ns) {
-    const client: DoClient = createDoClient(ns.get(ns.idFromName(userId) as never));
-    if (!migratedUsers.has(userId)) {
-      await client.applyMigrations(MIGRATIONS);
-      migratedUsers.add(userId);
-      while (migratedUsers.size > 5000) migratedUsers.delete(migratedUsers.values().next().value as string);
-    }
-    return drizzle(client, { schema });
-  }
   const hit = userDbs.get(userId);
   if (hit) return hit.ready;
   const ready = (async () => {
@@ -370,15 +341,17 @@ export async function getDbFor(
 }
 
 /**
- * Delete-my-data (plan 0054) for the hosted copy: drops every table of the user's Durable Object database and forgets
- * the cached client. Returns null when the Cloudflare binding is not present (nothing to drop on this host).
+ * Delete-my-data (plan 0054) for the hosted copy: deletes the user's Turso database and the control row, and forgets the
+ * cached client. Returns false when this host has no hosted database configured (nothing to delete).
  */
-export async function dropHostedUserData(userId: string, deps: { namespace?: UserDbNamespace } = {}): Promise<{ dropped: number } | null> {
-  const ns = deps.namespace ?? (await userDbNamespace());
-  if (!ns) return null;
+export async function dropHostedUserData(userId: string, deps: ProvisionDeps & { control?: Client } = {}): Promise<boolean> {
   userDbs.delete(userId);
-  migratedUsers.delete(userId);
-  return createDoClient(ns.get(ns.idFromName(userId) as never)).dropAll();
+  const env = deps.env ?? process.env;
+  if (!env.TURSO_API_TOKEN) return false;
+  const [{ getControlClient, deleteHostedUser }, { deleteUserDb }] = await Promise.all([import("./hosted/control"), import("./hosted/provision")]);
+  await deleteUserDb(userId, deps);
+  await deleteHostedUser(deps.control ?? getControlClient(), userId);
+  return true;
 }
 
 /**

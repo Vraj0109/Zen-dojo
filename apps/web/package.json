@@ -9,10 +9,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:fast": "vitest run --mode fast",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf:deploy": "opennextjs-cloudflare deploy"
+    "test:fast": "vitest run --mode fast"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",
@@ -39,7 +36,6 @@
     "shiki": "^4.6.0"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "1.20.16",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -47,8 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wrangler": "4.160.1"
+    "typescript": "^5"
   },
   "packageManager": "pnpm@12.18.0"
 }

@@ -20,39 +20,46 @@ DATABASE_AUTH_TOKEN=<token from the database provider>
 
 ## Hosted Zen Dojo (plan 0058)
 
-The same app can run as a website where each person signs in with GitHub and sees their own progress. Design and the
-checked provider facts are in `docs/hosted-architecture.md`. The desktop app does not need any of this.
+The same app can run as a website where each person signs in with GitHub and sees their own progress. Design, the
+decision record and the checked provider facts are in `docs/hosted-architecture.md`. The desktop app needs none of this.
 
-Hosting target: **Cloudflare Workers** (OpenNext adapter). Settings live in Worker variables and secrets, or in GitHub
-secrets and variables for the deploy workflow, never in the repo. Secrets are marked.
+Hosting: **Vercel** (Hobby, free), project root `apps/web`. Data: one **Turso** database per signed-in user. Signed-out
+visitors browse as guests on a throwaway in-memory database; nothing they do is saved. Settings live in Vercel
+environment variables, never in the repo.
 
 | Variable | Secret | Meaning |
 | --- | --- | --- |
 | `HABIT_HOSTED` | no | `1` turns hosted mode on |
+| `CONTROL_DATABASE_URL` | no | `libsql://` URL of the control database |
+| `CONTROL_DATABASE_AUTH_TOKEN` | yes | token for the control database |
+| `TURSO_API_TOKEN` | yes | Turso Platform API token (creates and deletes user databases) |
+| `TURSO_ORG` | no | Turso organization slug |
+| `TURSO_GROUP` | no | Turso group for new user databases |
 | `SYNC_WORKER_URL` | no | base URL of the deployed sync Worker |
+| `PUBLIC_SITE_URL` | no | public origin of the site, no trailing slash |
 
-The web Worker is `zen-dojo-web` (`apps/web/wrangler.jsonc`). The sync Worker's own secrets (`GITHUB_CLIENT_SECRET`, `JWT_PRIVATE_JWK`) are set with `wrangler secret put` and are separate.
+The sync Worker's own secrets (`GITHUB_CLIENT_SECRET`, `JWT_PRIVATE_JWK`) are set with `wrangler secret put` and are separate.
 
 First deploy checklist:
 
-1. Deploy the sync Worker first. Set `ALLOWED_REDIRECTS` in `packages/sync-worker/wrangler.jsonc` to
-   `https://<your-site>/auth/callback` (exact, no trailing slash), then deploy it.
-2. Nothing to create for data: each user's database is a SQLite Durable Object made on first use (binding `USER_DB`,
-   class `UserDb`, migration `v1` in `wrangler.jsonc`).
-3. Deploy the site (below). `HABIT_HOSTED=1` is set in `wrangler.jsonc`.
-4. Open the site, sign in with GitHub, and check that your progress appears after the first sync.
-5. Deploy a new app version first, then let each user's database migrate on first use. Never run two versions against
-   one database at once.
+1. Make a Vercel account (Hobby) and a Turso account.
+2. In Turso, create a group and note the organization slug and the group name.
+3. Create the control database in that group, create a token for it, and note its `libsql://` URL.
+4. Create a Platform API token in Turso (account settings, API tokens).
+5. Make sure the sync Worker is deployed and note its URL.
+6. In Vercel, import the GitHub repo as a new project. Set Root Directory to `apps/web`. Add the environment
+   variables from the table above and mark the secret ones as sensitive. If you do not know the site address yet, set
+   `PUBLIC_SITE_URL` after the first deploy and redeploy.
+7. Deploy.
+8. Set `ALLOWED_REDIRECTS` in `packages/sync-worker/wrangler.jsonc` to `https://<site>/auth/callback` (exact, no
+   trailing slash) and redeploy the sync Worker.
+9. Open the site, sign in with GitHub, and check that your progress appears after the first sync.
+10. For later releases: deploy the new app version first, then let each user's database migrate on first use. Never
+    run two versions against one database at once.
 
-Deploying the site to Cloudflare:
-
-- Automatic: `.github/workflows/deploy-web.yml` (manual run, tag `web-v*`, or push to main touching `apps/web`).
-  GitHub secrets: `CLOUDFLARE_API_TOKEN` (Workers edit permission), `CLOUDFLARE_ACCOUNT_ID`. GitHub variables:
-  `SYNC_WORKER_URL`, and `HOSTED_WEB_ENABLED=true` (without it only a manual run deploys). No Turso account or secret.
-- By hand (Linux, macOS or WSL; the adapter does not support native Windows): from `apps/web`, `pnpm cf:build`, then
-  `pnpm cf:deploy`. Local preview: `pnpm cf:preview`. Set secrets with `wrangler secret put <NAME>`.
-- After the first deploy, set `ALLOWED_REDIRECTS` on the sync Worker to `https://<site>/auth/callback` and redeploy it.
-- Per-user data is one Durable Object per user (facts and limits: `docs/hosted-architecture.md`). The Worker entry is `apps/web/worker.ts`.
+Limits: the Turso Free plan allows 100 databases (the control database is one, so about 99 users) and 10 million rows
+written per month for everyone. Vercel Hobby is for non-commercial, personal use only. Details and sources:
+`docs/hosted-architecture.md`.
 
 What is not available hosted:
 
@@ -60,4 +67,5 @@ What is not available hosted:
   the screen says "Running code is available in the desktop app". Editing, saving and reading keep working.
 - The browser extension and its pairing key, restoring a database file, the local backup download in Settings, AI
   help that uses programs on the computer, and the `/admin` portal (404).
+- Saving as a guest: signed-out visitors can look around, but progress saves only after GitHub sign-in.
 - Sync runs on request (at most once per 20 seconds per user) and after each change, not in the background.

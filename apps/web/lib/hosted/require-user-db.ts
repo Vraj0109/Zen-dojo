@@ -1,24 +1,18 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cache } from "react";
 import { getSession } from "@/lib/auth/session";
-import { getDbFor } from "@/lib/db";
-import { ANON_COOKIE, anonUserId, isAnonId } from "./gate";
+import { createGuestDb, getDbFor } from "@/lib/db";
 
-export class UnauthorizedError extends Error {
-  readonly status = 401;
-  constructor() {
-    super("Sign in to continue");
-  }
-}
+/** One throwaway in-memory database per request for visitors who are not signed in (React's cache is per request). */
+const guestDb = cache(() => createGuestDb());
 
 /**
- * The current visitor's database client. A signed-in user gets their account's database; anyone else gets the private
- * database named by their anonymous cookie. Throws a 401 error only when there is neither (no cookie support).
+ * The current visitor's database. A signed-in user gets their own Turso database. Anyone else gets an empty in-memory
+ * database that lives for one request: they can read and browse everything, and nothing is saved until they sign in
+ * (the free Turso plan only has room for a limited number of databases, so guests do not get one).
  */
 export async function requireUserDb() {
   const session = await getSession();
   if (session) return getDbFor(session.userId);
-  const anon = (await cookies()).get(ANON_COOKIE)?.value;
-  if (isAnonId(anon)) return getDbFor(anonUserId(anon));
-  throw new UnauthorizedError();
+  return guestDb();
 }

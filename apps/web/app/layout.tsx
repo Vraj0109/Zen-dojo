@@ -16,6 +16,7 @@ import { SidebarAccount } from "./components/sidebar-account";
 import { Logo } from "./logo";
 import { Shell } from "./shell";
 import { RegisterSw } from "./register-sw";import { HostedSyncOnRequest } from "./components/hosted-sync";
+import { GuestNotice } from "./components/guest-notice";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <RegisterSw />
         <Suspense fallback={null}>
           <HostedSyncOnRequest />
+        </Suspense>
+        <Suspense fallback={null}>
+          <GuestNotice />
         </Suspense>
         <FocusReading />
         <CustomFontLoader />

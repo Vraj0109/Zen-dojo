@@ -65,6 +65,14 @@ export async function mintDbToken(userId: string, deps: ProvisionDeps = {}): Pro
   return body.jwt;
 }
 
+/** Deletes the user's database at the provider (delete-my-data). A database that is already gone counts as deleted. */
+export async function deleteUserDb(userId: string, deps: ProvisionDeps = {}): Promise<void> {
+  const f = deps.fetch ?? fetch;
+  const { token, org } = cfg(deps.env ?? process.env);
+  const res = await f(`${API}/${encodeURIComponent(org)}/databases/${dbNameFor(userId)}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok && res.status !== 404) throw new Error(`Could not delete your database (provider status ${res.status}).`);
+}
+
 /** The user's database URL: reuse the control row, else provision and record it. */
 export async function ensureUserDbUrl(control: Client, userId: string, deps: ProvisionDeps = {}): Promise<string> {
   const existing = await getHostedUser(control, userId);

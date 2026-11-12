@@ -50,3 +50,22 @@ describe("provisioning", () => {
     await mintDbToken("a", { fetch: bad as never, env }).catch((e: Error) => expect(e.message).not.toContain("secret-api"));
   });
 });
+
+describe("deleteUserDb", () => {
+  const env = { TURSO_API_TOKEN: "t", TURSO_ORG: "org", TURSO_GROUP: "g" };
+  it("calls DELETE on the user's database and treats 404 as already gone", async () => {
+    const calls: string[] = [];
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push(`${init?.method} ${String(url)}`);
+      return new Response(null, { status: 404 });
+    }) as typeof fetch;
+    const { deleteUserDb, dbNameFor } = await import("./provision");
+    await deleteUserDb("u1", { fetch: f, env });
+    expect(calls).toEqual([`DELETE https://api.turso.tech/v1/organizations/org/databases/${dbNameFor("u1")}`]);
+  });
+  it("throws a plain error on other failures, without the token", async () => {
+    const f = (async () => new Response(null, { status: 500 })) as typeof fetch;
+    const { deleteUserDb } = await import("./provision");
+    await expect(deleteUserDb("u1", { fetch: f, env })).rejects.toThrow(/provider status 500/);
+  });
+});

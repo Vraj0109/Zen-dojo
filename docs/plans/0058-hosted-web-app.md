@@ -138,6 +138,14 @@ Suggested split: Agent A steps 1 to 4; Agent B steps 5 to 7; Agent C step 8 and 
 
 ## Implementation notes
 
+### 2026-11-12: hosting moved to Vercel and Turso
+
+The Cloudflare Workers attempt (OpenNext, a Durable Object per user, the anonymous cookie and `proxy.ts`, the deploy-web
+workflow) was removed: Workers Free allows 10 ms CPU per request and pages measured 80 to 1200 ms. The site now targets
+Vercel Hobby with one Turso database per signed-in user; signed-out visitors get a throwaway in-memory guest database.
+`docs/hosted-architecture.md` and the hosted section of `docs/hosting.md` were rewritten to match. Older notes below
+that mention Workers, Durable Objects or the anonymous cookie are historical.
+
 ### Steps 5 to 8 (Agent B)
 
 - Step 5: `lib/hosted/sync.ts` (`syncOnRequest`, `syncAfterMutation`, 20 s throttle, links the database on first
