@@ -8,7 +8,7 @@ export async function GuestNotice() {
   const { getSession } = await import("@/lib/auth/session");
   if (await getSession()) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-30 flex justify-center px-4 md:bottom-4 print:hidden">
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4 max-md:hidden print:hidden">
       <p className="pointer-events-auto max-w-md rounded-xl border border-line bg-surface px-4 py-2 text-xs text-muted shadow-lg">
         You are browsing as a guest, so progress is not saved.{" "}
         <a href="/auth/start" className="font-medium text-foreground underline">

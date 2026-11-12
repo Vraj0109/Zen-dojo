@@ -15,7 +15,8 @@ import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
 import { SidebarAccount } from "./components/sidebar-account";
 import { Logo } from "./logo";
 import { Shell } from "./shell";
-import { RegisterSw } from "./register-sw";import { HostedSyncOnRequest } from "./components/hosted-sync";
+import { RegisterSw } from "./register-sw";
+import { HostedSyncOnRequest } from "./components/hosted-sync";
 import { GuestNotice } from "./components/guest-notice";
 
 const geistSans = Geist({
@@ -85,7 +86,8 @@ const asideNode = (
                 <span className="block whitespace-nowrap text-[11px] text-muted">Offline learning</span>
               </span>
             </Link>
-            <div className="flex items-center gap-1">
+            {/* Phones: no back/forward arrows or Sign in up here; the bottom tab bar has Today, Practice, Learn, Review and You. */}
+            <div className="flex items-center gap-1 max-md:hidden">
               <HistoryButtons />
               {/* Phones: the account button (the sidebar footer is wide-screen only). Hidden inside the drawer. */}
               <div className="lg:hidden [.drawer-panel_&]:hidden">
