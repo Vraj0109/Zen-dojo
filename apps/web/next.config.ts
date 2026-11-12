@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const desktop = process.env.HABIT_STANDALONE === "1";
+const hosted = process.env.HABIT_HOSTED === "1";
 
 const nextConfig: NextConfig = {
   // The desktop app bundles a self-contained server (apps/desktop: `pnpm desktop:build`).
@@ -13,8 +14,10 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@habit/shared"],
   // The cp-algorithms articles are read from disk at request time; make sure the standalone build ships them.
   outputFileTracingIncludes: { "/dsa/pattern/[id]": ["./content/cp-algorithms/**/*"] },
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Off on the hosted Cloudflare build: OpenNext's Workers runtime cannot run Cache Components (setTimeout), and the
+  // pages hang. Nothing here uses "use cache"; pages are rendered per request there.
+  cacheComponents: hosted ? false : true,
+  partialPrefetching: hosted ? false : true,
   // Old URLs from before Stats and Settings moved under Profile.
   async redirects() {
     return [
