@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { tick, tickOnRelease } from "@/lib/haptics";
+import { tick } from "@/lib/haptics";
 
 type Item = { el: HTMLElement; title: string; level: 1 | 2 };
 
@@ -13,30 +13,10 @@ const MAX_WITH_SUBSECTIONS = 60;
 const SLOT = 22; // px per dot: close together, but far enough apart to tell apart with a finger
 const SPREAD = 2.4; // how many dots either side of the finger are magnified
 
-let scrollAnim = 0;
-
-/**
- * Scroll to a heading with our own short ease-out animation. (The browser's smooth scrolling fights a finger that keeps
- * dragging, so each frame here is a plain instant scroll.) A new target replaces the one still animating.
- */
+/** Instant jump (the page has smooth scrolling, and an animated scroll fights a finger that is still dragging). */
 function jump(el: HTMLElement) {
-  const target = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 72);
-  cancelAnimationFrame(scrollAnim);
-  const from = window.scrollY;
-  const dist = target - from;
-  if (Math.abs(dist) < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    window.scrollTo({ top: target, behavior: "instant" });
-    return;
-  }
-  const duration = Math.min(420, 160 + Math.abs(dist) / 12);
-  const t0 = performance.now();
-  const step = (now: number) => {
-    const p = Math.min(1, (now - t0) / duration);
-    const eased = 1 - (1 - p) ** 3;
-    window.scrollTo({ top: from + dist * eased, behavior: "instant" });
-    if (p < 1) scrollAnim = requestAnimationFrame(step);
-  };
-  scrollAnim = requestAnimationFrame(step);
+  const top = el.getBoundingClientRect().top + window.scrollY - 72;
+  window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
 }
 
 /** The main section a sub-section sits in (the closest earlier level-1 item). */
@@ -125,11 +105,6 @@ export function SectionScrubber() {
     setFocus(null);
     last.current = -1;
   };
-  // The finger lifted: a real touch end, so iPhone can give its one best-effort tick here.
-  const release = () => {
-    if (focus !== null) tickOnRelease(10);
-    end();
-  };
 
   const shown = focus === null ? active : Math.round(focus);
   return (
@@ -152,7 +127,7 @@ export function SectionScrubber() {
         onPointerMove={(e) => {
           if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e.clientY);
         }}
-        onPointerUp={release}
+        onPointerUp={end}
         onPointerCancel={end}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -165,16 +140,16 @@ export function SectionScrubber() {
       >
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-y-0 right-1 w-6 rounded-full bg-foreground/15 backdrop-blur-md transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
+          className={`pointer-events-none absolute inset-y-0 right-1 w-5 rounded-full bg-surface/80 backdrop-blur transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
         />
         {focus !== null && (
           <div
             aria-hidden
-            className="scrub-bubble pointer-events-none absolute right-14 z-10 w-max max-w-[min(17rem,calc(100vw-5rem))] -translate-y-1/2 rounded-2xl bg-foreground/90 px-4 py-2.5 text-background shadow-[0_10px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150"
+            className="pointer-events-none absolute right-16 z-10 w-max max-w-[min(16rem,calc(100vw-6rem))] -translate-y-1/2 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-xl"
             style={{ top: `${((shown + 0.5) / n) * 100}%` }}
           >
-            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs font-medium opacity-60">{parentOf(items, shown)}</p>}
-            <p className="line-clamp-3 text-[17px] leading-snug font-semibold tracking-tight">{items[shown].title}</p>
+            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs text-muted">{parentOf(items, shown)}</p>}
+            <p className="line-clamp-3 text-base leading-snug font-semibold">{items[shown].title}</p>
           </div>
         )}
         {items.map((it, i) => {
@@ -184,7 +159,7 @@ export function SectionScrubber() {
           return (
             <div key={i} className="relative flex items-center justify-end" style={{ height: `${100 / n}%` }}>
               <span
-                className={`mr-2.5 block rounded-full ${isActive ? "bg-accent" : it.level === 1 ? "bg-foreground/55" : "bg-foreground/35"}`}
+                className={`mr-2.5 block rounded-full ${isActive ? "bg-accent" : it.level === 1 ? "bg-muted/80" : "bg-muted/50"}`}
                 style={{
                   width: base,
                   height: base,
