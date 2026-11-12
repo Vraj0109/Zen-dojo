@@ -191,7 +191,13 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
   const [atBottom, setAtBottom] = useState(true);
   const ac = useRef<AbortController | null>(null);
   const list = useRef<HTMLDivElement | null>(null);
+  const panel = useRef<HTMLElement | null>(null);
   const stick = useRef(true);
+  useEffect(() => {
+    // Phones: the chat fills the screen, so bring it to the top when it appears (its input sits at the bottom).
+    const el = panel.current;
+    if (el && el.offsetParent !== null && window.matchMedia("(max-width: 767px)").matches) el.scrollIntoView({ block: "start" });
+  }, []);
   const lastMeta = useRef<{ intent: ChatIntent; hintIndex?: number }>({ intent: "free" });
 
   // Keep the chat for this browser session only (never localStorage: it may contain code).
@@ -348,7 +354,7 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
     );
   }
   return (
-    <section aria-label="Ask AI" className="flex min-h-[28rem] flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+    <section ref={panel} aria-label="Ask AI" className="flex scroll-mt-14 min-h-[28rem] flex-col gap-3 rounded-xl border border-line bg-surface p-4 max-md:h-[calc(100dvh-8.5rem)] max-md:min-h-0 max-md:gap-2 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:p-0">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="min-w-0">
           <span className="text-sm font-semibold">{providerLabel}</span>{" "}
@@ -366,7 +372,7 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
       </div>
 
       <div className="relative min-h-0 flex-1">
-        <div ref={list} onScroll={onScroll} className="h-[24rem] space-y-3 overflow-y-auto rounded-lg border border-line bg-background p-3">
+        <div ref={list} onScroll={onScroll} className="h-[24rem] space-y-3 overflow-y-auto rounded-lg border border-line bg-background p-3 max-md:h-full max-md:overscroll-contain">
           {messages.length === 0 && !error && <p className="text-sm text-muted">Pick a starter below or ask your own question. Answers can be wrong; check them.</p>}
           {messages.map((m, i) =>
             m.role === "user" ? (
@@ -413,7 +419,7 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Starter questions">
+      <div className="flex flex-wrap gap-2 max-md:flex-nowrap max-md:touch-pan-x max-md:overflow-x-auto max-md:overflow-y-hidden max-md:pb-1 max-md:[&>button]:shrink-0 max-md:[&>button]:whitespace-nowrap" role="group" aria-label="Starter questions">
         {lesson &&
           LESSON_CHIPS.map((c) => (
             <button key={c.intent} type="button" disabled={pending} onClick={() => lessonStarter(c.intent)} title={c.title} className={chip}>
@@ -448,7 +454,7 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
         )}
       </div>
 
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-2 max-md:pb-1">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -462,14 +468,14 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
           maxLength={MAX_MESSAGE_CHARS}
           aria-label="Your question"
           placeholder={lesson ? "Ask anything about this lesson. Enter sends, Shift+Enter adds a line." : "Ask anything about this problem. Enter sends, Shift+Enter adds a line."}
-          className="min-w-0 flex-1 resize-y rounded-lg border border-line bg-background px-3 py-2 text-sm"
+          className="min-w-0 flex-1 resize-y rounded-lg border border-line bg-background px-3 py-2 text-sm max-md:resize-none max-md:text-base"
         />
         {pending ? (
-          <button type="button" onClick={() => ac.current?.abort()} className="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background">
+          <button type="button" onClick={() => ac.current?.abort()} className="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background max-md:min-h-11">
             Stop
           </button>
         ) : (
-          <button type="button" onClick={sendTyped} disabled={!input.trim()} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50">
+          <button type="button" onClick={sendTyped} disabled={!input.trim()} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50 max-md:min-h-11">
             Send
           </button>
         )}
