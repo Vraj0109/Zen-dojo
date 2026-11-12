@@ -10,13 +10,19 @@ type Item = { el: HTMLElement; title: string; level: 1 | 2 };
 const READING = /^\/(study|dsa\/pattern|help)(\/|$)/;
 const MIN_ITEMS = 4;
 const MAX_WITH_SUBSECTIONS = 60;
-const SLOT = 16; // px per dot: dots sit close together, like the macOS Dock
-const SPREAD = 3.2; // how many dots either side of the finger are magnified
+const SLOT = 22; // px per dot: close together, but far enough apart to tell apart with a finger
+const SPREAD = 2.4; // how many dots either side of the finger are magnified
 
 /** Instant jump (the page has smooth scrolling, and an animated scroll fights a finger that is still dragging). */
 function jump(el: HTMLElement) {
   const top = el.getBoundingClientRect().top + window.scrollY - 72;
   window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+}
+
+/** The main section a sub-section sits in (the closest earlier level-1 item). */
+function parentOf(items: Item[], i: number): string | null {
+  for (let k = i - 1; k >= 0; k--) if (items[k].level === 1) return items[k].title;
+  return null;
 }
 
 /** 0 at the edge of the magnified zone, 1 under the finger. Smooth, like the Dock's fisheye. */
@@ -136,30 +142,28 @@ export function SectionScrubber() {
           aria-hidden
           className={`pointer-events-none absolute inset-y-0 right-1 w-5 rounded-full bg-surface/80 backdrop-blur transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
         />
+        {focus !== null && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-16 z-10 w-max max-w-[min(16rem,calc(100vw-6rem))] -translate-y-1/2 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-xl"
+            style={{ top: `${((shown + 0.5) / n) * 100}%` }}
+          >
+            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs text-muted">{parentOf(items, shown)}</p>}
+            <p className="line-clamp-3 text-base leading-snug font-semibold">{items[shown].title}</p>
+          </div>
+        )}
         {items.map((it, i) => {
           const m = focus === null ? 0 : near(i - focus);
           const isActive = i === shown;
-          const base = it.level === 1 ? 6 : 4;
+          const base = it.level === 1 ? 8 : 5;
           return (
             <div key={i} className="relative flex items-center justify-end" style={{ height: `${100 / n}%` }}>
-              {focus !== null && m > 0.12 && (
-                <span
-                  className="pointer-events-none absolute right-9 max-w-[13rem] origin-right truncate rounded-md border border-line bg-surface px-2 py-0.5 text-xs font-medium shadow-md"
-                  style={{
-                    opacity: Math.min(1, m * 1.6),
-                    transform: `translateX(${(1 - m) * 6}px) scale(${0.82 + 0.3 * m})`,
-                    paddingLeft: it.level === 2 ? "0.9rem" : undefined,
-                  }}
-                >
-                  {it.title}
-                </span>
-              )}
               <span
                 className={`mr-2.5 block rounded-full ${isActive ? "bg-accent" : it.level === 1 ? "bg-muted/80" : "bg-muted/50"}`}
                 style={{
                   width: base,
                   height: base,
-                  transform: `translateX(${-m * 12}px) scale(${1 + m * 2.6})`,
+                  transform: `translateX(${-m * 10}px) scale(${1 + m * 1.9})`,
                   transition: focus === null ? "transform 160ms ease-out" : "none",
                 }}
               />
