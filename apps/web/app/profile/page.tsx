@@ -25,6 +25,12 @@ export default function ProfilePage() {
         </Link>
         <span className="text-muted"> · share your streaks, solved problems and finished courses</span>
       </p>
+      <p className="mb-6 text-sm">
+        <Link href="/help" className="font-medium text-accent hover:underline">
+          Help and FAQ
+        </Link>
+        <span className="text-muted"> · install problems, running code, AI, sync and certificates</span>
+      </p>
       <Suspense fallback={<ProfileStatsSkeleton />}>
         <Stats />
       </Suspense>

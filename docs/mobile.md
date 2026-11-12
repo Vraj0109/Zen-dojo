@@ -23,6 +23,10 @@ Reader mode is a comfort setting for phones (plan 0059). When it is on:
 Turn it on or off in Settings (Profile, Settings). It is stored in a cookie on that device, so it is not a security
 feature; the hosted server refuses code execution on its own (plan 0058).
 
+## Help
+
+The in-app help and FAQ is at `/help` (You tab, Help and FAQ); the same text is in `docs/faq.md`.
+
 ## Icons
 
 `apps/web/public/icons/` holds PNGs rendered from `apps/web/app/icon.svg` (192, 512, maskable 512, Apple touch 180).

@@ -4,15 +4,20 @@ Today the installers are **not signed**. Windows SmartScreen and macOS Gatekeepe
 steps to get past them are in every release's notes and in the README (`docs/releases/_install-notes.md`). This page
 lists the ways to remove the warning, what each costs and what you would do. Nothing here is set up yet.
 
-Prices and eligibility change. Check each provider's current terms before you rely on this table (last written 2026-11-11, not re-checked against the providers).
+The MIT licence on GitHub is a copyright licence, not a code-signing certificate. It does nothing for SmartScreen, Smart App Control or Gatekeeper; only a signature from a trusted certificate does. Plain-language answers are in `docs/faq.md` (section Certificates and signing). The printable course certificates in the Portfolio are a different thing.
+
+Prices and eligibility change. Re-checked 2026-11-12 against official pages where noted; anything else is unverified. Check each provider before you rely on this table.
 
 | Route | Cost | Notes |
 |---|---|---|
 | Do nothing, document the warning | free | Users click *More info*, *Run anyway*. This is the current state. |
-| SignPath Foundation | free for open-source projects after approval | Signs through GitHub Actions. The publisher shown is the foundation's. Needs an open-source licence and an application. |
-| Microsoft Artifact Signing (Azure, formerly Trusted Signing) | about $10 a month | electron-builder supports it through `win.azureSignOptions`. Identity validation and region eligibility apply. |
+| SignPath Foundation | free for open-source projects after approval | Signs through GitHub Actions. The publisher shown is SignPath Foundation, not the project. Needs an OSI-approved licence, active maintenance, a code signing policy on the home page, MFA for the team and manual release approval (signpath.org/terms, marked draft, checked 2026-11-12). |
+| Microsoft Artifact Signing (Azure, formerly Trusted Signing) | monthly price not verified (earlier note: about $10; the pricing page showed Basic 5,000 and Premium 100,000 signatures a month, no figure) | Needs a paid Azure subscription (free, trial and sponsored are refused). Identity validation (organization or individual) must be renewed before it expires or signing stops. No EV certificates. Country eligibility not verified. electron-builder supports it through `win.azureSignOptions`. Source: learn.microsoft.com/azure/artifact-signing/faq |
 | OV or EV code-signing certificate | roughly $200 to $500 a year | Identity checks, hardware or cloud key. Reputation still builds with downloads. |
-| Apple Developer ID and notarization (macOS) | $99 a year | The only way to remove the Gatekeeper warning. |
+| Apple Developer ID and notarization (macOS) | $99 a year (general knowledge; Apple pages reachable did not state it) | The only way to remove the Gatekeeper warning, and needed for auto-update on macOS. |
+| Linux | none | No certificate needed. Optional: GPG-signed checksums (not set up). |
+| Android (future) | keystore you create | Play App Signing: you hold the upload key, Google holds the app signing key (support.google.com/googleplay/android-developer/answer/9842756). |
+| iOS (future) | Apple Developer Program | Provisioning profiles and signing certificates. |
 
 ## SmartScreen reputation
 

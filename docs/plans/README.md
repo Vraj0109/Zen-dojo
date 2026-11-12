@@ -152,3 +152,6 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0067 | [Ask AI as a chat tab, with starter questions and a choice of AI provider](0067-ai-chat-tab-and-providers.md) | implemented |
 | 0068 | [Buddy companion avatar and backlog cleanup (four agents)](0068-buddy-companion-avatar.md) | implemented |
 | 0069 | [Petdex pets for the Buddy, pet-voice AI lines, Portfolio and certificates (four agents)](0069-petdex-pets-and-portfolio.md) | implemented |
+| 0070 | [Mobile apps overview: PWA vs Capacitor vs React Native vs native (decision record, readiness pass, privacy page)](0070-mobile-apps-overview.md) | ready |
+| 0071 | [Android app: Capacitor shell around the hosted site, system-browser sign-in, Play release](0071-android-app.md) | ready (after you choose in 0070) |
+| 0072 | [iOS and iPad app: same Capacitor project, iPad layout and keyboard, TestFlight and App Store](0072-ios-and-ipad-app.md) | ready (after 0071 step 5 and your choice in 0070) |
