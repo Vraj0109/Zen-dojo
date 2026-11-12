@@ -53,6 +53,56 @@ export function toResultSet(w: WireResult): ResultSet {
   };
 }
 
+/** A Durable Object allows 100 bound parameters per statement; stay under it. */
+const MAX_PARAMS = 90;
+
+/**
+ * Splits a big multi-row Drizzle insert ("insert into t (a, b) values (?, ?), (?, ?), ...") into several inserts that
+ * each stay under the parameter limit. Returns null when the statement is small enough or is not a plain multi-row
+ * insert (it is then sent unchanged). Callers run the pieces as one atomic batch.
+ */
+export function splitMultiRowInsert(wire: WireStatement): WireStatement[] | null {
+  const args = wire.args ?? [];
+  if (args.length <= MAX_PARAMS) return null;
+  const m = /^(\s*insert\s+(?:or\s+\w+\s+)?into\s+[^(]+\([^)]*\)\s*values\s*)(\([\s\S]*\))(\s*(?:on\s+conflict\b[\s\S]*|returning\b[\s\S]*)?)$/i.exec(wire.sql);
+  if (!m) return null;
+  const body = m[2];
+  const tuples: string[] = [];
+  let depth = 0;
+  let quote = false;
+  let start = -1;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (quote) {
+      if (c === "'") quote = false;
+      continue;
+    }
+    if (c === "'") quote = true;
+    else if (c === "(") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (c === ")") {
+      depth--;
+      if (depth === 0) tuples.push(body.slice(start, i + 1));
+    }
+  }
+  if (tuples.length < 2) return null;
+  const counts = tuples.map((t) => (t.match(/\?/g) ?? []).length);
+  if (counts.reduce((a, b) => a + b, 0) !== args.length || Math.max(...counts) > MAX_PARAMS) return null;
+  const out: WireStatement[] = [];
+  let i = 0;
+  let argPos = 0;
+  while (i < tuples.length) {
+    let n = 0;
+    let params = 0;
+    while (i + n < tuples.length && params + counts[i + n] <= MAX_PARAMS) params += counts[i + n++];
+    out.push({ sql: m[1] + tuples.slice(i, i + n).join(", ") + m[3], args: args.slice(argPos, argPos + params) });
+    argPos += params;
+    i += n;
+  }
+  return out;
+}
+
 const READ_START = /^\s*(?:select|pragma|with|explain|values)\b/i;
 
 export type DoClient = Client & {
@@ -64,8 +114,30 @@ export type DoClient = Client & {
 
 export function createDoClient(stub: UserDbStub): DoClient {
   let closed = false;
-  const execute = async (stmt: InStatement) => toResultSet(await stub.exec(toWire(stmt)));
-  const batch = async (stmts: InStatement[]) => (await stub.batch(stmts.map(toWire))).map(toResultSet);
+  const merge = (results: WireResult[]): WireResult => {
+    if (results.length === 1) return results[0];
+    const last = results[results.length - 1];
+    return { columns: last.columns, rows: results.flatMap((r) => r.rows), rowsAffected: results.reduce((acc, r) => acc + r.rowsAffected, 0), lastInsertRowid: last.lastInsertRowid };
+  };
+  // Statements to send for each original one (a big multi-row insert becomes several), then folded back to one result each.
+  const batch = async (stmts: InStatement[]) => {
+    const groups = stmts.map((st) => {
+      const w = toWire(st);
+      return splitMultiRowInsert(w) ?? [w];
+    });
+    const results = await stub.batch(groups.flat());
+    let at = 0;
+    return groups.map((g) => {
+      const slice = results.slice(at, at + g.length);
+      at += g.length;
+      return toResultSet(merge(slice));
+    });
+  };
+  const execute = async (stmt: InStatement) => {
+    const wire = toWire(stmt);
+    if (!splitMultiRowInsert(wire)) return toResultSet(await stub.exec(wire));
+    return (await batch([stmt]))[0];
+  };
   const executeMultiple = (script: string) => stub.execMulti(script);
 
   /**

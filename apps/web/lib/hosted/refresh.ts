@@ -9,11 +9,12 @@ import { isHosted } from "../hosted";
 export function refresh(): void {
   nextRefresh();
   if (!isHosted()) return;
+  // Read the session now, inside the request: cookies() cannot be called inside after().
+  const sessionPromise = import("../auth/session").then((m) => m.getSession()).catch(() => null);
   after(async () => {
     try {
-      const { getSession } = await import("../auth/session");
-      const userId = (await getSession())?.userId;
-      if (!userId) return;
+      const userId = (await sessionPromise)?.userId;
+      if (!userId) return; // anonymous visitors have nothing to sync
       const { syncAfterMutation } = await import("./sync");
       await syncAfterMutation(userId);
     } catch {

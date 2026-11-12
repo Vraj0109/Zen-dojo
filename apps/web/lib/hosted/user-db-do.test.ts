@@ -212,3 +212,19 @@ describe("getDbFor on Cloudflare", () => {
     expect(await dropHostedUserData("u")).toBeNull(); // no Workers context in Node
   });
 });
+
+describe("big multi-row inserts", () => {
+  it("splits an insert over the 100-parameter limit into an atomic batch", async () => {
+    const { splitMultiRowInsert } = await import("./do-client");
+    const rows = 20;
+    const tuple = "(null, ?, ?, ?, ?, ?, ?, ?, ?, null)";
+    const sql = `insert into "tasks" ("id", "date", "scope", "template_key", "title", "category", "xp", "minutes", "status", "done_on") values ${Array(rows).fill(tuple).join(", ")}`;
+    const args = Array.from({ length: rows * 8 }, (_, i) => i);
+    const parts = splitMultiRowInsert({ sql, args });
+    expect(parts).not.toBeNull();
+    expect(parts!.length).toBeGreaterThan(1);
+    expect(parts!.every((p) => (p.args?.length ?? 0) <= 90)).toBe(true);
+    expect(parts!.flatMap((p) => p.args ?? [])).toEqual(args);
+    expect(splitMultiRowInsert({ sql: "insert into t (a) values (?)", args: [1] })).toBeNull();
+  });
+});
