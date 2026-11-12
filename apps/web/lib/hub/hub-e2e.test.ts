@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { MIGRATIONS } from "../db";
 import { runSync, linkAccount } from "../sync-engine";
@@ -17,7 +14,6 @@ const SITE = "https://site.test";
 const REDIRECT = "http://localhost:3000/auth/callback";
 const SAVED = { ...process.env };
 
-let tmpDir = "";
 let ghUser = { id: 4242, login: "alice", name: "Alice", avatar_url: "https://avatars.test/a.png" };
 
 const GOOD_PROFILE = {
@@ -93,9 +89,8 @@ async function count(sql: string, args: unknown[] = []): Promise<number> {
 beforeEach(async () => {
   resetGuardState();
   await resetHubDb();
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hub-e2e-"));
   const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
-  process.env.HUB_DATABASE_URL = `file:${path.join(tmpDir, "hub.db").replace(/\\/g, "/")}`;
+  process.env.HUB_DATABASE_URL = ":memory:"; // a file database was very slow on the Windows CI runner
   delete process.env.HUB_DATABASE_AUTH_TOKEN;
   process.env.GITHUB_CLIENT_ID = "test-client";
   process.env.GITHUB_CLIENT_SECRET = "test-secret";
@@ -118,11 +113,6 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await resetHubDb();
   process.env = { ...SAVED };
-  try {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  } catch {
-    // Windows may still hold the file for a moment; the temp folder is harmless.
-  }
 });
 
 describe("hub end to end", () => {

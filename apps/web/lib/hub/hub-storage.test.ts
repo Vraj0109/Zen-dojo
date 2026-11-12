@@ -1,6 +1,3 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { type Env } from "../../../../packages/sync-worker/src/index";
@@ -12,15 +9,14 @@ import { createD1FromLibsql } from "./d1";
 import { HUB_MIGRATIONS, HUB_TABLES, migrateHub } from "./migrations";
 import { createHubRateLimiters, createRateLimiter } from "./rate-limit";
 
-let dir: string;
 let client: Client;
 
+// In memory: a file database made these tests very slow on the Windows CI runner, which starved the code-judge tests.
 function openClient(): Client {
-  return createClient({ url: "file:" + path.join(dir, "hub.db").replace(/\\/g, "/") });
+  return createClient({ url: ":memory:" });
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(path.join(tmpdir(), "hub-test-"));
   client = openClient();
 });
 
@@ -30,11 +26,6 @@ afterEach(async () => {
   await resetHubDb();
   delete process.env.HUB_DATABASE_URL;
   delete process.env.HUB_DATABASE_AUTH_TOKEN;
-  try {
-    rmSync(dir, { recursive: true, force: true });
-  } catch {
-    /* Windows may hold the file a moment; the temp folder is cleaned by the OS */
-  }
 });
 
 async function tableNames(c: Client): Promise<string[]> {
@@ -64,7 +55,7 @@ describe("hub migrations and getHubDb", () => {
   it("getHubDb needs HUB_DATABASE_URL, migrates once, and caches the client", async () => {
     delete process.env.HUB_DATABASE_URL;
     await expect(getHubDb()).rejects.toThrow(/HUB_DATABASE_URL/);
-    process.env.HUB_DATABASE_URL = "file:" + path.join(dir, "cached.db").replace(/\\/g, "/");
+    process.env.HUB_DATABASE_URL = ":memory:";
     const a = await getHubDb();
     const b = await getHubDb();
     expect(b).toBe(a);
@@ -237,7 +228,7 @@ describe("rate limiter", () => {
   });
 
   it("lets requests through when the database fails", async () => {
-    const broken = createClient({ url: "file:" + path.join(dir, "empty.db").replace(/\\/g, "/") }); // no rate_counters table
+    const broken = createClient({ url: ":memory:" }); // no rate_counters table
     const rl = createRateLimiter(broken, "t", 1, 60);
     expect((await rl.limit({ key: "a" })).success).toBe(true);
     expect((await rl.limit({ key: "a" })).success).toBe(true);

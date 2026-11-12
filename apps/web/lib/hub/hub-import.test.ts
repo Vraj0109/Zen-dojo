@@ -1,27 +1,18 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { importDump, parseDump, splitStatements } from "../../../../scripts/hub-import.mjs";
 import { HUB_TABLES, migrateHub } from "./migrations";
 
-let dir: string;
 let client: Client;
 
+// In memory: a file database was very slow on the Windows CI runner.
 beforeEach(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "hub-import-"));
-  client = createClient({ url: "file:" + path.join(dir, "hub.db").replace(/\\/g, "/") });
+  client = createClient({ url: ":memory:" });
   await migrateHub(client);
 });
 
 afterEach(() => {
   client.close();
-  try {
-    rmSync(dir, { recursive: true, force: true });
-  } catch {
-    /* ignore */
-  }
 });
 
 // Shaped like `wrangler d1 export`: schema statements, then INSERTs (with and without column lists), a skipped table.
