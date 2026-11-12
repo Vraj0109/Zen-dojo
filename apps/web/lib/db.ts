@@ -285,15 +285,38 @@ async function named<T>(step: string, f: () => Promise<T>): Promise<T> {
  * the version only moves after the migration succeeded, so a failure is retried from that migration on the next request.
  */
 async function migrate(client: Client, remote = false) {
-  const { rows } = await named("version-read", () => client.execute("PRAGMA user_version"));
+  if (remote) return migrateRemote(client);
+  const { rows } = await client.execute("PRAGMA user_version");
   const current = Number(rows[0]?.[0] ?? 0);
   for (let v = current; v < MIGRATIONS.length; v++) {
-    if (remote) {
-      await named(`migration-${v}`, () => client.executeMultiple(MIGRATIONS[v]));
-      await named(`version-${v + 1}`, () => client.execute(`PRAGMA user_version = ${v + 1}`));
-    } else {
-      await client.executeMultiple(`BEGIN;\n${MIGRATIONS[v]}\nPRAGMA user_version = ${v + 1};\nCOMMIT;`);
-    }
+    await client.executeMultiple(`BEGIN;\n${MIGRATIONS[v]}\nPRAGMA user_version = ${v + 1};\nCOMMIT;`);
+  }
+}
+
+/**
+ * Turso refuses `PRAGMA user_version = N` ("SQL not allowed statement") and BEGIN/COMMIT scripts over HTTPS, so a remote
+ * database keeps its schema version in a one-row table of its own. A database set up by the first hosted attempt has the
+ * tables of migration 0 and no version row: it is treated as version 1 (that attempt never got further).
+ */
+async function migrateRemote(client: Client) {
+  await named("version-table", () =>
+    client.execute("CREATE TABLE IF NOT EXISTS zd_schema_version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER NOT NULL)"),
+  );
+  const row = (await named("version-read", () => client.execute("SELECT version FROM zd_schema_version WHERE id = 1"))).rows[0];
+  let current: number;
+  if (row) current = Number(row[0]);
+  else {
+    const t = await named("version-adopt", () =>
+      client.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'zd_schema_version'"),
+    );
+    current = Number(t.rows[0]?.[0] ?? 0) > 0 ? 1 : 0;
+    await named("version-init", () => client.execute({ sql: "INSERT OR IGNORE INTO zd_schema_version (id, version) VALUES (1, ?)", args: [current] }));
+  }
+  for (let v = current; v < MIGRATIONS.length; v++) {
+    await named(`migration-${v}`, () => client.executeMultiple(MIGRATIONS[v]));
+    await named(`version-${v + 1}`, () =>
+      client.execute({ sql: "INSERT INTO zd_schema_version (id, version) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET version = excluded.version", args: [v + 1] }),
+    );
   }
 }
 

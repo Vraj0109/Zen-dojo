@@ -37,6 +37,29 @@ describe("getDbFor", () => {
     expect(made.length).toBe(2);
   });
 
+  it("keeps the schema version in its own table and re-opening a database changes nothing", async () => {
+    const control = createClient({ url: ":memory:" });
+    const shared = createClient({ url: ":memory:" });
+    const deps = { control, fetch: provider() as never, env, makeClient: () => shared, sleep: async () => {} };
+    await getDbFor("a", deps);
+    const { MIGRATIONS } = await import("../db");
+    const v = await shared.execute("SELECT version FROM zd_schema_version WHERE id = 1");
+    expect(Number(v.rows[0][0])).toBe(MIGRATIONS.length);
+    clearUserDbCacheForTest();
+    await expect(getDbFor("a", deps)).resolves.toBeTruthy(); // second open: nothing to run, no error
+  });
+
+  it("adopts a database that already has the first migration but no version row", async () => {
+    const control = createClient({ url: ":memory:" });
+    const shared = createClient({ url: ":memory:" });
+    const { MIGRATIONS } = await import("../db");
+    await shared.executeMultiple(MIGRATIONS[0]); // what the first hosted attempt left behind
+    const deps = { control, fetch: provider() as never, env, makeClient: () => shared, sleep: async () => {} };
+    await expect(getDbFor("a", deps)).resolves.toBeTruthy();
+    const v = await shared.execute("SELECT version FROM zd_schema_version WHERE id = 1");
+    expect(Number(v.rows[0][0])).toBe(MIGRATIONS.length);
+  });
+
   it("caches nothing on provider failure", async () => {
     const control = createClient({ url: ":memory:" });
     const bad = vi.fn(async () => json({}, 500));
