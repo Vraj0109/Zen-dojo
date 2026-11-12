@@ -64,8 +64,9 @@ export function GlobalTimer() {
   };
 
   if (!state) {
+    // Phones: no idle box taking up the top of the screen; it shows again when a timer runs or has a message.
     return (
-      <section aria-label="Focus timer" className="rounded-lg border border-line px-3 py-2">
+      <section aria-label="Focus timer" className={`rounded-lg border border-line px-3 py-2 ${notice ? "" : "max-md:hidden"}`}>
         <p className="text-xs text-muted">{notice ?? "No timer running"}</p>
         <p className="text-[11px] text-muted">Press Start timer on a problem or lesson.</p>
       </section>
