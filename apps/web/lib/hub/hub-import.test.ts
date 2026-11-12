@@ -60,6 +60,14 @@ describe("hub-import", () => {
     expect(byTable.get("settings")?.columns).toHaveLength(6);
   });
 
+  it("reads replace(...) text with line breaks, as SQLite dumps it, including nested replace", async () => {
+    const dump = `INSERT INTO "notes" ("user_id","id","problem_id","notes","code","language","updated_at","deleted_at","synced_at") VALUES('gh:1','a','a','n',replace(replace('int main() {\\n\\r\\n  return 0;\\n}','\\n',char(10)),'\\r',char(13)),'cpp',1,NULL,2);`;
+    const r = await importDump(client, dump);
+    expect(r.imported).toEqual({ notes: 1 });
+    const row = (await client.execute("SELECT code FROM notes WHERE id = 'a'")).rows[0];
+    expect(String(row[0])).toBe("int main() {\n\r\n  return 0;\n}");
+  });
+
   it("imports twice with identical counts and data", async () => {
     const first = await importDump(client, DUMP);
     expect(first.imported.users).toBe(2);

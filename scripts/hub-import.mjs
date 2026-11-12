@@ -71,6 +71,24 @@ function parseValue(s, pos) {
       }
       term = str;
       i = j + 1;
+    } else if (/^replace\s*\(/i.test(s.slice(i))) {
+      // SQLite dumps text with line breaks as replace('...\n...','\n',char(10)); arguments can nest.
+      let k = i + /^replace\s*\(/i.exec(s.slice(i))[0].length;
+      const args = [];
+      for (let n = 0; n < 3; n++) {
+        const r = parseValue(s, k);
+        args.push(r.value);
+        k = r.end;
+        while (/\s/.test(s[k] ?? "")) k++;
+        if (n < 2) {
+          if (s[k] !== ",") throw new Error("unsupported value");
+          k++;
+        }
+      }
+      if (s[k] !== ")") throw new Error("unsupported value");
+      const [text, from, to] = args.map((a) => (a === null ? "" : String(a)));
+      term = from === "" ? text : text.split(from).join(to);
+      i = k + 1;
     } else {
       const m = /^(NULL|TRUE|FALSE|[xX]'([0-9a-fA-F]*)'|char\(\s*(\d+(?:\s*,\s*\d+)*)\s*\)|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)/i.exec(s.slice(i));
       if (!m) throw new Error("unsupported value");
