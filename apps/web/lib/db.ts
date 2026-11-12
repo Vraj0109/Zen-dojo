@@ -322,13 +322,21 @@ export function getDbFor(
   const hit = userDbs.get(userId);
   if (hit) return hit.ready;
   const ready = (async () => {
+    // Each step is named in its error, so a log line says which call failed (never any token or row).
+    const step = async <T,>(name: string, f: () => Promise<T> | T): Promise<T> => {
+      try {
+        return await f();
+      } catch (e) {
+        throw new Error(`[${name}] ${e instanceof Error ? e.message : "failed"}`);
+      }
+    };
     const [{ getControlClient }, { ensureUserDbUrl, mintDbToken }] = await Promise.all([import("./hosted/control"), import("./hosted/provision")]);
     const control = deps.control ?? getControlClient();
-    const url = await ensureUserDbUrl(control, userId, deps);
-    const token = await mintDbToken(userId, deps);
+    const url = await step("control-and-provision", () => ensureUserDbUrl(control, userId, deps));
+    const token = await step("mint-token", () => mintDbToken(userId, deps));
     const client = deps.makeClient ? deps.makeClient(url, token) : createClient({ url: hostedHttpUrl(url), authToken: token });
     const db = drizzle(client, { schema });
-    await migrate(client);
+    await step("migrate", () => migrate(client));
     return db;
   })();
   const entry = { db: undefined as never, ready } as UserDb;

@@ -42,7 +42,14 @@ export const metadata: Metadata = {
     process.env.HABIT_HOSTED === "1"
       ? "Interview-prep course: DSA, system design, low-level design and core CS"
       : "Offline, open-source engineering course: DSA, system design, low-level design and core CS",
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  icons: {
+    // Listed explicitly: setting `icons` here replaces the automatic tags for app/icon.svg.
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
   appleWebApp: { capable: true, title: "Zen Dojo", statusBarStyle: "default" },
 };
 
