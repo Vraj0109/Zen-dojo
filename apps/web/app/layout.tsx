@@ -20,6 +20,7 @@ import { HostedSyncOnRequest } from "./components/hosted-sync";
 import { GuestNotice } from "./components/guest-notice";
 import { HapticsListener } from "./components/haptics-listener";
 import { PullToRefresh } from "./components/pull-to-refresh";
+import { SectionScrubber } from "./components/section-scrubber";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,6 +66,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </Suspense>
         <HapticsListener />
         <PullToRefresh />
+        <Suspense fallback={null}>
+          <SectionScrubber />
+        </Suspense>
         <FocusReading />
         <CustomFontLoader />
         <Suspense fallback={null}>
