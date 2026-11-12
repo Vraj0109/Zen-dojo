@@ -18,6 +18,8 @@ import { Shell } from "./shell";
 import { RegisterSw } from "./register-sw";
 import { HostedSyncOnRequest } from "./components/hosted-sync";
 import { GuestNotice } from "./components/guest-notice";
+import { HapticsListener } from "./components/haptics-listener";
+import { SectionScrubber } from "./components/section-scrubber";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,6 +60,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <GuestNotice />
         </Suspense>
+        <HapticsListener />
+        <SectionScrubber />
         <FocusReading />
         <CustomFontLoader />
         <Suspense fallback={null}>
