@@ -64,7 +64,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <GuestNotice />
         </Suspense>
         <HapticsListener />
-        <SectionScrubber />
+        <Suspense fallback={null}>
+          <SectionScrubber />
+        </Suspense>
         <FocusReading />
         <CustomFontLoader />
         <Suspense fallback={null}>
