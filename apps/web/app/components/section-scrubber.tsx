@@ -13,10 +13,30 @@ const MAX_WITH_SUBSECTIONS = 60;
 const SLOT = 22; // px per dot: close together, but far enough apart to tell apart with a finger
 const SPREAD = 2.4; // how many dots either side of the finger are magnified
 
-/** Instant jump (the page has smooth scrolling, and an animated scroll fights a finger that is still dragging). */
+let scrollAnim = 0;
+
+/**
+ * Scroll to a heading with a short ease-out animation. Each frame is a plain instant scroll (the browser's own smooth
+ * scrolling fights a finger that keeps dragging), and a new target replaces the one still animating, so fast dragging
+ * stays smooth instead of piling up. Instant when the phone asks for reduced motion.
+ */
 function jump(el: HTMLElement) {
-  const top = el.getBoundingClientRect().top + window.scrollY - 72;
-  window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+  const target = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 72);
+  cancelAnimationFrame(scrollAnim);
+  const from = window.scrollY;
+  const dist = target - from;
+  if (Math.abs(dist) < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.scrollTo({ top: target, behavior: "instant" });
+    return;
+  }
+  const duration = Math.min(300, 140 + Math.abs(dist) / 20);
+  const t0 = performance.now();
+  const step = (now: number) => {
+    const p = Math.min(1, (now - t0) / duration);
+    window.scrollTo({ top: from + dist * (1 - (1 - p) ** 3), behavior: "instant" });
+    if (p < 1) scrollAnim = requestAnimationFrame(step);
+  };
+  scrollAnim = requestAnimationFrame(step);
 }
 
 /** The main section a sub-section sits in (the closest earlier level-1 item). */
@@ -145,11 +165,11 @@ export function SectionScrubber() {
         {focus !== null && (
           <div
             aria-hidden
-            className="pointer-events-none absolute right-16 z-10 w-max max-w-[min(16rem,calc(100vw-6rem))] -translate-y-1/2 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-xl"
+            className="pointer-events-none absolute right-14 z-10 w-max max-w-[min(16rem,calc(100vw-5rem))] -translate-y-1/2 rounded-xl bg-background/30 px-2.5 py-1.5 text-right text-foreground backdrop-blur-md [text-shadow:0_0_6px_var(--background),0_0_14px_var(--background)]"
             style={{ top: `${((shown + 0.5) / n) * 100}%` }}
           >
-            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs text-muted">{parentOf(items, shown)}</p>}
-            <p className="line-clamp-3 text-base leading-snug font-semibold">{items[shown].title}</p>
+            {items[shown].level === 2 && parentOf(items, shown) && <p className="mb-0.5 truncate text-xs font-medium text-foreground/70">{parentOf(items, shown)}</p>}
+            <p className="line-clamp-3 text-base leading-snug font-semibold text-foreground">{items[shown].title}</p>
           </div>
         )}
         {items.map((it, i) => {
