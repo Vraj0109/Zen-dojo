@@ -179,7 +179,9 @@ describe("start", () => {
     expect((await start(env, REDIRECT, "short"))!.status).toBe(400);
     expect((await start(env, REDIRECT, STATE, "tooshort"))!.status).toBe(400);
     expect((await start(env, REDIRECT))!.status).toBe(302);
-    expect((await start(env, REDIRECT))!.status).toBe(400);
+    // The identical request again (a replayed redirect) is fine; the same state with another challenge is not.
+    expect((await start(env, REDIRECT))!.status).toBe(302);
+    expect((await start(env, REDIRECT, STATE, "B".repeat(43)))!.status).toBe(400);
   });
 });
 

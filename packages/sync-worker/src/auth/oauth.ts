@@ -51,9 +51,17 @@ export async function start(req: Request, env: AuthEnv, ctx: AuthCtx, now: numbe
       .bind(state, redirectUri, challenge, now)
       .run();
   } catch (e) {
-    // A duplicate state, or the database refused: say which (never the state itself or any other value).
-    console.error("oauth start: could not store the state:", e instanceof Error ? e.message.slice(0, 200) : "unknown error");
-    return fail(400, "invalid_state");
+    // The same start request can arrive twice (a browser reusing a cached redirect, a retry). Repeating the identical request is
+    // harmless: it only goes on to GitHub. A reused state with different values, or a database failure, is refused.
+    const same = await env.DB.prepare("SELECT redirect_uri, code_challenge FROM oauth_states WHERE state = ?")
+      .bind(state)
+      .first<{ redirect_uri: string; code_challenge: string }>()
+      .catch(() => null);
+    if (!same || same.redirect_uri !== redirectUri || same.code_challenge !== challenge) {
+      // Say which: never the state itself or any other value.
+      console.error("oauth start: could not store the state:", e instanceof Error ? e.message.slice(0, 200) : "unknown error");
+      return fail(400, "invalid_state");
+    }
   }
   // Housekeeping off the request path.
   ctx.waitUntil(

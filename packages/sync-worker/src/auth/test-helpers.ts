@@ -43,6 +43,10 @@ export class FakeD1 implements D1Db {
       this.oauth_states.push({ state: a[0], redirect_uri: a[1], code_challenge: a[2], created_at: a[3] });
       return out([], 1);
     }
+    if (q.startsWith("SELECT redirect_uri, code_challenge FROM oauth_states WHERE state")) {
+      const r = this.oauth_states.find((x) => x.state === a[0]);
+      return out(r ? [{ redirect_uri: r.redirect_uri, code_challenge: r.code_challenge }] : []);
+    }
     if (q.startsWith("DELETE FROM oauth_states WHERE state")) {
       const i = this.oauth_states.findIndex((r) => r.state === a[0]);
       if (i < 0) return out([]);

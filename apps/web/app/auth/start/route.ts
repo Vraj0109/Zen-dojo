@@ -27,6 +27,8 @@ export async function GET(req: Request) {
   targetUrl.searchParams.set("code_challenge", challenge);
 
   const res = NextResponse.redirect(targetUrl.toString(), 302);
+  // Never cache this redirect: it carries a one-time sign-in state, and a browser reusing it replays the same state.
+  res.headers.set("Cache-Control", "no-store");
   res.cookies.set("zd_pkce", JSON.stringify({ state, verifier, next: validatedNext }), {
     httpOnly: true,
     sameSite: "lax",
