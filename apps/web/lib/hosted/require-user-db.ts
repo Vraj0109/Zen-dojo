@@ -14,6 +14,14 @@ const guestDb = cache(() => createGuestDb());
 export async function requireUserDb() {
   const session = await getSession();
   // Signed in, and the Turso settings exist: their own database. Without those settings (not set up yet) everyone is a guest.
-  if (session && process.env.TURSO_API_TOKEN && process.env.CONTROL_DATABASE_URL) return getDbFor(session.userId);
+  if (session && process.env.TURSO_API_TOKEN && process.env.CONTROL_DATABASE_URL) {
+    try {
+      return await getDbFor(session.userId);
+    } catch (e) {
+      // The provider refused or is down (bad token, quota, outage). Browse as a guest instead of a broken page.
+      console.error("Hosted database unavailable, using a guest database:", e instanceof Error ? e.message : "unknown error");
+      return guestDb();
+    }
+  }
   return guestDb();
 }

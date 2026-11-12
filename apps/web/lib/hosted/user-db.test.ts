@@ -72,7 +72,13 @@ describe("requireUserDb", () => {
     vi.stubEnv("TURSO_API_TOKEN", "t");
     vi.stubEnv("CONTROL_DATABASE_URL", "libsql://nowhere.invalid");
     vi.mocked(getSession).mockResolvedValue({ userId: "zz" } as never);
-    await expect(getDb()).rejects.toThrow(); // no control/provider configured here, proving it took the hosted branch
+    // No provider answers here, so opening the user database fails and the visitor gets a guest database, not an error page.
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const db = await getDb();
+    expect(err).toHaveBeenCalled();
+    const { settings } = await import("../schema");
+    expect(await db.select().from(settings)).toEqual([]);
+    err.mockRestore();
     vi.unstubAllEnvs();
   });
 });
