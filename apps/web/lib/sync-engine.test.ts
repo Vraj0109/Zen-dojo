@@ -359,6 +359,9 @@ describe("sync engine", () => {
       await linkAccount(USER, db);
       await run();
       await db.execute("UPDATE sync_stamps SET updated_at = updated_at - 10000"); // keep ordering explicit
+      // The delete must be strictly newer than the copy the first run uploaded, or newer-wins treats it as stale (a tie in the
+      // same millisecond made this test fail now and then).
+      await new Promise((resolve) => setTimeout(resolve, 15));
       await db.execute("DELETE FROM problem_solves WHERE problem_id = 'p'");
       await run();
       expect(w.tables.problem_solves.get("p:dsa")?.deleted_at).not.toBeNull();
