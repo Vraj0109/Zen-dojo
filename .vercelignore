@@ -1,0 +1,12 @@
+# Never upload personal data or build output when deploying with the Vercel CLI.
+data
+logs
+resume
+.git
+.env*
+**/node_modules
+**/.next
+apps/desktop
+apps/extension
+apps/web/.open-next
+*.pdf

@@ -28,3 +28,6 @@ jwt-private.jwk.json
 Thumbs.db
 
 .wrangler/
+
+.vercel
+.env*
