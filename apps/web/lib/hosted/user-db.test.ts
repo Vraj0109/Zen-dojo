@@ -61,8 +61,16 @@ describe("requireUserDb", () => {
     const b = await requireUserDb();
     expect(await b.select().from(settings)).toEqual([]);
   });
+  it("a signed-in user is a guest until the Turso settings exist", async () => {
+    vi.mocked(getSession).mockResolvedValue({ userId: "zz" } as never);
+    const db = await requireUserDb();
+    const { settings } = await import("../schema");
+    expect(await db.select().from(settings)).toEqual([]);
+  });
   it("hosted getDb binds to the session user", async () => {
     vi.stubEnv("HABIT_HOSTED", "1");
+    vi.stubEnv("TURSO_API_TOKEN", "t");
+    vi.stubEnv("CONTROL_DATABASE_URL", "libsql://nowhere.invalid");
     vi.mocked(getSession).mockResolvedValue({ userId: "zz" } as never);
     await expect(getDb()).rejects.toThrow(); // no control/provider configured here, proving it took the hosted branch
     vi.unstubAllEnvs();

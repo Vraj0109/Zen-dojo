@@ -13,6 +13,7 @@ const guestDb = cache(() => createGuestDb());
  */
 export async function requireUserDb() {
   const session = await getSession();
-  if (session) return getDbFor(session.userId);
+  // Signed in, and the Turso settings exist: their own database. Without those settings (not set up yet) everyone is a guest.
+  if (session && process.env.TURSO_API_TOKEN && process.env.CONTROL_DATABASE_URL) return getDbFor(session.userId);
   return guestDb();
 }
