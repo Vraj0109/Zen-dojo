@@ -160,3 +160,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0075 | [Settings and theme sync fix: why changes do not reach other devices, and the fixes](0075-settings-and-theme-sync-fix.md) | ready |
 | 0076 | [Several solutions per problem, brute force to optimal: model, tooling and UI](0076-multi-approach-solutions-model-and-ui.md) | ready |
 | 0077 | [Solutions audit and authoring batches (optimal, multi-approach)](0077-solutions-audit-and-authoring-batches.md) | ready (after 0076) |
+| 0078 | [LM Studio (and other local servers) and "use my own fine-tuned model"](0078-lm-studio-and-own-model.md) | ready |
