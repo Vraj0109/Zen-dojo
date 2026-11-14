@@ -161,3 +161,6 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0076 | [Several solutions per problem, brute force to optimal: model, tooling and UI](0076-multi-approach-solutions-model-and-ui.md) | ready |
 | 0077 | [Solutions audit and authoring batches (optimal, multi-approach)](0077-solutions-audit-and-authoring-batches.md) | ready (after 0076) |
 | 0078 | [LM Studio (and other local servers) and "use my own fine-tuned model"](0078-lm-studio-and-own-model.md) | ready |
+| 0079 | [Desktop sign-in after the move to Vercel: hand-off page, server-side PKCE, clear errors (priority)](0079-desktop-sign-in-after-vercel-move.md) | ready |
+| 0080 | [Sync pill shows one loader, not two](0080-sync-pill-one-loader.md) | ready |
+| 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | ready (after 0079) |
