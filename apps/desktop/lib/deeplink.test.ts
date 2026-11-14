@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROTOCOL, findDeepLink, hubOrigins, isWorkerRedirect, parseAuthDeepLink } from "./deeplink.js";
+import { PROTOCOL, findDeepLink, hubOrigins, isSignInHandoff, isWorkerRedirect, parseAuthDeepLink } from "./deeplink.js";
 
 describe("PROTOCOL", () => {
   it("equals zendojo", () => {
@@ -166,5 +166,23 @@ describe("hubOrigins and both origins", () => {
     expect(isWorkerRedirect("https://evil-zen-dojo.example.app/", list)).toBe(false);
     expect(isWorkerRedirect("http://zen-dojo.example.app/", list)).toBe(false);
     expect(isWorkerRedirect("https://github.com/login", list)).toBe(false);
+  });
+});
+
+describe("isSignInHandoff", () => {
+  const origins = hubOrigins({});
+  it("is true for the sign-in start on both hub origins, with and without /hub", () => {
+    expect(isSignInHandoff("https://zen-dojo-lovat.vercel.app/hub/auth/github/start?state=x", origins)).toBe(true);
+    expect(isSignInHandoff("https://zen-dojo-lovat.vercel.app/auth/github/start", origins)).toBe(true);
+    expect(isSignInHandoff("https://zen-dojo-sync.habit-sync-worker.workers.dev/auth/github/start?state=x", origins)).toBe(true);
+    expect(isSignInHandoff("https://zen-dojo-sync.habit-sync-worker.workers.dev/hub/auth/github/start", origins)).toBe(true);
+  });
+  it("is false for look-alike hosts, other paths and bad input", () => {
+    expect(isSignInHandoff("https://zen-dojo-lovat.vercel.app.evil.com/hub/auth/github/start", origins)).toBe(false);
+    expect(isSignInHandoff("http://zen-dojo-lovat.vercel.app/hub/auth/github/start", origins)).toBe(false);
+    expect(isSignInHandoff("https://zen-dojo-lovat.vercel.app/hub/auth/github/callback", origins)).toBe(false);
+    expect(isSignInHandoff("https://zen-dojo-lovat.vercel.app/hub/sync/pull", origins)).toBe(false);
+    expect(isSignInHandoff("https://zen-dojo-lovat.vercel.app/x/auth/github/start", origins)).toBe(false);
+    expect(isSignInHandoff(42, origins)).toBe(false);
   });
 });

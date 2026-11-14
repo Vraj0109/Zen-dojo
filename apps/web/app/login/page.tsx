@@ -18,6 +18,13 @@ const ERRORS: Record<string, string> = {
   access_denied: "GitHub sign-in was cancelled. You can try again.",
   state: "The sign-in took too long or was started in another tab. Please try again.",
   rate_limited: "Too many sign-in attempts. Wait a minute and try again.",
+  github_failed: "GitHub did not confirm the sign-in. Click Continue with GitHub to try again.",
+  missing: "The sign-in link was incomplete. Click Continue with GitHub to start again.",
+  no_pkce: "This sign-in was started in another window or took longer than 10 minutes. Click Continue with GitHub again.",
+  state_mismatch: "This sign-in does not match the one started here, perhaps because you clicked Sign in twice. Click Continue with GitHub again.",
+  token_unreachable: "Could not reach the sign-in server. Check your internet connection, then try again.",
+  token_refused: "The sign-in server did not accept this sign-in. It may have expired or been used already. Click Continue with GitHub again.",
+  token_bad: "The sign-in server sent an unexpected answer. Wait a minute and try again.",
 };
 
 function errorText(code: string | string[] | undefined): string | null {
@@ -34,7 +41,11 @@ function GitHubMark() {
   );
 }
 
-async function LoginBody({ searchParams }: { searchParams: Promise<{ next?: string | string[]; error?: string | string[] }> }) {
+async function LoginBody({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string | string[]; error?: string | string[]; waiting?: string | string[] }>;
+}) {
   await connection();
   const sp = await searchParams;
   const next = safeNext(sp.next);
@@ -48,6 +59,22 @@ async function LoginBody({ searchParams }: { searchParams: Promise<{ next?: stri
         <div className="flex flex-wrap gap-3">
           <Link href={next} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent">Continue</Link>
           <Link href="/profile/account" className="rounded-md border border-line px-4 py-2 text-sm hover:bg-background">Account</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const waiting = (Array.isArray(sp.waiting) ? sp.waiting[0] : sp.waiting) === "1";
+  if (waiting) {
+    // Desktop: the sign-in continues in the system browser; the app comes back here through the zendojo:// link.
+    return (
+      <div className="max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
+        <p className="text-sm">Finish signing in in your browser. Zen Dojo will switch back here when you are done.</p>
+        <div className="flex flex-wrap gap-3">
+          <a href={`/auth/start?next=${encodeURIComponent(next)}`} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+            Start again
+          </a>
+          <Link href="/" className="rounded-md border border-line px-4 py-2 text-sm hover:bg-background">Cancel</Link>
         </div>
       </div>
     );

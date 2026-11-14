@@ -523,6 +523,15 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     ],
   },
   {
+    id: "desktop-signin-stops",
+    category: "accounts",
+    question: "Desktop sign-in opens the website and stops",
+    answer: [
+      p("Update the desktop app to the latest version (Help, then Check for updates). Versions before 0.9.0 cannot sign in any more since sign-in moved to the website."),
+      p("After GitHub, the browser shows a Back to Zen Dojo page. If the browser asks whether to open Zen Dojo, allow it, or click Open Zen Dojo on that page. If sign-in still fails, the app's Sign in page says which step went wrong."),
+    ],
+  },
+  {
     id: "sync-interface-prefs",
     category: "accounts",
     question: "Do my interface preferences follow me to another device?",

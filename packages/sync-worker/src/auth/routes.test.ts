@@ -157,16 +157,29 @@ describe("start", () => {
     }
   });
 
-  it("accepts the desktop deep link and hands code and state back in Location", async () => {
+  it("accepts the desktop deep link and hands code and state back on an HTML hand-off page", async () => {
     // No new secret or var is needed for this: the rule is code in oauth.ts, live once the Worker is deployed.
     const DEEP = "zendojo://auth/callback";
     const env = await makeEnv();
     const pkce = await pkcePair();
     expect((await start(env, DEEP, STATE, pkce.challenge))!.status).toBe(302);
     const cb = await call(env, `/auth/github/callback?code=ghcode&state=${STATE}`);
-    expect(cb!.status).toBe(302);
-    const location = cb!.headers.get("location")!;
-    expect(location.startsWith("zendojo://auth/callback?")).toBe(true);
+    expect(cb!.status).toBe(200);
+    expect(cb!.headers.get("location")).toBeNull();
+    expect(cb!.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(cb!.headers.get("cache-control")).toBe("no-store");
+    expect(cb!.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(cb!.headers.get("content-security-policy")).toBe("default-src 'none'; style-src 'unsafe-inline'");
+    expect(cb!.headers.get("x-frame-options")).toBe("DENY");
+    const html = await cb!.text();
+    expect(html).toContain("Back to Zen Dojo");
+    expect(html).toContain("Open Zen Dojo");
+    expect(html).toContain('http-equiv="refresh"');
+    const m = /href="(zendojo:\/\/auth\/callback\?[^"]+)"/.exec(html);
+    expect(m).not.toBeNull();
+    expect(m![1]).toContain("&amp;");
+    expect(m![1]).not.toMatch(/&(?!amp;)/);
+    const location = m![1].replace(/&amp;/g, "&");
     const loc = new URL(location);
     expect(loc.searchParams.get("state")).toBe(STATE);
     const code = loc.searchParams.get("code")!;
@@ -190,7 +203,32 @@ describe("callback", () => {
     const env = await makeEnv();
     const res = await call(env, "/auth/github/callback?code=x&state=unknown-state-1234567");
     expect(res!.status).toBe(400);
+    expect(res!.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    const html = await res!.text();
+    expect(html).toContain("older Zen Dojo desktop app");
+    expect(html).toContain("https://github.com/Vraj0109/Zen-dojo/releases/latest");
     expect(failures).toEqual(["oauth-state"]);
+  });
+
+  it("keeps a 302 for web redirects", async () => {
+    const env = await makeEnv();
+    const p = await pkcePair();
+    await call(env, `/auth/github/start?redirect_uri=${encodeURIComponent(REDIRECT)}&state=${STATE}&code_challenge=${p.challenge}`);
+    const res = await call(env, `/auth/github/callback?code=ghcode&state=${STATE}`);
+    expect(res!.status).toBe(302);
+    expect(res!.headers.get("location")!.startsWith(REDIRECT + "?")).toBe(true);
+  });
+
+  it("shows the hand-off page with an error for a failed desktop sign-in", async () => {
+    const env = await makeEnv();
+    const p = await pkcePair();
+    await call(env, `/auth/github/start?redirect_uri=${encodeURIComponent("zendojo://auth/callback")}&state=${STATE}&code_challenge=${p.challenge}`);
+    ghFail = true;
+    const res = await call(env, `/auth/github/callback?code=x&state=${STATE}`);
+    expect(res!.status).toBe(200);
+    const html = await res!.text();
+    expect(html).toContain("Sign-in did not finish. Open Zen Dojo to try again.");
+    expect(html).toContain("error=github_failed");
   });
 
   it("rejects an expired state", async () => {

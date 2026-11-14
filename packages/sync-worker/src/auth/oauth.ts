@@ -77,9 +77,56 @@ export async function start(req: Request, env: AuthEnv, ctx: AuthCtx, now: numbe
   return new Response(null, { status: 302, headers: { Location: gh.toString(), "cache-control": "no-store" } });
 }
 
+const RELEASES_URL = "https://github.com/Vraj0109/Zen-dojo/releases/latest";
+
+export function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/** A small self-contained page (no scripts, no external loads) used for the desktop hand-off and for hub errors. */
+export function htmlPage(
+  status: number,
+  title: string,
+  lines: string[],
+  link?: { href: string; label: string; refresh?: boolean },
+): Response {
+  const href = link ? escapeHtml(link.href) : "";
+  const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+${link?.refresh ? `<meta http-equiv="refresh" content="0;url=${href}">` : ""}
+<title>${escapeHtml(title)}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;line-height:1.5;color:CanvasText;background:Canvas}
+a.btn{display:inline-block;margin:1rem 0;padding:.75rem 1.5rem;border-radius:.5rem;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;font-size:1.1rem}
+p.muted{opacity:.75;font-size:.9rem}</style></head><body><h1>${escapeHtml(title)}</h1>
+${lines.map((l, i) => `<p${i > 0 ? ' class="muted"' : ""}>${escapeHtml(l)}</p>`).join("\n")}
+${link ? `<p><a class="btn" href="${href}">${escapeHtml(link.label)}</a></p>` : ""}
+</body></html>`;
+  return new Response(body, {
+    status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "referrer-policy": "no-referrer",
+      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
+      "x-frame-options": "DENY",
+    },
+  });
+}
+
 function backToApp(redirectUri: string, params: Record<string, string>): Response {
   const u = new URL(redirectUri);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  if (redirectUri === DESKTOP_REDIRECT) {
+    const ok = !params.error;
+    return htmlPage(
+      200,
+      "Back to Zen Dojo",
+      ok
+        ? ["Signed in. Switching back to the Zen Dojo app...", "You can close this tab once the app shows you as signed in."]
+        : ["Sign-in did not finish. Open Zen Dojo to try again.", "You can close this tab."],
+      { href: u.toString(), label: "Open Zen Dojo", refresh: true },
+    );
+  }
   // Plain location header (not Response.redirect) so custom schemes such as zendojo:// work on every runtime.
   return new Response(null, { status: 302, headers: { location: u.toString(), "cache-control": "no-store" } });
 }
@@ -148,7 +195,14 @@ export async function callback(
   if (!row || now - row.created_at > STATE_TTL_MS) {
     console.error("oauth callback: state " + (!row ? "not found (already used, never stored, or removed)" : "expired"));
     if (deps.noteAuthFailure) ctx.waitUntil(deps.noteAuthFailure(env, clientIp(req), "oauth-state"));
-    return fail(400, "invalid_state");
+    return htmlPage(
+      400,
+      "Sign-in link expired",
+      [
+        "This sign-in link has expired or was started by an older Zen Dojo desktop app. If you use the desktop app, update it to version 0.9.0 or later (Help, then Check for updates, or download it from the releases page), then sign in again.",
+      ],
+      { href: RELEASES_URL, label: "Open the releases page" },
+    );
   }
   if (!code || code.length > 200 || q.get("error")) return backToApp(row.redirect_uri, { error: "access_denied", state });
 

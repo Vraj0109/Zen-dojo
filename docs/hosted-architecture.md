@@ -72,6 +72,25 @@ site starts sign-in with `redirect_uri=https://<site>/auth/callback`. The hub ac
 `ALLOWED_REDIRECTS` (comma list, exact match, no wildcards), so a look-alike host is refused (test:
 `packages/sync-worker/src/auth/routes.test.ts`). `ALLOWED_REDIRECTS` is a Vercel environment variable, never in the repo.
 
+One GitHub OAuth app serves both web and desktop (plan 0079). Its only callback is the hub's
+`/hub/auth/github/callback`; GitHub never gets a `redirect_uri`, so no second app is needed.
+
+Desktop path (0.9.0 and later):
+
+1. The window opens the local `/auth/start`. With `HABIT_DESKTOP=1` it asks the hub for `redirect_uri=zendojo://auth/callback`
+   (allowed by a rule in `oauth.ts`, not by `ALLOWED_REDIRECTS`), and keeps the PKCE verifier both in the `zd_pkce`
+   cookie and in memory on the local server (`apps/web/lib/auth/desktop-pkce.ts`, single use, 10 minutes).
+2. `apps/desktop/main.js` opens the hub URL in the system browser and shows `/login?waiting=1` in the window.
+3. After GitHub, the hub callback answers with a small "Back to Zen Dojo" hand-off page (200, no scripts, strict CSP)
+   that opens the `zendojo://` link by meta refresh and has an "Open Zen Dojo" button in case the browser's prompt was
+   dismissed. Web redirects (`http`/`https`) still get a plain 302.
+4. Windows or macOS starts the app with the link; the window loads the local `/auth/callback`, which exchanges the code.
+
+Failures in the local `/auth/callback` go to `/login?error=<code>` (`missing`, `no_pkce`, `state_mismatch`,
+`token_unreachable`, `token_refused`, `rate_limited`, `token_bad`) and print one `auth callback: <code>` line to the
+server log, never a code, state, verifier or token. An unknown or expired state at the hub callback (for example a
+pre-0.9.0 desktop build that started sign-in at the old Worker) shows a 400 page telling the user to update.
+
 ## Environment variables (Vercel project settings)
 
 | Name | Secret | Purpose |

@@ -10,7 +10,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import updaterPkg from "electron-updater";
-import { PROTOCOL, findDeepLink, hubOrigins, isWorkerRedirect, parseAuthDeepLink } from "./lib/deeplink.js";
+import { PROTOCOL, findDeepLink, hubOrigins, isSignInHandoff, isWorkerRedirect, parseAuthDeepLink } from "./lib/deeplink.js";
 import { appCommandAction, swipeAction, withFeature } from "./lib/navigation.js";
 import { DEFAULT_PORT, databaseUrl, importDatabase, isExternal, pickPort, waitForServer } from "./lib/setup.js";
 import { CHECK_EVERY_MS, RELEASES_REPO, backupName, backupsToPrune, isNewer, needsBackup } from "./lib/updates.js";
@@ -181,6 +181,19 @@ async function firstRun(dbFile) {
   }
 }
 
+/**
+ * After a sign-in start opens in the system browser, show the "finish in your browser" page in the window
+ * (plan 0079). Deferred so it does not run inside the navigation event that was just cancelled.
+ * @param {string} target
+ */
+function showSignInWaiting(target) {
+  if (!win || !serverOrigin || !isSignInHandoff(target, workerOrigin)) return;
+  const waitingUrl = `${serverOrigin}/login?waiting=1`;
+  setImmediate(() => {
+    if (win && !win.isDestroyed()) win.loadURL(waitingUrl).catch(() => undefined);
+  });
+}
+
 /** @param {string} url */
 function openWindow(url) {
   serverOrigin = new URL(url).origin;
@@ -211,6 +224,7 @@ function openWindow(url) {
     if (isWorkerRedirect(target, workerOrigin)) {
       event.preventDefault();
       shell.openExternal(target);
+      showSignInWaiting(target);
       return;
     }
     if (!isExternal(target, origin)) return;
@@ -221,6 +235,7 @@ function openWindow(url) {
     if (isWorkerRedirect(target, workerOrigin)) {
       event.preventDefault();
       shell.openExternal(target);
+      showSignInWaiting(target);
     }
   });
   win.loadURL(url);

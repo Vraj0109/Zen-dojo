@@ -125,6 +125,28 @@ describe("hub end to end", () => {
     expect(await count("SELECT COUNT(*) AS n FROM sessions WHERE user_id = 'gh:4242'")).toBe(1);
   });
 
+  it("signs the desktop app in through the zendojo:// hand-off page", async () => {
+    const pkce = await pkcePair();
+    const state = "state-desktop-handoff-aaaaaaaa";
+    const DEEP = "zendojo://auth/callback";
+    const start = await hub(`/auth/github/start?redirect_uri=${encodeURIComponent(DEEP)}&state=${state}&code_challenge=${pkce.challenge}`, {
+      redirect: "manual",
+    });
+    expect(start.status).toBe(302);
+    const cb = await hub(`/auth/github/callback?code=ghcode&state=${state}`, { redirect: "manual" });
+    expect(cb.status).toBe(200);
+    const html = await cb.text();
+    const m = /href="(zendojo:\/\/auth\/callback\?[^"]+)"/.exec(html);
+    expect(m).not.toBeNull();
+    const back = new URL(m![1].replace(/&amp;/g, "&"));
+    expect(back.searchParams.get("state")).toBe(state);
+    const tok = await hub("/auth/token", {
+      method: "POST",
+      json: { grant_type: "authorization_code", code: back.searchParams.get("code"), code_verifier: pkce.verifier, device_name: "Desktop" },
+    });
+    expect(tok.status).toBe(200);
+  });
+
   it("pushes rows from one device and a second device pulls them", async () => {
     const userId = "gh:4242";
     const desktop = await newDevice();

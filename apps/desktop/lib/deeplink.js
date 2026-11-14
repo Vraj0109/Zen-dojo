@@ -112,3 +112,21 @@ export function isWorkerRedirect(url, workerOrigin) {
     return false;
   }
 }
+
+/**
+ * True when url is the hub's sign-in start (on one of origins, path ending in /auth/github/start, with or without the
+ * /hub prefix): the desktop window then shows a "finish in your browser" page. Never throws.
+ *
+ * @param {unknown} url
+ * @param {unknown} origins
+ * @returns {boolean}
+ */
+export function isSignInHandoff(url, origins) {
+  if (!isWorkerRedirect(url, origins)) return false;
+  try {
+    const p = new URL(/** @type {string} */ (url)).pathname;
+    return p === "/auth/github/start" || p === "/hub/auth/github/start";
+  } catch {
+    return false;
+  }
+}

@@ -4,6 +4,13 @@ import { getWorkerUrl } from "@/lib/auth/jwks";
 import { hubUrl } from "@/lib/hub/url";
 import { getCookieOptions } from "@/lib/auth/session";
 import { requestOrigin, safeNext } from "@/lib/auth/util";
+import { takeDesktopPkce } from "@/lib/auth/desktop-pkce";
+
+/** One log line per failure (the code and an HTTP status, never the code, state, verifier or tokens), then /login. */
+function fail(origin: string, reason: string, status?: number): NextResponse {
+  console.error(`auth callback: ${reason}${status ? ` (HTTP ${status})` : ""}`);
+  return NextResponse.redirect(new URL(`/login?error=${reason}`, origin), 302);
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -20,26 +27,32 @@ export async function GET(req: Request) {
     );
   }
 
+  if (!state || !code) return fail(origin, "missing");
+
   const cookieStore = await cookies();
   const pkceCookie = cookieStore.get("zd_pkce")?.value;
-
-  if (!pkceCookie || !state || !code) {
-    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
+  let cookieData: { state?: string; verifier?: string; next?: string } | null = null;
+  if (pkceCookie) {
+    try {
+      cookieData = JSON.parse(pkceCookie) as { state?: string; verifier?: string; next?: string };
+    } catch {
+      cookieData = null;
+    }
   }
 
-  let pkceData: { state?: string; verifier?: string; next?: string };
-  try {
-    pkceData = JSON.parse(pkceCookie) as {
-      state?: string;
-      verifier?: string;
-      next?: string;
-    };
-  } catch {
-    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
-  }
-
-  if (!pkceData.state || pkceData.state !== state || !pkceData.verifier) {
-    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
+  const desktop = process.env.HABIT_DESKTOP === "1";
+  // Desktop: the cookie may be lost because the window cancels the redirect that set it; the local server keeps a
+  // copy (single use). The hosted site never uses this map.
+  const fromMap = desktop ? takeDesktopPkce(state) : null;
+  let pkceData: { verifier: string; next?: string };
+  if (cookieData?.state === state && cookieData.verifier) {
+    pkceData = { verifier: cookieData.verifier, next: cookieData.next };
+  } else if (fromMap) {
+    pkceData = fromMap;
+  } else if (cookieData?.state && cookieData.verifier) {
+    return fail(origin, "state_mismatch");
+  } else {
+    return fail(origin, "no_pkce");
   }
 
   const workerUrl = getWorkerUrl();
@@ -61,17 +74,15 @@ export async function GET(req: Request) {
       }),
     });
   } catch {
-    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
+    return fail(origin, "token_unreachable");
   }
 
   if (!tokenRes.ok) {
-    if (tokenRes.status === 429) {
-      return NextResponse.redirect(new URL("/login?error=rate_limited", origin), 302);
-    }
-    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
+    if (tokenRes.status === 429) return fail(origin, "rate_limited", 429);
+    return fail(origin, "token_refused", tokenRes.status);
   }
 
-  const data = (await tokenRes.json()) as {
+  const data = (await tokenRes.json().catch(() => ({}))) as {
     access_token?: string;
     refresh_token?: string;
     expires_in?: number;
@@ -83,9 +94,7 @@ export async function GET(req: Request) {
     };
   };
 
-  if (!data.access_token || !data.refresh_token) {
-    return NextResponse.redirect(new URL("/login?error=state", origin), 302);
-  }
+  if (!data.access_token || !data.refresh_token) return fail(origin, "token_bad", tokenRes.status);
 
   const destination = safeNext(pkceData.next);
   const res = NextResponse.redirect(new URL(destination, origin), 302);

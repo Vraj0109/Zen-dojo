@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getWorkerUrl } from "@/lib/auth/jwks";
 import { hubUrl } from "@/lib/hub/url";
+import { rememberDesktopPkce } from "@/lib/auth/desktop-pkce";
 import { computeS256, randomBase64Url, requestOrigin, safeNext } from "@/lib/auth/util";
 
 export async function GET(req: Request) {
@@ -36,6 +37,8 @@ export async function GET(req: Request) {
     maxAge: 600,
     secure: process.env.NODE_ENV === "production",
   });
+
+  if (process.env.HABIT_DESKTOP === "1") rememberDesktopPkce(state, { verifier, next: validatedNext });
 
   return res;
 }

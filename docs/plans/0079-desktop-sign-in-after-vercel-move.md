@@ -1,8 +1,8 @@
 # 0079: Desktop sign-in after the move to Vercel (priority)
 
-- **Status:** ready
+- **Status:** done
 - **Planned by:** Claude Code, 2026-11-14
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (subagent), 2026-11-14
 - **Spec:** none
 
 ## Goal
@@ -73,7 +73,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
 
 ## Steps
 
-- [ ] **1. Name the failure: distinct error codes and one log line per failure.** In
+- [x] **1. Name the failure: distinct error codes and one log line per failure.** In
   `apps/web/app/auth/callback/route.ts` replace the single `error=state` with these codes:
   `missing` (no code or state in the URL), `no_pkce` (no stored PKCE for this state), `state_mismatch`,
   `token_unreachable` (fetch threw), `token_refused` (non-OK, not 429), `rate_limited` (429, already exists),
@@ -83,7 +83,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
   or took longer than 10 minutes. Click Sign in again." Keep the old `state` text for links already out there.
   - Done when: each failure path redirects with its own code, prints one line, and `/login?error=<code>` shows its text.
 
-- [ ] **2. Desktop: keep the PKCE verifier on the local server, not only in a cookie.** Add
+- [x] **2. Desktop: keep the PKCE verifier on the local server, not only in a cookie.** Add
   `apps/web/lib/auth/desktop-pkce.ts` with `rememberDesktopPkce(state, { verifier, next })` and
   `takeDesktopPkce(state)` (single use, deletes on read), held in a module-level `Map` on `globalThis` (the desktop
   server is one process), entries expire after 10 minutes, at most 20 entries (drop the oldest). In
@@ -94,7 +94,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
   - Done when: on the desktop server a callback with a valid state works with no `zd_pkce` cookie, a second use of the
     same state fails with `no_pkce`, and the web path is unchanged.
 
-- [ ] **3. Hub: a real hand-off page for the desktop link.** In `packages/sync-worker/src/auth/oauth.ts` `backToApp`,
+- [x] **3. Hub: a real hand-off page for the desktop link.** In `packages/sync-worker/src/auth/oauth.ts` `backToApp`,
   when the redirect is exactly `zendojo://auth/callback`, answer `200` with a small HTML page instead of a bare 302:
   title "Back to Zen Dojo", one line "Signed in. Switching back to the Zen Dojo app...", a large link/button
   "Open Zen Dojo" whose `href` is the `zendojo://` URL, a `<meta http-equiv="refresh" content="0;url=...">` to the same
@@ -107,7 +107,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
   - Done when: the hub callback for a desktop state returns the HTML page with the escaped link, and web callbacks still
     302.
 
-- [ ] **4. Desktop window: show that sign-in continues in the browser.** In `apps/desktop/main.js`, after
+- [x] **4. Desktop window: show that sign-in continues in the browser.** In `apps/desktop/main.js`, after
   `shell.openExternal(target)` for a hub URL from `will-redirect`/`will-navigate`, load
   `${serverOrigin}/login?waiting=1` in the window. In `apps/web/app/login/page.tsx`, when `waiting=1`, show:
   "Finish signing in in your browser. Zen Dojo will switch back here when you are done." plus a "Start again" link to
@@ -117,7 +117,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
   - Done when: clicking Sign in on desktop opens the browser and the window shows the waiting text; finishing in the
     browser replaces it with the signed-in app.
 
-- [ ] **5. Hub: explain an unknown or expired state.** In `oauth.ts` `callback`, when the state is not found or has
+- [x] **5. Hub: explain an unknown or expired state.** In `oauth.ts` `callback`, when the state is not found or has
   expired, answer `400` with the same HTML page style (not JSON): "This sign-in link has expired or was started by an
   older Zen Dojo desktop app. If you use the desktop app, update it to version 0.9.0 or later (Help, then Check for
   updates, or download it from the releases page), then sign in again." Link the releases page
@@ -125,7 +125,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
   only if a test depends on it; the callback is only ever opened by a browser.
   - Done when: opening the hub callback with an unknown state shows that page with status 400.
 
-- [ ] **6. Tests.** Extend:
+- [x] **6. Tests.** Extend:
   - `apps/web/app/auth/auth-routes.test.ts`: each new error code; desktop start stores the PKCE in the map; desktop
     callback works with no cookie; the map entry is single use and expires (fake `Date`); web mode never reads the map.
   - `packages/sync-worker/src/auth/routes.test.ts` (or the oauth test that already covers `callback`): desktop
@@ -137,7 +137,7 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
     without the `/hub` prefix) and false for look-alike hosts and other paths.
   - Done when: these files pass with `pnpm exec vitest run <file>`.
 
-- [ ] **7. Docs.** In `docs/hosted-architecture.md` (sign-in section) describe the desktop path as above, the hand-off
+- [x] **7. Docs.** In `docs/hosted-architecture.md` (sign-in section) describe the desktop path as above, the hand-off
   page, and that one OAuth app serves web and desktop. In `apps/web/lib/faq.ts` add or update the entry "Desktop sign-in
   opens the website and stops": update to the latest version; click "Open Zen Dojo" on the page if the browser asks.
   - Done when: both are updated in plain language.
@@ -161,7 +161,53 @@ old Cloudflare Worker signing in 0.8.x builds, which is not worth it (the Worker
 
 ## Implementation notes
 
-(Implementer fills in: files changed, deviations from the plan and why, test results, *Found but not changed*.)
+**Files changed**
+
+- `apps/web/app/auth/callback/route.ts`: one `fail(origin, code, status?)` helper that logs `auth callback: <code>`
+  (plus `(HTTP n)` where there is one) and redirects; codes `missing`, `no_pkce`, `state_mismatch`, `token_unreachable`,
+  `token_refused`, `rate_limited`, `token_bad`. Desktop falls back to `takeDesktopPkce(state)`. A bad JSON body from
+  the token endpoint is now `token_bad` instead of throwing.
+- `apps/web/app/auth/start/route.ts`: `rememberDesktopPkce` when `HABIT_DESKTOP=1`.
+- `apps/web/lib/auth/desktop-pkce.ts` (new): map on `globalThis`, 10-minute TTL, 20 entries, single use;
+  `clearDesktopPkce` for tests.
+- `apps/web/app/login/page.tsx`: texts for the new codes (and `github_failed`, which the hub already sent but had no
+  text); `state` text kept; `?waiting=1` view with "Start again" (`/auth/start?next=...`) and "Cancel" (`/`).
+- `packages/sync-worker/src/auth/oauth.ts`: exported `escapeHtml` and `htmlPage`; `backToApp` returns the 200 hand-off
+  page for exactly `zendojo://auth/callback` (success and error variants); web keeps the 302. Unknown/expired state
+  returns the 400 HTML page with the releases link; `noteAuthFailure` unchanged. Works through
+  `apps/web/lib/hub/handler.ts` unchanged.
+- `apps/desktop/lib/deeplink.js`: `isSignInHandoff(url, origins)`. `apps/desktop/main.js`: `showSignInWaiting(target)`
+  after `openExternal` in `will-navigate` and `will-redirect`; loads `/login?waiting=1` on `setImmediate` (not inside
+  the cancelled navigation event).
+- Tests: `apps/web/app/auth/auth-routes.test.ts`, `packages/sync-worker/src/auth/routes.test.ts` (the existing desktop
+  test now reads the link from the page), `apps/web/lib/hub/hub-e2e.test.ts`, `apps/desktop/lib/deeplink.test.ts`.
+- Docs: `docs/hosted-architecture.md` (GitHub sign-in section), `apps/web/lib/faq.ts` new entry `desktop-signin-stops`,
+  and `docs/faq.md` regenerated with `pnpm faq:build` (required by `faq.test.ts`).
+
+**Deviations**
+
+- `isSignInHandoff` matches exactly `/auth/github/start` or `/hub/auth/github/start` rather than "any path ending in",
+  so `/x/auth/github/start` is refused (tested). Same intent, stricter.
+- Login texts say "Click Continue with GitHub" (the button's actual label) instead of "Click Sign in".
+- When the desktop cookie matches, the map entry is still taken (removed), so the map copy cannot be replayed later.
+- The hand-off page's button colour is a fixed blue with white text; page text uses `Canvas`/`CanvasText` with
+  `color-scheme: light dark`.
+
+**Tests run**
+
+- `pnpm exec vitest run packages/sync-worker/src/auth/routes.test.ts`: 50 passed.
+- `pnpm exec vitest run apps/web/app/auth/auth-routes.test.ts apps/desktop/lib/deeplink.test.ts apps/web/lib/faq.test.ts
+  apps/web/lib/hub/handler.test.ts` (+ routes.test.ts): 103 passed.
+- `pnpm exec vitest run apps/web/lib/hub/hub-e2e.test.ts`: 6 tests; the new desktop round trip always passes, but the
+  existing "propagates a delete (tombstone)" test fails about 1 run in 2. It fails the same way with the e2e test file
+  reverted, so it is pre-existing and unrelated to this plan.
+- `pnpm -r typecheck`: clean. `pnpm check` not run (per instructions); lint not run separately.
+- Not checked: the real desktop round trip (needs a build and the user's GitHub sign-in).
+
+**Found but not changed**
+
+- Flaky tombstone test in `apps/web/lib/hub/hub-e2e.test.ts` ("expected +0 to be 1"), likely a same-millisecond
+  timestamp race like the one fixed in commit 4b24e98 for the sync test.
 
 ## Review
 

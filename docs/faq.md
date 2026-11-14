@@ -378,6 +378,12 @@ Sign in with GitHub in Settings, Sync across devices (or the Sign in card on Tod
 
 On the desktop app the sign-in finishes in your browser and returns through the `zendojo://` link. See the Linux section if that fails on Linux.
 
+### Desktop sign-in opens the website and stops
+
+Update the desktop app to the latest version (Help, then Check for updates). Versions before 0.9.0 cannot sign in any more since sign-in moved to the website.
+
+After GitHub, the browser shows a Back to Zen Dojo page. If the browser asks whether to open Zen Dojo, allow it, or click Open Zen Dojo on that page. If sign-in still fails, the app's Sign in page says which step went wrong.
+
 ### Do my interface preferences follow me to another device?
 
 Yes, when you are signed in. Theme, accent, custom colours, the problem page pane layout, your preferred editor and solution language, the haptics switch and the plain Buddy choices (built-in character, size and how often it speaks) sync. They stay on each device: the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync.
