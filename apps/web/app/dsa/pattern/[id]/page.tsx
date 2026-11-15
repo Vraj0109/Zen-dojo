@@ -19,6 +19,8 @@ import { AddedProblems } from "../../added-problems";
 import { CheatSheet, ProblemRow } from "../../problem-ui";
 import { StudyArticleSkeleton } from "@/app/components/study-skeleton";
 import { Skeleton } from "@/app/components/skeleton";
+import { patternNeighbours } from "@/lib/pattern-nav";
+import { LessonEnd } from "./lesson-end";
 
 /** One page per pattern, known at build time. */
 export function generateStaticParams() {
@@ -71,10 +73,10 @@ async function PatternView({
   const guide = PATTERN_GUIDES[id];
   if (!pattern || !guide) notFound();
   const article = PATTERN_ARTICLES[id];
-  const group = DSA_GROUPS.find((g) => g.patterns.some((p) => p.id === id))!;
-  const idx = ALL_PATTERNS.indexOf(pattern);
-  const prev = ALL_PATTERNS[idx - 1];
-  const next = ALL_PATTERNS[idx + 1];
+  const nav = patternNeighbours(id);
+  const group = nav?.group ?? DSA_GROUPS.find((g) => g.patterns.some((p) => p.id === id))!;
+  const prev = nav?.prev;
+  const next = nav?.next;
 
   const tabs = tabsFor(id);
   const defaultTab = article ? "learn" : "practice";
@@ -119,13 +121,32 @@ async function PatternView({
         </Suspense>
       )}
 
+      {currentTab === "learn" && article && nav && (
+        <LessonEnd
+          id={id}
+          name={pattern.name}
+          problemCount={pattern.problems.length}
+          group={{ id: group.id, title: group.title }}
+          nextGroup={nav.isLastInGroup && nav.nextGroup ? { id: nav.nextGroup.id, title: nav.nextGroup.title } : undefined}
+        />
+      )}
+
+      {currentTab === "practice" && article && (
+        <p className="text-sm">
+          <Link href={`/dsa/pattern/${id}`} className="text-muted underline-offset-2 hover:text-foreground hover:underline">
+            Back to the lesson
+          </Link>
+        </p>
+      )}
+
       <nav aria-label="Other patterns" className="flex flex-wrap justify-between gap-2 border-t border-line pt-6 text-sm">
         {prev ? (
           <Link
             href={`/dsa/pattern/${prev.id}${currentTab === "practice" ? "?tab=practice" : ""}`}
-            className="rounded-lg border border-line px-3 py-1.5 hover:bg-surface"
+            className="rounded-lg border border-line px-3 py-1.5 hover:bg-surface max-md:min-h-11 max-md:flex-1"
           >
             ← {prev.name}
+            {nav?.prevGroup && <span className="block text-xs text-muted">{nav.prevGroup.title}</span>}
           </Link>
         ) : (
           <span />
@@ -133,9 +154,10 @@ async function PatternView({
         {next && (
           <Link
             href={`/dsa/pattern/${next.id}${currentTab === "practice" ? "?tab=practice" : ""}`}
-            className="rounded-lg border border-line px-3 py-1.5 hover:bg-surface"
+            className="rounded-lg border border-line px-3 py-1.5 text-right hover:bg-surface max-md:min-h-11 max-md:flex-1"
           >
             {next.name} →
+            {nav?.nextPatternGroup && <span className="block text-xs text-muted">{nav.nextPatternGroup.title}</span>}
           </Link>
         )}
       </nav>

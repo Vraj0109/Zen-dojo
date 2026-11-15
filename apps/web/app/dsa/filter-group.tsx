@@ -41,9 +41,22 @@ export function FilterGroup({
         detailsRef.current.open = false;
       }
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && detailsRef.current?.open) {
+        detailsRef.current.open = false;
+      }
+    }
     document.addEventListener("pointerdown", handleClickOutside);
-    return () => document.removeEventListener("pointerdown", handleClickOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, []);
+
+  const close = () => {
+    if (detailsRef.current) detailsRef.current.open = false;
+  };
 
   const updateCount = () => {
     const checked = detailsRef.current?.querySelectorAll<HTMLInputElement>(
@@ -92,14 +105,19 @@ export function FilterGroup({
           ▼
         </span>
       </summary>
-      <div className="absolute left-0 top-full z-30 mt-1 min-w-[13rem] max-w-xs rounded-xl border border-line bg-surface p-2 shadow-lg">
+      <div
+        className="fixed inset-0 z-40 hidden bg-black/40 max-md:group-open:block"
+        onClick={close}
+        aria-hidden="true"
+      />
+      <div className="rounded-xl border border-line bg-surface p-2 shadow-lg md:absolute md:left-0 md:top-full md:z-30 md:mt-1 md:min-w-[13rem] md:max-w-xs max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:z-50 max-md:mt-0 max-md:max-w-none max-md:rounded-b-none max-md:pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <div className="mb-1.5 flex items-center justify-between border-b border-line px-1 pb-1.5 text-xs text-muted">
           <span>{count > 0 ? `${count} selected` : "None selected"}</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={selectAll}
-              className="font-medium hover:text-foreground"
+              className="font-medium hover:text-foreground max-md:min-h-11 max-md:px-2"
             >
               Select all
             </button>
@@ -107,17 +125,17 @@ export function FilterGroup({
             <button
               type="button"
               onClick={clear}
-              className="font-medium hover:text-foreground"
+              className="font-medium hover:text-foreground max-md:min-h-11 max-md:px-2"
             >
               Clear
             </button>
           </div>
         </div>
-        <div className="max-h-60 overflow-y-auto space-y-1 pr-1 text-sm">
+        <div className="md:max-h-60 max-md:max-h-[55dvh] overflow-y-auto space-y-1 pr-1 text-sm">
           {options.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-background cursor-pointer select-none"
+              className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-background cursor-pointer select-none max-md:min-h-11"
             >
               <input
                 type="checkbox"
@@ -125,11 +143,26 @@ export function FilterGroup({
                 value={opt.value}
                 defaultChecked={selected.includes(opt.value)}
                 onChange={updateCount}
-                className="rounded border-line text-accent focus:ring-accent"
+                className="rounded border-line text-accent focus:ring-accent max-md:size-5"
               />
               <span className="truncate">{opt.label}</span>
             </label>
           ))}
+        </div>
+        <div className="mt-2 flex gap-2 border-t border-line pt-2 md:hidden">
+          <button
+            type="button"
+            onClick={close}
+            className="min-h-11 flex-1 rounded-lg border border-line text-sm font-medium"
+          >
+            Done
+          </button>
+          <button
+            type="submit"
+            className="min-h-11 flex-[2] rounded-lg bg-accent text-sm font-medium text-on-accent"
+          >
+            Show results
+          </button>
         </div>
       </div>
     </details>

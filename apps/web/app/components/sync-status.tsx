@@ -13,6 +13,11 @@ import type { CurrentUser } from "@/lib/sync-queue";
 
 const emptySubscribe = () => () => {};
 
+/** The one status the pill shows: a pending "Sync now" counts as syncing. */
+export function shownStatus(status: SyncStatusState, isPending: boolean): SyncStatusState {
+  return isPending ? "syncing" : status;
+}
+
 export interface SyncStatusProps {
   className?: string;
   showSyncButton?: boolean;
@@ -121,7 +126,8 @@ export function SyncStatus({
   }
 
   const status: SyncStatusState = info.status;
-  const isSyncing = status === "syncing" || isPending;
+  const shown = shownStatus(status, isPending);
+  const isSyncing = shown === "syncing";
 
   return (
     <>
@@ -131,7 +137,7 @@ export function SyncStatus({
         className={`inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-foreground shadow-xs transition-colors ${className}`}
       >
         {/* Signed-out state */}
-        {status === "signed-out" && (
+        {shown === "signed-out" && (
           <div className="flex items-center gap-1.5 text-muted">
             <svg
               className="size-3.5 shrink-0"
@@ -166,7 +172,7 @@ export function SyncStatus({
         )}
 
         {/* Account mismatch state */}
-        {status === "account-mismatch" && (
+        {shown === "account-mismatch" && (
           <div className="flex items-center gap-1.5 text-diff-hard" title="This device is linked to another account.">
             <svg
               className="size-3.5 shrink-0"
@@ -190,7 +196,7 @@ export function SyncStatus({
         )}
 
         {/* Throttled state */}
-        {status === "throttled" && (
+        {shown === "throttled" && (
           <div className="flex items-center gap-1.5 text-amber-500">
             <svg
               className="size-3.5 shrink-0"
@@ -214,7 +220,7 @@ export function SyncStatus({
         )}
 
         {/* Synced state */}
-        {status === "synced" && (
+        {shown === "synced" && (
           <div className="flex items-center gap-1.5 text-diff-easy">
             <svg
               className="size-3.5 shrink-0"
@@ -234,7 +240,7 @@ export function SyncStatus({
         )}
 
         {/* Syncing in progress */}
-        {isSyncing && (
+        {shown === "syncing" && (
           <div className="flex items-center gap-1.5 text-amber-500">
             <svg
               className="size-3.5 shrink-0 animate-spin"
@@ -258,7 +264,7 @@ export function SyncStatus({
         )}
 
         {/* Offline state */}
-        {status === "offline" && (
+        {shown === "offline" && (
           <div
             className="flex items-center gap-1.5 text-muted"
             title="Working offline. Changes are saved locally."
@@ -280,7 +286,7 @@ export function SyncStatus({
         )}
 
         {/* Error state */}
-        {status === "error" && (
+        {shown === "error" && (
           <div className="flex items-center gap-1.5 text-diff-hard">
             <svg
               className="size-3.5 shrink-0"
@@ -308,7 +314,7 @@ export function SyncStatus({
         )}
 
         {/* Ready / Idle state */}
-        {status === "idle" && (
+        {shown === "idle" && (
           <div className="flex items-center gap-1.5 text-muted">
             <svg
               className="size-3.5 shrink-0"
@@ -328,21 +334,23 @@ export function SyncStatus({
 
         {/* "Sync now" action button */}
         {showSyncButton &&
-          status !== "error" &&
-          status !== "signed-out" &&
-          status !== "account-mismatch" && (
+          shown !== "error" &&
+          shown !== "signed-out" &&
+          shown !== "account-mismatch" && (
             <button
               type="button"
               onClick={handleSyncNow}
-              disabled={isSyncing || status === "offline"}
+              disabled={isSyncing || shown === "offline"}
               className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer ${
                 compact ? "size-5 justify-center p-0" : ""
               }`}
-              title={status === "offline" ? "Cannot sync while offline" : "Sync now with cloud"}
+              title={
+                isSyncing ? "Syncing..." : shown === "offline" ? "Cannot sync while offline" : "Sync now with cloud"
+              }
               aria-label="Sync now"
             >
               <svg
-                className={`size-3 shrink-0 ${isSyncing ? "animate-spin" : ""}`}
+                className="size-3 shrink-0"
                 viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"

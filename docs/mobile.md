@@ -31,3 +31,9 @@ The in-app help and FAQ is at `/help` (You tab, Help and FAQ); the same text is 
 
 `apps/web/public/icons/` holds PNGs rendered from `apps/web/app/icon.svg` (192, 512, maskable 512, Apple touch 180).
 Re-render them if the logo changes.
+
+## Practice list on a phone
+
+- On `/dsa`, each Filters dropdown opens as a bottom sheet with large rows, Show results and Done (plan 0074).
+- Opening a group on `/dsa` scrolls to that group's header, so its first question is on screen; the header shows a spinner while it loads.
+- A pattern lesson ends with a "Practice <pattern>" card that opens the Practice tab at the top.

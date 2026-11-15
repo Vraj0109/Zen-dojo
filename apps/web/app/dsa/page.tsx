@@ -17,6 +17,8 @@ import {
   type FilterKey,
 } from "@/lib/dsa-filters";
 import { FilterGroup } from "./filter-group";
+import { GroupHeaderLink } from "./group-header-link";
+import { Skeleton } from "@/app/components/skeleton";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
@@ -59,7 +61,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   const params = await searchParams;
   await connection();
   if (process.env.HABIT_HOSTED !== "1") after(syncLeetCodeIfStale); // hosted: no database access inside after()
-  const [{ groups, due, extras, topics, totals }, leetcode, extension, simple] = await Promise.all([getDsaView(), getLeetCodeStatus(), getExtensionStatus(), getSimpleMode()]);
+  const [{ groups, due, extras, topics, totals }, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
 
   const anywhere = params.platforms === "all";
   const shown = anywhere ? { solved: totals.solvedAnywhere, allSolved: totals.allSolvedAnywhere } : { solved: totals.solved, allSolved: totals.allSolved };
@@ -126,21 +128,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                       const pct = g.patterns.length > 0 ? Math.min(100, Math.round((g.covered / g.patterns.length) * 100)) : 0;
                       return (
                         <div key={g.id} id={`g-${g.id}`} className="scroll-mt-32 lg:scroll-mt-4">
-                          <Link
-                            href={open ? "/dsa?group=none" : `/dsa?group=${g.id}#g-${g.id}`}
-                            scroll={false}
-                            prefetch={false}
-                            aria-expanded={open}
-                            className="flex items-center justify-between gap-3 border-b border-line py-3 hover:text-foreground"
-                          >
-                            <span className="font-semibold">
-                              <span className={`mr-2 inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>
-                              {g.title}
-                            </span>
-                            <span className="text-sm text-muted">
-                              {g.covered}/{g.patterns.length} covered
-                            </span>
-                          </Link>
+                          <GroupHeaderLink id={g.id} title={g.title} covered={g.covered} total={g.patterns.length} open={open} />
                           <div
                             className="h-0.5 w-full bg-line"
                             role="progressbar"
@@ -223,12 +211,21 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
               <span className="font-semibold text-foreground">Boss fight</span> · <span className="text-muted">2 unsolved problems against a 2-hour timer.</span>
             </Link>
           )}
-          <SyncStatus leetcode={leetcode} extension={extension} />
+          <Suspense fallback={<Skeleton className="h-32 w-full rounded-xl" />}>
+            <SyncPanel />
+          </Suspense>
           {simple && <SimpleHint />}
         </aside>
       </div>
     </div>
   );
+}
+
+/** Loads the sync facts on its own so the group list does not wait for them. */
+async function SyncPanel() {
+  await connection();
+  const [leetcode, extension] = await Promise.all([getLeetCodeStatus(), getExtensionStatus()]);
+  return <SyncStatus leetcode={leetcode} extension={extension} />;
 }
 
 /** Compact sync status; connecting and the pairing key live in Profile → Settings. */

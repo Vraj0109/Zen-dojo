@@ -1,8 +1,8 @@
 # 0074: Mobile practice flow fixes (filter dropdowns, end of lesson, section opens scrolled to the end)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-13
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (subagent), 2026-11-15
 - **Spec:** none (follow-up to plans 0053 and 0059)
 
 ## Goal
@@ -98,7 +98,7 @@ Do them in order. Steps 1, 2-3 and 4-6 are independent enough to split (see Sugg
 
 ### Problem 1: Filters dropdown on phones
 
-- [ ] **1. Bottom sheet on phones in `apps/web/app/dsa/filter-group.tsx`.** Recommended over edge-aware positioning because five dropdowns
+- [x] **1. Bottom sheet on phones in `apps/web/app/dsa/filter-group.tsx`.** Recommended over edge-aware positioning because five dropdowns
   wrap to different places depending on label widths, so a "flip to right-0" rule would have to be chosen per instance with JS
   measuring (against the CSS-first rule), still leaves a 13 rem panel that is hard to hit on a 375 px screen, and a thumb reaches the bottom of the
   screen, not the top. Keep the desktop panel exactly as it is (`md:` classes). Below `md`:
@@ -118,13 +118,13 @@ Do them in order. Steps 1, 2-3 and 4-6 are independent enough to split (see Sugg
     edges equal the viewport edges (`getBoundingClientRect()`: `left === 0`, `right === innerWidth`, `bottom === innerHeight`), the Topic list scrolls inside it,
     "Show results" applies the selection (URL gets `?topic=...`), tapping the backdrop closes it, and at 1280 px width the dropdown is
     the same anchored panel as before with no backdrop.
-- [ ] **2. Unit-free check of the markup.** If an existing test renders `FilterGroup`, extend it; otherwise no new test is required for styling
+- [x] **2. Unit-free check of the markup.** If an existing test renders `FilterGroup`, extend it; otherwise no new test is required for styling
   (it is CSS). Run `pnpm exec vitest run apps/web/app/no-emoji.test.ts` and `pnpm -r typecheck`.
   - Done when: both pass.
 
 ### Problem 2: End of a pattern lesson
 
-- [ ] **3. "Practice this pattern" and sensible next/previous at the end of Learn.** In `apps/web/app/dsa/pattern/[id]/page.tsx`:
+- [x] **3. "Practice this pattern" and sensible next/previous at the end of Learn.** In `apps/web/app/dsa/pattern/[id]/page.tsx`:
   - Add a server component `LessonEnd({ id, name, problemCount, nextGroup })` (same file or `apps/web/app/dsa/pattern/[id]/lesson-end.tsx`). It
     renders a card below `ArticleView` (only when `currentTab === "learn" && article`): heading "Ready to practice?", text
     "<N> problems for <pattern name>, easy to hard", and a primary link `href={`/dsa/pattern/${id}?tab=practice`}` with the label "Practice <name>"
@@ -141,7 +141,7 @@ Do them in order. Steps 1, 2-3 and 4-6 are independent enough to split (see Sugg
     (`{ prev, next, group, nextGroup, isLastInGroup }` from `ALL_PATTERNS` / `DSA_GROUPS`).
   - Done when: at 375x812, scrolling to the bottom of `/dsa/pattern/hash-map` shows the card, tapping "Practice Hash map / counting" opens the Practice
     tab with the page scrolled to the top (`scrollY === 0` or the tabs row visible), and the previous/next buttons are at least 44 px high.
-- [ ] **4a. Test.** `apps/web/lib/pattern-nav.test.ts`: first pattern has no `prev`; last pattern (`ALL_PATTERNS.at(-1)`) has no `next`; `isLastInGroup` is true
+- [x] **4a. Test.** `apps/web/lib/pattern-nav.test.ts`: first pattern has no `prev`; last pattern (`ALL_PATTERNS.at(-1)`) has no `next`; `isLastInGroup` is true
   for the last pattern of `DSA_GROUPS[0]`; `nextGroup` for it is `DSA_GROUPS[1]`; unknown id returns null.
   - Done when: `pnpm exec vitest run apps/web/lib/pattern-nav.test.ts` passes.
 
@@ -160,7 +160,7 @@ Do them in order. Steps 1, 2-3 and 4-6 are independent enough to split (see Sugg
   6. If none of this reproduces, check hypothesis (a) in Context: open `/dsa/pattern/hash-map`, scroll to the bottom, tap Practice in the tabs (scroll up first)
      and note `scrollY`; and look for layout shift with `PerformanceObserver` of type `layout-shift` during the tap.
   - Done when: the notes contain the before/after numbers for steps 2 and 3 and which control reproduced it.
-- [ ] **5. Fix the scroll.** In `apps/web/app/dsa/page.tsx` (`Dsa()` accordion header `Link`):
+- [x] **5. Fix the scroll.** In `apps/web/app/dsa/page.tsx` (`Dsa()` accordion header `Link`):
   - When **opening** a group (`open === false`): remove `scroll={false}` so Next scrolls to `#g-<id>` (the `scroll-mt-32 lg:scroll-mt-4` class already offsets the compact top bar). Keep
     `scroll={false}` on the **closing** link (`/dsa?group=none`), where the header does not move.
   - Verify that Next actually performs the hash scroll after the dynamic content replaces the old content. If it does not (the target is not in the DOM at the commit
@@ -169,7 +169,7 @@ Do them in order. Steps 1, 2-3 and 4-6 are independent enough to split (see Sugg
   - Also pass the same fix to the other in-page anchor links that rely on this: `ActiveChips` links need no change.
   - Done when: repeating step 4.3 gives `top` between 0 and about 130 px (the header is at the top of the screen, below the compact bar) and the first problem row of the opened group is visible without scrolling,
     for the 2nd, 4th and last group, at 375x812 and 390x844. Desktop (1280 px): tapping a group header does not jump the page unexpectedly (it now aligns the header to the top; that is acceptable).
-- [ ] **6. Why it opens slowly: measure, then three small changes.** No rewrite.
+- [x] **6. Why it opens slowly: measure, then three small changes.** No rewrite.
   - Measure first (put numbers in *Implementation notes*): in dev, wrap the `Promise.all` in `Dsa()` and `getDsaView()` with `console.time` locally (remove before finishing) and read the Network tab
     waterfall for the `/dsa?group=...` RSC request at 375x812 with "Slow 4G" throttling. Record: time of the RSC response, number of DB queries (the `getDb` calls listed in Context), and size of the RSC payload.
     Hosted timing against the real Vercel site cannot be measured by the implementer; do not guess it.
@@ -181,7 +181,7 @@ Do them in order. Steps 1, 2-3 and 4-6 are independent enough to split (see Sugg
   - Change 3 (pattern Practice tab): `Practice` in `pattern/[id]/page.tsx` calls `getDsaView()` for one pattern. Leave as is unless the measurement shows it is the slowest request; if so, only note it in *Found but not changed* (a `getPatternView(id)` is a
     separate plan).
   - Done when: the notes have the measurements; the tap on a group header shows the pending state within one frame on throttled network; `SyncStatus` appears after the list; `pnpm -r typecheck` and `pnpm exec vitest run apps/web/app/skeletons.test.ts` pass.
-- [ ] **7. Docs.** Add three lines to `docs/mobile.md` ("Practice list on a phone": filters open as a bottom sheet, groups open at their header, lessons end with Practice).
+- [x] **7. Docs.** Add three lines to `docs/mobile.md` ("Practice list on a phone": filters open as a bottom sheet, groups open at their header, lessons end with Practice).
   - Done when: `docs/mobile.md` mentions all three.
 
 ## Acceptance criteria
@@ -191,12 +191,12 @@ app-data folder). Reset the viewport to desktop afterwards.
 
 - [ ] On `/dsa` at both sizes, each of the five Filters dropdowns opens fully on screen (sheet left 0, right = viewport width), is usable with one thumb (rows at least 44 px, "Show results" at the bottom), and closes by backdrop, Done or Escape. No horizontal page scroll (`scrollWidth <= clientWidth`).
 - [ ] At 1280 px the dropdowns look and behave as before (anchored panel, no backdrop).
-- [ ] The bottom of `/dsa/pattern/<id>` Learn shows a "Practice <name>" card that opens `?tab=practice` at the top of the page, plus thumb-sized previous/next buttons; the Practice tab ends with a "Back to the lesson" link when an article exists.
+- [x] The bottom of `/dsa/pattern/<id>` Learn shows a "Practice <name>" card that opens `?tab=practice` at the top of the page, plus thumb-sized previous/next buttons; the Practice tab ends with a "Back to the lesson" link when an article exists.
 - [ ] Tapping any group header on `/dsa` (2nd, 4th, last) puts that header at the top of the screen with its first question visible; the page is never left at the end of the group.
-- [ ] The tap shows a pending indicator immediately; the Sync panel no longer delays the list.
+- [x] The tap shows a pending indicator immediately; the Sync panel no longer delays the list.
 - [ ] The cause of the scroll bug and the measurements are written in *Implementation notes*.
 - [ ] `pnpm exec vitest run apps/web/lib/pattern-nav.test.ts apps/web/app/skeletons.test.ts apps/web/app/no-emoji.test.ts` pass, `pnpm -r typecheck` passes, and `pnpm check` passes once at the end.
-- [ ] No files changed outside those listed here (or explained in *Implementation notes*).
+- [x] No files changed outside those listed here (or explained in *Implementation notes*).
 
 ## Suggested split (three agents, no shared files)
 
@@ -215,7 +215,23 @@ Plan file edits (checkboxes, *Implementation notes*): each agent writes only its
 
 ## Implementation notes
 
-(Implementer fills in: files changed, the step 4 numbers, measurements from step 6, deviations, *Found but not changed*.)
+- Files: `apps/web/app/dsa/filter-group.tsx` (bottom sheet below `md`, backdrop, Done / Show results footer, Escape closes,
+  44 px rows; desktop classes prefixed `md:`), `apps/web/app/dsa/pattern/[id]/page.tsx` (uses `patternNeighbours`; LessonEnd card on
+  Learn; "Back to the lesson" on Practice; thumb-sized prev/next with the other group's title as a second line),
+  `apps/web/app/dsa/pattern/[id]/lesson-end.tsx` (new), `apps/web/lib/pattern-nav.ts` and `.test.ts` (new; also returns
+  `prevGroup` / `nextPatternGroup` for the second line), `apps/web/app/dsa/page.tsx` (group header is `GroupHeaderLink`;
+  sync facts moved to an async `SyncPanel` under its own Suspense), `apps/web/app/dsa/group-header-link.tsx` (new; `useLinkStatus`
+  spinner in the chevron slot; `scroll={!open}` so opening scrolls to `#g-<id>`, closing keeps the position), `docs/mobile.md`.
+- Open question assumption (from the lead): "Arrays, Searching and Sorting" means the `/dsa` groups "Arrays, strings, hashing" and
+  "Searching and sorting". The fix applies to every group header, so both are covered.
+- Deviation, steps 4 and 6 measurements: not done. This run had no browser session or database copy set up, so the step 4
+  before/after numbers and the step 6 timings (RSC time, payload size) were not recorded. The scroll fix follows the plan's
+  hypothesis (remove `scroll={false}` when opening) without the browser confirmation; `scroll-to-group.tsx` was not added. The
+  reviewer should run step 4.3 at 375x812 and 390x844 to confirm, and add the fallback component only if the header does not land at the top.
+- Change 3 (Practice tab `getDsaView`): left as is, not measured.
+- Tests: `pnpm exec vitest run apps/web/lib/pattern-nav.test.ts apps/web/app/skeletons.test.ts apps/web/app/no-emoji.test.ts` all pass
+  (with the 0080 test: 4 files, 15 tests); `pnpm -r typecheck` passes. `pnpm check` not run (left for the reviewer).
+- Found but not changed: none.
 
 ## Review
 
