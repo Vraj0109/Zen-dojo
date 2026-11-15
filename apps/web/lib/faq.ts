@@ -805,6 +805,15 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     ],
   },
   {
+    id: "content-library",
+    category: "content",
+    question: "Where do extra courses come from and do they need internet?",
+    answer: [
+      p("DSA, System design, LLD and Core CS are built in. Other courses are in a public GitHub repo (`Vraj0109/zen-dojo-courses`) and show in Learn under Course library. Click Download once: the app checks the file against the library's checksum and saves the course on this device. After that it works offline, is in your backups, and reaches your other devices through sync if you sign in."),
+      p("The app only goes online for this when you open Learn (to read the list) or click Download or Update. Without internet, Learn shows the last list it saw. Updating a course keeps your progress."),
+    ],
+  },
+  {
     id: "content-lessons",
     category: "content",
     question: "How do I change a built-in lesson?",

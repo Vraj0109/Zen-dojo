@@ -246,4 +246,28 @@ describe("content feed format", () => {
     badSha.packs[0].sha256 = "not-a-sha256";
     expect(validateFeed(badSha).ok).toBe(false);
   });
+
+  it("accepts the course library fields and ignores unknown ones", () => {
+    const f = validFeed() as { packs: Record<string, unknown>[] };
+    Object.assign(f.packs[0], { category: "Languages", bytes: 12345, items: 8, minAppVersion: "0.9.0", extra: true });
+    const r = validateFeed(f);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.feed.packs[0]).toMatchObject({ category: "Languages", bytes: 12345, items: 8, minAppVersion: "0.9.0" });
+    if (r.ok) expect("extra" in r.feed.packs[0]).toBe(false);
+  });
+
+  it("rejects course library fields of the wrong type", () => {
+    for (const bad of [{ category: 3 }, { bytes: "1 MB" }, { items: -1 }, { items: 1.5 }, { minAppVersion: "new" }, { minAppVersion: 1 }]) {
+      const f = validFeed() as { packs: Record<string, unknown>[] };
+      Object.assign(f.packs[0], bad);
+      expect(validateFeed(f).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
+
+  it("keeps a pack's optional category", () => {
+    const pack = { format: "zendojo-pack", version: 2, id: "x", title: "X", description: "", category: "Tools", sections: [{ title: "S", items: [{ type: "lesson", id: "a", title: "A", markdown: "Some lesson text that is long enough." }] }] };
+    const r = validatePack(pack);
+    expect(r.ok && r.pack.category).toBe("Tools");
+    expect(validatePack({ ...pack, category: 5 }).ok).toBe(false);
+  });
 });

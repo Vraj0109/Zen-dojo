@@ -3,7 +3,9 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getContinue, getCourses, type CourseView } from "@/lib/courses";
+import { getCourseLibrary, type LibraryCourse } from "@/lib/packs";
 import { toggleFavouriteCourseAction } from "../actions";
+import { LibraryDownload } from "./library-download";
 import { SubmitButton } from "../submit-button";
 import { PageMain, ProgressBar } from "../ui";
 import { StudyHubSkeleton } from "@/app/components/study-skeleton";
@@ -79,6 +81,10 @@ async function Hub() {
         </div>
       </section>
 
+      <Suspense fallback={<LibrarySkeleton />}>
+        <CourseLibrarySection />
+      </Suspense>
+
       <p className="text-sm text-muted">
         Also:{" "}
         <Link href="/study/diagrams" className="font-medium text-foreground underline">
@@ -91,6 +97,99 @@ async function Hub() {
         .
       </p>
     </div>
+  );
+}
+
+function LibraryHeading() {
+  return (
+    <div>
+      <h3 id="library" className="text-lg font-semibold">
+        Course library
+      </h3>
+      <p className="mt-1 text-sm text-muted">More courses you can add. Each one downloads once and then works offline.</p>
+    </div>
+  );
+}
+
+function LibrarySkeleton() {
+  return (
+    <section aria-labelledby="library" aria-busy className="space-y-3">
+      <LibraryHeading />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-36 animate-pulse rounded-xl border border-line bg-surface" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function formatSize(bytes?: number): string | null {
+  if (bytes === undefined) return null;
+  if (bytes < 1000) return `${bytes} B`;
+  if (bytes < 1_000_000) return `${Math.max(1, Math.round(bytes / 1000))} KB`;
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}
+
+async function CourseLibrarySection() {
+  await connection();
+  const lib = await getCourseLibrary();
+  const groups = new Map<string, LibraryCourse[]>();
+  for (const c of lib.courses) groups.set(c.category, [...(groups.get(c.category) ?? []), c]);
+  const sorted = [...groups.entries()].sort(([a], [b]) => (a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b)));
+
+  return (
+    <section aria-labelledby="library" className="space-y-3">
+      <LibraryHeading />
+      {!lib.ok ? (
+        <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">Couldn&apos;t reach the course library right now.</p>
+      ) : (
+        <>
+          {lib.offline && <p className="text-sm text-diff-medium">Showing the last list we saw. Connect to the internet to download.</p>}
+          {lib.courses.length === 0 && <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">No courses in the library yet.</p>}
+          {sorted.map(([category, list]) => (
+            <div key={category} className="space-y-2">
+              <h4 className="text-xs font-medium uppercase tracking-wide text-muted">{category}</h4>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {list.map((c) => (
+                  <LibraryCard key={c.id} course={c} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </section>
+  );
+}
+
+function LibraryCard({ course: c }: { course: LibraryCourse }) {
+  const facts = [c.items !== undefined ? `${c.items} item${c.items === 1 ? "" : "s"}` : null, formatSize(c.bytes)].filter(Boolean).join(" · ");
+  return (
+    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+      <h5 className="text-lg font-semibold leading-snug break-words">{c.title}</h5>
+      {c.description && <p className="text-sm text-muted break-words">{c.description}</p>}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-sm">
+        <p className="text-xs text-muted">
+          {facts}
+          {c.state === "update" && !c.tooNew && <span className="block font-medium text-diff-medium">New version available</span>}
+        </p>
+        {c.tooNew ? (
+          <button type="button" disabled className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted opacity-60">
+            Needs a newer Zen Dojo
+          </button>
+        ) : c.state === "installed" ? (
+          <span className="flex items-center gap-3">
+            <span className="text-xs text-muted">Downloaded</span>
+            <Link href={`/study/packs/${c.id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+              Open
+            </Link>
+          </span>
+        ) : (
+          <LibraryDownload id={c.id} title={c.title} label={c.state === "update" ? "Update" : "Download"} />
+        )}
+      </div>
+    </article>
   );
 }
 

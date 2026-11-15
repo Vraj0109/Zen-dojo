@@ -71,6 +71,8 @@ export interface Pack {
   version: number;
   /** Your own version of the pack's content, for update checks ("1.2.0") */
   revision?: string;
+  /** Course library group, such as "Languages" or "Tools" (optional) */
+  category?: string;
   /** Put the pack's items into a built-in study area instead of making a course of its own */
   target?: PackTarget;
   /** Lowercase letters, digits and hyphens */
@@ -94,7 +96,17 @@ export interface FeedPackEntry {
   url: string;
   sha256?: string;
   description?: string;
+  /** Course library fields (all optional; plain feeds work without them) */
+  category?: string;
+  bytes?: number;
+  /** Number of lessons and problems */
+  items?: number;
+  /** Lowest app version that can use this pack ("0.9.0") */
+  minAppVersion?: string;
 }
+
+/** The built-in course library: a feed in the public courses repo (docs/content-packs.md, "Course library"). */
+export const DEFAULT_COURSE_CATALOG_URL = "https://raw.githubusercontent.com/Vraj0109/zen-dojo-courses/main/catalog.json";
 
 export interface ContentFeed {
   format: (typeof FEED_FORMATS)[number];
@@ -364,6 +376,13 @@ export function validateFeed(input: unknown): FeedCheck {
       }
     }
     const description = typeof p.description === "string" ? p.description.slice(0, 400) : undefined;
+    if (p.category !== undefined && !isStr(p.category, 40)) return void errs.push(`${where}: "category" must be a short text (up to 40 characters).`);
+    for (const k of ["bytes", "items"] as const) {
+      if (p[k] !== undefined && !(isInt(p[k]) && (p[k] as number) >= 0)) return void errs.push(`${where}: "${k}" must be a whole number of 0 or more.`);
+    }
+    if (p.minAppVersion !== undefined && (typeof p.minAppVersion !== "string" || !/^\d+(\.\d+){0,2}$/.test(p.minAppVersion))) {
+      return void errs.push(`${where}: "minAppVersion" must be a version like "0.9.0".`);
+    }
     packs.push({
       id: p.id,
       title: String(p.title),
@@ -371,6 +390,10 @@ export function validateFeed(input: unknown): FeedCheck {
       url: p.url,
       ...(sha256 ? { sha256 } : {}),
       ...(description !== undefined ? { description } : {}),
+      ...(typeof p.category === "string" ? { category: p.category } : {}),
+      ...(typeof p.bytes === "number" ? { bytes: p.bytes } : {}),
+      ...(typeof p.items === "number" ? { items: p.items } : {}),
+      ...(typeof p.minAppVersion === "string" ? { minAppVersion: p.minAppVersion } : {}),
     });
   });
   if (errs.length > 0) return { ok: false, errors: errs };
@@ -400,6 +423,7 @@ export function validatePack(input: unknown): PackCheck {
     else if (t.section !== undefined && !isStr(t.section, 80)) errs.push(`"target.section" must be a heading of up to 80 characters.`);
     else target = { area: t.area, ...(typeof t.section === "string" ? { section: t.section } : {}) };
   }
+  if (input.category !== undefined && !isStr(input.category, 40)) errs.push(`"category" must be a short text (up to 40 characters).`);
   if (typeof input.id !== "string" || !SLUG.test(input.id)) errs.push(`"id" must be lowercase letters, digits and hyphens (up to 40 characters).`);
   if (!isStr(input.title, 80)) errs.push(`"title" is required (up to 80 characters).`);
   const description = typeof input.description === "string" ? input.description.slice(0, 400) : "";
@@ -461,6 +485,7 @@ export function validatePack(input: unknown): PackCheck {
       title: String(input.title),
       description,
       ...(revision ? { revision } : {}),
+      ...(typeof input.category === "string" ? { category: input.category } : {}),
       ...(target ? { target } : {}),
       sections,
     },

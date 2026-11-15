@@ -392,3 +392,21 @@ export async function setSyncedPrefsAction(json: string): Promise<void> {
     // signed out on the hosted site: nothing to save to
   }
 }
+
+// ---- course library (plan 0081) -----------------------------------------------------------------------------------
+
+export interface LibraryInstallState {
+  ok: boolean;
+  message: string;
+}
+
+/** Downloads (or updates) one course from the built-in course library. Takes only the course id; the URL comes from the catalog. */
+export async function installLibraryCourseAction(_prev: LibraryInstallState | null, formData: FormData): Promise<LibraryInstallState> {
+  const id = String(formData.get("id") ?? "");
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(id)) return { ok: false, message: "That course is not in the course library." };
+  const { installLibraryCourse } = await import("@/lib/packs");
+  const r = await installLibraryCourse(id);
+  if (!r.ok) return { ok: false, message: r.errors.join(" ") };
+  refresh();
+  return { ok: true, message: r.replaced ? "Updated. Your progress was kept." : "Downloaded. It is now one of your courses." };
+}

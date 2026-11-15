@@ -580,6 +580,12 @@ pnpm content:add docs/examples/one-problem.json
 
 Without the repo, you can import a content pack (a JSON file of lessons and problems) in Settings, Add problems and lessons. Formats: `docs/content-packs.md` and `docs/content-editing.md`. For a hosted copy, point the command at the database or use the app's content admin token.
 
+### Where do extra courses come from and do they need internet?
+
+DSA, System design, LLD and Core CS are built in. Other courses are in a public GitHub repo (`Vraj0109/zen-dojo-courses`) and show in Learn under Course library. Click Download once: the app checks the file against the library's checksum and saves the course on this device. After that it works offline, is in your backups, and reaches your other devices through sync if you sign in.
+
+The app only goes online for this when you open Learn (to read the list) or click Download or Update. Without internet, Learn shows the last list it saw. Updating a course keeps your progress.
+
 ### How do I change a built-in lesson?
 
 Built-in lessons are Markdown files in `packages/shared/content/`. Edit one, then run `pnpm content:build` (and `pnpm content:check` to verify). Or replace one for yourself without code through a content pack `patch`; the lesson then has a Back to built-in button. See `docs/content-editing.md`.

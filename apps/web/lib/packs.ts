@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import {
+  DEFAULT_COURSE_CATALOG_URL,
   PACK_LIMITS,
   packItems,
   packProblemSpec,
@@ -14,6 +15,7 @@ import {
   type Pack,
   type ProblemSpec,
 } from "@habit/shared";
+import desktopPkg from "../../desktop/package.json";
 import { getDb } from "./db";
 import { contentPacks, packProgress, settings } from "./schema";
 
@@ -466,5 +468,105 @@ export async function installFeedPack(entry: FeedPackEntry | { id?: string; url:
   } catch {
     return { ok: false, errors: ["Downloaded pack file is not valid JSON."] };
   }
+  if (entry.id && (typeof parsed !== "object" || parsed === null || (parsed as { id?: unknown }).id !== entry.id)) {
+    return { ok: false, errors: [`The downloaded pack's id is not "${entry.id}" as the feed says. It was not installed.`] };
+  }
   return await installPack(parsed);
+}
+
+// ---- course library (plan 0081) -----------------------------------------------------------------------------------
+
+export interface LibraryCourse extends FeedPackEntry {
+  category: string;
+  state: "available" | "installed" | "update";
+  installedRevision?: string;
+  /** The course needs a newer app than this one */
+  tooNew: boolean;
+}
+
+export type CourseLibrary =
+  | { ok: true; courses: LibraryCourse[]; offline: boolean; fetchedAt: string }
+  | { ok: false; error: string; courses: [] };
+
+const CATALOG_CACHE_KEY = "course_catalog_cache";
+const CATALOG_TTL_MS = 60 * 60 * 1000;
+let catalogMemo: { at: number; feed: ContentFeed } | null = null;
+
+/** The app's own version (the desktop package version; the site ships the same code). */
+export const APP_VERSION: string = desktopPkg.version;
+
+/** Forgets the in-memory catalog (used by tests). */
+export function resetCourseLibraryMemo(): void {
+  catalogMemo = null;
+}
+
+async function readCatalogCache(): Promise<{ at: string; feed: ContentFeed } | null> {
+  const db = await getDb();
+  const row = await db.query.settings.findFirst({ where: eq(settings.key, CATALOG_CACHE_KEY) });
+  if (!row) return null;
+  try {
+    const v = JSON.parse(row.value) as { at?: unknown; feed?: unknown };
+    const check = validateFeed(v.feed);
+    return check.ok && typeof v.at === "string" ? { at: v.at, feed: check.feed } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The catalog: from memory (1 hour), else the network, else the last good copy kept in settings. */
+async function loadCatalog(): Promise<{ ok: true; feed: ContentFeed; offline: boolean; at: string } | { ok: false; error: string }> {
+  const now = Date.now();
+  if (catalogMemo && now - catalogMemo.at < CATALOG_TTL_MS) return { ok: true, feed: catalogMemo.feed, offline: false, at: new Date(catalogMemo.at).toISOString() };
+  const got = await fetchFeed(DEFAULT_COURSE_CATALOG_URL);
+  if (got.ok) {
+    catalogMemo = { at: now, feed: got.feed };
+    const at = new Date(now).toISOString();
+    const value = JSON.stringify({ at, feed: got.feed });
+    const db = await getDb();
+    await db.insert(settings).values({ key: CATALOG_CACHE_KEY, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
+    return { ok: true, feed: got.feed, offline: false, at };
+  }
+  const cached = await readCatalogCache();
+  if (cached) return { ok: true, feed: cached.feed, offline: true, at: cached.at };
+  return { ok: false, error: got.error };
+}
+
+/** Lists the courses in the built-in course library with their state on this device. Never throws. */
+export async function getCourseLibrary(appVersion: string = APP_VERSION): Promise<CourseLibrary> {
+  let cat: Awaited<ReturnType<typeof loadCatalog>>;
+  try {
+    cat = await loadCatalog();
+  } catch {
+    cat = { ok: false, error: "Could not read the course library." };
+  }
+  if (!cat.ok) return { ok: false, error: cat.error, courses: [] };
+  const courses: LibraryCourse[] = [];
+  for (const e of cat.feed.packs) {
+    const installed = await getPack(e.id);
+    const installedRevision = installed ? (installed.revision ?? "0") : undefined;
+    const state: LibraryCourse["state"] = !installedRevision ? "available" : compareRevisions(e.version, installedRevision) > 0 ? "update" : "installed";
+    courses.push({
+      ...e,
+      category: e.category ?? "Other",
+      state,
+      ...(installedRevision ? { installedRevision } : {}),
+      tooNew: e.minAppVersion ? compareRevisions(e.minAppVersion, appVersion) > 0 : false,
+    });
+  }
+  return { ok: true, courses, offline: cat.offline, fetchedAt: cat.at };
+}
+
+/** Installs (or updates) one library course, found by id in the current catalog. The client never supplies a URL. */
+export async function installLibraryCourse(id: string, appVersion: string = APP_VERSION): Promise<InstallResult> {
+  const lib = await getCourseLibrary(appVersion);
+  if (!lib.ok) return { ok: false, errors: [`Couldn't reach the course library: ${lib.error}`] };
+  const entry = lib.courses.find((c) => c.id === id);
+  if (!entry) return { ok: false, errors: ["That course is not in the course library."] };
+  if (entry.tooNew) return { ok: false, errors: [`This course needs Zen Dojo ${entry.minAppVersion} or newer. Update the app first.`] };
+  if (!entry.sha256) return { ok: false, errors: ["This course has no checksum in the library, so it can't be checked. It was not installed."] };
+  const r = await installFeedPack(entry);
+  if (!r.ok && r.errors.some((m) => m.startsWith("Checksum verification failed"))) {
+    return { ok: false, errors: ["The downloaded course does not match the library's checksum, so it may have been changed. It was not installed."] };
+  }
+  return r;
 }

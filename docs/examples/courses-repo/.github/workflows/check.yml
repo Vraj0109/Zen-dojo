@@ -1,0 +1,49 @@
+# Checks every course and that catalog.json is up to date (plan 0081, step 4).
+# Runs the app's own `pnpm courses:catalog`, so packs are validated with the same code the app uses.
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the courses
+        uses: actions/checkout@v4
+        with:
+          path: courses-repo
+
+      - name: Check out Zen Dojo
+        uses: actions/checkout@v4
+        with:
+          repository: Vraj0109/Zen-dojo
+          ref: main
+          path: app
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: app/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: app
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build the catalog
+        working-directory: app
+        run: pnpm courses:catalog "$GITHUB_WORKSPACE/courses-repo"
+
+      - name: Fail if catalog.json is stale
+        working-directory: courses-repo
+        run: |
+          if ! git diff --exit-code -- catalog.json; then
+            echo "catalog.json is out of date. Run pnpm courses:catalog <this repo> from a Zen Dojo checkout and commit it."
+            exit 1
+          fi

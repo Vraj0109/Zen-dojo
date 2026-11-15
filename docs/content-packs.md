@@ -159,6 +159,33 @@ In **Profile → Settings → Content**:
 2. Click **Check for updates**. The app fetches the feed, compares revisions with your installed packs, and categorises each pack as **Available**, **Update**, or **Installed**.
 3. Click **Install** or **Update** on any pack. The app downloads the pack, verifies its SHA-256 hash (if provided), validates it, and updates your content while keeping all your existing progress.
 
+## Course library
+
+DSA, System design, LLD and Core CS are built into the app. Other courses live in a separate public repo,
+`Vraj0109/zen-dojo-courses`, and Learn shows them in a **Course library** section. One click on **Download** installs a
+course as a normal pack; after that it needs no internet, and it is in backups and in sync like any pack.
+
+- The app reads `https://raw.githubusercontent.com/Vraj0109/zen-dojo-courses/main/catalog.json`
+  (`DEFAULT_COURSE_CATALOG_URL` in `packages/shared/src/packs.ts`) only when you open Learn. It keeps the last good list
+  for an hour in memory and in the `course_catalog_cache` setting, so a failed fetch still shows the last list. If the
+  catalog cannot be read and nothing is cached (for example, the repo does not exist yet and the address answers 404),
+  the section says it couldn't reach the library and the rest of Learn works as usual.
+- Download sends only the course id. The server finds the entry in the catalog, refuses it without a `sha256`, checks
+  the downloaded bytes against it, checks the pack id, then installs it. Updating keeps your progress.
+- The catalog is a normal content feed with extra optional fields per entry: `category` (for grouping), `bytes`,
+  `items` (lessons plus problems) and `minAppVersion` (older apps show "Needs a newer Zen Dojo").
+- A library course is a pack with no `target`, a `revision`, and an optional `category`. The file name is the pack id:
+  `courses/<id>.json`.
+
+To publish or update a course in the courses repo:
+
+1. Edit or add `courses/<id>.json`, and bump its `revision`.
+2. From a checkout of this app repo: `pnpm courses:catalog <path to the courses repo>`. It validates every pack with the
+   same code as the app and rewrites `catalog.json` (URLs, SHA-256, sizes, item counts, sorted by title).
+3. Commit both files. The courses repo's CI runs the same command and fails if the catalog is stale or a pack is invalid.
+
+A starter for that repo (README, CI workflow, empty `courses/`) is in `docs/examples/courses-repo/`.
+
 ## Check and build tools
 
 - `pnpm pack:check <file>`: Validates any pack file with the same strict validator the app uses and prints clear diagnostics.
