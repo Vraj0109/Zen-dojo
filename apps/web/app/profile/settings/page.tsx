@@ -14,6 +14,7 @@ import { SubmitButton } from "../../submit-button";
 import { PackImporter } from "../../pack-importer";
 import { CustomColours, CustomFontPicker, ProfileEditor } from "../../custom-appearance";
 import { ThemePicker } from "../../theme-picker";
+import { AppearanceSyncNote } from "@/app/components/appearance-sync-note";
 import { PageMain } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
@@ -31,6 +32,7 @@ export const metadata: Metadata = { title: "Settings" };
 
 const PROVIDER_LABEL: Record<AiProviderId, string> = {
   ollama: "Ollama (on this computer)",
+  lmstudio: "LM Studio or another local server",
   claude: "Claude Code (Anthropic)",
   agy: "Antigravity (Google)",
   gemini: "Gemini CLI (Google)",
@@ -87,9 +89,10 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             <section className="rounded-xl border border-line bg-surface p-4">
               <h4 className="mb-1 font-semibold">Appearance and reading</h4>
               <p className="mb-3 text-sm text-muted">
-                System follows your computer&apos;s light or dark setting. These choices are saved in this browser or app window, so they are not
-                part of a backup.
+                System follows your computer&apos;s light or dark setting. These choices are saved in this browser or app window and, when you
+                are signed in, follow you to your other devices.
               </p>
+              <AppearanceSyncNote />
               <ThemePicker />
             </section>
           </SettingsSection>
@@ -446,7 +449,7 @@ async function BuddySettingsSection() {
           Save pacing preferences
         </SubmitButton>
       </form>
-      <BuddyAppearance aiEnabled={HOSTED || (ai?.enabled ?? false)} providerLabel={HOSTED ? "your AI provider" : ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={HOSTED || (ai ? ai.provider !== "ollama" : false)} />
+      <BuddyAppearance aiEnabled={HOSTED || (ai?.enabled ?? false)} providerLabel={HOSTED ? "your AI provider" : ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={HOSTED || (ai ? ai.provider !== "ollama" && ai.provider !== "lmstudio" : false)} />
     </section>
   );
 }

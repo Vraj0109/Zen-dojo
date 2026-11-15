@@ -144,6 +144,8 @@ function Answer({ text }: { text: string }) {
 }
 
 const noopSubscribe = () => () => {};
+/** Answers from these never leave the computer (plan 0078). */
+const LOCAL_PROVIDERS = new Set(["ollama", "lmstudio"]);
 
 /** Chat for a judged problem (give problemId, hints, hasCode) or for a course lesson (give lessonId). */
 export interface AiChatProps {
@@ -178,8 +180,8 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
   const hosted = provider === "byok" || providers.some((p) => p.id === "byok");
   const byok = useByok();
   const info = providers.find((p) => p.id === provider);
-  const cloud = hosted ? true : info ? info.cloud : provider !== "ollama";
-  const providerLabel = hosted ? (byok ? BYOK_PROVIDERS[byok.provider].label : "Your own API key") : (info?.label ?? (provider === "ollama" ? "Ollama" : provider));
+  const cloud = hosted ? true : info ? info.cloud : !LOCAL_PROVIDERS.has(provider);
+  const providerLabel = hosted ? (byok ? BYOK_PROVIDERS[byok.provider].label : "Your own API key") : (info?.label ?? (provider === "ollama" ? "Ollama" : provider === "lmstudio" ? "LM Studio" : provider));
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => readStored(problemId));
   const [pending, setPending] = useState(false);

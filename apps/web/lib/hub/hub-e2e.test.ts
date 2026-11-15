@@ -199,6 +199,35 @@ describe("hub end to end", () => {
     expect((await phone.execute("SELECT 1 FROM problem_solves WHERE problem_id = 'lru-cache'")).rows).toHaveLength(0);
   });
 
+  it("settings and theme sync through the hub (plan 0075)", async () => {
+    const userId = "gh:4242";
+    const desktop = await newDevice();
+    const phone = await newDevice();
+    await linkAccount(userId, desktop);
+    await linkAccount(userId, phone);
+    const syncA = async () => runSync({ db: desktop, fetch: fetcherFor(await signIn("Desktop")), getUserId: async () => userId });
+    const syncB = async () => runSync({ db: phone, fetch: fetcherFor(await signIn("Phone")), getUserId: async () => userId });
+    const put = (db: Client, key: string, value: string) =>
+      db.execute({ sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", args: [key, value] });
+
+    await put(desktop, "appearance_prefs", JSON.stringify({ v: 1, at: 1000, prefs: { mode: "dark" } }));
+    await put(desktop, "ai_provider", "ollama");
+    await put(desktop, "extension_token", "tok");
+    await desktop.execute("UPDATE sync_stamps SET updated_at = 1000 WHERE tbl = 'settings'");
+    await syncA();
+    await syncB();
+    const got = await phone.execute("SELECT value FROM settings WHERE key = 'appearance_prefs'");
+    expect(JSON.parse(String(got.rows[0].value)).prefs.mode).toBe("dark");
+
+    await put(phone, "appearance_prefs", JSON.stringify({ v: 1, at: 2000, prefs: { mode: "light" } }));
+    await phone.execute("UPDATE sync_stamps SET updated_at = 2000 WHERE tbl = 'settings' AND row_key = 'appearance_prefs'");
+    await syncB();
+    await syncA();
+    const back = await desktop.execute("SELECT value FROM settings WHERE key = 'appearance_prefs'");
+    expect(JSON.parse(String(back.rows[0].value)).prefs.mode).toBe("light");
+    expect(await count("SELECT COUNT(*) AS n FROM settings WHERE user_id = ? AND key IN ('ai_provider', 'extension_token')", [userId])).toBe(0);
+  });
+
   it("delete cloud data empties the user's rows and leaves the devices alone", async () => {
     const userId = "gh:4242";
     const desktop = await newDevice();

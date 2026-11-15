@@ -17,8 +17,22 @@ type Info = {
   provider?: ProviderId;
   consent?: ProviderId[];
   platform?: string;
+  lmstudio?: { running: boolean; models?: string[] };
+  lmstudioModel?: string;
+  lmstudioUrl?: string;
+  foldSystem?: boolean;
 };
-type ProviderId = "ollama" | "claude" | "agy" | "gemini" | "codex";
+type ProviderId = "ollama" | "lmstudio" | "claude" | "agy" | "gemini" | "codex";
+type SaveBody = {
+  enabled?: boolean;
+  model?: string;
+  provider?: ProviderId;
+  consent?: ProviderId[];
+  lmstudioModel?: string;
+  lmstudioUrl?: string;
+  foldSystem?: boolean;
+};
+const LOCAL_PROVIDERS = new Set<ProviderId>(["ollama", "lmstudio"]);
 type ProviderInfo = { id: ProviderId; label: string; found: boolean; cloud: boolean };
 
 const CLOUD_WHAT: Record<string, string> = {
@@ -41,6 +55,9 @@ export function AiSettings() {
   const [pickModel, setPickModel] = useState("");
   const cancel = useRef<AbortController | null>(null);
   const [tests, setTests] = useState<Record<string, { busy: boolean; text?: string; ok?: boolean }>>({});
+  const [pickLm, setPickLm] = useState("");
+  const [lmUrl, setLmUrl] = useState("");
+  const [lmUrlError, setLmUrlError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -55,6 +72,8 @@ export function AiSettings() {
       setInfo(j);
       setFailed(false);
       setPickModel((m) => m || j.model || j.recommended.model);
+      setPickLm((m) => m || j.lmstudioModel || j.lmstudio?.models?.[0] || "");
+      setLmUrl((u) => u || j.lmstudioUrl || "");
     } catch {
       setFailed(true);
     } finally {
@@ -67,9 +86,27 @@ export function AiSettings() {
     void load();
   }, [load]);
 
-  async function save(body: { enabled?: boolean; model?: string; provider?: ProviderId; consent?: ProviderId[] }) {
-    await post("/api/ai/settings", body);
+  async function save(body: SaveBody): Promise<string | null> {
+    let error: string | null = null;
+    try {
+      const r = await post("/api/ai/settings", body);
+      if (!r.ok) error = ((await r.json()) as { error?: string }).error ?? "bad_request";
+    } catch {
+      error = "internal_error";
+    }
     await load();
+    return error;
+  }
+
+  async function saveLmUrl() {
+    const err = await save({ lmstudioUrl: lmUrl.trim() });
+    setLmUrlError(
+      err === "not_loopback"
+        ? "That address is not on this computer. Use 127.0.0.1, localhost or ::1, for example http://127.0.0.1:1234."
+        : err
+          ? "The address could not be saved."
+          : null,
+    );
   }
 
   async function setConsent(id: ProviderId, on: boolean) {
@@ -130,8 +167,22 @@ export function AiSettings() {
   const have = info.installed.includes(pickModel);
   const chosen: ProviderId = info.provider ?? "ollama";
   const consent = info.consent ?? [];
-  // Only tools that were found are offered; Ollama is always listed because it is the default.
-  const choices = (info.providers ?? []).filter((p) => p.id === "ollama" || p.found);
+  // Only tools that were found are offered; the two local engines are always listed.
+  const choices = (info.providers ?? []).filter((p) => LOCAL_PROVIDERS.has(p.id) || p.found);
+  const lmModels = info.lmstudio?.models ?? [];
+  const lmLine = info.lmstudio?.running ? `Running, ${lmModels.length} models` : "Not running";
+  const foldBox = (
+    <div className="space-y-1">
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-0.5 size-4" checked={Boolean(info.foldSystem)} onChange={(e) => void save({ foldSystem: e.target.checked })} />
+        <span>My model ignores the app&apos;s instructions</span>
+      </label>
+      <p className="pl-6 text-xs text-muted">
+        Turn this on for a model you fine-tuned yourself without a system prompt. The app then puts its instructions at the start of your message instead.
+      </p>
+      <p className="text-xs text-muted">Your own fine-tuned model: import it into Ollama or LM Studio first (see docs/local-ai.md), then pick it here.</p>
+    </div>
+  );
   return (
     <div className="space-y-4">
       <p className="text-sm">{info.summary}</p>
@@ -167,10 +218,82 @@ export function AiSettings() {
               <div key={p.id} className="space-y-2 rounded-lg border border-line p-3 text-sm">
                 <label className="flex items-center gap-2 font-medium">
                   <input type="radio" name="aiProvider" className="size-4" checked={chosen === p.id} disabled={p.cloud && !ok} onChange={() => void save({ provider: p.id })} />
-                  {p.cloud ? CLOUD_WHAT[p.id] ?? p.label : "This computer (Ollama)"}
+                  {p.cloud ? CLOUD_WHAT[p.id] ?? p.label : p.id === "lmstudio" ? "LM Studio or another local server" : "This computer (Ollama)"}
                 </label>
                 {!p.cloud ? (
-                  <p className="text-xs text-muted">Runs on your computer. Nothing leaves it.</p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted">
+                      Runs on your computer. Nothing leaves it.{p.id === "lmstudio" ? ` ${lmLine}.` : ""}
+                    </p>
+                    {p.id === "lmstudio" && chosen === "lmstudio" && (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label htmlFor="aiLmModel" className="text-sm font-medium">
+                            Model
+                          </label>
+                          <select
+                            id="aiLmModel"
+                            value={pickLm}
+                            onChange={(e) => setPickLm(e.target.value)}
+                            disabled={lmModels.length === 0}
+                            className="rounded-lg border border-line bg-background px-3 py-2 text-sm"
+                          >
+                            {lmModels.length === 0 && <option value="">No model available</option>}
+                            {info.lmstudioModel && !lmModels.includes(info.lmstudioModel) && <option value={info.lmstudioModel}>{info.lmstudioModel} (not loaded)</option>}
+                            {lmModels.map((m) => (
+                              <option key={m} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => void save({ lmstudioModel: pickLm })}
+                            disabled={!pickLm || info.lmstudioModel === pickLm}
+                            className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50"
+                          >
+                            {pickLm && info.lmstudioModel === pickLm ? "In use" : "Use this model"}
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label htmlFor="aiLmUrl" className="text-sm font-medium">
+                            Address
+                          </label>
+                          <input
+                            id="aiLmUrl"
+                            value={lmUrl}
+                            onChange={(e) => setLmUrl(e.target.value)}
+                            placeholder="http://127.0.0.1:1234"
+                            className="min-w-60 rounded-lg border border-line bg-background px-3 py-2 text-sm"
+                          />
+                          <button type="button" onClick={() => void saveLmUrl()} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-background">
+                            Save address
+                          </button>
+                        </div>
+                        {lmUrlError && (
+                          <p role="alert" className="text-xs text-foreground">
+                            {lmUrlError}
+                          </p>
+                        )}
+                        {!info.lmstudio?.running && (
+                          <p className="text-xs text-muted">
+                            In LM Studio open the Developer tab and press Start Server, or run <code>lms server start</code>, then press Check again.
+                          </p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button type="button" onClick={() => void runTest("lmstudio")} disabled={!info.lmstudioModel || t?.busy} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-background disabled:opacity-50">
+                            {t?.busy ? "Testing..." : "Test"}
+                          </button>
+                          {t?.text && (
+                            <span role="status" className={`text-xs ${t.ok ? "text-muted" : "text-foreground"}`}>
+                              {t.text}
+                            </span>
+                          )}
+                        </div>
+                        {foldBox}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-muted">
@@ -244,11 +367,12 @@ export function AiSettings() {
             </div>
           )}
           {info.model && <p className="text-xs text-muted">Using {info.model}. To free disk space later, run <code>ollama rm {info.model}</code>.</p>}
+          {foldBox}
         </div>
       )}
       <InstallMore info={info} />
       <p className="text-xs text-muted">
-        The default runs on your computer through Ollama and sends nothing to the internet. A cloud tool is used only after you tick its box above. Answers can be wrong. See{" "}
+        The default runs on your computer through Ollama (or LM Studio) and sends nothing to the internet. A cloud tool is used only after you tick its box above. Answers can be wrong. See{" "}
         <code>docs/local-ai.md</code>.
       </p>
     </div>

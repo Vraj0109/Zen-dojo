@@ -1,8 +1,8 @@
 # 0075: Settings and theme sync fix
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-13
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (implementer agent), 2026-11-15
 - **Spec:** none (follows plans 0044, 0050, 0058, 0073)
 
 ## Goal
@@ -181,7 +181,7 @@ Never use `data/habit.db`. Use a copy:
 
 ## Steps
 
-- [ ] **1. Guard test for key names.** Add `apps/web/lib/sync-setting-keys.test.ts`. It imports `isSyncableSettingKey`
+- [x] **1. Guard test for key names.** Add `apps/web/lib/sync-setting-keys.test.ts`. It imports `isSyncableSettingKey`
   and lists the exact UI keys that must sync (`appearance_prefs`, `ui_prefs_synced`, `simple_mode`, `buddy_mode`,
   `buddy_name`, `adhd_pacing`, `profile_name`, `favourite_courses`, `interview_date`, `plan_start_date`,
   `plan_week_cursor`, `plan_week_history`, `plan_week_start`, `plan_finished`) and the keys that must not
@@ -191,7 +191,7 @@ Never use `data/habit.db`. Use a copy:
   an in-memory libSQL database (same setup as `lib/sync-triggers.test.ts`).
   - Done when: `pnpm exec vitest run apps/web/lib/sync-setting-keys.test.ts` passes, and renaming `appearance_prefs` to
     `appearance_key` makes it fail.
-- [ ] **2. Server-side newest-wins for appearance, no echo, no blind overwrite.** In `lib/ui-prefs.ts` store
+- [x] **2. Server-side newest-wins for appearance, no echo, no blind overwrite.** In `lib/ui-prefs.ts` store
   `appearance_prefs` as `{"v":1,"at":<ms>,"prefs":{...Appearance}}` (read the old plain format too; `parseAppearance`
   stays the sanitiser). `setAppearanceSetting(prefs, at?)` writes only when `prefs` differs from the stored prefs
   (this stops the echo, F9) and takes an `at` from the caller. Add `getAppearanceRecord()` returning `{prefs, at} | null`.
@@ -199,7 +199,7 @@ Never use `data/habit.db`. Use a copy:
   F6) and `setAppearanceAction(prefs, at)`.
   - Done when: `ui-prefs.test.ts` cases (step 8) pass; setting the same prefs twice leaves `sync_stamps.updated_at`
     unchanged.
-- [ ] **3. Make reads see fresh data (hosted), and give the client a "sync now".** (a) In `lib/hosted/sync.ts` export
+- [x] **3. Make reads see fresh data (hosted), and give the client a "sync now".** (a) In `lib/hosted/sync.ts` export
   `syncBeforeRead(userId)` = `syncOnRequest` with the same throttle; call it at the top of `getAppearanceAction` and
   `getSyncedPrefsAction` when `isHosted()` and a session exists (use the session helpers already used in
   `lib/hosted/refresh.ts`). Failures are ignored and logged without row contents. (b) For desktop and phone, after
@@ -207,7 +207,7 @@ Never use `data/habit.db`. Use a copy:
   `window.dispatchEvent(new Event("habit-sync-pulled"))`; export the name as `SYNC_PULLED_EVENT` from `lib/sync-manager.ts`.
   - Done when: a unit test shows `getAppearanceAction` on the hosted path triggers one sync and a second call inside
     20 s does not (extend `lib/hosted/sync.test.ts`); `sync-manager` test shows the event fires only when `pulled > 0`.
-- [ ] **4. One appearance record, with a version stamp, applied live.** In `app/shell.tsx` rewrite `syncAppearance`:
+- [x] **4. One appearance record, with a version stamp, applied live.** In `app/shell.tsx` rewrite `syncAppearance`:
   keep a localStorage `habit-appearance-at` (ms, device clock) that `applyTheme` callers update when the person changes
   the theme (not when applying from the server). Rules: server `at` > local `at` -> apply server (no echo: pass a flag
   so `onThemeChange` ignores the event it caused); local `at` > server `at` -> push; server "error" -> do nothing (F6);
@@ -217,7 +217,7 @@ Never use `data/habit.db`. Use a copy:
   in `lib/synced-prefs.ts`, so the style and its palette arrive together (F2). Extend `Appearance` and
   `parseAppearance` in `lib/theme.ts` accordingly, and make `applyTheme` write `habit-custom-theme`.
   - Done when: with two profiles, a theme change on A shows on B (page open) within 60 s without a reload.
-- [ ] **5. Fix `ui_prefs_synced` clocks and per-key merge, and trim the list.** In `lib/synced-prefs.ts` change the blob
+- [x] **5. Fix `ui_prefs_synced` clocks and per-key merge, and trim the list.** In `lib/synced-prefs.ts` change the blob
   to `{updatedAt, values, stamps}` where `stamps[key]` is the time that key last changed on the device that changed it;
   `shouldPull` compares per key against a local per-key record, and the pull never reloads the page if the only change is
   something CSS or React reads on the next render (call `window.dispatchEvent(new Event("habit-prefs-applied"))` and let
@@ -227,18 +227,18 @@ Never use `data/habit.db`. Use a copy:
   instead of requiring it to be larger. Remove `zd_haptics` and `habit-pane-layout` from `SYNCED_PREF_KEYS` (see the
   table in (g); skip if the user answers otherwise in *Open questions*). Keep old blobs readable.
   - Done when: `synced-prefs.test.ts` skew and partial-snapshot cases (step 8) pass.
-- [ ] **6. Stop pointless guest work.** In `app/shell.tsx` skip the server round trips when there is no account. Add a
+- [x] **6. Stop pointless guest work.** In `app/shell.tsx` skip the server round trips when there is no account. Add a
   small `getSyncAccountStateAction` (or reuse the account info already sent to `SidebarAccount`) returning
   `"signed-in" | "guest"`; guests do not call `getAppearanceAction` or `setAppearanceAction` at all, and
   `setAppearanceAction` / `setSyncedPrefsAction` stop swallowing errors silently (return `{ok:false}`, log a short
   message without values). Update the stale comments.
   - Done when: signed out on the hosted site, DevTools > Network shows no appearance or synced-prefs action calls, and
     the theme still changes and persists in that browser.
-- [ ] **7. Show a status when appearance sync fails.** If the read returns "error" or a push fails, show a one-line
+- [x] **7. Show a status when appearance sync fails.** If the read returns "error" or a push fails, show a one-line
   note in `app/profile/settings` (near the existing sync status, `app/components/sync-status.tsx`) such as "Theme sync
   is paused. It will retry." Use plain text, no emoji (`app/no-emoji.test.ts` checks).
   - Done when: simulating a failed action shows the note and it disappears after a successful retry.
-- [ ] **8. Tests.** Add or extend these files (all run with targeted `pnpm exec vitest run <file>`):
+- [x] **8. Tests.** Add or extend these files (all run with targeted `pnpm exec vitest run <file>`):
   - `apps/web/lib/ui-prefs.test.ts`: old plain format still reads; new record round trip; identical write leaves the
     stamp unchanged (use `DATABASE_URL=":memory:"` and `trigger` check as in the existing tests); an invalid value is
     sanitised.
@@ -266,17 +266,17 @@ Two-device scenarios (A and B are two browser profiles or one desktop app plus t
   reloaded, shows the same theme within one minute.
 - [ ] Change the custom colour theme on A. B gets the style and the palette together, never one without the other.
 - [ ] Change a setting on B 30 s after A changed a different one. Both end up on both devices (no lost update).
-- [ ] B's clock is 10 minutes behind A's. A change on B still reaches A.
+- [x] B's clock is 10 minutes behind A's. A change on B still reaches A.
 - [ ] B is offline, changes the theme, goes online. The newer change reaches A (it does not get overwritten by the
   older server value).
 - [ ] First sign-in on a new device or the hosted site: the account's theme wins over the browser's old default; an
   older local theme never replaces a newer cloud one.
 - [ ] Signed-out guest on the hosted site: theme and preferences stay in that browser only, nothing is sent to a
   server action, nothing appears on any other device or account.
-- [ ] AI settings (`ai_enabled`, `ai_model`, `ai_ollama_url`, `ai_provider`, `ai_cloud_consent`), the extension token,
+- [x] AI settings (`ai_enabled`, `ai_model`, `ai_ollama_url`, `ai_provider`, `ai_cloud_consent`), the extension token,
   the content feed URL and any key containing token, secret, key or password never reach the hub or another device
   (tests prove it on both the old worker path and the hub path).
-- [ ] Reader mode, haptics, pet choice and pane layout stay per device (or are synced as the user decided under
+- [x] Reader mode, haptics, pet choice and pane layout stay per device (or are synced as the user decided under
   *Open questions*).
 - [ ] When theme sync cannot read the server, the device keeps its own theme and shows a short note; it does not push
   its value over the cloud value.
@@ -289,6 +289,8 @@ Two-device scenarios (A and B are two browser profiles or one desktop app plus t
 
 - Q1 (for the user, before step 5): keep haptics and the pane layout synced, or per device as recommended?
   Default if no answer: per device.
+  - Answer (lead, 2026-11-15): per device, as recommended. `zd_haptics` and `habit-pane-layout` were removed from
+    `SYNCED_PREF_KEYS`.
 
 ## Pitfalls
 
@@ -310,7 +312,69 @@ Two-device scenarios (A and B are two browser profiles or one desktop app plus t
 
 ## Implementation notes
 
-(Implementer fills in: files changed, deviations from the plan and why, test results, *Found but not changed*.)
+Implemented 2026-11-15 together with plan 0078 on one worktree branch.
+
+Files changed (all under `apps/web/` unless noted):
+
+- `lib/theme.ts`: `Appearance.customTheme?: string | null` (the custom palette now travels with the style),
+  `parseCustomThemeValue`, `sameAppearance`, `APPEARANCE_AT_KEY` (`habit-appearance-at`), `AppearanceRecord`,
+  `appearanceDecision(local, localAt, server)` (pure: apply / push / none). `readStoredAppearance` reads
+  `habit-custom-theme`; `applyTheme` writes it when `customTheme` is given (left alone when undefined, as the theme
+  picker does).
+- `lib/ui-prefs.ts`: `appearance_prefs` is now `{"v":1,"at":<ms>,"prefs":{...}}`; `parseAppearanceRecord` also reads the
+  old plain shape (as `at: 0`). `getAppearanceRecord()`. `setAppearanceSetting(prefs, at?)` returns `false` and does not
+  write when the prefs are unchanged (no echo stamp) or the stored record is newer (server-side newest wins). An unknown
+  custom theme keeps the stored one. `setSyncedPrefsSetting` merges per key with the stored blob and skips no-op writes.
+- `lib/synced-prefs.ts`: removed `habit-custom-theme`, `habit-pane-layout`, `zd_haptics` from `SYNCED_PREF_KEYS`. Blob
+  gains optional `stamps`; new `stampOf`, `mergeSyncedPrefs`, `parseKnown`, `planPull`, `dirtyValues`,
+  `RELOAD_PREF_KEYS` (buddy only), `PREFS_APPLIED_EVENT`, `KNOWN_PREFS_KEY` (`zd-prefs-known`). Old blobs still parse.
+- `app/components/synced-prefs.tsx`: per-key pull ("stamp differs from the one last synced", so clock skew cannot block a
+  change; a local change not yet pushed wins), pushes only changed keys, reloads only for buddy changes (once per
+  session), re-pulls on `SYNC_PULLED_EVENT`, skips guests.
+- `app/shell.tsx`: new appearance sync: guest check first, then `appearanceDecision`; runs on mount, on visible, on
+  `SYNC_PULLED_EVENT` and every 60 s while visible; local changes (theme picker `THEME_EVENT`, custom colours
+  `CUSTOM_EVENT`) are stamped and pushed; changes applied from the server are flagged so they do not echo.
+- `lib/sync-manager.ts`: `SYNC_PULLED_EVENT = "habit-sync-pulled"`, dispatched after a `synced` run with `pulled > 0`.
+- `lib/hosted/sync.ts`: `syncBeforeRead` (same throttle map as `syncOnRequest`). `lib/hosted/refresh.ts`:
+  `hasAccountDb()` and `syncBeforeReadIfHosted()` (session lookup, failures logged without contents).
+- `app/actions.ts` (kept minimal, only the four existing settings actions plus one new one):
+  `getSyncAccountStateAction` (new), `getAppearanceAction` now returns `AppearanceRecord | null | "error"` and syncs
+  before reading on the hosted site, `setAppearanceAction(prefs, at)` returns `{ok}`, `getSyncedPrefsAction` syncs
+  before reading, `setSyncedPrefsAction` returns `{ok}`. Short `console.warn` messages without values on failure.
+- `lib/appearance-sync-state.ts` (new) and `app/components/appearance-sync-note.tsx` (new): the "Theme sync is paused.
+  It will retry." line.
+- `app/profile/settings/page.tsx`: shows the note in the Appearance block and updates its stale "not part of a backup"
+  sentence.
+- `lib/faq.ts` + regenerated `docs/faq.md`: the "does my theme sync" answer now lists haptics and pane layout as per
+  device and says a change shows within about a minute.
+- Tests: new `lib/sync-setting-keys.test.ts`; extended `lib/ui-prefs.test.ts`, `lib/synced-prefs.test.ts` (old
+  haptics/pane-layout cases moved to `habit-judge-lang`), `lib/hosted/sync.test.ts`, `lib/sync-e2e.test.ts` (case j),
+  `lib/hub/hub-e2e.test.ts`, `lib/sync-client.test.ts`.
+
+Deviations:
+
+- Step 3/8: `SYNC_PULLED_EVENT` is tested in the existing `lib/sync-client.test.ts` (it already tests `SyncManager`), not
+  a new `sync-manager.test.ts`, as the plan allows.
+- Step 3: the hosted test checks `syncBeforeRead`'s throttle directly (the action itself needs a session and Turso);
+  the action is a thin wrapper.
+- Step 6: `getSyncAccountStateAction` returns `"signed-in"` on the desktop app even when not signed in, because the
+  desktop always has a persistent local database (the theme record waits there until the device links).
+- Step 7: the note sits in Settings > Appearance, not inside `app/components/sync-status.tsx`, because another plan
+  (0080) is editing that file.
+- Step 5: no `serverNow` from the hub was available in the client path, so the fallback rule from the plan was used
+  ("accept an incoming per-key stamp that differs from the last applied one").
+
+Tests run (targeted only): `sync-setting-keys`, `ui-prefs`, `synced-prefs`, `hosted/sync`, `sync-client`,
+`sync-triggers`, `theme`, `sync-e2e`, `hub/hub-e2e`, `faq`, `no-emoji`: all pass. `pnpm -r typecheck` clean; eslint
+clean on the changed files. `pnpm check` and the two-browser checks were NOT run (the lead runs `pnpm check` once);
+the browser-only acceptance criteria are left unticked.
+
+Found but not changed:
+
+- The settings denylist is compiled into the SQL triggers of a shipped migration (`syncMigrationSql()`), so new
+  denylisted keys only reach the triggers on new installs. Older installs still queue them, but the engine's push filter
+  (`sync-engine.ts` line ~136, `isSyncableSettingKey`) drops them before upload. Same situation as plan 0067's keys.
+- Device clocks are still the tie breaker for the `appearance_prefs` row in the sync engine (out of scope, as planned).
 
 ## Review
 

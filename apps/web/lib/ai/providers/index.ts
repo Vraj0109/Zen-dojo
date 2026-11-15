@@ -4,13 +4,13 @@ import { agyProvider } from "./agy";
 import { claudeProvider } from "./claude";
 import { codexProvider } from "./codex";
 import { geminiProvider } from "./gemini";
+import { lmstudioProvider } from "./lmstudio";
 import { ollamaProvider } from "./ollama";
+import { AI_PROVIDER_IDS, type AiProviderId } from "@/lib/ui-prefs";
 
 // Plan 0067: who answers the chat. Server-only. The AI tools are in PROVIDERS below (cli.ts is their shared runner).
 
-// TODO(remove after ui-prefs lands): import { AiProviderId } from "@/lib/ui-prefs" instead of this copy.
-export type AiProviderId = "ollama" | "claude" | "agy" | "gemini" | "codex";
-export const AI_PROVIDER_IDS: readonly AiProviderId[] = ["ollama", "claude", "agy", "gemini", "codex"];
+export { AI_PROVIDER_IDS, type AiProviderId };
 
 export interface AiProvider {
   id: AiProviderId;
@@ -22,6 +22,7 @@ export interface AiProvider {
 
 const PROVIDERS: Partial<Record<AiProviderId, AiProvider>> = {
   ollama: ollamaProvider,
+  lmstudio: lmstudioProvider,
   claude: claudeProvider,
   agy: agyProvider,
   gemini: geminiProvider,

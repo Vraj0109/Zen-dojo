@@ -91,6 +91,9 @@ export interface SyncStatusResponse {
 
 const MAX_BACKOFF_MS = 15 * 60 * 1000; // 15 min cap
 
+/** Window event fired after a sync run pulled at least one row, so open pages can re-read (plan 0075). */
+export const SYNC_PULLED_EVENT = "habit-sync-pulled";
+
 /**
  * Client-driven Thin Poller Sync Manager.
  * Orchestrates periodic background polling, tab visibility checks,
@@ -702,6 +705,7 @@ export class SyncManager {
         }
 
         // State is "synced"
+        if (pulled > 0 && typeof window !== "undefined") window.dispatchEvent(new Event(SYNC_PULLED_EVENT));
         const now = Date.now();
         this.setStatusInfo({
           status: "synced",

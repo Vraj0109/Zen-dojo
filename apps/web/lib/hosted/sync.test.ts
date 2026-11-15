@@ -6,7 +6,9 @@ import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { MIGRATIONS } from "../db";
 import { linkAccount, runSync } from "../sync-engine";
-import { resetHostedSyncState, syncAfterMutation, syncOnRequest } from "./sync";
+import { resetHostedSyncState, syncAfterMutation, syncBeforeRead, syncOnRequest } from "./sync";
+import { DEFAULT_APPEARANCE, appearanceDecision } from "../theme";
+import { parseAppearanceRecord } from "../ui-prefs";
 import worker, {
   type Env,
   type D1Database,
@@ -225,5 +227,48 @@ describe("hosted sync (plan 0058 step 5)", () => {
     const db = await createLocalDb();
     const res = await syncOnRequest("gh:a", { db, fetch: async () => { throw new Error("down"); } });
     expect(res.state).toBe("error");
+  });
+});
+
+describe("sync before a settings read (plan 0075)", () => {
+  beforeEach(() => {
+    resetGuardState();
+    resetHostedSyncState();
+  });
+
+  it("syncs once, then a second read inside 20 s is throttled (shared with syncOnRequest)", async () => {
+    const { makeFetcher } = await setupWorker();
+    const db = await createLocalDb();
+    let t = 5_000_000;
+    const deps = { db, fetch: makeFetcher("gh:r"), now: () => t };
+    expect((await syncBeforeRead("gh:r", deps)).state).toBe("synced");
+    t += 10_000;
+    expect((await syncBeforeRead("gh:r", deps)).state).toBe("throttled");
+    expect((await syncOnRequest("gh:r", deps)).state).toBe("throttled");
+    t += 11_000;
+    expect((await syncBeforeRead("gh:r", deps)).state).toBe("synced");
+  });
+
+  it("first link does not overwrite a newer cloud appearance with an older local one", async () => {
+    const { makeFetcher } = await setupWorker();
+    const userId = "gh:theme";
+    const fetch = makeFetcher(userId);
+    const desktop = await createLocalDb();
+    await linkAccount(userId, desktop);
+    const cloud = { ...DEFAULT_APPEARANCE, mode: "dark" as const, style: "paper" as const };
+    await desktop.execute({ sql: "INSERT INTO settings (key, value) VALUES ('appearance_prefs', ?)", args: [JSON.stringify({ v: 1, at: 2_000, prefs: cloud })] });
+    await runSync({ db: desktop, fetch, getUserId: async () => userId });
+
+    // The browser has an old theme saved before sign-in (no stamp, or an older one).
+    const hosted = await createLocalDb();
+    expect((await syncBeforeRead(userId, { db: hosted, fetch })).state).toBe("synced");
+    const row = await hosted.execute("SELECT value FROM settings WHERE key = 'appearance_prefs'");
+    const record = parseAppearanceRecord(String(row.rows[0]?.[0]));
+    expect(record).toEqual({ prefs: cloud, at: 2_000 });
+    const oldLocal = { ...DEFAULT_APPEARANCE, mode: "light" as const };
+    expect(appearanceDecision(oldLocal, null, record)).toBe("apply");
+    expect(appearanceDecision(oldLocal, 1_000, record)).toBe("apply");
+    expect(appearanceDecision(oldLocal, 3_000, record)).toBe("push");
+    expect(appearanceDecision(oldLocal, 3_000, "error")).toBe("none");
   });
 });

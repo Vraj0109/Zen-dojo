@@ -15,14 +15,22 @@ const MAX_VALUE_CHARS = 8 * 1024;
 export const BUDDY_PREFS_STORAGE_KEY = "habit-buddy-prefs";
 
 /** localStorage keys that sync. The buddy key syncs only its plain fields (see BUDDY_SYNCED_FIELDS). */
+// Plan 0075: the custom colour theme moved into the appearance record (lib/ui-prefs.ts), so it arrives with its
+// style. Haptics and the pane layout are per device again (a phone switch or layout means nothing on a desktop).
 export const SYNCED_PREF_KEYS: readonly string[] = [
-  "habit-custom-theme", // custom colour theme
-  "habit-pane-layout", // problem page pane layout
   "habit-judge-lang", // preferred language in the editor
   "zen-dojo.solution-lang", // preferred language for reference solutions
-  "zd_haptics", // haptics switch
   BUDDY_PREFS_STORAGE_KEY, // buddy: avatar (built-in only), size, frequency
 ];
+
+/** Keys whose readers only look on mount, so a pulled change needs one reload. The others re-read on the next render. */
+export const RELOAD_PREF_KEYS: readonly string[] = [BUDDY_PREFS_STORAGE_KEY];
+
+/** Fired after pulled values were written to localStorage. */
+export const PREFS_APPLIED_EVENT = "habit-prefs-applied";
+
+/** localStorage: per key, the value and stamp this device last synced. */
+export const KNOWN_PREFS_KEY = "zd-prefs-known";
 
 /** Buddy fields that sync. Not the pet, imported image, AI lines consent or screen position. */
 const BUDDY_AVATARS = ["fox", "robot", "cat", "blob"];
@@ -37,7 +45,12 @@ export interface StorageLike {
 export interface SyncedPrefs {
   updatedAt: number;
   values: Record<string, string>;
+  /** Per key, when it last changed on the device that changed it. Old blobs have none: read as `updatedAt`. */
+  stamps?: Record<string, number>;
 }
+
+/** What this device last synced for one key. */
+export type KnownPrefs = Record<string, { v: string; s: number }>;
 
 function parseObj(raw: string | null): Record<string, unknown> | null {
   if (!raw) return null;
@@ -99,15 +112,79 @@ export function parseSyncedPrefs(json: string | null | undefined): SyncedPrefs |
     const clean = k === BUDDY_PREFS_STORAGE_KEY ? buddySyncedPart(v) : v;
     if (clean !== null) values[k] = clean;
   }
-  return { updatedAt: o.updatedAt, values };
+  const rawStamps = o.stamps;
+  if (!rawStamps || typeof rawStamps !== "object" || Array.isArray(rawStamps)) return { updatedAt: o.updatedAt, values };
+  const stamps: Record<string, number> = {};
+  for (const k of Object.keys(values)) {
+    const s = (rawStamps as Record<string, unknown>)[k];
+    stamps[k] = typeof s === "number" && Number.isFinite(s) && s >= 0 ? s : o.updatedAt;
+  }
+  return { updatedAt: o.updatedAt, values, stamps };
 }
 
 /** Builds the JSON to store; null when it is not acceptable (so the caller ignores it). */
-export function serializeSyncedPrefs(updatedAt: number, values: Record<string, string>): string | null {
-  const clean = parseSyncedPrefs(JSON.stringify({ updatedAt, values }));
+export function serializeSyncedPrefs(updatedAt: number, values: Record<string, string>, stamps?: Record<string, number>): string | null {
+  const clean = parseSyncedPrefs(JSON.stringify(stamps ? { updatedAt, values, stamps } : { updatedAt, values }));
   if (!clean) return null;
   const json = JSON.stringify(clean);
   return json.length <= MAX_SYNCED_PREFS_BYTES ? json : null;
+}
+
+/** The stamp of one key in a blob (old blobs: the blob's own time). */
+export const stampOf = (p: SyncedPrefs, key: string): number => p.stamps?.[key] ?? p.updatedAt;
+
+/**
+ * Server side: merges an incoming blob into the stored one per key, so a device that sends only the keys it changed
+ * (or has few keys set) never deletes the others' keys.
+ */
+export function mergeSyncedPrefs(stored: SyncedPrefs | null, incoming: SyncedPrefs): SyncedPrefs {
+  const values: Record<string, string> = { ...(stored?.values ?? {}) };
+  const stamps: Record<string, number> = {};
+  if (stored) for (const k of Object.keys(stored.values)) stamps[k] = stampOf(stored, k);
+  for (const [k, v] of Object.entries(incoming.values)) {
+    values[k] = v;
+    stamps[k] = stampOf(incoming, k);
+  }
+  return { updatedAt: Math.max(stored?.updatedAt ?? 0, incoming.updatedAt), values, stamps };
+}
+
+export function parseKnown(raw: string | null): KnownPrefs {
+  const o = parseObj(raw);
+  const out: KnownPrefs = {};
+  if (!o) return out;
+  for (const [k, e] of Object.entries(o)) {
+    if (!SYNCED_PREF_KEYS.includes(k) || !e || typeof e !== "object") continue;
+    const { v, s } = e as { v?: unknown; s?: unknown };
+    if (typeof v === "string" && typeof s === "number" && Number.isFinite(s)) out[k] = { v, s };
+  }
+  return out;
+}
+
+/**
+ * Which pulled values to apply. A key is taken when its stamp differs from the one this device last synced (not
+ * "is larger": the stamps come from other devices' clocks, so skew cannot block a change), unless this device changed
+ * the key since its last sync; then the local change wins and goes up on the next push.
+ */
+export function planPull(server: SyncedPrefs, known: KnownPrefs, current: Record<string, string>): { apply: Record<string, string>; known: KnownPrefs } {
+  const apply: Record<string, string> = {};
+  const next: KnownPrefs = { ...known };
+  for (const [k, v] of Object.entries(server.values)) {
+    const s = stampOf(server, k);
+    const mine = known[k];
+    if (mine && mine.s === s) continue;
+    const localDirty = mine ? current[k] !== undefined && current[k] !== mine.v : false;
+    if (localDirty) continue;
+    apply[k] = v;
+    next[k] = { v, s };
+  }
+  return { apply, known: next };
+}
+
+/** Keys whose local value differs from what this device last synced: these go up on the next push. */
+export function dirtyValues(snapshot: Record<string, string>, known: KnownPrefs): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(snapshot)) if (known[k]?.v !== v) out[k] = v;
+  return out;
 }
 
 /** Newest wins: pull only when the server copy is newer than the one this device last saw. */

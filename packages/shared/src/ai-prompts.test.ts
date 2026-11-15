@@ -1,5 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { buildChatMessages, clip, starterMessage, trimChatHistory, MAX_CHAT_MESSAGE_CHARS, MAX_CHAT_TOTAL_CHARS } from "./ai-prompts";
+import { buildChatMessages, clip, foldSystemIntoUser, starterMessage, trimChatHistory, MAX_CHAT_MESSAGE_CHARS, MAX_CHAT_TOTAL_CHARS, type ChatMessage } from "./ai-prompts";
+
+describe("foldSystemIntoUser (plan 0078)", () => {
+  it("moves the system text to the start of the first user message and keeps the history", () => {
+    const input: ChatMessage[] = [
+      { role: "system", content: "Guide with questions." },
+      { role: "user", content: "How do I start?" },
+      { role: "assistant", content: "What do you know?" },
+      { role: "user", content: "A map?" },
+    ];
+    const copy = JSON.parse(JSON.stringify(input));
+    const out = foldSystemIntoUser(input);
+    expect(out).toEqual([
+      { role: "user", content: "Guide with questions.\n\n---\n\nHow do I start?" },
+      { role: "assistant", content: "What do you know?" },
+      { role: "user", content: "A map?" },
+    ]);
+    expect(input).toEqual(copy);
+  });
+
+  it("returns the input unchanged without a system or a user message", () => {
+    const noSystem: ChatMessage[] = [{ role: "user", content: "hi" }];
+    expect(foldSystemIntoUser(noSystem)).toBe(noSystem);
+    const noUser: ChatMessage[] = [{ role: "system", content: "s" }, { role: "assistant", content: "a" }];
+    expect(foldSystemIntoUser(noUser)).toBe(noUser);
+  });
+});
 
 const problem = { title: "Two Sum", statement: ["Find two numbers."], constraints: ["n <= 1e5"], hints: ["Use a map.", "Store complements."] };
 const SECRET = "REFERENCE_SOLUTION_MARKER";

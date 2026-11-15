@@ -203,6 +203,43 @@ export interface Appearance {
   /** Bold the first letters of words in reading areas: off, subtle or strong */
   bionic: BionicSetting;
   motion: MotionSetting;
+  /**
+   * The custom colour theme (raw JSON from `habit-custom-theme`), travelling in the same record as `style` so the two
+   * arrive together (plan 0075). `null` means "off"; left out means "unknown" (old records, the theme picker).
+   */
+  customTheme?: string | null;
+}
+
+/** localStorage key: when this device last changed its appearance (ms, this device's clock). Plan 0075. */
+export const APPEARANCE_AT_KEY = "habit-appearance-at";
+const CUSTOM_THEME_STORAGE_KEY = "habit-custom-theme";
+const MAX_CUSTOM_THEME_CHARS = 4096;
+
+/** A custom theme value is kept only when it is a JSON object of a sane size. */
+export function parseCustomThemeValue(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "string" || value.length > MAX_CUSTOM_THEME_CHARS) return null;
+  try {
+    const v: unknown = JSON.parse(value);
+    return v && typeof v === "object" && !Array.isArray(v) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True when two appearance values look the same. An unknown custom theme on either side is not compared. */
+export function sameAppearance(a: Appearance, b: Appearance): boolean {
+  const base =
+    a.mode === b.mode &&
+    a.accent === b.accent &&
+    a.style === b.style &&
+    a.font === b.font &&
+    a.gamify === b.gamify &&
+    a.bionic === b.bionic &&
+    a.motion === b.motion;
+  if (!base) return false;
+  if (a.customTheme === undefined || b.customTheme === undefined) return true;
+  return a.customTheme === b.customTheme;
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -218,7 +255,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
 export function parseAppearance(raw: unknown): Appearance {
   if (!raw || typeof raw !== "object") return { ...DEFAULT_APPEARANCE };
   const obj = raw as Record<string, unknown>;
-  return {
+  const out: Appearance = {
     mode: parseMode(obj.mode),
     accent: parseAccent(obj.accent),
     style: parseStyle(obj.style),
@@ -227,6 +264,9 @@ export function parseAppearance(raw: unknown): Appearance {
     bionic: parseBionic(obj.bionic),
     motion: parseMotion(obj.motion),
   };
+  const custom = parseCustomThemeValue(obj.customTheme);
+  if (custom !== undefined) out.customTheme = custom;
+  return out;
 }
 
 export function readStoredAppearance(): Appearance | null {
@@ -238,12 +278,14 @@ export function readStoredAppearance(): Appearance | null {
     const gamify = localStorage.getItem(GAMIFY_KEY);
     const bionic = localStorage.getItem(BIONIC_KEY);
     const motion = localStorage.getItem(MOTION_KEY);
+    const custom = localStorage.getItem(CUSTOM_THEME_STORAGE_KEY);
 
-    if (mode === null && accent === null && style === null && font === null && gamify === null && bionic === null && motion === null) {
+    if (mode === null && accent === null && style === null && font === null && gamify === null && bionic === null && motion === null && custom === null) {
       return null;
     }
 
     return {
+      customTheme: parseCustomThemeValue(custom) ?? null,
       mode: parseMode(mode),
       accent: parseAccent(accent),
       style: parseStyle(style),
@@ -258,9 +300,11 @@ export function readStoredAppearance(): Appearance | null {
 }
 
 /** Browser only: saves the choice and applies it right away. */
-export function applyTheme({ mode, accent, style, font, gamify, bionic, motion }: Appearance): void {
+export function applyTheme({ mode, accent, style, font, gamify, bionic, motion, customTheme }: Appearance): void {
   const root = document.documentElement;
   try {
+    if (customTheme === null) localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY);
+    else if (typeof customTheme === "string") localStorage.setItem(CUSTOM_THEME_STORAGE_KEY, customTheme);
     localStorage.setItem(THEME_KEY, mode);
     localStorage.setItem(ACCENT_KEY, accent);
     localStorage.setItem(STYLE_KEY, style);
@@ -289,4 +333,27 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic, motion }
   else root.setAttribute("data-motion", "off");
   (window as unknown as { __habitCustom?: () => void }).__habitCustom?.();
   window.dispatchEvent(new Event(THEME_EVENT));
+}
+
+/** The appearance record kept on the server: the prefs and when they were chosen (ms). */
+export interface AppearanceRecord {
+  prefs: Appearance;
+  at: number;
+}
+
+/**
+ * What a device does after reading the server record (plan 0075). Newest wins by `at`; a failed read changes
+ * nothing; a device that has values but never stamped them (old install, first link) takes the server's.
+ */
+export function appearanceDecision(
+  local: Appearance | null,
+  localAt: number | null,
+  server: AppearanceRecord | null | "error",
+): "apply" | "push" | "none" {
+  if (server === "error") return "none";
+  if (!local) return server ? "apply" : "none";
+  if (!server) return "push";
+  if (sameAppearance(local, server.prefs)) return "none";
+  if (localAt === null) return "apply";
+  return localAt > server.at ? "push" : "apply";
 }

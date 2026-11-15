@@ -1,6 +1,7 @@
 import { aiError, byokTextStream, guardAi, guardByok, isByokRequest, isHostedAi, isResponse, textStream } from "@/lib/ai/guard";
 import { byokChat } from "@/lib/ai/byok";
 import { buildChat, parseChatRequest } from "@/lib/ai/context";
+import { activeModel, activeUrl, prepareMessages } from "@/lib/ai/active";
 
 // Plan 0067. Body: { problemId, messages: [{ role, content }], intent?, hintIndex?, revealSolution?, includeCode? }.
 // The server builds the system message and the problem context; the reference solution is added only when revealSolution is true.
@@ -22,13 +23,14 @@ export async function POST(req: Request) {
   const { getProvider } = await import("@/lib/ai/providers"); // dynamic: pulls in child_process, which the hosted build never loads
   const provider = getProvider(s.provider);
   if (provider.cloud && !s.consent.includes(provider.id)) return aiError(403, "consent_required");
-  if (!provider.cloud && !s.model) return aiError(400, "no_model");
+  if (!provider.cloud && !activeModel(s)) return aiError(400, "no_model");
   const built = await buildChat(body);
   if (!built.ok) return built.error === "no_code" ? aiError(400, "no_code") : aiError(404, "unknown_problem");
   const abort = new AbortController();
   req.signal.addEventListener("abort", () => abort.abort());
+  const messages = provider.cloud ? built.messages : prepareMessages(built.messages, s);
   return textStream(
-    provider.chat(built.messages, { signal: abort.signal, model: provider.cloud ? undefined : s.model, url: s.url }),
+    provider.chat(messages, { signal: abort.signal, model: provider.cloud ? undefined : activeModel(s), url: activeUrl(s) }),
     abort,
     provider.cloud ? `\n\n[${provider.label} stopped or could not answer. Is it installed and signed in? Try the Test button in Settings.]` : undefined,
   );
