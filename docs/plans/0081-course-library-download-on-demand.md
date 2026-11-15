@@ -1,8 +1,8 @@
 # 0081: Course library: extra courses in a separate repo, downloaded with one click
 
-- **Status:** ready (after 0079)
+- **Status:** implemented (partial: steps 1, 4 and 8 wait for the courses repo)
 - **Planned by:** Claude Code, 2026-11-14
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (subagent), 2026-11-15
 - **Spec:** none
 
 ## Goal
@@ -47,7 +47,7 @@ course and writes it into that user's own database.
 
 ## Steps
 
-- [ ] **1. Create the courses repo (user or lead, with the user's OK).** Public repo `Vraj0109/zen-dojo-courses`:
+- [ ] (waiting for the repo) **1. Create the courses repo (user or lead, with the user's OK).** Public repo `Vraj0109/zen-dojo-courses`:
   ```
   README.md            what the repo is, how to add a course, licence of the content
   catalog.json         the feed the app reads (generated, step 3)
@@ -58,14 +58,14 @@ course and writes it into that user's own database.
   same one the user chooses for the app's own lessons (ask the user if unsure).
   - Done when: the repo exists with the README and an empty `courses/`.
 
-- [ ] **2. Catalog format: extend the feed, stay backwards compatible.** In `packages/shared/src/packs.ts` add optional
+- [x] **2. Catalog format: extend the feed, stay backwards compatible.** In `packages/shared/src/packs.ts` add optional
   fields to `FeedPackEntry` and accept them in `validateFeed`: `category` (short string, e.g. "Languages",
   "Data", "Tools"), `bytes` (number), `items` (number of lessons + problems), `minAppVersion` (semver string). Old feeds
   without them stay valid. Unknown fields are ignored, as today. Add `DEFAULT_COURSE_CATALOG_URL =
   "https://raw.githubusercontent.com/Vraj0109/zen-dojo-courses/main/catalog.json"` in the same file.
   - Done when: `validateFeed` accepts both the old sample and a catalog with the new fields, and rejects wrong types.
 
-- [ ] **3. Catalog builder.** Add `scripts/courses-catalog.mjs` and the script `pnpm courses:catalog <repo-dir>` in the
+- [x] **3. Catalog builder.** Add `scripts/courses-catalog.mjs` and the script `pnpm courses:catalog <repo-dir>` in the
   root `package.json` (same `node --import ./scripts/lib/register-ts.mjs` pattern as `pack:check`). It reads every
   `courses/*.json`, runs the same `validatePack` as the app (fails with the pack's errors if any is invalid, or if any
   pack has a `target`), and writes `catalog.json` with, per course: `id`, `title`, `description`, `version` (the pack's
@@ -74,13 +74,13 @@ course and writes it into that user's own database.
   prints a one-line summary per course.
   - Done when: running it on a folder with the sample pack writes a valid catalog whose hash matches the file.
 
-- [ ] **4. Courses repo CI.** `.github/workflows/check.yml` in the courses repo, on push and pull request: check out
+- [ ] (waiting for the repo) **4. Courses repo CI.** `.github/workflows/check.yml` in the courses repo, on push and pull request: check out
   this app repo (`Vraj0109/Zen-dojo`, `main`), install with pnpm, run `pnpm courses:catalog <courses checkout>` and fail
   if `catalog.json` differs from the committed one (so the catalog is never stale and every pack is valid). Document
   in the courses README: "edit or add `courses/<id>.json`, bump its `revision`, run `pnpm courses:catalog`, commit both".
   - Done when: a push with an invalid pack or a stale catalog fails the workflow.
 
-- [ ] **5. Server: read the library.** In `apps/web/lib/packs.ts` add `getCourseLibrary()`: fetch
+- [x] **5. Server: read the library.** In `apps/web/lib/packs.ts` add `getCourseLibrary()`: fetch
   `DEFAULT_COURSE_CATALOG_URL` with the existing safe `fetchText` (http(s) only, 3 redirects, 2 MB, 15 s), validate it,
   keep the last good catalog in memory for 1 hour and in `settings` under `course_catalog_cache` (JSON, so a failed
   fetch still shows the last list). Return each entry with `state`: `"available"`, `"installed"` or
@@ -93,12 +93,12 @@ course and writes it into that user's own database.
   - Done when: unit tests (step 8) cover available / installed / update / tooNew / offline-with-cache / no-cache, and a
     tampered pack (hash mismatch) is refused.
 
-- [ ] **6. Server actions.** In `apps/web/app/actions.ts` add `installLibraryCourseAction(formData)` (reads `id`,
+- [x] **6. Server actions.** In `apps/web/app/actions.ts` add `installLibraryCourseAction(formData)` (reads `id`,
   calls `installLibraryCourse`, then `refresh()`); removing reuses the existing remove-pack action. Errors come back as
   plain text the page shows next to the card. Forms must work without JS.
   - Done when: posting the form installs the pilot course and Learn shows it as a course card.
 
-- [ ] **7. Learn page: the Course library section.** In `apps/web/app/study/page.tsx`, below the existing course
+- [x] **7. Learn page: the Course library section.** In `apps/web/app/study/page.tsx`, below the existing course
   cards, add a section "Course library" in its own `<Suspense>` (fallback: a short skeleton) so the rest of Learn never
   waits for GitHub. Intro line: "More courses you can add. Each one downloads once and then works offline." Group cards
   by `category`; each card shows title, description, item count, size ("1.2 MB"), and a button:
@@ -112,12 +112,12 @@ course and writes it into that user's own database.
   Installed library courses keep appearing among the normal course cards (that already works through `listPacks`).
   - Done when: the section renders in all four states and on a phone width without horizontal scroll.
 
-- [ ] **8. Pilot course.** Put one small, real course in the courses repo as `courses/<id>.json` (suggested: the
+- [ ] (waiting for the repo) **8. Pilot course.** Put one small, real course in the courses repo as `courses/<id>.json` (suggested: the
   existing `docs/examples/sample-pack.json` rewritten as a short real course the user picks; see Open questions), with
   `revision: "1.0.0"` and a `category`. Run `pnpm pack:check` and `pnpm courses:catalog`, commit both files there.
   - Done when: the live catalog URL returns the catalog and the app can download the course from it.
 
-- [ ] **9. Tests.**
+- [x] **9. Tests.**
   - `packages/shared/src/packs.test.ts`: new feed fields valid and invalid; old feeds still valid.
   - `apps/web/lib/packs.test.ts` (`DATABASE_URL=":memory:"`, stub `fetch`): `getCourseLibrary` states, memory and
     settings cache, offline fallback; `installLibraryCourse` by id, unknown id refused, missing or wrong sha256 refused,
@@ -125,7 +125,7 @@ course and writes it into that user's own database.
   - A test for `scripts/courses-catalog.mjs` on a temp folder (valid pack, invalid pack, pack with `target`).
   - Done when: these pass with `pnpm exec vitest run <file>`.
 
-- [ ] **10. Docs.** `docs/content-packs.md`: a "Course library" section (repo, catalog fields, how to publish a course,
+- [x] **10. Docs.** `docs/content-packs.md`: a "Course library" section (repo, catalog fields, how to publish a course,
   `pnpm courses:catalog`). `apps/web/lib/faq.ts`: "Where do extra courses come from and do they need internet?"
   - Done when: both explain the flow in plain words.
 
@@ -151,7 +151,47 @@ course and writes it into that user's own database.
 
 ## Implementation notes
 
-(Implementer fills in: files changed, deviations from the plan and why, test results, *Found but not changed*.)
+Steps 2, 3, 5, 6, 7, 9 and 10 are done. Steps 1, 4 and 8 wait for the repo `Vraj0109/zen-dojo-courses`, which does not
+exist yet (its catalog URL answers 404). A ready-to-copy starter is in `docs/examples/courses-repo/`: `README.md`,
+`.github/workflows/check.yml` (step 4), `catalog.json` (empty, exactly what `pnpm courses:catalog` writes for an empty
+folder, so CI passes on the first push) and `courses/.gitkeep`. The licence line in that README is a placeholder (open
+question 2).
+
+Files changed:
+- `packages/shared/src/packs.ts`: `FeedPackEntry` gets optional `category`, `bytes`, `items`, `minAppVersion`
+  (validated by `validateFeed`); `Pack` gets optional `category` (validated by `validatePack`);
+  `DEFAULT_COURSE_CATALOG_URL`.
+- `scripts/courses-catalog.mjs`, root `package.json` (`courses:catalog`).
+- `apps/web/lib/packs.ts`: `getCourseLibrary`, `installLibraryCourse`, `APP_VERSION`, `resetCourseLibraryMemo`,
+  types `LibraryCourse`, `CourseLibrary`. `installFeedPack` now also refuses a pack whose id differs from the entry's
+  `id` when the entry has one (the Settings feed updater passes no id, so it is unchanged).
+- `apps/web/app/actions.ts`: appended `installLibraryCourseAction`.
+- `apps/web/app/study/library-download.tsx` (new client form), `apps/web/app/study/page.tsx` (Course library section
+  in its own `<Suspense>` with a skeleton).
+- `docs/content-packs.md` (Course library section), `apps/web/lib/faq.ts` (`content-library`), `docs/faq.md`
+  (regenerated with `pnpm faq:build`).
+- Tests: `packages/shared/src/packs.test.ts` (3 new), `apps/web/lib/course-library.test.ts` (new, 6),
+  `apps/web/lib/courses-catalog-script.test.ts` (new, 3).
+
+Deviations:
+- `installLibraryCourseAction` takes `(prev, formData)` instead of `(formData)` so it works with `useActionState` and
+  can show the error next to the card. The form still posts without JS.
+- The app version comes from `apps/desktop/package.json` (imported as JSON in `lib/packs.ts`); there was no other
+  version source in the web app. `tooNew` compares with `compareRevisions`.
+- A catalog entry for an installed pack with no `revision` counts the installed one as "0", so any library version
+  shows Update.
+- The script also requires the file name to equal the pack id, so the URL in the catalog always matches the id.
+- The script test lives in `apps/web/lib/` because `packages/shared` has no Node types.
+- Error text for a hash mismatch is reworded to "does not match the library's checksum".
+
+Tests run (all pass): `pnpm exec vitest run packages/shared/src/packs.test.ts` (17),
+`apps/web/lib/course-library.test.ts apps/web/lib/packs-v2.test.ts apps/web/lib/packs.test.ts` (26),
+`apps/web/lib/courses-catalog-script.test.ts` (3), `apps/web/lib/faq.test.ts` (5); `pnpm -r typecheck` clean.
+Not run: `pnpm check` (left for the reviewer). The Learn page was not opened in a browser; the four states are covered
+by unit tests of `getCourseLibrary`, not by a UI check.
+
+Found but not changed: `checkFeedUpdates` marks any version that differs from the installed one as an update, even an
+older one (`compareRevisions(...) > 0 || p.version !== installedRevision`).
 
 ## Review
 

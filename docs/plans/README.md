@@ -163,4 +163,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0078 | [LM Studio (and other local servers) and "use my own fine-tuned model"](0078-lm-studio-and-own-model.md) | ready |
 | 0079 | [Desktop sign-in after the move to Vercel: hand-off page, server-side PKCE, clear errors (priority)](0079-desktop-sign-in-after-vercel-move.md) | done |
 | 0080 | [Sync pill shows one loader, not two](0080-sync-pill-one-loader.md) | ready |
-| 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | ready (after 0079) |
+| 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | implemented (partial: steps 1, 4, 8 wait for the courses repo) |
