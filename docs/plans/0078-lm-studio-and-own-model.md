@@ -1,8 +1,8 @@
 # 0078: LM Studio (and other local servers) and "use my own fine-tuned model"
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-14
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (implementer agent), 2026-11-15
 - **Spec:** `SPEC.md` section 6.6 and the provider table around line 220 (OpenAI-compatible local servers: Ollama, LM Studio, llama.cpp server)
 - **Estimate at this project's pace:** one agent, about half a day
 
@@ -81,33 +81,33 @@ When no local server is running nothing breaks: the AI UI shows the same "not ru
 Targeted tests only: `pnpm exec vitest run <files>` and `pnpm -r typecheck`. On Windows PowerShell use `pnpm.cmd`. Do not run `pnpm test`. Run `pnpm check` once at the end
 (it already runs the tests). Do not commit unless the user asks.
 
-- [ ] **1. Settings keys.** In `apps/web/lib/ui-prefs.ts`: add `"lmstudio"` to `AI_PROVIDER_IDS`; add constants `AI_LMSTUDIO_URL_KEY = "ai_lmstudio_url"`,
+- [x] **1. Settings keys.** In `apps/web/lib/ui-prefs.ts`: add `"lmstudio"` to `AI_PROVIDER_IDS`; add constants `AI_LMSTUDIO_URL_KEY = "ai_lmstudio_url"`,
   `AI_LMSTUDIO_MODEL_KEY = "ai_lmstudio_model"`, `AI_FOLD_SYSTEM_KEY = "ai_fold_system"`; extend `AiSettings` with `lmstudioUrl: string`, `lmstudioModel: string`,
   `foldSystem: boolean`; read them in `getAiSettings` (defaults `http://127.0.0.1:1234`, `""`, `false`; an invalid saved model id reads as `""`) and write them in `setAiSettings`
   (validate the model id with the regex in "Design"; cut the URL at 200 characters like the Ollama one). Add the three keys to `SYNC_SETTINGS_DENYLIST` in
   `apps/web/lib/sync-triggers.ts:52`. In `apps/web/lib/ai/providers/index.ts` delete the local `AiProviderId` and `AI_PROVIDER_IDS` copies and the TODO, and import them from `@/lib/ui-prefs`.
   - Done when: `pnpm exec vitest run apps/web/lib/ui-prefs.test.ts apps/web/lib/sync-triggers.test.ts` passes with new cases: defaults, round trip of all three values, a bad model id is not saved,
     and the three new keys are absent from the queued sync settings (extend the two existing lists at `sync-triggers.test.ts` ~56 and ~240).
-- [ ] **2. Fold helper and active-value helpers.** Add `foldSystemIntoUser` to `packages/shared/src/ai-prompts.ts` (exported from the package index like its neighbours).
+- [x] **2. Fold helper and active-value helpers.** Add `foldSystemIntoUser` to `packages/shared/src/ai-prompts.ts` (exported from the package index like its neighbours).
   Create `apps/web/lib/ai/active.ts` (no `server-only` needed, pure) exporting `activeModel(s: AiSettings): string`, `activeUrl(s: AiSettings): string` and
   `prepareMessages(messages: ChatMessage[], s: AiSettings): ChatMessage[]` (calls `foldSystemIntoUser` only when `s.foldSystem`).
   - Done when: `pnpm exec vitest run packages/shared/src/ai-prompts.test.ts apps/web/lib/ai/active.test.ts` passes. Cases: fold with one system plus a history of three messages; no system message;
     no user message; the input array is not changed; `activeModel`/`activeUrl` return the Ollama values for `ollama`, the LM Studio values for `lmstudio`; `prepareMessages` is the identity when `foldSystem` is false.
-- [ ] **3. Local OpenAI-style client.** Create `apps/web/lib/ai/openai-local.ts` (`import "server-only"`). Reuse `assertLoopback` from `./ollama`. Export
+- [x] **3. Local OpenAI-style client.** Create `apps/web/lib/ai/openai-local.ts` (`import "server-only"`). Reuse `assertLoopback` from `./ollama`. Export
   `DEFAULT_LMSTUDIO_URL = "http://127.0.0.1:1234"`, `validLocalModelId(id)` (the regex above), `lmStatus(base)` (GET `/v1/models`, 4 s timeout, response capped at 2 MB like `ollama.ts`,
   returns `{ running: true, models: string[] } | { running: false }`; embedding ids removed), and `lmChat(messages, model, base, signal)` (async generator).
   `lmChat` POSTs `{ model, messages, stream: true }` to `/v1/chat/completions`, parses the SSE stream (lines may be split across chunks; ignore blank lines, comment lines and `data: [DONE]`;
   take only `choices[0].delta.content` strings; skip bad JSON lines), throws a generic `Error` (never including the response body) on a non-2xx status or an `error` object, and stops on `[DONE]`.
   - Done when: `pnpm exec vitest run apps/web/lib/ai/openai-local.test.ts` passes (stubbed `fetch`): status ok with two models and one embedding model, status down, rejects `http://example.com` and
     `http://192.168.1.5:1234`, bad model id, a stream split mid-line, `reasoning_content` ignored, `[DONE]` ends the stream, non-2xx throws, abort stops the generator.
-- [ ] **4. Provider.** Create `apps/web/lib/ai/providers/lmstudio.ts` exporting `lmstudioProvider: AiProvider` (`id: "lmstudio"`, `label: "LM Studio or another local server"`, `cloud: false`).
+- [x] **4. Provider.** Create `apps/web/lib/ai/providers/lmstudio.ts` exporting `lmstudioProvider: AiProvider` (`id: "lmstudio"`, `label: "LM Studio or another local server"`, `cloud: false`).
   `detect()` returns `{ found: true, detail: "<n> models available" }` when `lmStatus` is running and has at least one model, `{ found: false, detail: "No local server found" }` when it is down,
   and `{ found: false, detail: "Server is running but no model is available" }` when it has none. `chat()` throws `"No model is chosen."` without `opts.model`, otherwise yields from `lmChat`
   with `opts.url ?? DEFAULT_LMSTUDIO_URL`. Register it in `providers/index.ts` (`PROVIDERS` and the id list).
   Note: `detect()` has no way to read the saved URL (its signature takes no settings). Keep it that way and have it probe the default URL **and**, if different, the saved one: read the saved value
   inside `detect()` with `getAiSettings()` (it is server-only already) so a custom port is honoured.
   - Done when: `pnpm exec vitest run apps/web/lib/ai/providers` passes with new cases for detect (found, down, running with no models) and chat (streams, no model throws).
-- [ ] **5. Routes.** Update the three routes that call `provider.chat`:
+- [x] **5. Routes.** Update the three routes that call `provider.chat`:
   `app/api/ai/chat/route.ts`, `app/api/ai/buddy/route.ts`, `app/api/ai/test/route.ts`. Replace `model: provider.cloud ? undefined : s.model, url: s.url` with
   `model: provider.cloud ? undefined : activeModel(s), url: activeUrl(s)`, wrap the built messages in `prepareMessages(..., s)` for local providers only (cloud tools do not need the fold),
   and change the `no_model` checks to use `activeModel(s)`. In `app/api/ai/status/route.ts` add `lmstudio: await lmStatus(s.lmstudioUrl)` (in the existing `Promise.all`) and return
@@ -116,7 +116,7 @@ Targeted tests only: `pnpm exec vitest run <files>` and `pnpm -r typecheck`. On 
   - Done when: `pnpm exec vitest run apps/web/app/api/ai` passes with new cases: `provider = lmstudio` streams through a stubbed LM Studio; `no_model` when `lmstudioModel` is empty;
     with `foldSystem` on, the stubbed server receives **no** `system` message and the first user message starts with the app's instructions; with it off the system message is unchanged;
     a non-loopback `lmstudioUrl` is a 400; the hosted site still answers 404; `status` includes `lmstudio`; the existing Ollama and cloud cases still pass.
-- [ ] **6. Settings screen and labels.** In `apps/web/app/profile/settings/ai-settings.tsx`:
+- [x] **6. Settings screen and labels.** In `apps/web/app/profile/settings/ai-settings.tsx`:
   add `"lmstudio"` to `ProviderId`; extend `Info` with `lmstudio?: { running: boolean; models?: string[] }`, `lmstudioModel?: string`, `foldSystem?: boolean`.
   In the "Answers from" list show the LM Studio row **always** (not only when found) with the caption "Runs on your computer. Nothing leaves it." and the text
   "Not running" or "Running, <n> models". When it is the chosen row show: a model `<select>` filled from `lmstudio.models` with a **Use this model** button (saves `lmstudioModel`),
@@ -133,7 +133,7 @@ Targeted tests only: `pnpm exec vitest run <files>` and `pnpm -r typecheck`. On 
   (the `providerId` expectation list gains `"lmstudio"`).
   - Done when: `pnpm -r typecheck` and `pnpm exec vitest run packages/shared/src/ai-install.test.ts` pass, eslint is clean on the changed files, and in the running app (step 8) the LM Studio row, picker,
     address field and the checkbox all work.
-- [ ] **7. Docs.** `docs/local-ai.md`: change "What leaves your computer" to "Ollama or LM Studio on this computer"; add a section **LM Studio or another local server** (start the server, default address,
+- [x] **7. Docs.** `docs/local-ai.md`: change "What leaves your computer" to "Ollama or LM Studio on this computer"; add a section **LM Studio or another local server** (start the server, default address,
   pick a model, any OpenAI-compatible server on a loopback address works, no key); add a section **Use your own fine-tuned model** with both paths (Ollama: `ollama create <name> -f Modelfile`, then pick
   "Installed: <name>"; LM Studio: copy the GGUF to `%USERPROFILE%\.lmstudio\models\<publisher>\<model>\`, load it, pick it) that explains the **"My model ignores the app's
   instructions"** setting, why it exists (no system prompt in training). Update the same facts in `docs/faq.md` (AI section, including the
@@ -151,12 +151,12 @@ Targeted tests only: `pnpm exec vitest run <files>` and `pnpm -r typecheck`. On 
 
 - [ ] Settings > AI shows **LM Studio or another local server** next to Ollama. With the server stopped it says "Not running" and shows how to start it; with it running it lists the models.
 - [ ] After choosing it and a model, **Test** shows a reply, and the Ask AI tab on a problem, the lesson chat, Buddy lines and the portfolio summary all answer through it.
-- [ ] Nothing in this feature talks to anything except `127.0.0.1`, `localhost` or `::1`: a non-loopback address is rejected by the settings route (400 `not_loopback`) and by the client. No key is asked for or stored.
+- [x] Nothing in this feature talks to anything except `127.0.0.1`, `localhost` or `::1`: a non-loopback address is rejected by the settings route (400 `not_loopback`) and by the client. No key is asked for or stored.
 - [ ] A model imported into Ollama appears as "Installed: <name>" and can be chosen (verify with any installed model if the fine-tuned one is not available).
-- [ ] With **"My model ignores the app's instructions"** on, the request sent to the model has no `system` message and the first user message begins with the app's instructions; with it off, requests are unchanged.
-- [ ] The new settings never sync: they are in the denylist and absent from the queued sync settings.
+- [x] With **"My model ignores the app's instructions"** on, the request sent to the model has no `system` message and the first user message begins with the app's instructions; with it off, requests are unchanged.
+- [x] The new settings never sync: they are in the denylist and absent from the queued sync settings.
 - [ ] The hosted site and phones still show no local-AI UI and the routes still return 404.
-- [ ] `docs/local-ai.md` and `docs/faq.md` explain LM Studio and the fine-tuned-model path.
+- [x] `docs/local-ai.md` and `docs/faq.md` explain LM Studio and the fine-tuned-model path.
 - [ ] `pnpm check` passes.
 - [ ] No changes outside the files named above (or listed in *Implementation notes*).
 
@@ -177,7 +177,62 @@ Targeted tests only: `pnpm exec vitest run <files>` and `pnpm -r typecheck`. On 
 
 ## Implementation notes
 
-(Implementer fills in: files changed, deviations from the plan and why, test results, results of step 8, *Found but not changed*.)
+Implemented 2026-11-15, after plan 0075, on the same worktree branch.
+
+Files changed:
+
+- `apps/web/lib/ui-prefs.ts`: `lmstudio` in `AI_PROVIDER_IDS`; `AI_LMSTUDIO_URL_KEY`, `AI_LMSTUDIO_MODEL_KEY`,
+  `AI_FOLD_SYSTEM_KEY`, `AI_LMSTUDIO_DEFAULT_URL`, `LOCAL_MODEL_ID_RE`; `AiSettings` gains `lmstudioUrl`,
+  `lmstudioModel`, `foldSystem` (read and written with the validation from *Design*).
+- `apps/web/lib/sync-triggers.ts`: the three keys added to `SYNC_SETTINGS_DENYLIST`; `sync-triggers.test.ts` lists
+  extended (both places). Also covered by `lib/sync-setting-keys.test.ts` from plan 0075.
+- `packages/shared/src/ai-prompts.ts`: `foldSystemIntoUser` (exported through the existing `export *`), tests in
+  `ai-prompts.test.ts`.
+- `apps/web/lib/ai/active.ts` (+ `active.test.ts`): `activeModel`, `activeUrl`, `prepareMessages`.
+- `apps/web/lib/ai/openai-local.ts` (+ `openai-local.test.ts`): `DEFAULT_LMSTUDIO_URL`, `validLocalModelId`,
+  `lmStatus`, `lmChat` (SSE parser, `[DONE]`, reasoning ignored, generic errors without bodies, abort).
+- `apps/web/lib/ai/providers/lmstudio.ts`, registered in `providers/index.ts`; the local `AiProviderId` /
+  `AI_PROVIDER_IDS` copy and the TODO were removed (re-exported from `@/lib/ui-prefs`). `providers.test.ts` extended.
+- Routes: `app/api/ai/chat`, `buddy`, `test` use `activeModel`/`activeUrl` and `prepareMessages` (local providers
+  only); `status` returns `lmstudio`, `lmstudioModel`, `lmstudioUrl`, `foldSystem`; `settings` accepts and validates
+  `lmstudioUrl` (400 `not_loopback`), `lmstudioModel` (400 `bad_model`), `foldSystem` (400 `bad_request`). New test file
+  `app/api/ai/lmstudio-routes.test.ts` (real provider, stubbed LM Studio).
+- UI: `app/profile/settings/ai-settings.tsx` (LM Studio row always listed with "Not running" / "Running, N models",
+  model select + Use this model, address field with a plain not_loopback message, how-to line, Test button, fold
+  checkbox and the fine-tuned-model note under both local engines); `app/profile/settings/page.tsx`
+  (`PROVIDER_LABEL.lmstudio`, Buddy `cloud` flag treats lmstudio as local); `app/dsa/ai-chat.tsx` (`LOCAL_PROVIDERS`
+  set for the cloud fallback and label; `lesson-ai.tsx` reuses `AiChat`, so it needed no change).
+- `packages/shared/src/ai-install.ts` (+ test): `lmstudio` item.
+- Docs: `docs/local-ai.md` (what leaves the computer, LM Studio section, own fine-tuned model section, Answers from
+  list), `apps/web/lib/faq.ts` (new `ai-lmstudio` and `ai-own-model` entries, never-synced list) and regenerated
+  `docs/faq.md` (`pnpm faq:build`).
+
+Deviations:
+
+- `test` route: cloud tools now get `model: undefined` (before: the Ollama model was passed to every provider); the
+  model and address come from the provider being tested, not only the saved one.
+- `status` also returns `lmstudioUrl` so the address field can show the saved value.
+- `ai-install.ts`: the LM Studio install commands (`winget install ElementLabs.LMStudio`, `brew install --cask lm-studio`,
+  Linux AppImage) were NOT re-read from lmstudio.ai on the day (no web access in this session). The file comment says
+  so; check them against the download page before release.
+- The chat for a problem, lessons and the portfolio summary all go through `/api/ai/chat` (`lib/ai/context.ts`), so
+  the three routes cover every AI feature.
+
+Tests run (targeted): `apps/web/lib/ai`, `apps/web/app/api/ai`, `packages/shared/src/ai-prompts.test.ts`,
+`packages/shared/src/ai-install.test.ts`, `apps/web/lib/ui-prefs.test.ts`, `apps/web/lib/sync-triggers.test.ts`,
+`apps/web/lib/faq.test.ts`, `apps/web/app/no-emoji.test.ts`: all pass. `pnpm -r typecheck` clean, eslint clean on
+the changed files.
+
+Step 8 (real LM Studio check): NOT done. This implementer agent was limited to targeted tests and typecheck and did
+not start LM Studio or `pnpm dev`. Not verified: server stopped, server running with a model, Stop in the chat, and the
+UI rejection of a non-loopback address in the running app (the route rejection is covered by tests). The lead should do
+step 8 and step 9 (`pnpm check`).
+
+Found but not changed:
+
+- `assertLoopback` messages still mention Ollama (never shown to the user, as the plan notes).
+- As in plan 0075: denylist changes reach the SQL triggers only on new installs; the engine's push filter covers older
+  installs.
 
 ## Review
 

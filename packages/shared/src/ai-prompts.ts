@@ -7,6 +7,24 @@ export interface ChatMessage {
   content: string;
 }
 
+/**
+ * Plan 0078: for models trained without a system prompt (their template drops it). Removes every system message and
+ * puts their text at the start of the first user message. No system or no user message: the input is returned as is.
+ * Never mutates the input.
+ */
+export function foldSystemIntoUser(messages: ChatMessage[]): ChatMessage[] {
+  const system = messages.filter((m) => m.role === "system");
+  const firstUser = messages.findIndex((m) => m.role === "user");
+  if (system.length === 0 || firstUser < 0) return messages;
+  const text = system.map((m) => m.content).join("\n\n");
+  const out: ChatMessage[] = [];
+  messages.forEach((m, i) => {
+    if (m.role === "system") return;
+    out.push(i === firstUser ? { role: "user", content: `${text}\n\n---\n\n${m.content}` } : { ...m });
+  });
+  return out;
+}
+
 export interface PromptProblem {
   title: string;
   statement: string[];

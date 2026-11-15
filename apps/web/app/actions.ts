@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "@/lib/hosted/refresh";
+import { hasAccountDb, refresh, syncBeforeReadIfHosted } from "@/lib/hosted/refresh";
 import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
 import { getProblemDetail, markSolvedManually, undoSolve } from "@/lib/dsa";
 import { getSavedSolutions, saveNote, saveSolutionFor, type SavedSolution, type SolutionLang } from "@/lib/notes";
@@ -19,8 +19,8 @@ import { addCustomReading, deleteCustomReading, setReadingDone } from "@/lib/rea
 import { clearStruggles, logStruggle } from "@/lib/struggles";
 import { logFocus } from "@/lib/timer";
 import { setInterviewDate } from "@/lib/revise";
-import { getAppearanceSetting, getSyncedPrefsSetting, setAppearanceSetting, setBuddySettings, setSimpleMode, setSyncedPrefsSetting } from "@/lib/ui-prefs";
-import type { Appearance } from "@/lib/theme";
+import { getAppearanceRecord, getSyncedPrefsSetting, setAppearanceSetting, setBuddySettings, setSimpleMode, setSyncedPrefsSetting } from "@/lib/ui-prefs";
+import type { Appearance, AppearanceRecord } from "@/lib/theme";
 import type { AdhdPacing, BuddyMode } from "@habit/shared";
 
 // Local mode: single user, no auth yet. Add an auth check here before exposing the app
@@ -151,20 +151,30 @@ export async function setSimpleModeAction(formData: FormData) {
   refresh();
 }
 
-export async function getAppearanceAction(): Promise<Appearance | null> {
+/** "guest" on the hosted site when signed out (nothing is saved for them); "signed-in" otherwise, desktop included. */
+export async function getSyncAccountStateAction(): Promise<"signed-in" | "guest"> {
+  return (await hasAccountDb()) ? "signed-in" : "guest";
+}
+
+/** The saved appearance and when it was chosen; null when none; "error" when the read failed (plan 0075). */
+export async function getAppearanceAction(): Promise<AppearanceRecord | null | "error"> {
   try {
-    return await getAppearanceSetting();
+    await syncBeforeReadIfHosted();
+    return await getAppearanceRecord();
   } catch {
-    // Hosted site, signed out: there is no database yet. The theme stays in this browser.
-    return null;
+    console.warn("appearance read failed");
+    return "error";
   }
 }
 
-export async function setAppearanceAction(prefs: Appearance): Promise<void> {
+/** Saves the appearance chosen at `at` (ms). Older or identical values are skipped by the setter. */
+export async function setAppearanceAction(prefs: Appearance, at: number): Promise<{ ok: boolean }> {
   try {
-    await setAppearanceSetting(prefs);
+    await setAppearanceSetting(prefs, at);
+    return { ok: true };
   } catch {
-    // Same as above: nothing to save to until the visitor signs in.
+    console.warn("appearance save failed");
+    return { ok: false };
   }
 }
 
@@ -377,18 +387,22 @@ export async function setReaderModeAction(formData: FormData) {
 /** Browser preferences that sync between devices (JSON string), or null when none or signed out. */
 export async function getSyncedPrefsAction(): Promise<string | null> {
   try {
+    await syncBeforeReadIfHosted();
     return await getSyncedPrefsSetting();
   } catch {
+    console.warn("synced prefs read failed");
     return null;
   }
 }
 
 /** Saves the synced browser preferences. Invalid, oversized or off-allowlist input is ignored. Never throws. */
-export async function setSyncedPrefsAction(json: string): Promise<void> {
+export async function setSyncedPrefsAction(json: string): Promise<{ ok: boolean }> {
   try {
-    if (typeof json !== "string") return;
+    if (typeof json !== "string") return { ok: false };
     await setSyncedPrefsSetting(json);
+    return { ok: true };
   } catch {
-    // signed out on the hosted site: nothing to save to
+    console.warn("synced prefs save failed");
+    return { ok: false };
   }
 }

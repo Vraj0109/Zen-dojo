@@ -157,10 +157,10 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0072 | [iOS and iPad app: same Capacitor project, iPad layout and keyboard, TestFlight and App Store](0072-ios-and-ipad-app.md) | ready (after 0071 step 5 and your choice in 0070) |
 | 0073 | [Move the sync Worker and D1 to Vercel and Turso: hub database, D1 shim, /hub routes, clients, cutover (four agents)](0073-move-from-cloudflare-to-vercel.md) | ready |
 | 0074 | [Mobile practice flow: filter sheet, Practice link at the end of a topic, open at the first question](0074-mobile-practice-flow-fixes.md) | ready |
-| 0075 | [Settings and theme sync fix: why changes do not reach other devices, and the fixes](0075-settings-and-theme-sync-fix.md) | ready |
+| 0075 | [Settings and theme sync fix: why changes do not reach other devices, and the fixes](0075-settings-and-theme-sync-fix.md) | implemented |
 | 0076 | [Several solutions per problem, brute force to optimal: model, tooling and UI](0076-multi-approach-solutions-model-and-ui.md) | ready |
 | 0077 | [Solutions audit and authoring batches (optimal, multi-approach)](0077-solutions-audit-and-authoring-batches.md) | ready (after 0076) |
-| 0078 | [LM Studio (and other local servers) and "use my own fine-tuned model"](0078-lm-studio-and-own-model.md) | ready |
+| 0078 | [LM Studio (and other local servers) and "use my own fine-tuned model"](0078-lm-studio-and-own-model.md) | implemented |
 | 0079 | [Desktop sign-in after the move to Vercel: hand-off page, server-side PKCE, clear errors (priority)](0079-desktop-sign-in-after-vercel-move.md) | done |
 | 0080 | [Sync pill shows one loader, not two](0080-sync-pill-one-loader.md) | ready |
 | 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | ready (after 0079) |

@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { getDb } from "./db";
+import { getAppearanceRecord, parseAppearanceRecord } from "./ui-prefs";
 import { getAiSettings, getAppearanceSetting, getBuddySettings, getSimpleMode, setAiSettings, setAppearanceSetting, setBuddySettings, setSimpleMode } from "./ui-prefs";
 import { DEFAULT_APPEARANCE, type Appearance } from "./theme";
 
@@ -58,6 +60,48 @@ describe("appearance setting", () => {
   });
 });
 
+describe("appearance record (plan 0075)", () => {
+  const client = async () => (await getDb()).$client;
+  const stamp = async () => {
+    const r = await (await client()).execute("SELECT updated_at FROM sync_stamps WHERE tbl = 'settings' AND row_key = 'appearance_prefs'");
+    return r.rows[0]?.[0] ?? null;
+  };
+  const dark: Appearance = { ...DEFAULT_APPEARANCE, mode: "dark" };
+
+  it("still reads the old plain format, with at 0", async () => {
+    await (await client()).execute({ sql: "INSERT INTO settings (key, value) VALUES ('appearance_prefs', ?)", args: [JSON.stringify(dark)] });
+    expect(await getAppearanceRecord()).toEqual({ prefs: dark, at: 0 });
+    expect(parseAppearanceRecord("not json")).toBeNull();
+  });
+
+  it("round trips the new record with its time and custom theme", async () => {
+    const prefs: Appearance = { ...dark, style: "paper", customTheme: JSON.stringify({ accent: "#123456" }) };
+    expect(await setAppearanceSetting(prefs, 1234)).toBe(true);
+    expect(await getAppearanceRecord()).toEqual({ prefs, at: 1234 });
+  });
+
+  it("an identical write does not touch the row or its sync stamp", async () => {
+    await setAppearanceSetting(dark, 1000);
+    const before = await stamp();
+    expect(before).not.toBeNull();
+    await new Promise((r) => setTimeout(r, 5));
+    expect(await setAppearanceSetting(dark, 5000)).toBe(false);
+    expect(await stamp()).toBe(before);
+    expect((await getAppearanceRecord())?.at).toBe(1000);
+  });
+
+  it("an older write never replaces a newer record", async () => {
+    await setAppearanceSetting(dark, 2000);
+    expect(await setAppearanceSetting({ ...dark, mode: "light" }, 1000)).toBe(false);
+    expect((await getAppearanceRecord())?.prefs.mode).toBe("dark");
+  });
+
+  it("sanitises an invalid value inside the record", async () => {
+    await (await client()).execute({ sql: "INSERT INTO settings (key, value) VALUES ('appearance_prefs', ?)", args: [JSON.stringify({ v: 1, at: 9, prefs: { mode: "neon", customTheme: "[1]" } })] });
+    expect(await getAppearanceRecord()).toEqual({ prefs: { ...DEFAULT_APPEARANCE, customTheme: null }, at: 9 });
+  });
+});
+
 describe("buddy and pacing settings", () => {
   it("defaults to mode off, name Buddy, pacing gentle", async () => {
     const s = await getBuddySettings();
@@ -82,7 +126,24 @@ describe("buddy and pacing settings", () => {
 
 describe("local AI settings", () => {
   it("is off by default with the loopback URL", async () => {
-    expect(await getAiSettings()).toEqual({ enabled: false, model: "", url: "http://127.0.0.1:11434", provider: "ollama", consent: [] });
+    expect(await getAiSettings()).toEqual({
+      enabled: false,
+      model: "",
+      url: "http://127.0.0.1:11434",
+      provider: "ollama",
+      consent: [],
+      lmstudioUrl: "http://127.0.0.1:1234",
+      lmstudioModel: "",
+      foldSystem: false,
+    });
+  });
+  it("round trips the LM Studio address, model and the fold setting (plan 0078)", async () => {
+    await setAiSettings({ provider: "lmstudio", lmstudioUrl: "http://localhost:4321", lmstudioModel: "qwen/qwen3-4b@q4_k_m+x", foldSystem: true });
+    expect(await getAiSettings()).toMatchObject({ provider: "lmstudio", lmstudioUrl: "http://localhost:4321", lmstudioModel: "qwen/qwen3-4b@q4_k_m+x", foldSystem: true });
+    await setAiSettings({ lmstudioModel: "bad id;rm", foldSystem: false });
+    expect(await getAiSettings()).toMatchObject({ lmstudioModel: "qwen/qwen3-4b@q4_k_m+x", foldSystem: false });
+    await setAiSettings({ lmstudioModel: "" });
+    expect((await getAiSettings()).lmstudioModel).toBe("");
   });
   it("saves the provider and consent list, and ignores unknown ids", async () => {
     await setAiSettings({ provider: "claude", consent: ["claude", "agy", "claude", "bogus" as never] });

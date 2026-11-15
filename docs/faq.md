@@ -318,6 +318,22 @@ Small models are sometimes confidently wrong. Treat the answer as a nudge and ch
 
 The app talks only to Ollama on `127.0.0.1:11434` (or `localhost`); any other address is refused. Prompts and answers are not logged or stored, and there is no telemetry. The model download is done by Ollama from Ollama's servers when you press Download.
 
+### Can I use LM Studio or another local server instead of Ollama?
+
+Yes, on the desktop app. In Settings, Local AI, choose LM Studio or another local server under Answers from. Any server on this computer that speaks the OpenAI chat format works (LM Studio, llama.cpp llama-server, vLLM, LocalAI). No key is asked for.
+
+1. In LM Studio download a model, open the Developer tab and press Start Server (or run `lms server start`).
+2. In Zen Dojo press Check again. The row says Running and how many models it found.
+3. Pick a model and press Use this model, then press Test.
+
+The default address is `http://127.0.0.1:1234`. You can change the port, but the address must be on this computer (127.0.0.1, localhost or ::1); anything else is refused. Nothing leaves your computer.
+
+### How do I use my own fine-tuned model?
+
+Import it into Ollama or LM Studio first, then pick it in Settings, Local AI. With Ollama run `ollama create <name> -f Modelfile`; it then shows as Installed: <name>. With LM Studio copy the GGUF file into the LM Studio models folder, load it, and pick it from the list.
+
+A model trained without a system prompt drops the app's instructions, such as guide with questions and do not give the full solution. Turn on My model ignores the app's instructions: the app then puts those instructions at the start of your first message instead. See docs/local-ai.md.
+
 ### Which model size fits my computer?
 
 With a graphics card, its memory counts. Without one, about 60 percent of your RAM can be used. The app suggests a model from this table:
@@ -386,7 +402,7 @@ After GitHub, the browser shows a Back to Zen Dojo page. If the browser asks whe
 
 ### Do my interface preferences follow me to another device?
 
-Yes, when you are signed in. Theme, accent, custom colours, the problem page pane layout, your preferred editor and solution language, the haptics switch and the plain Buddy choices (built-in character, size and how often it speaks) sync. They stay on each device: the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync.
+Yes, when you are signed in. Theme, accent, style, font, motion and the other appearance choices, custom colours, your preferred editor and solution language and the plain Buddy choices (built-in character, size and how often it speaks) sync. An open page picks up a change from another device within about a minute, without a reload. They stay on each device: reader mode, the haptics switch, the problem page pane layout, the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync. A visitor who is not signed in keeps everything in that browser only.
 
 ### What syncs, and what never syncs?
 
@@ -395,7 +411,7 @@ Syncs: task progress, problem solves, notes and saved code (per problem), run re
 Never syncs:
 
 - The browser extension pairing key and the content feed address.
-- The tools notice setting and every AI setting: AI on or off, the chosen model, the Ollama address, the chosen provider and the cloud consent boxes.
+- The tools notice setting and every AI setting: AI on or off, the chosen model, the Ollama address, the chosen provider, the cloud consent boxes, the LM Studio address and model, and the My model ignores the app's instructions switch.
 - Any setting whose name contains token, secret, key or password. Your own AI API key is not in the database at all: it stays in the browser.
 - Downloaded compilers and the other contents of the `tools` folder, backups and logs.
 

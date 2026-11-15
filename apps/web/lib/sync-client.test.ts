@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SyncManager,
+  SYNC_PULLED_EVENT,
   parseRetryAfter,
   type SyncStatus,
   type SyncRunResponse,
@@ -495,5 +496,29 @@ describe("SyncManager Thin Poller (Plan 0050)", () => {
       expect(parseRetryAfter("")).toBeNull();
       expect(parseRetryAfter("invalid-date-string")).toBeNull();
     });
+  });
+});
+
+describe("SYNC_PULLED_EVENT (plan 0075)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  async function runWith(pulled: number): Promise<number> {
+    let fired = 0;
+    const on = () => fired++;
+    window.addEventListener(SYNC_PULLED_EVENT, on);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async (): Promise<SyncRunResponse> => ({ state: "synced", pushed: 0, pulled }) });
+    const manager = new SyncManager({ autoStart: false, fetchFn: fetchMock as unknown as typeof fetch });
+    await manager.flushSyncQueue();
+    manager.destroy();
+    window.removeEventListener(SYNC_PULLED_EVENT, on);
+    return fired;
+  }
+
+  it("fires when a run pulled rows", async () => {
+    expect(await runWith(3)).toBe(1);
+  });
+
+  it("does not fire when nothing was pulled", async () => {
+    expect(await runWith(0)).toBe(0);
   });
 });

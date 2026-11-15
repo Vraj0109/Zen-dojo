@@ -441,6 +441,29 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     ],
   },
   {
+    id: "ai-lmstudio",
+    category: "ai",
+    question: "Can I use LM Studio or another local server instead of Ollama?",
+    answer: [
+      p("Yes, on the desktop app. In Settings, Local AI, choose LM Studio or another local server under Answers from. Any server on this computer that speaks the OpenAI chat format works (LM Studio, llama.cpp llama-server, vLLM, LocalAI). No key is asked for."),
+      steps(
+        "In LM Studio download a model, open the Developer tab and press Start Server (or run `lms server start`).",
+        "In Zen Dojo press Check again. The row says Running and how many models it found.",
+        "Pick a model and press Use this model, then press Test.",
+      ),
+      p("The default address is `http://127.0.0.1:1234`. You can change the port, but the address must be on this computer (127.0.0.1, localhost or ::1); anything else is refused. Nothing leaves your computer."),
+    ],
+  },
+  {
+    id: "ai-own-model",
+    category: "ai",
+    question: "How do I use my own fine-tuned model?",
+    answer: [
+      p("Import it into Ollama or LM Studio first, then pick it in Settings, Local AI. With Ollama run `ollama create <name> -f Modelfile`; it then shows as Installed: <name>. With LM Studio copy the GGUF file into the LM Studio models folder, load it, and pick it from the list."),
+      p("A model trained without a system prompt drops the app's instructions, such as guide with questions and do not give the full solution. Turn on My model ignores the app's instructions: the app then puts those instructions at the start of your first message instead. See docs/local-ai.md."),
+    ],
+  },
+  {
     id: "ai-model-sizes",
     category: "ai",
     question: "Which model size fits my computer?",
@@ -536,7 +559,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "accounts",
     question: "Do my interface preferences follow me to another device?",
     answer: [
-      p("Yes, when you are signed in. Theme, accent, custom colours, the problem page pane layout, your preferred editor and solution language, the haptics switch and the plain Buddy choices (built-in character, size and how often it speaks) sync. They stay on each device: the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync."),
+      p("Yes, when you are signed in. Theme, accent, style, font, motion and the other appearance choices, custom colours, your preferred editor and solution language and the plain Buddy choices (built-in character, size and how often it speaks) sync. An open page picks up a change from another device within about a minute, without a reload. They stay on each device: reader mode, the haptics switch, the problem page pane layout, the chosen pet, imported images, the Buddy position, the timer, notices you dismissed, project drafts and custom font files. AI settings, AI lines consent and API keys never sync. A visitor who is not signed in keeps everything in that browser only."),
     ],
   },
   {
@@ -548,7 +571,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
       p("Never syncs:"),
       list(
         "The browser extension pairing key and the content feed address.",
-        "The tools notice setting and every AI setting: AI on or off, the chosen model, the Ollama address, the chosen provider and the cloud consent boxes.",
+        "The tools notice setting and every AI setting: AI on or off, the chosen model, the Ollama address, the chosen provider, the cloud consent boxes, the LM Studio address and model, and the My model ignores the app's instructions switch.",
         "Any setting whose name contains token, secret, key or password. Your own AI API key is not in the database at all: it stays in the browser.",
         "Downloaded compilers and the other contents of the `tools` folder, backups and logs.",
       ),

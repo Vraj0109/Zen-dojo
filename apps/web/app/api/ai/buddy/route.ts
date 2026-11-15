@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { aiError, byokErrorResponse, guardAi, guardByok, isByokRequest, isHostedAi, isResponse } from "@/lib/ai/guard";
 import { byokChat } from "@/lib/ai/byok";
+import { activeModel, activeUrl, prepareMessages } from "@/lib/ai/active";
 import { buildBuddyMessages, cleanBuddyLine, parseBuddyRequest } from "@/lib/ai/buddy";
 
 // Plan 0068. Body: { event, tone, name, persona? }. Returns { line }. Only those values (and an imported pet's name and description) reach the model: no code, notes or problem text.
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
   const { getProvider } = await import("@/lib/ai/providers"); // dynamic: pulls in child_process, which the hosted build never loads
   const provider = getProvider(s.provider);
   if (provider.cloud && !s.consent.includes(provider.id)) return aiError(403, "consent_required");
-  if (!provider.cloud && !s.model) return aiError(400, "no_model");
+  if (!provider.cloud && !activeModel(s)) return aiError(400, "no_model");
 
   const now = Date.now();
   if (now - lastRequestAt < MIN_GAP_MS) return aiError(429, "slow_down");
@@ -35,7 +36,8 @@ export async function POST(req: Request) {
   const timer = setTimeout(() => abort.abort(), TIMEOUT_MS);
   try {
     let text = "";
-    for await (const piece of provider.chat(buildBuddyMessages(body), { signal: abort.signal, model: provider.cloud ? undefined : s.model, url: s.url })) {
+    const messages = provider.cloud ? buildBuddyMessages(body) : prepareMessages(buildBuddyMessages(body), s);
+    for await (const piece of provider.chat(messages, { signal: abort.signal, model: provider.cloud ? undefined : activeModel(s), url: activeUrl(s) })) {
       text += piece;
       if (text.length > 2000) break;
     }

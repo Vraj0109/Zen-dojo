@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { THEME_EVENT, applyTheme, readStoredAppearance } from "@/lib/theme";
+import { APPEARANCE_AT_KEY, THEME_EVENT, appearanceDecision, applyTheme, readStoredAppearance, sameAppearance, type Appearance } from "@/lib/theme";
+import { CUSTOM_EVENT } from "@/lib/custom";
+import { SYNC_PULLED_EVENT } from "@/lib/sync-manager";
+import { setAppearanceSyncPaused } from "@/lib/appearance-sync-state";
 import { getZenMode, initZenMode, setZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
-import { getAppearanceAction, setAppearanceAction } from "./actions";
+import { getAppearanceAction, getSyncAccountStateAction, setAppearanceAction } from "./actions";
 import { HistoryButtons } from "./history-buttons";
 import { SyncStatusPill } from "./components/sync-status";
 import { BottomNav } from "./components/bottom-nav";
@@ -65,46 +68,98 @@ function ShellInner({ aside, children, account }: { aside: ReactNode; children: 
     }
   }, []);
 
+  // Plan 0075: one appearance record (theme fields plus the custom palette), newest wins by its `at` stamp. Runs on
+  // mount, when the tab becomes visible, after a sync pulled rows, and every 60 s while visible. Guests on the hosted
+  // site skip the server entirely: their theme stays in this browser.
   useEffect(() => {
     let cancelled = false;
-    async function syncAppearance() {
+    let guest: boolean | null = null;
+    let applying = false;
+    let busy = false;
+    let last: Appearance | null = readStoredAppearance();
+
+    const readAt = (): number | null => {
       try {
+        const v = localStorage.getItem(APPEARANCE_AT_KEY);
+        const n = v === null ? NaN : Number(v);
+        return Number.isFinite(n) ? n : null;
+      } catch {
+        return null;
+      }
+    };
+    const writeAt = (at: number) => {
+      try {
+        localStorage.setItem(APPEARANCE_AT_KEY, String(at));
+      } catch {
+        // blocked
+      }
+    };
+
+    async function push(prefs: Appearance, at: number) {
+      const r = await setAppearanceAction(prefs, at);
+      setAppearanceSyncPaused(!r.ok);
+    }
+
+    async function syncAppearance() {
+      if (busy || cancelled) return;
+      busy = true;
+      try {
+        if (guest === null) guest = (await getSyncAccountStateAction()) === "guest";
+        if (guest || cancelled) return;
         const local = readStoredAppearance();
         const server = await getAppearanceAction();
         if (cancelled) return;
-        if (!local && server) {
-          applyTheme(server);
-        } else if (local && !server) {
-          await setAppearanceAction(local);
-        } else if (local && server) {
-          const diff =
-            local.mode !== server.mode ||
-            local.accent !== server.accent ||
-            local.style !== server.style ||
-            local.font !== server.font ||
-            local.gamify !== server.gamify ||
-            local.bionic !== server.bionic ||
-            local.motion !== server.motion;
-          if (diff) {
-            applyTheme(server);
+        setAppearanceSyncPaused(server === "error");
+        const decision = appearanceDecision(local, readAt(), server);
+        if (decision === "apply" && server && server !== "error") {
+          applying = true;
+          try {
+            applyTheme(server.prefs);
+            window.dispatchEvent(new Event(CUSTOM_EVENT));
+          } finally {
+            applying = false;
           }
+          writeAt(server.at);
+          last = readStoredAppearance();
+        } else if (decision === "push" && local) {
+          await push(local, readAt() ?? Date.now());
         }
       } catch {
-        // storage or network error
+        setAppearanceSyncPaused(true);
+      } finally {
+        busy = false;
       }
     }
-    syncAppearance();
+    void syncAppearance();
 
-    const onThemeChange = () => {
+    // A change made here (theme picker, custom colours): stamp it and push. Changes we applied ourselves are ignored.
+    const onLocalChange = () => {
+      if (applying) return;
       const cur = readStoredAppearance();
-      if (cur) {
-        setAppearanceAction(cur).catch(() => {});
-      }
+      if (!cur || (last && sameAppearance(cur, last) && cur.customTheme === last.customTheme)) return;
+      last = cur;
+      const at = Date.now();
+      writeAt(at);
+      if (guest === false) push(cur, at).catch(() => setAppearanceSyncPaused(true));
     };
-    window.addEventListener(THEME_EVENT, onThemeChange);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void syncAppearance();
+    };
+    const onPulled = () => void syncAppearance();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void syncAppearance();
+    }, 60_000);
+    window.addEventListener(THEME_EVENT, onLocalChange);
+    window.addEventListener(CUSTOM_EVENT, onLocalChange);
+    window.addEventListener(SYNC_PULLED_EVENT, onPulled);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
-      window.removeEventListener(THEME_EVENT, onThemeChange);
+      window.clearInterval(timer);
+      window.removeEventListener(THEME_EVENT, onLocalChange);
+      window.removeEventListener(CUSTOM_EVENT, onLocalChange);
+      window.removeEventListener(SYNC_PULLED_EVENT, onPulled);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

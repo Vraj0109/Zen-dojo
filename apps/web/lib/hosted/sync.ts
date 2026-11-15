@@ -78,6 +78,14 @@ export async function syncOnRequest(userId: string, deps: HostedSyncDeps = {}): 
   }
 }
 
+/**
+ * Plan 0075: called before a server action reads settings (appearance, synced prefs) so it sees what other devices
+ * pushed. Same throttle and map as `syncOnRequest`. Never throws.
+ */
+export function syncBeforeRead(userId: string, deps: HostedSyncDeps = {}): Promise<SyncRunResult> {
+  return syncOnRequest(userId, deps);
+}
+
 /** Pushes what a mutation just wrote. Not throttled (the engine merges overlapping runs). Never throws. */
 export async function syncAfterMutation(userId: string, deps: HostedSyncDeps = {}): Promise<SyncRunResult> {
   remember(userId, (deps.now ?? Date.now)());

@@ -641,4 +641,40 @@ describe("Sync End-to-End Integration Tests", () => {
     expect(aliceCloud.map((r) => r.problem_id)).toEqual(["alice-unique-problem"]);
     expect(bobCloud.map((r) => r.problem_id)).toEqual(["bob-unique-problem"]);
   });
+
+  it("j) UI settings sync, newest wins; AI settings never leave device A", async () => {
+    const { rawDb, makeFetcher } = await setupWorker();
+    const userId = "gh:ui";
+    const deviceA = await createLocalDb();
+    const deviceB = await createLocalDb();
+    await linkAccount(userId, deviceA);
+    await linkAccount(userId, deviceB);
+    const fetcher = makeFetcher(userId);
+    const sync = (db: typeof deviceA) => runSync({ db, fetch: fetcher, getUserId: async () => userId });
+    const put = (db: typeof deviceA, key: string, value: string) =>
+      db.execute({ sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", args: [key, value] });
+
+    await put(deviceA, "appearance_prefs", JSON.stringify({ v: 1, at: 1000, prefs: { mode: "dark" } }));
+    await put(deviceA, "ui_prefs_synced", JSON.stringify({ updatedAt: 1000, values: { "habit-judge-lang": "py" }, stamps: { "habit-judge-lang": 1000 } }));
+    for (const k of ["ai_enabled", "ai_model", "ai_ollama_url", "ai_provider", "ai_cloud_consent", "ai_lmstudio_url", "ai_lmstudio_model", "ai_fold_system"]) await put(deviceA, k, "x");
+    await deviceA.execute("UPDATE sync_stamps SET updated_at = 1000 WHERE tbl = 'settings'");
+    await sync(deviceA);
+
+    const cloudKeys = (rawDb.prepare("SELECT key FROM settings WHERE user_id = ? ORDER BY key").all(userId) as Array<{ key: string }>).map((r) => r.key);
+    expect(cloudKeys).toEqual(["appearance_prefs", "ui_prefs_synced"]);
+
+    await sync(deviceB);
+    const b = await deviceB.execute("SELECT key FROM settings ORDER BY key");
+    expect(b.rows.map((r) => String(r.key))).toEqual(["appearance_prefs", "ui_prefs_synced"]);
+
+    // B changes the theme later; A receives it.
+    await put(deviceB, "appearance_prefs", JSON.stringify({ v: 1, at: 2000, prefs: { mode: "light" } }));
+    await deviceB.execute("UPDATE sync_stamps SET updated_at = 2000 WHERE tbl = 'settings' AND row_key = 'appearance_prefs'");
+    await sync(deviceB);
+    await sync(deviceA);
+    const a = await deviceA.execute("SELECT value FROM settings WHERE key = 'appearance_prefs'");
+    expect(JSON.parse(String(a.rows[0].value)).prefs.mode).toBe("light");
+    const aAi = await deviceA.execute("SELECT count(*) AS n FROM settings WHERE key LIKE 'ai_%'");
+    expect(Number(aAi.rows[0].n)).toBe(8);
+  });
 });
