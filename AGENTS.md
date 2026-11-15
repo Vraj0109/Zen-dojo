@@ -89,7 +89,7 @@ The plan file is the contract and the shared memory between tools. Whoever works
 
 ## Desktop releases and updates
 
-- Release: bump `version` in `apps/desktop/package.json`, commit, `git tag vX.Y.Z` (must match, the workflow checks),
+- Release: bump `version` in `apps/desktop/package.json` and `packages/shared/src/version.ts`, commit, `git tag vX.Y.Z` (must match, the workflow checks),
   push the tag. `.github/workflows/desktop.yml` builds Windows/macOS/Linux installers and publishes a GitHub release
   with `latest*.yml` + `.blockmap`.
 - Installed apps check that release at start and every 6 h (electron-updater): Windows and AppImage download and

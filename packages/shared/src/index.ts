@@ -23,3 +23,4 @@ export * from "./ai-prompts";
 export * from "./ai-install";
 export * from "./tool-catalog";
 export * from "./portfolio";
+export * from "./version";

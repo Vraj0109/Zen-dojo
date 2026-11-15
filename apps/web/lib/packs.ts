@@ -15,7 +15,7 @@ import {
   type Pack,
   type ProblemSpec,
 } from "@habit/shared";
-import desktopPkg from "../../desktop/package.json" with { type: "json" };
+import { APP_VERSION as SHARED_APP_VERSION } from "@habit/shared";
 import { getDb } from "./db";
 import { contentPacks, packProgress, settings } from "./schema";
 
@@ -493,7 +493,7 @@ const CATALOG_TTL_MS = 60 * 60 * 1000;
 let catalogMemo: { at: number; feed: ContentFeed } | null = null;
 
 /** The app's own version (the desktop package version; the site ships the same code). */
-export const APP_VERSION: string = desktopPkg.version;
+export const APP_VERSION: string = SHARED_APP_VERSION;
 
 /** Forgets the in-memory catalog (used by tests). */
 export function resetCourseLibraryMemo(): void {
