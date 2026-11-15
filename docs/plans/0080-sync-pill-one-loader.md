@@ -1,6 +1,6 @@
 # 0080: Sync pill shows one loader, not two
 
-- **Status:** implemented
+- **Status:** done
 - **Planned by:** Claude Code, 2026-11-14
 - **Implemented by:** Claude Code (subagent), 2026-11-15
 - **Spec:** none

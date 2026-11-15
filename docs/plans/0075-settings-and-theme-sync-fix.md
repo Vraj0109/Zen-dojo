@@ -1,6 +1,6 @@
 # 0075: Settings and theme sync fix
 
-- **Status:** implemented
+- **Status:** done
 - **Planned by:** Claude Code, 2026-11-13
 - **Implemented by:** Claude Code (implementer agent), 2026-11-15
 - **Spec:** none (follows plans 0044, 0050, 0058, 0073)

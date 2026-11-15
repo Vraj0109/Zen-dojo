@@ -1,6 +1,6 @@
 # 0074: Mobile practice flow fixes (filter dropdowns, end of lesson, section opens scrolled to the end)
 
-- **Status:** implemented
+- **Status:** done
 - **Planned by:** Claude Code, 2026-11-13
 - **Implemented by:** Claude Code (subagent), 2026-11-15
 - **Spec:** none (follow-up to plans 0053 and 0059)

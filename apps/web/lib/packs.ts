@@ -15,7 +15,7 @@ import {
   type Pack,
   type ProblemSpec,
 } from "@habit/shared";
-import desktopPkg from "../../desktop/package.json";
+import desktopPkg from "../../desktop/package.json" with { type: "json" };
 import { getDb } from "./db";
 import { contentPacks, packProgress, settings } from "./schema";
 

@@ -1,6 +1,6 @@
 # 0078: LM Studio (and other local servers) and "use my own fine-tuned model"
 
-- **Status:** implemented
+- **Status:** done
 - **Planned by:** Claude Code, 2026-11-14
 - **Implemented by:** Claude Code (implementer agent), 2026-11-15
 - **Spec:** `SPEC.md` section 6.6 and the provider table around line 220 (OpenAI-compatible local servers: Ollama, LM Studio, llama.cpp server)
