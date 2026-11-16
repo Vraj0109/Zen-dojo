@@ -164,3 +164,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0079 | [Desktop sign-in after the move to Vercel: hand-off page, server-side PKCE, clear errors (priority)](0079-desktop-sign-in-after-vercel-move.md) | done |
 | 0080 | [Sync pill shows one loader, not two](0080-sync-pill-one-loader.md) | done |
 | 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | implemented (partial: steps 1, 4, 8 wait for the courses repo) |
+| 0082 | [Run any GGUF model through Ollama; remove LM Studio](0082-gguf-models-through-ollama.md) | implemented |

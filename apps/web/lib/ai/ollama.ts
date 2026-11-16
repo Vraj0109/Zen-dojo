@@ -131,3 +131,74 @@ export async function* chat(messages: ChatMessage[], model: string, base: string
     if (obj.done === true) return;
   }
 }
+
+export type ImportProgress =
+  | { stage: "hashing" | "uploading"; completed: number; total: number }
+  | { stage: "creating"; status: string }
+  | { stage: "done" };
+
+/**
+ * Plan 0082: add a GGUF file to Ollama as a model. Hashes the file (streamed), uploads it as a blob unless Ollama already
+ * has it, then creates the model and yields Ollama's progress. The caller must only pass a path from findGgufFiles.
+ */
+export async function* importGguf(filePath: string, name: string, base: string = DEFAULT_OLLAMA_URL, signal?: AbortSignal): AsyncGenerator<ImportProgress> {
+  if (!validModelName(name)) throw new Error("Bad model name.");
+  const origin = assertLoopback(base);
+  const { createReadStream } = await import("node:fs");
+  const { stat } = await import("node:fs/promises");
+  const { createHash } = await import("node:crypto");
+  const { Readable } = await import("node:stream");
+  const { basename } = await import("node:path");
+  const total = (await stat(filePath)).size;
+
+  const hash = createHash("sha256");
+  let done = 0;
+  let lastReport = 0;
+  for await (const chunk of createReadStream(filePath, { signal })) {
+    hash.update(chunk as Buffer);
+    done += (chunk as Buffer).length;
+    if (done - lastReport >= 64 * 1024 * 1024 || done === total) {
+      lastReport = done;
+      yield { stage: "hashing", completed: done, total };
+    }
+  }
+  const digest = `sha256:${hash.digest("hex")}`;
+  const blobUrl = `${origin}/api/blobs/${digest}`;
+
+  const head = await fetch(blobUrl, { method: "HEAD", signal, cache: "no-store" });
+  if (head.status !== 200) {
+    yield { stage: "uploading", completed: 0, total };
+    const res = await fetch(blobUrl, {
+      method: "POST",
+      body: Readable.toWeb(createReadStream(filePath, { signal })) as unknown as BodyInit,
+      headers: { "content-type": "application/octet-stream", "content-length": String(total) },
+      signal,
+      cache: "no-store",
+      duplex: "half",
+    } as RequestInit);
+    if (!res.ok) throw new Error(`Ollama refused the file (${res.status}).`);
+    yield { stage: "uploading", completed: total, total };
+  }
+
+  const res = await fetch(`${origin}/api/create`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ model: name, files: { [basename(filePath)]: digest }, stream: true }),
+    signal,
+    cache: "no-store",
+  });
+  if (!res.ok || !res.body) {
+    let msg = "";
+    try {
+      msg = String(((await res.json()) as { error?: unknown }).error ?? "");
+    } catch {
+      // no body
+    }
+    throw new Error(msg ? `Ollama: ${msg.slice(0, 300)}` : `Ollama answered ${res.status}.`);
+  }
+  for await (const obj of jsonLines(res.body)) {
+    if (typeof obj.error === "string") throw new Error(`Ollama: ${obj.error.slice(0, 300)}`);
+    if (typeof obj.status === "string") yield { stage: "creating", status: obj.status.slice(0, 200) };
+  }
+  yield { stage: "done" };
+}

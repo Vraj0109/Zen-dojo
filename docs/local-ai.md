@@ -5,8 +5,8 @@ It is off until you turn it on in Settings > Local AI (optional). It does not ex
 
 ## What leaves your computer
 
-Nothing. The app talks only to Ollama or LM Studio on this computer: Ollama on `127.0.0.1:11434`, LM Studio (or another
-local server) on `127.0.0.1:1234` by default (`localhost` and `::1` also work). A non-loopback address is refused.
+Nothing. The app talks only to Ollama on this computer, on `127.0.0.1:11434` (`localhost` and `::1` also work). A
+non-loopback address is refused.
 Only the problem text and your own saved code go to the local engine. Prompts and answers are not logged or stored. There is no telemetry.
 Downloading a model is done by Ollama itself, from Ollama's servers, when you press Download.
 
@@ -35,7 +35,7 @@ Smaller is always fine. Without a graphics card, long answers are slow.
 
 ## Settings: who answers
 
-Settings > Local AI has an **Answers from** list. It shows **This computer (Ollama)** (the default), **LM Studio or another local server** (always listed) and, if found on this computer, Claude Code, Antigravity, Gemini CLI and Codex CLI.
+Settings > Local AI has an **Answers from** list. It shows **This computer (Ollama)** (the default, always listed) and, if found on this computer, Claude Code, Antigravity, Gemini CLI and Codex CLI.
 
 - A cloud tool cannot be chosen until you tick its box ("I understand my problem text and code go to ..."). Each has a **Test** button that sends the word "ping" and shows the reply or the error.
 - To remove consent, untick the box. If that tool was in use, answers go back to Ollama.
@@ -66,36 +66,34 @@ On Windows a `.cmd` shim (npm-installed tools) runs as `cmd.exe /d /s /c "<path>
   the command fails, the Test button shows the error, and the tool is simply not selectable. Their read-only modes are the best restriction
   those tools document; check the Test result and the tool's own docs before relying on them for sensitive code.
 
-## LM Studio or another local server
+## Use any GGUF file
 
-Any server on this computer that speaks the OpenAI chat format works: LM Studio, llama.cpp `llama-server`, vLLM, LocalAI.
-No key is asked for or stored.
+The desktop app can add any GGUF model file on this computer to Ollama, including a model you fine-tuned yourself. After
+that it is a normal Ollama model.
 
-1. In LM Studio download a model, open the **Developer** tab and press **Start Server** (or run `lms server start`).
-2. In Settings > Local AI choose **LM Studio or another local server** under Answers from and press Check again.
-   The row says "Not running" or "Running, N models".
-3. Pick a model and press **Use this model**, then **Test**.
+1. Put the file in one of the folders listed under **Model files on this computer** (Settings > Local AI, below the model
+   picker), or type the full path of the folder that holds it and press **Add folder**. By default the list has the
+   `.lmstudio/models` folder in your home folder (if it exists) and the app's own `models` folder next to its `tools` folder.
+2. The table shows each file with its size and folder. Check the suggested model name (letters, digits, `.`, `-`, `_`).
+3. Press **Add to Ollama**. The bar shows reading the file, copying it into Ollama and creating the model; **Cancel** stops it.
+   If Ollama does not support the model's architecture, its own message is shown.
+4. The row then says "Added as <name>". Press **Use this model**, or pick it later as "Installed: <name>".
 
-The default address is `http://127.0.0.1:1234`. Change it in the Address field if your server uses another port; it must be
-on this computer, or it is refused. Embedding models are hidden from the list. Models are managed in LM Studio itself; Zen
-Dojo does not download, load or start anything there.
+Ollama keeps its own copy of the file, so you can delete the original afterwards to save disk space. Projector files
+(`mmproj-*.gguf`) and files under 50 MB (adapters) are not listed; a `.gguf` file that is not really a GGUF file is shown
+as "Not a GGUF file" and cannot be added. Folders are searched four levels deep, up to 500 files. A name that Ollama
+already has needs **Replace it** ticked.
 
-Settings (device-specific, never synced): `ai_lmstudio_url`, `ai_lmstudio_model`, `ai_fold_system`.
+From the command line the same works with `ollama create <name> -f Modelfile`.
 
-## Use your own fine-tuned model
+Settings (device-specific, never synced): `ai_gguf_folders`, `ai_gguf_imports`, `ai_fold_system`.
 
-Train or download the model elsewhere, then import it into one of
-the two engines:
-
-- **Ollama:** `ollama create <name> -f Modelfile`. Press Check again; the model picker shows "Installed: <name>". Choose it and
-  press Use this model.
-- **LM Studio:** copy the GGUF file to `%USERPROFILE%\.lmstudio\models\<publisher>\<model>\` (on macOS and Linux
-  `~/.lmstudio/models/<publisher>/<model>/`), load it in LM Studio, start the server and pick it in the LM Studio row.
+## A model that ignores the app's instructions
 
 A model trained without a system prompt drops the app's
 system message: the Ollama template has no `{{ .System }}` slot, and a GGUF chat template may have none either. The model then
 ignores "guide with questions, do not give the full solution" and the tone rules. Turn on **My model ignores the app's
-instructions** (under the model picker of either engine). The app then removes the system message and puts its text at the
+instructions** (under the model picker). The app then removes the system message and puts its text at the
 start of your first message, followed by a `---` line. Leave it off for normal models.
 
 ## Remove a model

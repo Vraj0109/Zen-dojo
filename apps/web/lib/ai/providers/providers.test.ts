@@ -190,37 +190,9 @@ describe("providers", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
     const list = await detectProviders();
     vi.unstubAllGlobals();
-    expect(list.map((p) => p.id)).toEqual(["ollama", "lmstudio", "claude", "agy", "gemini", "codex"]);
+    expect(list.map((p) => p.id)).toEqual(["ollama", "claude", "agy", "gemini", "codex"]);
     expect(list.find((p) => p.id === "agy")!.found).toBe(false);
     expect(list.find((p) => p.id === "ollama")!.found).toBe(false);
   });
 
-});
-
-describe("LM Studio provider (plan 0078)", () => {
-  const lm = () => getProvider("lmstudio");
-  const sig = () => new AbortController().signal;
-
-  it("is local and detects found, down, and running with no models", async () => {
-    process.env.DATABASE_URL = ":memory:";
-    delete (globalThis as { habitDb?: unknown }).habitDb;
-    expect(lm().cloud).toBe(false);
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: [{ id: "a" }, { id: "b" }] })));
-    expect(await lm().detect()).toEqual({ found: true, detail: "2 models available" });
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: [] })));
-    expect(await lm().detect()).toEqual({ found: false, detail: "Server is running but no model is available" });
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
-    expect(await lm().detect()).toEqual({ found: false, detail: "No local server found" });
-    vi.unstubAllGlobals();
-  });
-
-  it("streams a chat, and refuses without a model", async () => {
-    await expect(lm().chat([], { signal: sig() }).next()).rejects.toThrow("No model is chosen.");
-    const body = `data: ${JSON.stringify({ choices: [{ delta: { content: "Hi" } }] })}\n\ndata: [DONE]\n\n`;
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(body)));
-    let out = "";
-    for await (const p of lm().chat([{ role: "user", content: "x" }], { signal: sig(), model: "m", url: "http://127.0.0.1:1234" })) out += p;
-    vi.unstubAllGlobals();
-    expect(out).toBe("Hi");
-  });
 });

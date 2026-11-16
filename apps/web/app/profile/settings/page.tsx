@@ -32,7 +32,6 @@ export const metadata: Metadata = { title: "Settings" };
 
 const PROVIDER_LABEL: Record<AiProviderId, string> = {
   ollama: "Ollama (on this computer)",
-  lmstudio: "LM Studio or another local server",
   claude: "Claude Code (Anthropic)",
   agy: "Antigravity (Google)",
   gemini: "Gemini CLI (Google)",
@@ -449,7 +448,7 @@ async function BuddySettingsSection() {
           Save pacing preferences
         </SubmitButton>
       </form>
-      <BuddyAppearance aiEnabled={HOSTED || (ai?.enabled ?? false)} providerLabel={HOSTED ? "your AI provider" : ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={HOSTED || (ai ? ai.provider !== "ollama" && ai.provider !== "lmstudio" : false)} />
+      <BuddyAppearance aiEnabled={HOSTED || (ai?.enabled ?? false)} providerLabel={HOSTED ? "your AI provider" : ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={HOSTED || (ai ? ai.provider !== "ollama" : false)} />
     </section>
   );
 }

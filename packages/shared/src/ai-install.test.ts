@@ -15,7 +15,7 @@ describe("ai install hints", () => {
 
   it("covers the chat's tools", () => {
     const ids = AI_INSTALL.map((i) => i.providerId).filter(Boolean);
-    expect(ids).toEqual(expect.arrayContaining(["claude", "gemini", "codex", "ollama", "lmstudio"]));
+    expect(ids).toEqual(expect.arrayContaining(["claude", "gemini", "codex", "ollama"]));
   });
 
   it("maps a platform name to a system", () => {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { aiError, byokErrorResponse, guardAi, guardByok, isByokRequest, isHostedAi, isResponse } from "@/lib/ai/guard";
 import { byokChat } from "@/lib/ai/byok";
 import { isAiProviderId } from "@/lib/ui-prefs";
-import { activeModel, activeUrl, prepareMessages } from "@/lib/ai/active";
+import { prepareMessages } from "@/lib/ai/active";
 import type { ChatMessage } from "@habit/shared";
 
 const TEST_TIMEOUT_MS = 60_000;
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     let reply = "";
     const forId = { ...s, provider: id };
     const ping: ChatMessage[] = [{ role: "user", content: "ping" }];
-    const opts = { signal: ac.signal, model: provider.cloud ? undefined : activeModel(forId) || undefined, url: activeUrl(forId) };
+    const opts = { signal: ac.signal, model: provider.cloud ? undefined : forId.model || undefined, url: forId.url };
     for await (const piece of provider.chat(provider.cloud ? ping : prepareMessages(ping, forId), opts)) {
       reply += piece;
       if (reply.length >= REPLY_CAP) break;

@@ -90,22 +90,6 @@ export const AI_INSTALL: readonly AiInstallItem[] = [
     afterInstall: "Start Ollama, then press Check again and download a model.",
   },
   {
-    // Plan 0078. Commands not re-read from lmstudio.ai on 2026-11-15 (no network in that session): winget id and
-    // Homebrew cask as commonly published; the download page is the source of truth. Check before release.
-    id: "lmstudio",
-    name: "LM Studio (runs models on this computer)",
-    kind: "local-engine",
-    providerId: "lmstudio",
-    blurb: "Desktop app that runs models on this computer and can serve them on port 1234.",
-    docsUrl: "https://lmstudio.ai",
-    commands: {
-      win32: [{ command: "winget install ElementLabs.LMStudio", note: "Or use the installer from lmstudio.ai/download." }],
-      darwin: [{ command: "brew install --cask lm-studio", note: "Needs Homebrew. Or use the app from lmstudio.ai/download." }],
-      linux: [{ command: "chmod +x LM-Studio-*.AppImage && ./LM-Studio-*.AppImage", note: "After downloading the AppImage from lmstudio.ai/download." }],
-    },
-    afterInstall: "Download a model in LM Studio, start the local server in the Developer tab, then press Check again.",
-  },
-  {
     id: "deepseek",
     name: "DeepSeek R1 (local model through Ollama)",
     kind: "local-model",

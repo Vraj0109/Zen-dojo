@@ -138,15 +138,15 @@ export const AI_URL_KEY = "ai_ollama_url";
 export const AI_PROVIDER_KEY = "ai_provider";
 export const AI_CONSENT_KEY = "ai_cloud_consent";
 
-// Plan 0078: LM Studio (or any OpenAI-compatible server on this computer). Also on the sync denylist.
-export const AI_LMSTUDIO_URL_KEY = "ai_lmstudio_url";
-export const AI_LMSTUDIO_MODEL_KEY = "ai_lmstudio_model";
+// Plan 0078: the fold switch. Also on the sync denylist.
 export const AI_FOLD_SYSTEM_KEY = "ai_fold_system";
-export const AI_LMSTUDIO_DEFAULT_URL = "http://127.0.0.1:1234";
-/** LM Studio ids can contain `@`, `+` and `_`, so they get their own, wider pattern. */
-export const LOCAL_MODEL_ID_RE = /^[A-Za-z0-9._:/@+-]{1,120}$/;
 
-export const AI_PROVIDER_IDS = ["ollama", "lmstudio", "claude", "agy", "gemini", "codex"] as const;
+// Plan 0082: folders scanned for GGUF files, and which file became which Ollama model. Per device, denylisted.
+export const AI_GGUF_FOLDERS_KEY = "ai_gguf_folders";
+export const AI_GGUF_IMPORTS_KEY = "ai_gguf_imports";
+export const MAX_GGUF_FOLDERS = 10;
+
+export const AI_PROVIDER_IDS = ["ollama", "claude", "agy", "gemini", "codex"] as const;
 export type AiProviderId = (typeof AI_PROVIDER_IDS)[number];
 export const isAiProviderId = (v: unknown): v is AiProviderId => typeof v === "string" && (AI_PROVIDER_IDS as readonly string[]).includes(v);
 
@@ -156,8 +156,6 @@ export interface AiSettings {
   url: string;
   provider: AiProviderId;
   consent: AiProviderId[];
-  lmstudioUrl: string;
-  lmstudioModel: string;
   /** Put the app's instructions in the first user message (for models trained without a system prompt). */
   foldSystem: boolean;
 }
@@ -184,24 +182,21 @@ async function putSetting(key: string, value: string): Promise<void> {
 /** Off by default. The URL is returned as saved; the Ollama client refuses anything that is not loopback. */
 export async function getAiSettings(): Promise<AiSettings> {
   const db = await getDb();
-  const [e, m, u, p, c, lu, lm, f] = await Promise.all([
+  const [e, m, u, p, c, f] = await Promise.all([
     db.query.settings.findFirst({ where: eq(settings.key, AI_ENABLED_KEY) }),
     db.query.settings.findFirst({ where: eq(settings.key, AI_MODEL_KEY) }),
     db.query.settings.findFirst({ where: eq(settings.key, AI_URL_KEY) }),
     db.query.settings.findFirst({ where: eq(settings.key, AI_PROVIDER_KEY) }),
     db.query.settings.findFirst({ where: eq(settings.key, AI_CONSENT_KEY) }),
-    db.query.settings.findFirst({ where: eq(settings.key, AI_LMSTUDIO_URL_KEY) }),
-    db.query.settings.findFirst({ where: eq(settings.key, AI_LMSTUDIO_MODEL_KEY) }),
     db.query.settings.findFirst({ where: eq(settings.key, AI_FOLD_SYSTEM_KEY) }),
   ]);
   return {
     enabled: e?.value === "1",
     model: m?.value && AI_MODEL_RE.test(m.value) ? m.value : "",
     url: u?.value || AI_DEFAULT_URL,
+    // A saved "lmstudio" (plan 0078, removed in 0082) or any unknown id reads as Ollama.
     provider: isAiProviderId(p?.value) ? p.value : "ollama",
     consent: parseConsent(c?.value),
-    lmstudioUrl: lu?.value || AI_LMSTUDIO_DEFAULT_URL,
-    lmstudioModel: lm?.value && LOCAL_MODEL_ID_RE.test(lm.value) ? lm.value : "",
     foldSystem: f?.value === "1",
   };
 }
@@ -212,9 +207,51 @@ export async function setAiSettings(prefs: Partial<AiSettings>): Promise<void> {
   if (prefs.url !== undefined) await putSetting(AI_URL_KEY, prefs.url.slice(0, 200));
   if (prefs.provider !== undefined && isAiProviderId(prefs.provider)) await putSetting(AI_PROVIDER_KEY, prefs.provider);
   if (prefs.consent !== undefined) await putSetting(AI_CONSENT_KEY, JSON.stringify([...new Set(prefs.consent.filter(isAiProviderId))]));
-  if (prefs.lmstudioUrl !== undefined) await putSetting(AI_LMSTUDIO_URL_KEY, prefs.lmstudioUrl.slice(0, 200));
-  if (prefs.lmstudioModel !== undefined && (prefs.lmstudioModel === "" || LOCAL_MODEL_ID_RE.test(prefs.lmstudioModel))) await putSetting(AI_LMSTUDIO_MODEL_KEY, prefs.lmstudioModel);
   if (prefs.foldSystem !== undefined) await putSetting(AI_FOLD_SYSTEM_KEY, prefs.foldSystem ? "1" : "0");
+}
+
+function parseStringArray(raw: string | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const v: unknown = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Plan 0082: saved GGUF folders, or null when the user never saved a list (the caller then uses the defaults). */
+export async function getGgufFolders(): Promise<string[] | null> {
+  const db = await getDb();
+  const row = await db.query.settings.findFirst({ where: eq(settings.key, AI_GGUF_FOLDERS_KEY) });
+  if (!row) return null;
+  return [...new Set(parseStringArray(row.value))].slice(0, MAX_GGUF_FOLDERS);
+}
+
+export async function setGgufFolders(folders: string[]): Promise<void> {
+  const clean = [...new Set(folders.filter((f) => typeof f === "string" && f.length > 0 && f.length <= 500))].slice(0, MAX_GGUF_FOLDERS);
+  await putSetting(AI_GGUF_FOLDERS_KEY, JSON.stringify(clean));
+}
+
+/** Plan 0082: file path -> Ollama model name, for files added through Settings. */
+export async function getGgufImports(): Promise<Record<string, string>> {
+  const db = await getDb();
+  const row = await db.query.settings.findFirst({ where: eq(settings.key, AI_GGUF_IMPORTS_KEY) });
+  if (!row) return {};
+  try {
+    const v: unknown = JSON.parse(row.value);
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === "string"));
+  } catch {
+    return {};
+  }
+}
+
+export async function recordGgufImport(path: string, name: string): Promise<void> {
+  const map = await getGgufImports();
+  map[path] = name;
+  const entries = Object.entries(map).slice(-500);
+  await putSetting(AI_GGUF_IMPORTS_KEY, JSON.stringify(Object.fromEntries(entries)));
 }
 
 /** Browser-only preferences kept in step across devices (see lib/synced-prefs.ts). Stored as validated JSON. */

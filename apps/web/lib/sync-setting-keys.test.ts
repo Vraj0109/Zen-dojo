@@ -33,6 +33,8 @@ const MUST_NOT_SYNC = [
   "ai_lmstudio_url",
   "ai_lmstudio_model",
   "ai_fold_system",
+  "ai_gguf_folders",
+  "ai_gguf_imports",
   "extension_token",
   "content_feed_url",
   "tools_notice_dismissed",

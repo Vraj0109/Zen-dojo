@@ -4,7 +4,6 @@ import { agyProvider } from "./agy";
 import { claudeProvider } from "./claude";
 import { codexProvider } from "./codex";
 import { geminiProvider } from "./gemini";
-import { lmstudioProvider } from "./lmstudio";
 import { ollamaProvider } from "./ollama";
 import { AI_PROVIDER_IDS, type AiProviderId } from "@/lib/ui-prefs";
 
@@ -22,7 +21,6 @@ export interface AiProvider {
 
 const PROVIDERS: Partial<Record<AiProviderId, AiProvider>> = {
   ollama: ollamaProvider,
-  lmstudio: lmstudioProvider,
   claude: claudeProvider,
   agy: agyProvider,
   gemini: geminiProvider,

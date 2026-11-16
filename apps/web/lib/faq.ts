@@ -441,25 +441,17 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     ],
   },
   {
-    id: "ai-lmstudio",
-    category: "ai",
-    question: "Can I use LM Studio or another local server instead of Ollama?",
-    answer: [
-      p("Yes, on the desktop app. In Settings, Local AI, choose LM Studio or another local server under Answers from. Any server on this computer that speaks the OpenAI chat format works (LM Studio, llama.cpp llama-server, vLLM, LocalAI). No key is asked for."),
-      steps(
-        "In LM Studio download a model, open the Developer tab and press Start Server (or run `lms server start`).",
-        "In Zen Dojo press Check again. The row says Running and how many models it found.",
-        "Pick a model and press Use this model, then press Test.",
-      ),
-      p("The default address is `http://127.0.0.1:1234`. You can change the port, but the address must be on this computer (127.0.0.1, localhost or ::1); anything else is refused. Nothing leaves your computer."),
-    ],
-  },
-  {
     id: "ai-own-model",
     category: "ai",
-    question: "How do I use my own fine-tuned model?",
+    question: "How do I use a GGUF file or my own fine-tuned model?",
     answer: [
-      p("Import it into Ollama or LM Studio first, then pick it in Settings, Local AI. With Ollama run `ollama create <name> -f Modelfile`; it then shows as Installed: <name>. With LM Studio copy the GGUF file into the LM Studio models folder, load it, and pick it from the list."),
+      p("On the desktop app, add it to Ollama from Settings, Local AI. Nothing leaves your computer."),
+      steps(
+        "Under Model files on this computer, check that the folder with your GGUF file is listed. If not, type its full path and press Add folder.",
+        "Find the file in the table, check the model name and press Add to Ollama. Wait for the bar to finish.",
+        "Press Use this model. It also shows in the model list as Installed: <name>.",
+      ),
+      p("Ollama keeps its own copy, so you can delete the original file afterwards. Projector files (mmproj) and small adapter files are not listed. If Ollama does not support the model, its message is shown."),
       p("A model trained without a system prompt drops the app's instructions, such as guide with questions and do not give the full solution. Turn on My model ignores the app's instructions: the app then puts those instructions at the start of your first message instead. See docs/local-ai.md."),
     ],
   },
@@ -571,7 +563,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
       p("Never syncs:"),
       list(
         "The browser extension pairing key and the content feed address.",
-        "The tools notice setting and every AI setting: AI on or off, the chosen model, the Ollama address, the chosen provider, the cloud consent boxes, the LM Studio address and model, and the My model ignores the app's instructions switch.",
+        "The tools notice setting and every AI setting: AI on or off, the chosen model, the Ollama address, the chosen provider, the cloud consent boxes, the GGUF folders and which files were added to Ollama, and the My model ignores the app's instructions switch.",
         "Any setting whose name contains token, secret, key or password. Your own AI API key is not in the database at all: it stays in the browser.",
         "Downloaded compilers and the other contents of the `tools` folder, backups and logs.",
       ),

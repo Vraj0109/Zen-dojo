@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { getDb } from "./db";
 import { getAppearanceRecord, parseAppearanceRecord } from "./ui-prefs";
-import { getAiSettings, getAppearanceSetting, getBuddySettings, getSimpleMode, setAiSettings, setAppearanceSetting, setBuddySettings, setSimpleMode } from "./ui-prefs";
+import { getAiSettings, getAppearanceSetting, getBuddySettings, getGgufFolders, getGgufImports, getSimpleMode, recordGgufImport, setAiSettings, setGgufFolders, setAppearanceSetting, setBuddySettings, setSimpleMode } from "./ui-prefs";
 import { DEFAULT_APPEARANCE, type Appearance } from "./theme";
 
 beforeEach(() => {
@@ -132,18 +132,33 @@ describe("local AI settings", () => {
       url: "http://127.0.0.1:11434",
       provider: "ollama",
       consent: [],
-      lmstudioUrl: "http://127.0.0.1:1234",
-      lmstudioModel: "",
       foldSystem: false,
     });
   });
-  it("round trips the LM Studio address, model and the fold setting (plan 0078)", async () => {
-    await setAiSettings({ provider: "lmstudio", lmstudioUrl: "http://localhost:4321", lmstudioModel: "qwen/qwen3-4b@q4_k_m+x", foldSystem: true });
-    expect(await getAiSettings()).toMatchObject({ provider: "lmstudio", lmstudioUrl: "http://localhost:4321", lmstudioModel: "qwen/qwen3-4b@q4_k_m+x", foldSystem: true });
-    await setAiSettings({ lmstudioModel: "bad id;rm", foldSystem: false });
-    expect(await getAiSettings()).toMatchObject({ lmstudioModel: "qwen/qwen3-4b@q4_k_m+x", foldSystem: false });
-    await setAiSettings({ lmstudioModel: "" });
-    expect((await getAiSettings()).lmstudioModel).toBe("");
+  it("round trips the fold setting (plan 0078)", async () => {
+    await setAiSettings({ foldSystem: true });
+    expect((await getAiSettings()).foldSystem).toBe(true);
+    await setAiSettings({ foldSystem: false });
+    expect((await getAiSettings()).foldSystem).toBe(false);
+  });
+  it("reads a saved legacy lmstudio provider as ollama (plan 0082)", async () => {
+    const { settings } = await import("./schema");
+    const db = await getDb();
+    await db.insert(settings).values({ key: "ai_provider", value: "lmstudio" }).onConflictDoUpdate({ target: settings.key, set: { value: "lmstudio" } });
+    expect((await getAiSettings()).provider).toBe("ollama");
+  });
+  it("stores GGUF folders and imports (plan 0082)", async () => {
+    expect(await getGgufFolders()).toBeNull();
+    await setGgufFolders(["/a", "/b", "/a", ""]);
+    expect(await getGgufFolders()).toEqual(["/a", "/b"]);
+    await setGgufFolders(Array.from({ length: 15 }, (_, i) => `/f${i}`));
+    expect(await getGgufFolders()).toHaveLength(10);
+    await setGgufFolders([]);
+    expect(await getGgufFolders()).toEqual([]);
+    expect(await getGgufImports()).toEqual({});
+    await recordGgufImport("/a/x.gguf", "my-model");
+    await recordGgufImport("/a/y.gguf", "other");
+    expect(await getGgufImports()).toEqual({ "/a/x.gguf": "my-model", "/a/y.gguf": "other" });
   });
   it("saves the provider and consent list, and ignores unknown ids", async () => {
     await setAiSettings({ provider: "claude", consent: ["claude", "agy", "claude", "bogus" as never] });

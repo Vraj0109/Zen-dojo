@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-import { assertLoopback, chat, listModels, pullModel, status, validModelName } from "./ollama";
+import { assertLoopback, chat, importGguf, listModels, pullModel, status, validModelName } from "./ollama";
+import { createHash } from "node:crypto";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 function stream(lines: string[]): Response {
   const enc = new TextEncoder();
@@ -91,5 +95,72 @@ describe("ollama client", () => {
     await expect(async () => {
       for await (const _ of chat([], "llama3.2:3b", undefined, ac.signal)) void _;
     }).rejects.toThrow();
+  });
+});
+
+describe("importGguf (plan 0082)", () => {
+  const content = Buffer.from("GGUF fake model bytes");
+  const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+  let dir = "";
+  let file = "";
+  const setup = () => {
+    dir = mkdtempSync(path.join(tmpdir(), "ollama-import-"));
+    file = path.join(dir, "my-model.gguf");
+    writeFileSync(file, content);
+  };
+  const cleanup = () => rmSync(dir, { recursive: true, force: true });
+  const run = async () => {
+    const out: unknown[] = [];
+    for await (const p of importGguf(file, "my-model", "http://127.0.0.1:11434")) out.push(p);
+    return out;
+  };
+
+  it("skips the upload when the blob exists, then creates the model", async () => {
+    setup();
+    const calls: { url: string; method: string; body?: string }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, method: init.method ?? "GET", body: typeof init.body === "string" ? init.body : undefined });
+      if (init.method === "HEAD") return new Response(null, { status: 200 });
+      return stream(['{"status":"parsing GGUF"}\n', '{"status":"success"}\n']);
+    }));
+    const out = await run();
+    cleanup();
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`HEAD http://127.0.0.1:11434/api/blobs/${digest}`, "POST http://127.0.0.1:11434/api/create"]);
+    expect(JSON.parse(calls[1].body!)).toEqual({ model: "my-model", files: { "my-model.gguf": digest }, stream: true });
+    expect(out).toEqual([
+      { stage: "hashing", completed: content.length, total: content.length },
+      { stage: "creating", status: "parsing GGUF" },
+      { stage: "creating", status: "success" },
+      { stage: "done" },
+    ]);
+  });
+
+  it("uploads the blob when it is missing", async () => {
+    setup();
+    let uploaded = "";
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      if (init.method === "HEAD") return new Response(null, { status: 404 });
+      if (url.includes("/api/blobs/")) {
+        uploaded = await new Response(init.body).text();
+        return new Response(null, { status: 201 });
+      }
+      return stream(['{"status":"success"}\n']);
+    }));
+    const out = await run();
+    cleanup();
+    expect(uploaded).toBe(content.toString());
+    expect(out).toContainEqual({ stage: "uploading", completed: content.length, total: content.length });
+  });
+
+  it("throws Ollama's message on an error line", async () => {
+    setup();
+    vi.stubGlobal("fetch", vi.fn(async (_u: string, init: RequestInit) => (init.method === "HEAD" ? new Response(null, { status: 200 }) : stream(['{"error":"unsupported architecture"}\n']))));
+    await expect(run()).rejects.toThrow("Ollama: unsupported architecture");
+    cleanup();
+  });
+
+  it("refuses a bad name and a non-loopback address", async () => {
+    await expect(importGguf("/x.gguf", "bad name;", "http://127.0.0.1:11434").next()).rejects.toThrow("Bad model name.");
+    await expect(importGguf("/x.gguf", "ok", "http://example.com").next()).rejects.toThrow();
   });
 });

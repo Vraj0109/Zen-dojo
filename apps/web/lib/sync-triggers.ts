@@ -49,7 +49,7 @@ export const SYNC_TABLE_MAP_V2: readonly SyncTableDef[] = [
 export const SYNC_TABLE_MAP: readonly SyncTableDef[] = [...SYNC_TABLE_MAP_V1, ...SYNC_TABLE_MAP_V2];
 
 /** Settings that never leave this machine (exact keys). Any key containing a word in SECRET_WORDS is also private. */
-export const SYNC_SETTINGS_DENYLIST: readonly string[] = ["extension_token", "content_feed_url", "tools_notice_dismissed", "ai_enabled", "ai_model", "ai_ollama_url", "ai_provider", "ai_cloud_consent", "ai_lmstudio_url", "ai_lmstudio_model", "ai_fold_system"];
+export const SYNC_SETTINGS_DENYLIST: readonly string[] = ["extension_token", "content_feed_url", "tools_notice_dismissed", "ai_enabled", "ai_model", "ai_ollama_url", "ai_provider", "ai_cloud_consent", "ai_lmstudio_url", "ai_lmstudio_model", "ai_fold_system", "ai_gguf_folders", "ai_gguf_imports"];
 
 const SECRET_WORDS = ["token", "secret", "key", "password"] as const;
 

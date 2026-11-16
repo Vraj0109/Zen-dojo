@@ -656,7 +656,7 @@ describe("Sync End-to-End Integration Tests", () => {
 
     await put(deviceA, "appearance_prefs", JSON.stringify({ v: 1, at: 1000, prefs: { mode: "dark" } }));
     await put(deviceA, "ui_prefs_synced", JSON.stringify({ updatedAt: 1000, values: { "habit-judge-lang": "py" }, stamps: { "habit-judge-lang": 1000 } }));
-    for (const k of ["ai_enabled", "ai_model", "ai_ollama_url", "ai_provider", "ai_cloud_consent", "ai_lmstudio_url", "ai_lmstudio_model", "ai_fold_system"]) await put(deviceA, k, "x");
+    for (const k of ["ai_enabled", "ai_model", "ai_ollama_url", "ai_provider", "ai_cloud_consent", "ai_lmstudio_url", "ai_lmstudio_model", "ai_fold_system", "ai_gguf_folders", "ai_gguf_imports"]) await put(deviceA, k, "x");
     await deviceA.execute("UPDATE sync_stamps SET updated_at = 1000 WHERE tbl = 'settings'");
     await sync(deviceA);
 
@@ -675,6 +675,6 @@ describe("Sync End-to-End Integration Tests", () => {
     const a = await deviceA.execute("SELECT value FROM settings WHERE key = 'appearance_prefs'");
     expect(JSON.parse(String(a.rows[0].value)).prefs.mode).toBe("light");
     const aAi = await deviceA.execute("SELECT count(*) AS n FROM settings WHERE key LIKE 'ai_%'");
-    expect(Number(aAi.rows[0].n)).toBe(8);
+    expect(Number(aAi.rows[0].n)).toBe(10);
   });
 });
