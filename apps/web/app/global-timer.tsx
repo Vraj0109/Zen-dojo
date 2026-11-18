@@ -31,7 +31,7 @@ export async function saveFocus(itemId: string, minutes: number) {
   await logFocusAction(fd);
 }
 
-const btn = "rounded-md border border-line px-2.5 py-1 text-xs font-medium hover:bg-background disabled:opacity-40";
+const btn = "rounded-md border border-line px-2.5 py-1 text-xs font-medium hover:bg-surface-2 disabled:opacity-40";
 
 /** The sidebar timer: one for the whole app, keeps running across pages. */
 export function GlobalTimer() {
@@ -64,11 +64,11 @@ export function GlobalTimer() {
   };
 
   if (!state) {
-    // Phones: no idle box taking up the top of the screen; it shows again when a timer runs or has a message.
+    // No idle box (DESIGN.md sidebar): the timer shows only while one runs, or briefly after saving.
+    if (!notice) return null;
     return (
-      <section aria-label="Focus timer" className={`rounded-lg border border-line px-3 py-2 ${notice ? "" : "max-md:hidden"}`}>
-        <p className="text-xs text-muted">{notice ?? "No timer running"}</p>
-        <p className="text-[11px] text-muted">Press Start timer on a problem or lesson.</p>
+      <section aria-label="Focus timer" role="status" className="rounded-md border border-line bg-surface px-3 py-2">
+        <p className="text-xs text-muted">{notice}</p>
       </section>
     );
   }
@@ -78,18 +78,18 @@ export function GlobalTimer() {
   const target = state.targetMinutes * 60_000;
 
   return (
-    <section aria-label="Focus timer" className="space-y-2 rounded-lg border border-line px-3 py-2">
+    <section aria-label="Focus timer" className="space-y-2 rounded-md border border-line bg-surface px-3 py-2">
       <Link href={state.href} className="block truncate text-xs font-medium hover:underline" title={state.label}>
         {state.label}
       </Link>
       <div className="flex items-baseline justify-between gap-2">
-        <p className={`font-mono text-2xl tabular-nums ${done ? "text-accent" : ""}`} role="timer" aria-live="off">
+        <p className={`font-mono text-2xl tabular-nums ${done ? "text-primary" : ""}`} role="timer" aria-live="off">
           {clock(elapsed)}
         </p>
         <p className="text-xs text-muted">/ {state.targetMinutes} min</p>
       </div>
-      <div className="h-1 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Progress to target" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round((elapsed / target) * 100))}>
-        <div className="h-full bg-accent" style={{ width: `${Math.min(100, (elapsed / target) * 100)}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="Progress to target" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round((elapsed / target) * 100))}>
+        <div className="h-full bg-primary" style={{ width: `${Math.min(100, (elapsed / target) * 100)}%` }} />
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         {running ? (
@@ -97,7 +97,7 @@ export function GlobalTimer() {
             Pause
           </button>
         ) : (
-          <button type="button" onClick={() => timer.resume()} className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-on-accent">
+          <button type="button" onClick={() => timer.resume()} className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-on-primary hover:bg-primary-hover">
             Resume
           </button>
         )}
@@ -139,7 +139,7 @@ export function GlobalTimer() {
               type="button"
               onClick={() => timer.setTarget(p)}
               aria-pressed={state.targetMinutes === p}
-              className={`rounded-md px-1.5 py-0.5 text-[11px] ${state.targetMinutes === p ? "bg-accent text-on-accent" : "text-muted hover:bg-background"}`}
+              className={`rounded-md px-1.5 py-0.5 text-[11px] ${state.targetMinutes === p ? "bg-primary text-on-primary" : "text-muted hover:bg-surface-2"}`}
             >
               {p}
             </button>

@@ -30,6 +30,9 @@ describe("streak freeze", () => {
     expect(after.streak).toBe(2);
     expect(after.totalXp).toBe(before.totalXp);
     expect(after.freezeOffer).toEqual([]);
+    // The 7-day strip on Today: oldest first, ending today; the frozen day counts as kept.
+    expect(after.lastSevenDays.map((d) => d.date)).toEqual(["2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04"]);
+    expect(after.lastSevenDays.filter((d) => d.kept).map((d) => d.date)).toEqual(["2026-11-02", "2026-11-03"]);
 
     expect(await applyFreeze("2026-11-03", "2026-11-04")).toBe(false); // already frozen
     expect(await applyFreeze("2026-11-01", "2026-11-04")).toBe(false); // not a candidate

@@ -2,7 +2,7 @@
 
 - **Status:** ready
 - **Planned by:** Claude Code, 2026-11-19
-- **Implemented by:** Claude Code (Phase 1, steps 1-5), 2026-11-19
+- **Implemented by:** Claude Code (Phase 1, steps 1-5; Phase 2, steps 6-10), 2026-11-19
 - **Spec:** `DESIGN.md` (repo root) and the mockup canvas "Zen Dojo redesign mockups"
   (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj, private to the user; ask the lead for screenshots if you cannot open it)
 
@@ -79,17 +79,17 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 
 ### Phase 2: shell and Today (one agent)
 
-- [ ] **6. Sidebar.** `nav.tsx`: logo row, streak and XP chips under it, five items (Today, Practice, Learn, Review,
+- [x] **6. Sidebar.** `nav.tsx`: logo row, streak and XP chips under it, five items (Today, Practice, Learn, Review,
   Roadmap) with icons, Review count in `warning`, selected item `primary-soft`; account and sync in one compact row at the
   bottom; the timer box shows only while a timer runs; back/forward arrows move out of the logo row (keep them in the
   header on desktop). Matches mockup "Component: sidebar".
-- [ ] **7. Phone shell.** Phone header (title, streak chip) and the 5-tab bar (Today, Practice, Learn, Review, You), 48 px
+- [x] **7. Phone shell.** Phone header (title, streak chip) and the 5-tab bar (Today, Practice, Learn, Review, You), 48 px
   targets. Matches "Component: phone tab bar".
-- [ ] **8. Guest notice.** A slim dismissible bar at the top of the content area instead of the floating toast.
-- [ ] **9. Today.** `app/page.tsx`: greeting line with date and week, a progress row (daily-goal ring, XP bar with "N XP
+- [x] **8. Guest notice.** A slim dismissible bar at the top of the content area instead of the floating toast.
+- [x] **9. Today.** `app/page.tsx`: greeting line with date and week, a progress row (daily-goal ring, XP bar with "N XP
   to level", streak with 7-day strip), "Up next" list with subject edge colours and done state, "This week's focus" and
   "Due for review" cards open by default. Matches "Today" desktop and phone.
-- [ ] **10. Faster first paint.** Pages must show their shell and first section without waiting for slow data: move slow
+- [ ] **10. Faster first paint.** (Phase 2 did Today and the shared skeletons; see notes) Pages must show their shell and first section without waiting for slow data: move slow
   reads into their own `<Suspense>` sections, keep skeletons only for waits over 1 s. Measure Today, Practice, Learn and
   a lesson before and after on the hosted site (Vercel logs or the browser) and write the numbers in the notes.
   - Done when (6 to 10): screenshots match, and first content appears in under 1 s on a warm hosted load.
@@ -268,4 +268,49 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 - **Checks:** `pnpm -r typecheck`, eslint on all changed files, `vitest run` on `study-render`, `toc-items`, `no-emoji`,
   `skeletons`, `design-tokens`, `lld-classes` (246 passed).
 
+### Phase 2 (steps 6-10), 2026-11-19
+
+- **Sidebar** (`layout.tsx` aside, `nav.tsx`): `surface-2` from lg, logo row, then `SidebarProgress` (streak + total-XP chips,
+  `components/sidebar-progress.tsx`, streamed in its own `<Suspense>`). Items come from `SIDEBAR` = `MAIN` + `ROADMAP`
+  (Today, Practice, Learn, Review, Roadmap), 32px high, selected `bg-primary-soft text-primary`. `Nav` takes `counts`
+  (server nodes by href): Review shows `ReviewCount` (reviews due today, `text-warning`, nothing when 0). Profile no
+  longer highlights on `/roadmap` (Roadmap is its own item); on phones the You tab still covers both (`TABS`).
+- **Account row** (`components/account-popover.tsx`, non-compact): one row, avatar + name button (menu unchanged) and the
+  compact sync icon; signed out: Profile link, a small "Sign in" link and the sync icon. Compact (tablet/focus bar) mode
+  unchanged apart from tokens.
+- **Timer** (`global-timer.tsx`): no idle box; it renders only while a timer exists (or for the "Saved N min" notice).
+- **Back/forward**: out of the logo row; a slim row at the top of the content area on md+ (`shell.tsx` `FullShell`).
+  Problem pages keep them in their compact bar.
+- **Phone shell** (`shell.tsx` `PhoneHeader`, `components/bottom-nav.tsx`): sticky 48px header with logo, the tab title
+  (`tabTitle(pathname)`) and the streak chip (`HeaderStreak`, passed to `Shell` as `streak`). Tab bar from `TABS`,
+  56px-high targets, active tab `text-primary` with a `primary-soft` pill behind the icon. Below md the aside is
+  `display: contents`, so only a running timer shows from it.
+- **Guest notice** (`components/guest-notice.tsx` + new `components/dismissible-bar.tsx`): slim `surface-2` bar at the
+  top of the content area (passed to `Shell` as `notice`), close button hides it for the browser session
+  (`sessionStorage`, in-memory fallback). Still md+ only; phones keep the Sign in card on Today. Without JS it simply stays.
+- **Today** (`app/page.tsx`): sections `TodayTop` (week line, date, progress row: daily-goal `ProgressRing`, XP card with
+  `ProgressBar tone="reward"` and "N XP to level L", streak card with a 7-day strip; freeze offer, start/finish notes),
+  `UpNext` (3px subject edge per row, `border-l-warning` for reviews, `border-l-primary` for the countdown; done tasks
+  stay in the list checked and struck through after the open ones), `WeekFocusCard` ("This week's focus", open, week
+  arrows via `?week=`), `DueForReview` (first 5 of today's capped queue, kind badge, Start review), `ThisWeek` (the week's
+  tasks + add form, still a fold). The separate "Done today" fold is gone (those rows are in Up next). The XP and streak
+  cards are `gamify-only` like before. No time-of-day greeting: the server's clock is UTC on the hosted site, so the
+  "greeting line" is the week line plus the date.
+- **Data**: `lib/progress.ts` `getProgress` also returns `lastSevenDays` (`{date, kept}` x7, oldest first; frozen days
+  count), typed on `TodayView`; test added in `progress.test.ts`. New `app/today/data.ts` wraps `getTodayView`,
+  `getWeekFocus`, `getProgress(today)` and the split review queue in React `cache`, so the layout (chips, Review count)
+  and the page sections share one read per request.
+- **First paint** (step 10): each Today section is its own `<Suspense>`, so the greeting/progress row no longer waits for
+  the review queue. Skeletons appear only after 1s: new `.anim-late` (opacity, 1s delay; off with `data-motion="off"`)
+  in the motion block of `globals.css` (not a token change). `components/skeleton.tsx` `Skeleton` now renders the ui.tsx
+  `Skeleton` (`bg-surface-2`, `anim-pulse`); new `LateSkeleton` root; the Profile/Review/Roadmap/Study skeleton roots
+  got `anim-late` and `rounded-md`; `today-skeleton.tsx` is now three section skeletons. `skeletons.test.ts` checks
+  `anim-pulse`, `bg-surface-2` and `anim-late` instead of `animate-pulse`/`bg-line/60`.
+- **Not done in step 10**: Suspense splits on Practice, Learn and the lesson page (those files belong to phases 3 and 4;
+  they get the 1s skeleton delay through the shared skeleton files), and the before/after timing on the hosted site
+  (no hosted access from this session). The lead should measure after phases 3-4 land.
+- **Checked**: `next dev` with `DATABASE_URL=:memory:` at 1280 px light and 390 px dark (gamify on and off), no sideways
+  scroll at 390 px. Not compared with the mockup canvas (no access). Tests run: `skeletons`, `nav` (rewritten for
+  `SIDEBAR`/`TABS`/`tabTitle`), `progress`, `no-emoji`, `design-tokens` (40 passed); `tsc --noEmit` for web and
+  `pnpm -r typecheck` for the rest; eslint on every changed file. `pnpm check` not run.
 ## Review

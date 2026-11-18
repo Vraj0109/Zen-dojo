@@ -4,7 +4,7 @@ import { Skeleton } from "@/app/components/skeleton";
 /** Review Queue and Spaced Repetition Skeleton */
 export function ReviewQueueSkeleton() {
   return (
-    <div className="space-y-6" role="status" aria-label="Loading review queue">
+    <div className="anim-late space-y-6" role="status" aria-label="Loading review queue">
       {/* Review Section Tabs */}
       <div className="flex gap-2 border-b border-line pb-2">
         <Skeleton className="h-8 w-28 rounded-lg" />
@@ -20,7 +20,7 @@ export function ReviewQueueSkeleton() {
       </header>
 
       {/* "Up Next" Card */}
-      <section className="space-y-4 rounded-xl border border-accent/40 bg-surface p-5">
+      <section className="space-y-4 rounded-md border border-accent/40 bg-surface p-5">
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-20 tracking-wider uppercase" />
           <Skeleton className="h-4 w-16" />
@@ -40,7 +40,7 @@ export function ReviewQueueSkeleton() {
       {/* Upcoming Review Items List */}
       <section className="space-y-3">
         <Skeleton className="h-5 w-36" />
-        <div className="overflow-hidden rounded-xl border border-line bg-surface divide-y divide-line/40">
+        <div className="overflow-hidden rounded-md border border-line bg-surface divide-y divide-line/40">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">

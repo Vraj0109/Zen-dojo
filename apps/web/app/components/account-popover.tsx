@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSyncQueue } from "@/lib/sync-manager";
+import { Avatar as ProfileAvatar, useProfile } from "../custom-appearance";
 import { SyncStatusPill } from "./sync-status";
 
 export interface AccountUser {
@@ -39,13 +40,18 @@ function Avatar({ user, size }: { user: AccountUser; size: string }) {
     );
   }
   return (
-    <span aria-hidden className={`${size} grid shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-on-accent`}>
+    <span aria-hidden className={`${size} grid shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-on-primary`}>
       {(user.name || "?")[0].toUpperCase()}
     </span>
   );
 }
 
-const ITEM = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground hover:bg-background";
+function ProfileName() {
+  const p = useProfile();
+  return <span className="truncate">{p.name || "Profile"}</span>;
+}
+
+const ITEM = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground hover:bg-surface-2";
 
 function MenuLink({ href, icon, onNavigate, children }: { href: string; icon: string; onNavigate: () => void; children: ReactNode }) {
   return (
@@ -98,23 +104,28 @@ export function AccountPopover({ user, renew, compact = false }: { user: Account
 
   if (!user && compact) {
     return renew ? null : (
-      <Link href="/login" className="rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-on-accent hover:opacity-90">
+      <Link href="/login" className="rounded-md bg-primary px-2 py-1 text-xs font-semibold text-on-primary hover:bg-primary-hover">
         Sign in
       </Link>
     );
   }
 
+  // Sidebar, signed out: one row with Profile, a small Sign in link and the sync icon.
   if (!user) {
     return (
-      <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        <Link href="/profile" className="flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium text-muted hover:bg-surface hover:text-foreground">
+          <ProfileAvatar className="size-5 text-[10px]" />
+          <ProfileName />
+        </Link>
         {renew ? (
-          <p className="px-3 py-2 text-xs text-muted">Restoring your session...</p>
+          <span className="px-1 text-xs text-muted">Restoring...</span>
         ) : (
-          <Link href="/login" className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:opacity-90">
+          <Link href="/login" className="rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-surface">
             Sign in
           </Link>
         )}
-        <SyncStatusPill className="w-full justify-between" user={null} />
+        <SyncStatusPill compact user={null} />
       </div>
     );
   }
@@ -144,7 +155,7 @@ export function AccountPopover({ user, renew, compact = false }: { user: Account
   }
 
   return (
-    <div ref={box} className={compact ? "relative" : "relative space-y-2"}>
+    <div ref={box} className={compact ? "relative" : "relative flex items-center gap-1"}>
       {compact ? (
         <button
           type="button"
@@ -152,7 +163,7 @@ export function AccountPopover({ user, renew, compact = false }: { user: Account
           aria-expanded={open}
           aria-label="Account"
           onClick={() => setOpen((v) => !v)}
-          className="grid size-8 place-items-center rounded-full hover:bg-background"
+          className="grid size-8 place-items-center rounded-full hover:bg-surface-2"
         >
           <Avatar user={user} size="size-6" />
         </button>
@@ -162,12 +173,12 @@ export function AccountPopover({ user, renew, compact = false }: { user: Account
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm hover:bg-background"
+          className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left text-sm hover:bg-surface"
         >
-          <Avatar user={user} size="size-8" />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-medium">{user.name}</span>
-            {user.admin && <span className="block text-[11px] text-muted">Admin</span>}
+          <Avatar user={user} size="size-6" />
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {user.name}
+            {user.admin && <span className="ml-1.5 text-xs font-normal text-muted">Admin</span>}
           </span>
           <span className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}>
             <Icon d={ICON.chevron} />
@@ -176,7 +187,7 @@ export function AccountPopover({ user, renew, compact = false }: { user: Account
       )}
 
       {open && (
-        <div role="menu" aria-label="Account" className={`absolute z-60 min-w-56 rounded-xl border border-line bg-surface p-1.5 shadow-lg ${compact ? "top-full right-0 mt-2 w-64 max-w-[calc(100vw-1rem)]" : "bottom-full left-0 z-30 mb-2 w-full"}`}>
+        <div role="menu" aria-label="Account" className={`absolute z-60 min-w-56 rounded-lg border border-line-strong bg-surface p-1.5 shadow-lg ${compact ? "top-full right-0 mt-2 w-64 max-w-[calc(100vw-1rem)]" : "bottom-full left-0 z-30 mb-2 w-full"}`}>
           <div className="flex items-center gap-2.5 px-2.5 py-2">
             <Avatar user={user} size="size-9" />
             <span className="min-w-0">
@@ -220,7 +231,7 @@ export function AccountPopover({ user, renew, compact = false }: { user: Account
         </div>
       )}
 
-      {!compact && <SyncStatusPill className="w-full justify-between" user={{ id: user.id, isGuest: false }} />}
+      {!compact && <SyncStatusPill compact user={{ id: user.id, isGuest: false }} />}
     </div>
   );
 }

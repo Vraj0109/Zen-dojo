@@ -1,6 +1,6 @@
 import "server-only";
 import { eq, isNotNull } from "drizzle-orm";
-import { canFreeze, currentStreak, freezeCandidates, levelInfo, streakDays, toLocalDate } from "@habit/shared";
+import { addDays, canFreeze, currentStreak, freezeCandidates, levelInfo, streakDays, toLocalDate } from "@habit/shared";
 import { getDb } from "./db";
 import { conceptProgress, practiceSessions, problemSolves, streakFreezes, tasks } from "./schema";
 
@@ -45,10 +45,16 @@ export async function getProgress(today: string) {
   const [events, frozen] = await Promise.all([xpEvents(), frozenDays()]);
   const totalXp = events.reduce((a, e) => a + e.xp, 0);
   const active = events.map((e) => e.on);
+  const kept = new Set(streakDays(active, frozen));
   return {
     totalXp,
     todayXp: events.filter((e) => e.on === today).reduce((a, e) => a + e.xp, 0),
-    streak: currentStreak(streakDays(active, frozen), today),
+    streak: currentStreak(kept, today),
+    /** The last 7 days, oldest first, ending today: whether each kept the streak (activity or a freeze). */
+    lastSevenDays: Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(today, i - 6);
+      return { date, kept: kept.has(date) };
+    }),
     /** Missed days (newest first) that could be frozen now; empty when this week's freeze is used. */
     freezeOffer: freezeCandidates(active, frozen, today),
     level: levelInfo(totalXp),

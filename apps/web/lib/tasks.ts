@@ -211,6 +211,8 @@ export interface TodayView {
   /** Missed days (newest first) a streak freeze could cover right now */
   freezeOffer: string[];
   level: Awaited<ReturnType<typeof getProgress>>["level"];
+  /** The last 7 days ending today (oldest first) and whether each kept the streak */
+  lastSevenDays: { date: string; kept: boolean }[];
 }
 
 export async function getTodayView(): Promise<TodayView> {

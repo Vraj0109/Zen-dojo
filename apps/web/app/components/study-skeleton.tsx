@@ -4,7 +4,7 @@ import { Skeleton } from "@/app/components/skeleton";
 /** Full-fidelity Study Article skeleton (matches study/[area]/[id] and dsa/pattern/[id] learn views) */
 export function StudyArticleSkeleton() {
   return (
-    <div className="space-y-6" role="status" aria-label="Loading study article">
+    <div className="anim-late space-y-6" role="status" aria-label="Loading study article">
       {/* Breadcrumb row */}
       <div className="flex items-center gap-2">
         <Skeleton className="h-4 w-12" />
@@ -18,7 +18,7 @@ export function StudyArticleSkeleton() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
         {/* Right aside / Table of Contents (order-1 on mobile, sticky on xl) */}
         <aside className="order-1 space-y-4 xl:order-2 xl:sticky xl:top-6 xl:self-start">
-          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <div className="space-y-3 rounded-md border border-line bg-surface p-4">
             <Skeleton className="h-3 w-24 tracking-wider uppercase" />
             <div className="space-y-2.5 pt-1">
               <Skeleton className="h-3.5 w-32" />
@@ -30,7 +30,7 @@ export function StudyArticleSkeleton() {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <div className="space-y-3 rounded-md border border-line bg-surface p-4">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-3 w-full" />
             <Skeleton className="h-8 w-full rounded-lg" />
@@ -59,7 +59,7 @@ export function StudyArticleSkeleton() {
           </div>
 
           {/* Embedded Code Snippet Skeleton */}
-          <div className="space-y-3 rounded-xl border border-line bg-surface p-4 font-mono">
+          <div className="space-y-3 rounded-md border border-line bg-surface p-4 font-mono">
             <div className="flex items-center justify-between border-b border-line/40 pb-2">
               <Skeleton className="h-3.5 w-24" />
               <Skeleton className="h-5 w-14 rounded-md" />
@@ -90,7 +90,7 @@ export function StudyArticleSkeleton() {
           </div>
 
           {/* Section 3: Interactive Practice / Self-Rate card */}
-          <div className="rounded-xl border border-line bg-surface p-5 space-y-4">
+          <div className="rounded-md border border-line bg-surface p-5 space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-36" />
               <Skeleton className="h-4 w-20 rounded-full" />
@@ -111,7 +111,7 @@ export function StudyArticleSkeleton() {
 /** Study Hub skeleton (matches apps/web/app/study/page.tsx) */
 export function StudyHubSkeleton() {
   return (
-    <div className="space-y-8" role="status" aria-label="Loading learn hub">
+    <div className="anim-late space-y-8" role="status" aria-label="Loading learn hub">
       {/* Top Header */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-2">
@@ -122,7 +122,7 @@ export function StudyHubSkeleton() {
       </header>
 
       {/* "Continue where you left off" card */}
-      <section className="rounded-xl border border-accent/40 bg-surface p-5 space-y-3">
+      <section className="rounded-md border border-accent/40 bg-surface p-5 space-y-3">
         <Skeleton className="h-3 w-40 tracking-wider uppercase" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1.5">
@@ -138,7 +138,7 @@ export function StudyHubSkeleton() {
         <Skeleton className="h-6 w-32" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-line bg-surface p-5 space-y-4">
+            <div key={i} className="rounded-md border border-line bg-surface p-5 space-y-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1.5">
                   <Skeleton className="h-5 w-36" />
@@ -162,7 +162,7 @@ export function StudyHubSkeleton() {
 /** Study Area skeleton (matches apps/web/app/study/[area]/page.tsx) */
 export function StudyAreaSkeleton() {
   return (
-    <div className="space-y-8" role="status" aria-label="Loading study area">
+    <div className="anim-late space-y-8" role="status" aria-label="Loading study area">
       {/* Back button */}
       <Skeleton className="h-4 w-28" />
 
@@ -176,7 +176,7 @@ export function StudyAreaSkeleton() {
       {/* 4-Stat KPI Grid */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl border border-line bg-surface p-4 space-y-2">
+          <div key={i} className="rounded-md border border-line bg-surface p-4 space-y-2">
             <Skeleton className="h-3.5 w-24" />
             <Skeleton className="h-7 w-20" />
             <Skeleton className="h-3 w-16" />
@@ -196,7 +196,7 @@ export function StudyAreaSkeleton() {
       {/* Sections and Concepts List */}
       <div className="space-y-6">
         {[...Array(3)].map((_, sIndex) => (
-          <section key={sIndex} className="rounded-xl border border-line bg-surface overflow-hidden">
+          <section key={sIndex} className="rounded-md border border-line bg-surface overflow-hidden">
             <div className="flex items-center justify-between border-b border-line/40 p-4">
               <Skeleton className="h-5 w-40" />
               <Skeleton className="h-4 w-16 rounded-full" />
