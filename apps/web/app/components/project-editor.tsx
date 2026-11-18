@@ -85,7 +85,7 @@ const ICON_TRASH = "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3";
 const ICON_RESET = "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5";
 
 const BUTTON =
-  "inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-foreground hover:bg-line/40 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-xs font-semibold text-foreground transition-colors duration-120 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-45";
 
 export type ProjectEditorProps = {
   projectId: string;
@@ -342,15 +342,15 @@ export function ProjectEditor({
   const succeeded = result !== null && result.exitCode === 0;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
+    <div className="overflow-hidden rounded-md border border-line bg-surface">
       {noRun && (
         <div className="border-b border-line p-3">
           <HostedProjectNotice />
         </div>
       )}
-      {!readOnly && <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 max-md:hidden">
+      {!readOnly && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 max-md:hidden">
         {!noRun && (
-          <button type="button" onClick={run} disabled={running} className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60">
+          <button type="button" onClick={run} disabled={running} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-on-primary transition-colors duration-120 hover:bg-primary-hover disabled:opacity-45">
             <Icon d={ICON_PLAY} />
             {running ? "Running..." : "Run Project"}
           </button>
@@ -392,16 +392,41 @@ export function ProjectEditor({
             placeholder="User.java"
             autoFocus
             spellCheck={false}
-            className="rounded-md border border-line bg-background px-2 py-1 font-mono text-xs"
+            className="h-8 rounded-sm border border-line-strong bg-surface px-2 font-mono text-xs focus:border-primary focus:outline-2 focus:outline-primary/30"
           />
           <button type="button" onClick={addFile} className={BUTTON}>
             Add
           </button>
-          {nameError && <span className="text-xs text-red-600 dark:text-red-400">{nameError}</span>}
+          {nameError && <span className="text-xs text-danger">{nameError}</span>}
         </div>
       )}
 
-      <div role="tablist" aria-label="Project files" className="flex max-md:hidden gap-px overflow-x-auto border-b border-line bg-line/30">
+      <div className="md:grid md:grid-cols-[12rem_minmax(0,1fr)]">
+      {/* File tree (wide screens): the same files as the tabs, one click opens one. */}
+      <nav aria-label="File tree" className="border-r border-line bg-surface-2 p-2 max-md:hidden">
+        <p className="px-2 pb-1 text-xs font-semibold text-muted">Files</p>
+        <ul className="space-y-0.5">
+          {files.map((f) => {
+            const selected = f.name === activeFile?.name;
+            const errors = diagnostics.filter((d) => d.file === f.name && d.severity === "error").length;
+            return (
+              <li key={f.name}>
+                <button
+                  type="button"
+                  onClick={() => selectFile(f.name)}
+                  aria-current={selected ? "true" : undefined}
+                  className={`flex w-full items-center gap-1.5 truncate rounded-sm px-2 py-1 text-left font-mono text-xs transition-colors duration-120 ${selected ? "bg-primary-soft text-foreground" : "text-muted hover:bg-surface hover:text-foreground"}`}
+                >
+                  <span className="min-w-0 truncate">{f.name}</span>
+                  {errors > 0 && <span className="ml-auto text-danger">{errors}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      <div className="min-w-0">
+      <div role="tablist" aria-label="Project files" className="flex max-md:hidden gap-px overflow-x-auto border-b border-line bg-surface-2">
         {files.map((f) => {
           const selected = f.name === activeFile?.name;
           const errors = diagnostics.filter((d) => d.file === f.name && d.severity === "error").length;
@@ -412,10 +437,10 @@ export function ProjectEditor({
               role="tab"
               aria-selected={selected}
               onClick={() => selectFile(f.name)}
-              className={`whitespace-nowrap px-3 py-1.5 font-mono text-xs ${selected ? "bg-surface text-foreground" : "bg-background text-muted hover:text-foreground"}`}
+              className={`whitespace-nowrap border-t-2 px-3 py-1.5 font-mono text-xs ${selected ? "border-t-primary bg-surface text-foreground" : "border-t-transparent bg-surface-2 text-muted hover:text-foreground"}`}
             >
               {f.name}
-              {errors > 0 && <span className="ml-1.5 text-red-600 dark:text-red-400">{errors}</span>}
+              {errors > 0 && <span className="ml-1.5 text-danger">{errors}</span>}
             </button>
           );
         })}
@@ -425,7 +450,7 @@ export function ProjectEditor({
       <div className="space-y-2 p-3 md:hidden">
         <PhoneCodeNote />
         {files.map((f) => (
-          <details key={f.name} className="rounded-lg border border-line bg-background">
+          <details key={f.name} className="rounded-md border border-line bg-surface-2">
             <summary className="min-h-10 cursor-pointer select-none px-3 py-2 font-mono text-xs">{f.name}</summary>
             <pre className="max-h-96 overflow-auto border-t border-line p-3 text-xs whitespace-pre">{f.content}</pre>
           </details>
@@ -450,15 +475,17 @@ export function ProjectEditor({
           </>
         )}
       </div>
+      </div>
+      </div>
 
-      {!readOnly && !noRun && <div className="border-t border-line bg-background max-md:hidden" aria-live="polite">
+      {!readOnly && !noRun && <div className="border-t border-line bg-surface-2 max-md:hidden" aria-live="polite">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line px-3 py-1.5 text-xs text-muted">
           <span className="font-medium text-foreground">Console</span>
           {result && (
             <>
               <span>
                 Exit code{" "}
-                <span className={succeeded ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>{result.exitCode ?? "none"}</span>
+                <span className={succeeded ? "text-success" : "text-danger"}>{result.exitCode ?? "none"}</span>
               </span>
               <span>{result.elapsedMs} ms</span>
             </>
@@ -467,7 +494,7 @@ export function ProjectEditor({
         <div className="max-h-72 overflow-auto px-3 py-2 font-mono text-xs leading-relaxed">
           {running && <p className="text-muted">Compiling and running...</p>}
           {!running && !result && !failure && <p className="text-muted">Press Run Project to compile all files and run the program.</p>}
-          {failure && <p className="text-red-600 dark:text-red-400"><FailureText text={failure} /></p>}
+          {failure && <p className="text-danger"><FailureText text={failure} /></p>}
           {!running && result && (
             <>
               {diagnostics.length > 0 && (
@@ -475,8 +502,8 @@ export function ProjectEditor({
                   {diagnostics.map((d, i) => (
                     <li key={`${d.file}:${d.line}:${i}`}>
                       <button type="button" onClick={() => goToDiagnostic(d)} className="text-left hover:underline">
-                        <span className={d.severity === "error" ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}>{d.severity}</span>{" "}
-                        <span className="text-accent">
+                        <span className={d.severity === "error" ? "text-danger" : "text-warning"}>{d.severity}</span>{" "}
+                        <span className="text-primary">
                           {d.file}:{d.line}
                           {d.column ? `:${d.column}` : ""}
                         </span>{" "}
@@ -487,7 +514,7 @@ export function ProjectEditor({
                 </ul>
               )}
               {result.stdout && <pre className="whitespace-pre-wrap text-foreground">{result.stdout}</pre>}
-              {result.stderr && <pre className="whitespace-pre-wrap text-red-600 dark:text-red-400">{result.stderr}</pre>}
+              {result.stderr && <pre className="whitespace-pre-wrap text-danger">{result.stderr}</pre>}
               {!result.stdout && !result.stderr && diagnostics.length === 0 && <p className="text-muted">The program printed nothing.</p>}
             </>
           )}

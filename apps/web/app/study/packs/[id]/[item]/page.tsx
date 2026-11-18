@@ -21,7 +21,7 @@ function Inline({ text }: { text: string }) {
         p.kind === "bold" ? (
           <strong key={i}>{p.text}</strong>
         ) : p.kind === "code" ? (
-          <code key={i} className="rounded bg-background px-1 py-0.5 font-mono text-[0.9em]">
+          <code key={i} className="rounded-sm bg-surface-2 px-1 py-0.5 font-mono text-[0.9em]">
             {p.text}
           </code>
         ) : (
@@ -105,7 +105,7 @@ async function Item({ params }: { params: PageProps<"/study/packs/[id]/[item]">[
       <input type="hidden" name="pack" value={id} />
       <input type="hidden" name="item" value={itemId} />
       <input type="hidden" name="done" value={isDone ? "0" : "1"} />
-      <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+      <SubmitButton className="inline-flex h-9 items-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold transition-colors duration-120 hover:bg-surface-2">
         {isDone ? "Mark not done" : item.type === "problem" ? "Mark solved" : "Mark read"}
       </SubmitButton>
     </form>
@@ -127,7 +127,7 @@ async function Item({ params }: { params: PageProps<"/study/packs/[id]/[item]">[
       <div className="flex flex-wrap items-center gap-2">
         {toggle}
         {next && (
-          <Link href={`/study/packs/${id}/${next.id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+          <Link href={`/study/packs/${id}/${next.id}`} className="inline-flex h-9 items-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold transition-colors duration-120 hover:bg-surface-2">
             Next: {next.title} →
           </Link>
         )}

@@ -7,7 +7,7 @@ import { getCourseLibrary, type LibraryCourse } from "@/lib/packs";
 import { toggleFavouriteCourseAction } from "../actions";
 import { LibraryDownload } from "./library-download";
 import { SubmitButton } from "../submit-button";
-import { PageMain, ProgressBar } from "../ui";
+import { buttonClass, PageMain, ProgressBar, Skeleton } from "../ui";
 import { StudyHubSkeleton } from "@/app/components/study-skeleton";
 
 export const metadata: Metadata = { title: "Learn" };
@@ -32,25 +32,25 @@ async function Hub() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Learn</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Learn</h2>
           <p className="mt-1 text-sm text-muted">Pick a course. Each card shows how much is left and what to do next.</p>
         </div>
         {dueTotal > 0 && (
-          <Link href="/review" className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-background">
+          <Link href="/review" className={buttonClass("secondary", "sm", "text-warning")}>
             {dueTotal} review{dueTotal === 1 ? "" : "s"} due →
           </Link>
         )}
       </header>
 
       {again && (
-        <section aria-label="Continue" className="anim-fade-up rounded-xl border border-accent bg-surface p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Continue where you left off</p>
+        <section aria-label="Continue" className="anim-fade-up rounded-md border border-line border-l-[3px] border-l-primary bg-surface p-5">
+          <p className="text-xs font-medium text-muted">Continue where you left off</p>
           <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-lg font-semibold">{again.title}</p>
               <p className="text-sm text-muted">{again.course}</p>
             </div>
-            <Link href={again.href} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+            <Link href={again.href} className={buttonClass("primary")}>
               Continue
             </Link>
           </div>
@@ -117,7 +117,7 @@ function LibrarySkeleton() {
       <LibraryHeading />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-36 animate-pulse rounded-xl border border-line bg-surface" />
+          <Skeleton key={i} className="h-36 w-full rounded-md" />
         ))}
       </div>
     </section>
@@ -142,14 +142,14 @@ async function CourseLibrarySection() {
     <section aria-labelledby="library" className="space-y-3">
       <LibraryHeading />
       {!lib.ok ? (
-        <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">Couldn&apos;t reach the course library right now.</p>
+        <p className="rounded-md border border-line bg-surface p-4 text-sm text-muted">Couldn&apos;t reach the course library right now.</p>
       ) : (
         <>
-          {lib.offline && <p className="text-sm text-diff-medium">Showing the last list we saw. Connect to the internet to download.</p>}
-          {lib.courses.length === 0 && <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">No courses in the library yet.</p>}
+          {lib.offline && <p className="text-sm text-warning">Showing the last list we saw. Connect to the internet to download.</p>}
+          {lib.courses.length === 0 && <p className="rounded-md border border-line bg-surface p-4 text-sm text-muted">No courses in the library yet.</p>}
           {sorted.map(([category, list]) => (
             <div key={category} className="space-y-2">
-              <h4 className="text-xs font-medium uppercase tracking-wide text-muted">{category}</h4>
+              <h4 className="text-xs font-medium text-muted">{category}</h4>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {list.map((c) => (
                   <LibraryCard key={c.id} course={c} />
@@ -166,22 +166,22 @@ async function CourseLibrarySection() {
 function LibraryCard({ course: c }: { course: LibraryCourse }) {
   const facts = [c.items !== undefined ? `${c.items} item${c.items === 1 ? "" : "s"}` : null, formatSize(c.bytes)].filter(Boolean).join(" · ");
   return (
-    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+    <article className="flex min-w-0 flex-col gap-3 rounded-md border border-line border-t-[3px] border-t-line-strong bg-surface p-5">
       <h5 className="text-lg font-semibold leading-snug break-words">{c.title}</h5>
       {c.description && <p className="text-sm text-muted break-words">{c.description}</p>}
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-sm">
         <p className="text-xs text-muted">
           {facts}
-          {c.state === "update" && !c.tooNew && <span className="block font-medium text-diff-medium">New version available</span>}
+          {c.state === "update" && !c.tooNew && <span className="block font-medium text-warning">New version available</span>}
         </p>
         {c.tooNew ? (
-          <button type="button" disabled className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted opacity-60">
+          <button type="button" disabled className={buttonClass("secondary", "sm")}>
             Needs a newer Zen Dojo
           </button>
         ) : c.state === "installed" ? (
           <span className="flex items-center gap-3">
             <span className="text-xs text-muted">Downloaded</span>
-            <Link href={`/study/packs/${c.id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+            <Link href={`/study/packs/${c.id}`} className={buttonClass("secondary", "sm")}>
               Open
             </Link>
           </span>
@@ -193,10 +193,16 @@ function LibraryCard({ course: c }: { course: LibraryCourse }) {
   );
 }
 
+/** Top edge in the course's subject colour (packs and other courses get the strong line). */
+function courseEdge(id: string): string {
+  const edges: Record<string, string> = { sd: "border-t-cat-sd", lld: "border-t-cat-lld", core: "border-t-cat-core", dsa: "border-t-cat-dsa", reading: "border-t-cat-beh" };
+  return edges[id] ?? "border-t-line-strong";
+}
+
 function CourseCard({ course: c }: { course: CourseView }) {
   const finished = c.total > 0 && c.left === 0;
   return (
-    <article className="hit hit-card anim-lift flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+    <article className={`hit hit-card anim-lift flex flex-col gap-3 rounded-md border border-line border-t-[3px] bg-surface p-5 ${courseEdge(c.id)}`}>
       <header className="flex items-start justify-between gap-3">
         <h4 className="text-lg font-semibold leading-snug">
           <Link href={c.href} className="hit-link">
@@ -229,7 +235,7 @@ function CourseCard({ course: c }: { course: CourseView }) {
         </p>
       </div>
 
-      {c.due > 0 && <p className="text-xs font-medium text-diff-medium">{c.due} due for review</p>}
+      {c.due > 0 && <p className="text-xs font-medium text-warning">{c.due} due for review</p>}
 
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-sm">
         {c.next ? (
@@ -242,7 +248,7 @@ function CourseCard({ course: c }: { course: CourseView }) {
         ) : (
           <p className="text-muted">Nothing left to do here.</p>
         )}
-        <Link href={c.href} className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+        <Link href={c.href} className={buttonClass("secondary", "sm", "shrink-0")}>
           {c.done === 0 ? "Start" : "Open"}
         </Link>
       </div>

@@ -120,19 +120,19 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 
 ### Phase 4: Learn (one agent)
 
-- [ ] **19. Learn hub.** Continue card, course cards with subject top edge, progress and next step, course library
+- [x] **19. Learn hub.** Continue card, course cards with subject top edge, progress and next step, course library
   section (plan 0081) restyled. Matches "Learn hub".
-- [ ] **20. Course page.** Sections as cards with done/next/not-started rows and a Continue button. Matches "Course page".
-- [ ] **21. Lesson page.** 68-character column, breadcrumb bar with lesson progress, outline open on the right from 1280
+- [x] **20. Course page.** Sections as cards with done/next/not-started rows and a Continue button. Matches "Course page".
+- [x] **21. Lesson page.** 68-character column, breadcrumb bar with lesson progress, outline open on the right from 1280
   px (sticky, current section marked), tip callouts, "Mark as learned · +XP" and next-lesson link at the end. Phone: back
   bar with progress, outline behind a button, sticky Ask AI / Mark learned. Matches "Lesson".
-- [ ] **22. LLD project page.** Section tabs (Walkthrough, Diagrams, Full code, Playground, Edge cases, Your turn); Full code
+- [x] **22. LLD project page.** Section tabs (Walkthrough, Diagrams, Full code, Playground, Edge cases, Your turn); Full code
   as file tree by package plus code viewer with a "Uses" line; "Write your own classes" button. Matches "LLD project".
-- [ ] **23. Your classes editor.** Restyle the existing IDE (plan 0052): file tree with New file / New folder, open-file
+- [x] **23. Your classes editor.** Restyle the existing IDE (plan 0052): file tree with New file / New folder, open-file
   tabs, editor, Run with test output, "Compare with reference" side panel. No behaviour change. Matches "Your classes".
-- [ ] **24. System design walkthrough.** Seven-step rail with done/current, step content, diagram figure, trade-off and
+- [x] **24. System design walkthrough.** Seven-step rail with done/current, step content, diagram figure, trade-off and
   numbers cards, Java snippet in a fold-out, next-step and "Draw it in Diagrams" links. Matches "System design walkthrough".
-- [ ] **25. Reading list and Diagrams** restyled to their mockups.
+- [x] **25. Reading list and Diagrams** restyled to their mockups.
 
 ### Phase 5: Review, profile, settings, sign in (one agent)
 
@@ -232,4 +232,40 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
   rows, `bg-primary-soft text-primary` for selected nav, `text-warning` for the Review count, `ProgressBar tone="reward"`
   for XP. Old skeleton components still use `bg-line/60` (`skeletons.test.ts` checks it); move them to `Skeleton` in
   phase 2 and update that test.
+### Phase 4 (steps 19-25), 2026-11-19
+
+- **Token pass** over every Learn file (`app/study/**`, `learn-blocks`, `toc`, `markdown`, `design-deep`,
+  `course-outline`, `section-tabs`, `focus-reading`, `components/project-editor.tsx`): `rounded-lg/xl/2xl` -> `rounded-md`,
+  `bg-accent`/`text-on-accent`/`border-accent` -> primary tokens, `hover:bg-background` -> `hover:bg-surface-2`, raw
+  red/green/amber and `text-diff-*` -> `text-danger|success|warning`, uppercase eyebrows dropped (plain case), inputs on
+  `INPUT_CLASS` or `border-line-strong bg-surface`, buttons on `buttonClass`.
+- **19 Learn hub** (`study/page.tsx`, `library-download.tsx`): Continue card with a 3px primary left edge and a primary
+  button; course cards get a 3px top edge in the subject colour (`courseEdge`: sd/lld/core/dsa, reading = beh, packs =
+  line-strong); library cards and skeletons use `Skeleton`; all buttons via `buttonClass`.
+- **20 Course page** (`study/[area]/page.tsx`): each section is a card; rows show `StatusMark` (covered = done,
+  review due = dashed, else empty) and the first uncovered concept in course order is tinted `primary-soft` with a "Next"
+  badge; header has a Start/Continue button to it. "Due for review" list has a warning left edge.
+- **21 Lesson page** (`study/[area]/[id]/page.tsx`, `learn-blocks.tsx`): breadcrumb bar ("Learn / course / outline")
+  with a "Lesson n of m" progress bar; paragraphs and list items capped at 68ch (code, diagrams, editors keep full
+  width); the outline/TOC sits in a sticky card on the right from `xl` (1280 px, already the breakpoint), current
+  section marked by the existing TOC marker on `primary-soft`; next-lesson link has a primary edge.
+- **22 LLD project page**: a section link row (Walkthrough, Diagrams, Full code, Playground, Edge cases, Your turn) under the
+  header (anchor links, not real tabs); Full code is a file tree grouped by Java `package` (sticky on `lg`) beside the
+  code, and each file shows a "Uses" line with the project's other classes it mentions (`ProjectFiles` in `learn-ui.tsx`).
+- **23 Your classes** (`components/project-editor.tsx`, shared with the DSA notes editor): toolbar on `surface-2`,
+  Dojo buttons, a file-tree column on md+ (same `selectFile` as the tabs), open-file tabs with a primary top edge.
+- **24 System design walkthrough** (`learn-ui.tsx` `WalkthroughView`, `design-deep.tsx`): the reference is a seven-step
+  numbered rail; trade-offs in a reward-edged card; diagrams in figure cards; the Java files are inside a fold-out;
+  strong/weak answers labelled in success/danger.
+- **25 Reading list and Diagrams**: reading header shows a `ProgressBar` with count and per-group "n of m"; diagram
+  cards get the hover lift.
+- **Deviations:** no "New folder" in the IDE and no "Compare with reference" side panel (neither exists today and both
+  would be new behaviour); the reference stays where it is on the page. LLD section "tabs" are jump links so the page still
+  works without JS and nothing is hidden. Lesson "Mark as learned" stays as the existing confidence form + Save; no
+  sticky phone Ask AI / Mark learned bar and no "Draw it in Diagrams" link were added (behaviour/new links). The step
+  rail has no done/current state (no per-step progress is stored). Not compared with the mockup canvas and not checked
+  in a browser from this session. No `ui.tsx` or `globals.css` changes.
+- **Checks:** `pnpm -r typecheck`, eslint on all changed files, `vitest run` on `study-render`, `toc-items`, `no-emoji`,
+  `skeletons`, `design-tokens`, `lld-classes` (246 passed).
+
 ## Review

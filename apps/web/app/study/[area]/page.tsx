@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { COVERED_CONFIDENCE, LESSON_EXTRA, STUDY_AREAS, getStudyArea } from "@habit/shared";
 import { getAddedItems, type AddedGroup } from "@/lib/packs";
 import { getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
-import { PageMain, ProgressBar, Stat } from "../../ui";
+import { Badge, ButtonLink, PageMain, ProgressBar, Stat, StatusMark } from "../../ui";
 import { LearnBack } from "../../section-tabs";
 import { deeperIds } from "../../toc-items";
 import { Confidence, fmtDate } from "../study-ui";
@@ -42,14 +42,23 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
   const separate = added.filter((g) => !sectionTitles.has(g.section));
   const { area, sections, exercises, due, totals } = view;
   const hours = Math.round((totals.minutes / 60) * 10) / 10;
+  // The next lesson: the first concept not yet covered, in course order.
+  const nextId = sections.flatMap((s) => s.concepts).find((c) => c.confidence < COVERED_CONFIDENCE)?.id;
 
   return (
     <div className="space-y-8">
       <LearnBack current={area.title} />
-      <header>
-        <h2 className="text-2xl font-semibold tracking-tight">{area.title}</h2>
-        <p className="mt-1 text-sm text-muted">{area.intro}</p>
-        <p className="mt-2 text-sm text-muted">Every concept has a lesson: open it, learn, then rate yourself.</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 max-w-3xl">
+          <h2 className="text-2xl font-bold tracking-tight">{area.title}</h2>
+          <p className="mt-1 text-sm text-muted">{area.intro}</p>
+          <p className="mt-2 text-sm text-muted">Every concept has a lesson: open it, learn, then rate yourself.</p>
+        </div>
+        {nextId && (
+          <ButtonLink href={`/study/${area.id}/${nextId}`} className="shrink-0">
+            {totals.covered === 0 ? "Start" : "Continue"}
+          </ButtonLink>
+        )}
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -70,7 +79,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
       {(due.exercises.length > 0 || due.concepts.length > 0) && (
         <section>
           <h2 className="mb-3 text-lg font-semibold">Due for review</h2>
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-accent bg-surface">
+          <ul className="divide-y divide-line overflow-hidden rounded-md border border-line border-l-[3px] border-l-warning bg-surface">
             {due.exercises.map((e) => (
               <ExerciseRow key={e.id} e={e} areaId={area.id} />
             ))}
@@ -85,7 +94,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
       {sections.map((s) => {
         const covered = s.concepts.filter((c) => c.confidence >= COVERED_CONFIDENCE).length;
         return (
-          <section key={s.id}>
+          <section key={s.id} className="rounded-md border border-line bg-surface p-5">
             <div className="mb-2 flex items-baseline justify-between gap-3">
               <h2 className="text-lg font-semibold">
                 {s.title}
@@ -96,9 +105,9 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
               </span>
             </div>
             <ProgressBar value={covered} max={s.concepts.length} label={`${s.title} progress`} />
-            <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            <ul className="-mx-2 mt-3 divide-y divide-line">
               {s.concepts.map((c) => (
-                <ConceptRow key={c.id} c={c} areaId={area.id} />
+                <ConceptRow key={c.id} c={c} areaId={area.id} next={c.id === nextId} />
               ))}
               {joined(s.title).map((i) => (
                 <AddedRow key={i.packId + i.id} item={i} />
@@ -108,9 +117,9 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         );
       })}
       {separate.map((g) => (
-        <section key={g.section}>
+        <section key={g.section} className="rounded-md border border-line bg-surface p-5">
           <h2 className="mb-2 text-lg font-semibold">{g.section}</h2>
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+          <ul className="-mx-2 divide-y divide-line">
             {g.items.map((i) => (
               <AddedRow key={i.packId + i.id} item={i} />
             ))}
@@ -123,12 +132,12 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
         <section>
           <h2 className="text-lg font-semibold">{area.exercises.title}</h2>
           <p className="mb-3 text-sm text-muted">{area.exercises.intro}</p>
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+          <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
             {exercises.map((e) => (
               <ExerciseRow key={e.id} e={e} areaId={area.id} />
             ))}
           </ul>
-          <details className="mt-4 rounded-xl border border-line bg-surface p-4">
+          <details className="mt-4 rounded-md border border-line bg-surface p-4">
             <summary className="cursor-pointer font-semibold">How each practice is scored</summary>
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
               {area.exercises.steps.map((step) => (
@@ -150,7 +159,7 @@ async function Area({ params }: { params: PageProps<"/study/[area]">["params"] }
 /** An item that an imported pack added to this area, with a small "added" tag. */
 function AddedRow({ item }: { item: AddedGroup["items"][number] }) {
   return (
-    <li className="hit flex items-center gap-3 px-3 py-2">
+    <li className="hit flex items-center gap-3 px-2 py-2">
       <div className="min-w-0 flex-1">
         <Link href={`/study/packs/${item.packId}/${item.id}`} prefetch={false} className="hit-link">
           {item.title}
@@ -164,15 +173,22 @@ function AddedRow({ item }: { item: AddedGroup["items"][number] }) {
   );
 }
 
-function ConceptRow({ c, areaId }: { c: ConceptView; areaId: string }) {
+function ConceptRow({ c, areaId, next = false }: { c: ConceptView; areaId: string; next?: boolean }) {
   const titles = LESSON_EXTRA[c.id]?.deeper.map((x) => x.title) ?? [];
   const ids = deeperIds(titles);
+  const covered = c.confidence >= COVERED_CONFIDENCE;
   return (
-    <li className="hit flex items-center gap-3 px-3 py-2">
+    <li className={`hit flex items-center gap-3 rounded-sm px-2 py-2 ${next ? "bg-primary-soft" : ""}`}>
+      <StatusMark state={covered ? "solved" : c.reviewDue ? "resolve" : "none"} />
       <div className="min-w-0 flex-1">
-        <Link href={`/study/${areaId}/${c.id}`} prefetch={false} className="hit-link">
+        <Link href={`/study/${areaId}/${c.id}`} prefetch={false} className={`hit-link ${covered ? "" : "font-medium"}`}>
           {c.title}
         </Link>
+        {next && (
+          <span className="ml-2">
+            <Badge tone="primary">Next</Badge>
+          </span>
+        )}
         <p className="text-xs text-muted">
           {c.checked}/{c.points.length} points
           {c.reviewDue && <span className="font-medium text-foreground"> · review due</span>}
@@ -207,7 +223,7 @@ function ExerciseRow({ e, areaId }: { e: ExerciseView; areaId: string }) {
         <Link href={`/study/${areaId}/${e.id}`} prefetch={false} className="hit-link">
           {e.title}
         </Link>
-        {e.tag && <span className="ml-1.5 rounded bg-background px-1.5 text-xs text-muted">{e.tag}</span>}
+        {e.tag && <span className="ml-1.5 rounded-sm bg-surface-2 px-1.5 text-xs text-muted">{e.tag}</span>}
         <p className="text-xs text-muted">
           {e.focus}
           {p.state === "practiced" && (

@@ -14,7 +14,7 @@ export function CodeBlock({ code, lang, label, maxHeight }: { code: string; lang
 export function BulletCard({ title, items, ordered = false, note }: { title: string; items: string[]; ordered?: boolean; note?: string }) {
   const List = ordered ? "ol" : "ul";
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="rounded-md border border-line bg-surface p-5">
       <h3 className="mb-2 font-semibold">{title}</h3>
       <List className={`${ordered ? "list-decimal" : "list-disc"} space-y-1.5 pl-5 text-sm leading-relaxed`}>
         {items.map((i) => (
@@ -46,7 +46,7 @@ export function ArticleSection({
   className?: string;
 }) {
   return (
-    <section id={id} className={`scroll-mt-6 border-t border-line pt-6 first:border-t-0 first:pt-0 ${className}`}>
+    <section id={id} className={`scroll-mt-20 border-t border-line pt-8 first:border-t-0 first:pt-0 ${className}`}>
       <h2 className="mb-4 text-xl font-semibold tracking-tight">{title}</h2>
       {children}
     </section>
@@ -66,19 +66,19 @@ export function ArticleLayout({
 }) {
   const hasAside = toc.length > 0 || !!rail;
   return (
-    <div className={`grid gap-6 ${hasAside ? "xl:grid-cols-[minmax(0,1fr)_16rem]" : ""}`}>
+    <div className={`grid gap-6 xl:gap-10 ${hasAside ? "xl:grid-cols-[minmax(0,1fr)_16rem]" : ""}`}>
       {hasAside && (
-        <aside className="order-1 space-y-4 xl:order-2 xl:sticky xl:top-6 xl:self-start">
+        <aside className="order-1 space-y-4 xl:order-2 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-y-auto">
           {toc.length > 0 && (
             <>
-              <details className="rounded-xl border border-line bg-surface p-3 text-sm xl:hidden">
+              <details className="rounded-md border border-line bg-surface p-3 text-sm xl:hidden">
                 <summary className="cursor-pointer font-medium text-muted hover:text-foreground">On this page</summary>
                 <nav aria-label="Table of contents" className="mt-2 border-t border-line pt-2">
                   <Toc items={toc} />
                 </nav>
               </details>
-              <nav aria-label="Table of contents" className="hidden space-y-2 text-sm xl:block">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted">On this page</p>
+              <nav aria-label="Table of contents" className="hidden space-y-2 rounded-md border border-line bg-surface p-4 text-sm xl:block">
+                <p className="text-xs font-semibold text-muted">On this page</p>
                 <Toc items={toc} />
               </nav>
             </>
@@ -86,7 +86,7 @@ export function ArticleLayout({
           {rail}
         </aside>
       )}
-      <div data-focus-reading className={`min-w-0 space-y-8 ${hasAside ? "order-2 xl:order-1" : ""}`}>
+      <div data-focus-reading className={`min-w-0 space-y-8 [&_li]:max-w-[68ch] [&_p]:max-w-[68ch] ${hasAside ? "order-2 xl:order-1" : ""}`}>
         {children}
       </div>
     </div>

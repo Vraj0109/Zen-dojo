@@ -30,14 +30,14 @@ async function Gallery() {
   return (
     <div className="space-y-8">
       <header>
-        <h2 className="text-2xl font-semibold tracking-tight">Your diagrams</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Your diagrams</h2>
         <p className="mt-1 text-sm text-muted">
           Every diagram you saved from design and LLD practice, for the roadmap&apos;s last week: skim your notes and your own diagrams. Add
           diagrams from each design&apos;s page.
         </p>
       </header>
       {all.length === 0 && (
-        <p className="rounded-xl border border-line bg-surface p-4 text-sm">
+        <p className="rounded-md border border-line bg-surface p-4 text-sm">
           No diagrams yet. After practicing a design, save a screenshot of your whiteboard or your Excalidraw link on that design&apos;s page.{" "}
           <Link href="/study/sd" className="font-medium underline">
             Go to system design
@@ -59,11 +59,11 @@ async function Gallery() {
             </h3>
             <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {list.map((d) => (
-                <li key={d.id} className="overflow-hidden rounded-xl border border-line bg-surface">
+                <li key={d.id} className="overflow-hidden rounded-md border border-line bg-surface transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm">
                   {d.hasImage && (
                     <a href={`/api/diagrams/${d.id}`} target="_blank" rel="noopener noreferrer">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/api/diagrams/${d.id}`} alt={d.title || "Diagram"} loading="lazy" className="h-52 w-full bg-white object-contain" />
+                      <img src={`/api/diagrams/${d.id}`} alt={d.title || "Diagram"} loading="lazy" className="h-52 w-full border-b border-line bg-white object-contain" />
                     </a>
                   )}
                   <div className="flex items-center gap-2 p-3 text-sm">

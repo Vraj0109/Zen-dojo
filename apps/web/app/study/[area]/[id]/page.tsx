@@ -36,7 +36,7 @@ import { deletePracticeAction, logPracticeAction, saveConceptAction } from "../.
 import { StartTimer } from "../../../start-timer";
 import { NotesForm } from "../../../notes-form";
 import { SubmitButton } from "../../../submit-button";
-import { PageMain, SimpleHint } from "../../../ui";
+import { buttonClass, INPUT_CLASS, PageMain, ProgressBar, SimpleHint } from "../../../ui";
 import { ArticleLayout, ArticleSection, DeeperSections } from "../../../learn-blocks";
 import { CourseOutline } from "../../../course-outline";
 import { DesignDeepView } from "../../../design-deep";
@@ -75,7 +75,7 @@ interface LessonLink {
   href: string;
 }
 
-function getAdjacentLessons(area: ReturnType<typeof getStudyArea> & {}, currentId: string): { prev?: LessonLink; next?: LessonLink } {
+function getAdjacentLessons(area: ReturnType<typeof getStudyArea> & {}, currentId: string): { prev?: LessonLink; next?: LessonLink; index: number; total: number } {
   const all: LessonLink[] = [
     ...area.sections.flatMap((s) => s.concepts.map((c) => ({ id: c.id, title: c.title, href: `/study/${area.id}/${c.id}` }))),
     ...(area.exercises?.items ?? []).map((e) => ({ id: e.id, title: e.title, href: `/study/${area.id}/${e.id}` })),
@@ -84,6 +84,8 @@ function getAdjacentLessons(area: ReturnType<typeof getStudyArea> & {}, currentI
   return {
     prev: index > 0 ? all[index - 1] : undefined,
     next: index >= 0 && index < all.length - 1 ? all[index + 1] : undefined,
+    index,
+    total: all.length,
   };
 }
 
@@ -94,7 +96,7 @@ function LessonNav({ prev, next }: { prev?: LessonLink; next?: LessonLink }) {
       {prev ? (
         <Link
           href={prev.href}
-          className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background hover:text-foreground"
+          className="inline-flex items-center gap-3 rounded-md border border-line bg-surface px-4 py-3 text-sm font-medium transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm"
         >
           <span aria-hidden>←</span>
           <span className="text-left">
@@ -108,7 +110,7 @@ function LessonNav({ prev, next }: { prev?: LessonLink; next?: LessonLink }) {
       {next ? (
         <Link
           href={next.href}
-          className="ml-auto inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background hover:text-foreground"
+          className="ml-auto inline-flex items-center gap-3 rounded-md border border-line border-l-[3px] border-l-primary bg-surface px-4 py-3 text-sm font-medium transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm"
         >
           <span className="text-right">
             <span className="block text-xs font-normal text-muted">Next lesson</span>
@@ -121,7 +123,7 @@ function LessonNav({ prev, next }: { prev?: LessonLink; next?: LessonLink }) {
   );
 }
 
-const field = "w-full rounded-lg border border-line bg-background px-3 py-2";
+const field = `${INPUT_CLASS} h-auto py-2`;
 
 async function Item({ params, searchParams }: { params: PageProps<"/study/[area]/[id]">["params"]; searchParams: PageProps<"/study/[area]/[id]">["searchParams"] }) {
   const { area: areaId, id } = await params;
@@ -134,16 +136,16 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
   if (!area || (concept?.area !== area.id && exercise?.area !== area.id)) notFound();
 
   const title = concept?.title ?? exercise?.title ?? "Lesson";
-  const { prev, next } = getAdjacentLessons(area, id);
+  const { prev, next, index, total } = getAdjacentLessons(area, id);
   const ai = process.env.HABIT_HOSTED === "1" ? ({ enabled: true, provider: "byok" } as unknown as Awaited<ReturnType<typeof getAiSettings>>) : await getAiSettings();
   const aiProviders = ai?.enabled ? await detectProviders() : [];
 
   return (
     <article className="space-y-6">
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center justify-between gap-2 text-sm print:hidden">
-        <div className="flex flex-wrap items-center gap-2">
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line pb-3 text-sm print:hidden">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Link href="/study" className="text-muted hover:text-foreground">
-            Study
+            Learn
           </Link>
           <span aria-hidden className="text-muted">
             /
@@ -156,6 +158,14 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
           </span>
           <CourseOutline areaId={area.id} currentId={id} label={title} />
         </div>
+        {index >= 0 && total > 0 && (
+          <div className="flex w-full items-center gap-3 sm:w-56">
+            <ProgressBar value={index + 1} max={total} label={`Lesson ${index + 1} of ${total} in ${area.title}`} />
+            <span className="shrink-0 text-xs text-muted tabular-nums">
+              Lesson {index + 1} of {total}
+            </span>
+          </div>
+        )}
       </nav>
       {concept ? <ConceptView id={id} prev={prev} next={next} /> : <ExerciseView id={id} diagramError={diagramError} prev={prev} next={next} />}
       {ai?.enabled && <LessonAi lessonId={id} providers={aiProviders} provider={ai.provider} />}
@@ -187,7 +197,7 @@ async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; 
     <div className="space-y-6">
       <header className="space-y-1">
         <p className="text-sm text-muted">{d.concept.section}</p>
-        <h2 className="text-2xl font-semibold tracking-tight">{d.concept.title}</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{d.concept.title}</h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <Confidence value={confidence} /> {CONFIDENCE_LABELS[confidence]}
           <span>· ≈ {readMin} min read</span>
@@ -217,7 +227,7 @@ async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; 
                     value={i}
                     form="concept-form"
                     defaultChecked={checked.has(i)}
-                    className="mt-1 size-4 shrink-0 accent-[var(--color-accent)]"
+                    className="mt-1 size-4 shrink-0 accent-[var(--color-primary)]"
                   />
                   <span className="font-medium">{point}</span>
                 </label>
@@ -248,7 +258,7 @@ async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; 
                 {CONFIDENCE_LABELS.map((label, value) => (
                   <label
                     key={value}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-on-accent"
+                    className="flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-line-strong px-3 text-sm transition-colors duration-120 hover:bg-surface-2 has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary"
                   >
                     <input type="radio" name="confidence" value={value} defaultChecked={value === confidence} className="sr-only" />
                     {value} · {label}
@@ -274,7 +284,7 @@ async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; 
                 className={field}
               />
             </div>
-            <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save</SubmitButton>
+            <SubmitButton className={buttonClass("primary")}>Save</SubmitButton>
           </form>
         </ArticleSection>
 
@@ -283,6 +293,29 @@ async function ConceptView({ id, prev, next }: { id: string; prev?: LessonLink; 
         <LessonNav prev={prev} next={next} />
       </ArticleLayout>
     </div>
+  );
+}
+
+/** LLD pages: one row of section links (Walkthrough, Diagrams, Full code, Playground, Edge cases, Your turn) under the header. */
+function SectionJump({ toc }: { toc: { id: string; title: string }[] }) {
+  const short: Record<string, string> = {
+    walkthrough: "Walkthrough",
+    "lld-diagrams": "Diagrams",
+    "java-code": "Full code",
+    "playground-heading": "Playground",
+    "edge-cases": "Edge cases",
+    "your-turn": "Your turn",
+  };
+  const items = toc.filter((t) => short[t.id]);
+  if (items.length < 3) return null;
+  return (
+    <nav aria-label="Sections" className="-mt-2 flex touch-pan-x gap-6 overflow-x-auto border-b border-line text-sm print:hidden">
+      {items.map((t) => (
+        <a key={t.id} href={`#${t.id}`} className="shrink-0 border-b-2 border-transparent pb-2 font-medium text-muted transition-colors duration-120 hover:border-line-strong hover:text-foreground">
+          {short[t.id]}
+        </a>
+      ))}
+    </nav>
   );
 }
 
@@ -327,14 +360,14 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
     <div className="space-y-6">
       <header className="space-y-1">
         <p className="text-sm text-muted">{area.exercises.title}</p>
-        <h2 className="text-2xl font-semibold tracking-tight">
+        <h2 className="text-3xl font-bold tracking-tight">
           {exercise.title}
-          {exercise.tag && <span className="ml-2 rounded bg-surface px-2 align-middle text-sm font-normal text-muted">{exercise.tag}</span>}
+          {exercise.tag && <span className="ml-2 rounded-sm bg-surface-2 px-2 align-middle text-sm font-normal text-muted">{exercise.tag}</span>}
         </h2>
         <p className="text-sm text-muted">Focus: {exercise.focus}</p>
       </header>
 
-      <section className="rounded-xl border border-line bg-surface p-4 text-sm">
+      <section className={`rounded-md border border-line border-l-[3px] bg-surface p-4 text-sm ${practice.state !== "new" && practice.due ? "border-l-warning" : "border-l-primary"}`}>
         {practice.state === "new" ? (
           <p>Not practiced yet. Set a {steps.reduce((a, s) => a + s.minutes, 0)}-minute timer, do it aloud, then log it below.</p>
         ) : (
@@ -354,6 +387,8 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
         <p className="text-sm text-muted">
           {isDesign ? "Attempt it first (timer on), then compare with the reference." : "Write your classes first, then compare."}
         </p>
+
+        {!isDesign && <SectionJump toc={toc} />}
 
         {isDesign ? WALKTHROUGHS[id] && <WalkthroughView w={WALKTHROUGHS[id]} /> : LLD_GUIDES[id] && <LldGuideView g={LLD_GUIDES[id]} />}
 
@@ -412,7 +447,7 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
 
         <ArticleSection id="your-turn" title="Your turn">
           <div className="space-y-6">
-            <form action={logPracticeAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
+            <form action={logPracticeAction} className="space-y-4 rounded-md border border-line bg-surface p-5">
               <input type="hidden" name="itemId" value={id} />
               <h4 className="font-semibold">Log a practice<span className="gamify-only"> (+{area.exercises.xp} XP, once a day)</span></h4>
               <div className="space-y-2">
@@ -424,7 +459,7 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
                         {step.minutes} min · {step.hint}
                       </span>
                     </label>
-                    <select id={`score-${step.id}`} name={`score:${step.id}`} defaultValue="" className="rounded-lg border border-line bg-background px-2 py-1 text-sm">
+                    <select id={`score-${step.id}`} name={`score:${step.id}`} defaultValue="" className={`${INPUT_CLASS} w-16`}>
                       <option value="">–</option>
                       {[1, 2, 3, 4, 5].map((n) => (
                         <option key={n} value={n}>
@@ -436,14 +471,14 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
-                <input name="minutes" type="number" min={1} max={PRACTICE_LIMITS.minutes} placeholder="Minutes" aria-label="Minutes" className="w-28 rounded-lg border border-line bg-background px-3 py-2" />
+                <input name="minutes" type="number" min={1} max={PRACTICE_LIMITS.minutes} placeholder="Minutes" aria-label="Minutes" className={`${INPUT_CLASS} w-28`} />
                 <input
                   name="link"
                   type="url"
                   maxLength={PRACTICE_LIMITS.link}
                   placeholder={isDesign ? "Diagram or recording link (optional)" : "Code or gist link (optional)"}
                   aria-label="Link"
-                  className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2"
+                  className={`${INPUT_CLASS} min-w-0 flex-1`}
                 />
               </div>
               <textarea
@@ -455,7 +490,7 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
                 className={field}
               />
               <div className="flex items-center gap-3">
-                <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Log practice</SubmitButton>
+                <SubmitButton className={buttonClass("primary")}>Log practice</SubmitButton>
                 <span className="text-xs text-muted">Score at least one step (1 = missed it, 5 = interview-ready).</span>
               </div>
             </form>
@@ -463,7 +498,7 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
             {sessions.length > 0 && (
               <section>
                 <h4 className="mb-2 font-semibold">History</h4>
-                <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
                   {sessions.map((s) => (
                     <li key={s.id} className="space-y-1 px-4 py-3 text-sm">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

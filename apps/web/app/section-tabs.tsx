@@ -26,11 +26,11 @@ export function LearnBack({ current }: { current: string }) {
       </span>
       <span className="font-medium">{current}</span>
       <details className="relative ml-auto">
-        <summary className="cursor-pointer rounded-lg border border-line px-2.5 py-1 text-xs text-muted hover:bg-background hover:text-foreground">Other courses</summary>
-        <ul className="anim-pop absolute right-0 z-20 mt-1 min-w-44 rounded-xl border border-line bg-surface p-1 shadow-lg">
+        <summary className="cursor-pointer rounded-md border border-line px-2.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground">Other courses</summary>
+        <ul className="anim-pop absolute right-0 z-20 mt-1 min-w-44 rounded-md border border-line bg-surface p-1 shadow-lg">
           {LEARN_LINKS.map((l) => (
             <li key={l.href}>
-              <Link href={l.href} className="block rounded-lg px-3 py-1.5 hover:bg-background">
+              <Link href={l.href} className="block rounded-md px-3 py-1.5 hover:bg-surface-2">
                 {l.label}
               </Link>
             </li>

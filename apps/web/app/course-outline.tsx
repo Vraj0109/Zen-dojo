@@ -6,7 +6,7 @@ import { courseOutline } from "./toc-items";
 /** Tiny marker for a covered lesson (no symbols or emoji; the text is for screen readers). */
 function CoveredDot() {
   return (
-    <span aria-hidden={false} className="inline-block size-2 shrink-0 rounded-full bg-accent" title="Covered">
+    <span aria-hidden={false} className="inline-block size-2 shrink-0 rounded-full bg-primary" title="Covered">
       <span className="sr-only">covered</span>
     </span>
   );
@@ -46,13 +46,13 @@ export async function CourseOutline({
 
   return (
     <details className={`relative inline-block ${className}`}>
-      <summary className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-foreground hover:bg-background">
+      <summary className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-foreground hover:bg-surface-2">
         <span className="max-w-[200px] truncate sm:max-w-xs md:max-w-sm">{label ?? "Course outline"}</span>
         <span aria-hidden className="text-[10px] text-muted">▼</span>
       </summary>
-      <div className="anim-pop absolute left-0 z-30 mt-1.5 max-h-[70vh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-line bg-surface p-3 shadow-xl">
+      <div className="anim-pop absolute left-0 z-30 mt-1.5 max-h-[70vh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-md border border-line bg-surface p-3 shadow-lg">
         <div className="mb-2 flex items-center justify-between border-b border-line pb-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">{view.area.title}</p>
+          <p className="text-xs font-semibold text-muted">{view.area.title}</p>
           <span className="text-xs text-muted">
             {coveredItems}/{totalItems} covered
           </span>
@@ -60,7 +60,7 @@ export async function CourseOutline({
         <nav aria-label={`${view.area.title} outline`} className="space-y-2">
           {tree.map((s) => (
             <details key={s.id} open={s.open} className="group">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted hover:text-foreground">
+              <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-foreground">
                 {s.title}
               </summary>
               <ul className="mt-1 space-y-0.5">
@@ -70,8 +70,8 @@ export async function CourseOutline({
                       href={l.href}
                       prefetch={false}
                       aria-current={l.current ? "page" : undefined}
-                      className={`flex items-center gap-2 rounded px-2 py-1 text-xs ${
-                        l.current ? "bg-accent/10 font-medium text-foreground" : "text-muted hover:text-foreground"
+                      className={`flex items-center gap-2 rounded-sm px-2 py-1 text-xs ${
+                        l.current ? "bg-primary-soft font-medium text-foreground" : "text-muted hover:text-foreground"
                       }`}
                     >
                       {l.covered ? <CoveredDot /> : <span className="size-2 shrink-0 rounded-full border border-line" />}
@@ -84,7 +84,7 @@ export async function CourseOutline({
           ))}
           {view.exercises && view.exercises.length > 0 && (
             <details open={view.exercises.some((e) => e.id === currentId)} className="group">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted hover:text-foreground">
+              <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-foreground">
                 {view.area.exercises?.title ?? "Practice exercises"}
               </summary>
               <ul className="mt-1 space-y-0.5">
@@ -97,8 +97,8 @@ export async function CourseOutline({
                         href={`/study/${areaId}/${e.id}`}
                         prefetch={false}
                         aria-current={isCurrent ? "page" : undefined}
-                        className={`flex items-center gap-2 rounded px-2 py-1 text-xs ${
-                          isCurrent ? "bg-accent/10 font-medium text-foreground" : "text-muted hover:text-foreground"
+                        className={`flex items-center gap-2 rounded-sm px-2 py-1 text-xs ${
+                          isCurrent ? "bg-primary-soft font-medium text-foreground" : "text-muted hover:text-foreground"
                         }`}
                       >
                         {isCovered ? <CoveredDot /> : <span className="size-2 shrink-0 rounded-full border border-line" />}

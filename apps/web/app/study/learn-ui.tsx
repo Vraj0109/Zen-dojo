@@ -6,6 +6,7 @@ import { Code } from "../code";
 import { Diagram } from "../diagram";
 import { ArticleSection, DeeperSections } from "../learn-blocks";
 import { SubmitButton } from "../submit-button";
+import { buttonClass, INPUT_CLASS } from "../ui";
 
 // Learning content and per-item resources (reading list, diagrams) for study pages.
 
@@ -55,7 +56,7 @@ export function FollowUps({ items }: { items: { q: string; a: string }[] }) {
       <ul className="space-y-2">
         {items.map((f) => (
           <li key={f.q}>
-            <details className="group rounded-lg border border-line bg-surface">
+            <details className="group rounded-md border border-line bg-surface">
               <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium">
                 <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
                 {f.q}
@@ -70,35 +71,62 @@ export function FollowUps({ items }: { items: { q: string; a: string }[] }) {
   );
 }
 
+/** One step of the seven-step walkthrough: a numbered dot on a rail, the content beside it. */
+function Step({ n, last = false, children }: { n: number; last?: boolean; children: React.ReactNode }) {
+  return (
+    <li className="relative flex gap-4 pb-6 last:pb-0">
+      {!last && <span aria-hidden className="absolute top-8 bottom-0 left-[0.9375rem] w-px bg-line" />}
+      <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full border border-line-strong bg-surface text-sm font-semibold tabular-nums text-muted">
+        {n}
+      </span>
+      <div className="min-w-0 flex-1 pt-1">{children}</div>
+    </li>
+  );
+}
+
 /** Closed by default: try the design yourself first, then compare. */
 export function WalkthroughView({ w }: { w: Walkthrough }) {
   return (
     <ArticleSection id="reference" title="Reference walkthrough">
-      <details className="group rounded-xl border border-line bg-surface">
+      <details className="group rounded-md border border-line bg-surface">
         <summary className="cursor-pointer list-none p-4">
           <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
           <span className="font-semibold">Reveal reference walkthrough</span>
           <span className="block pl-5 text-xs text-muted">Do your own attempt first, then open this and compare: what did you miss?</span>
         </summary>
-        <div className="space-y-4 border-t border-line p-4">
-          <Block title="1. Requirements" items={w.requirements} />
-          <Block title="2. Estimates" items={w.estimates} />
-          <Block title="3. API" items={w.api} />
-          <Block title="4. Data model" items={w.data} />
-          <Block title="5. High-level design" items={w.design} />
-          <div>
-            <h4 className="mb-1 text-sm font-semibold">6. Deep dives</h4>
+        <ol className="border-t border-line p-5">
+          <Step n={1}>
+            <Block title="Requirements" items={w.requirements} />
+          </Step>
+          <Step n={2}>
+            <Block title="Estimates" items={w.estimates} />
+          </Step>
+          <Step n={3}>
+            <Block title="API" items={w.api} />
+          </Step>
+          <Step n={4}>
+            <Block title="Data model" items={w.data} />
+          </Step>
+          <Step n={5}>
+            <Block title="High-level design" items={w.design} />
+          </Step>
+          <Step n={6}>
+            <h4 className="mb-1 text-sm font-semibold">Deep dives</h4>
             <div className="space-y-2">
               {w.deepDives.map((d) => (
-                <div key={d.title} className="rounded-lg border border-line bg-background/40 p-3 text-sm">
+                <div key={d.title} className="rounded-md border border-line bg-surface-2 p-3 text-sm">
                   <p className="font-medium">{d.title}</p>
                   <p className="mt-0.5">{d.body}</p>
                 </div>
               ))}
             </div>
-          </div>
-          <Block title="7. Trade-offs to mention" items={w.tradeoffs} />
-        </div>
+          </Step>
+          <Step n={7} last>
+            <div className="rounded-md border border-line border-l-[3px] border-l-reward bg-surface p-3">
+              <Block title="Trade-offs to mention" items={w.tradeoffs} />
+            </div>
+          </Step>
+        </ol>
       </details>
     </ArticleSection>
   );
@@ -107,7 +135,7 @@ export function WalkthroughView({ w }: { w: Walkthrough }) {
 export function LldGuideView({ g }: { g: LldGuide }) {
   return (
     <ArticleSection id="reference" title="Reference answer">
-      <details className="group rounded-xl border border-line bg-surface">
+      <details className="group rounded-md border border-line bg-surface">
         <summary className="cursor-pointer list-none p-4">
           <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
           <span className="font-semibold">Reveal reference answer</span>
@@ -158,11 +186,7 @@ export function LldProjectView({ project, deep }: { project?: LldProject; deep?:
             Standard library only. Copy the files into one folder, compile with <code>javac *.java</code> and run <code>java Main</code>.
             The checks in this app compile and run exactly this code.
           </p>
-          <div className="space-y-4">
-            {[...project.files, ...(project.tests ?? [])].map((f) => (
-              <Code key={f.name} code={f.code} lang="Java" label={f.name} maxHeight="32rem" />
-            ))}
-          </div>
+          <ProjectFiles files={[...project.files, ...(project.tests ?? [])]} />
         </ArticleSection>
       )}
       {deep && deep.concurrency.length > 0 && (
@@ -175,6 +199,60 @@ export function LldProjectView({ project, deep }: { project?: LldProject; deep?:
         </ArticleSection>
       )}
     </>
+  );
+}
+
+const fileAnchor = (name: string) => `file-${name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+const classOf = (name: string) => name.replace(/^.*\//, "").replace(/\.java$/, "");
+const packageOf = (code: string) => /^\s*package\s+([\w.]+)\s*;/m.exec(code)?.[1] ?? "(default package)";
+
+/**
+ * The project's files: a file tree grouped by package on the left (links that jump to each file, sticky on wide
+ * screens), the code on the right. Each file shows a "Uses" line naming the project's other classes it refers to.
+ */
+function ProjectFiles({ files }: { files: { name: string; code: string }[] }) {
+  const packages = new Map<string, { name: string; code: string }[]>();
+  for (const f of files) packages.set(packageOf(f.code), [...(packages.get(packageOf(f.code)) ?? []), f]);
+  const names = files.map((f) => classOf(f.name));
+  const uses = (f: { name: string; code: string }) =>
+    names.filter((n) => n !== "" && n !== classOf(f.name) && new RegExp(`\\b${n.replace(/[^\w$]/g, "")}\\b`).test(f.code));
+  return (
+    <div className="grid gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <nav aria-label="Project files" className="self-start rounded-md border border-line bg-surface-2 p-3 text-sm lg:sticky lg:top-6">
+        <p className="mb-2 text-xs font-semibold text-muted">
+          {files.length} file{files.length === 1 ? "" : "s"}
+        </p>
+        {[...packages.entries()].map(([pkg, list]) => (
+          <div key={pkg} className="mb-2 last:mb-0">
+            <p className="truncate font-mono text-xs text-muted">{pkg}</p>
+            <ul className="mt-1 space-y-0.5 border-l border-line pl-2">
+              {list.map((f) => (
+                <li key={f.name}>
+                  <a href={`#${fileAnchor(f.name)}`} className="block truncate rounded-sm px-2 py-1 font-mono text-xs hover:bg-surface hover:text-foreground">
+                    {f.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+      <div className="min-w-0 space-y-4">
+        {files.map((f) => {
+          const u = uses(f);
+          return (
+            <div key={f.name} id={fileAnchor(f.name)} className="scroll-mt-20 space-y-1.5">
+              {u.length > 0 && (
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-foreground">Uses</span> {u.join(", ")}
+                </p>
+              )}
+              <Code code={f.code} lang="Java" label={f.name} maxHeight="32rem" />
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -199,7 +277,7 @@ export function ReadingSection({ itemId, items }: { itemId: string; items: Readi
               <input type="hidden" name="done" value={r.done ? "0" : "1"} />
               <SubmitButton
                 aria-label={r.done ? `Mark "${r.title}" unread` : `Mark "${r.title}" read`}
-                className={`flex size-5 items-center justify-center rounded border text-xs ${r.done ? "border-accent bg-accent text-on-accent" : "border-line"}`}
+                className={`flex size-5 items-center justify-center rounded-sm border text-xs ${r.done ? "border-primary bg-primary text-on-primary" : "border-line-strong"}`}
               >
                 {r.done && (
                   <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -230,9 +308,9 @@ export function ReadingSection({ itemId, items }: { itemId: string; items: Readi
       </ul>
       <form action={addReadingAction} className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input type="hidden" name="itemId" value={itemId} />
-        <input name="url" type="url" required maxLength={500} placeholder="https://…" aria-label="Link" className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-1.5 text-sm" />
-        <input name="title" maxLength={200} placeholder="Title (optional)" aria-label="Title" className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-1.5 text-sm" />
-        <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">Add link</SubmitButton>
+        <input name="url" type="url" required maxLength={500} placeholder="https://…" aria-label="Link" className={`${INPUT_CLASS} min-w-0 flex-1`} />
+        <input name="title" maxLength={200} placeholder="Title (optional)" aria-label="Title" className={`${INPUT_CLASS} min-w-0 flex-1`} />
+        <SubmitButton className={buttonClass("secondary")}>Add link</SubmitButton>
       </form>
     </ArticleSection>
   );
@@ -243,14 +321,14 @@ export function DiagramsSection({ itemId, diagrams, error }: { itemId: string; d
     <ArticleSection id="diagrams" title="Your diagrams">
       <p className="mt-0.5 mb-3 text-xs text-muted">Save the diagram from each practice (a screenshot or an Excalidraw/draw.io link). Week 16 is for skimming these.</p>
       {error && (
-        <p role="alert" className="mb-3 rounded-lg border border-cat-mock p-2 text-sm">
+        <p role="alert" className="mb-3 rounded-md border border-danger p-2 text-sm text-danger">
           {error.slice(0, 200)}
         </p>
       )}
       {diagrams.length > 0 && (
         <ul className="mb-3 grid gap-3 sm:grid-cols-2">
           {diagrams.map((d) => (
-            <li key={d.id} className="overflow-hidden rounded-lg border border-line">
+            <li key={d.id} className="overflow-hidden rounded-md border border-line bg-surface">
               {d.hasImage && (
                 <a href={`/api/diagrams/${d.id}`} target="_blank" rel="noopener noreferrer">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -277,16 +355,16 @@ export function DiagramsSection({ itemId, diagrams, error }: { itemId: string; d
       )}
       <form action="/api/diagrams" method="post" encType="multipart/form-data" className="grid gap-2 sm:grid-cols-2">
         <input type="hidden" name="itemId" value={itemId} />
-        <input name="title" maxLength={200} placeholder="Title, e.g. Attempt 2: sharded by user" aria-label="Diagram title" className="rounded-lg border border-line bg-background px-3 py-1.5 text-sm" />
-        <input name="url" type="url" maxLength={500} placeholder="Excalidraw / draw.io link (optional)" aria-label="Diagram link" className="rounded-lg border border-line bg-background px-3 py-1.5 text-sm" />
+        <input name="title" maxLength={200} placeholder="Title, e.g. Attempt 2: sharded by user" aria-label="Diagram title" className={INPUT_CLASS} />
+        <input name="url" type="url" maxLength={500} placeholder="Excalidraw / draw.io link (optional)" aria-label="Diagram link" className={INPUT_CLASS} />
         <input
           name="file"
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
           aria-label="Diagram image"
-          className="text-sm file:mr-3 file:rounded-lg file:border file:border-line file:bg-background file:px-3 file:py-1 file:text-foreground"
+          className="text-sm file:mr-3 file:rounded-sm file:border file:border-line-strong file:bg-surface file:px-3 file:py-1 file:text-foreground"
         />
-        <button className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">Save diagram</button>
+        <button className={buttonClass("secondary")}>Save diagram</button>
       </form>
     </ArticleSection>
   );

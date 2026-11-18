@@ -62,14 +62,14 @@ export function Toc({ items }: { items: TocItem[] }) {
 
   return (
     <div>
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="How far down the page you are" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full rounded-full bg-accent transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
+      <div className="mb-2 h-1 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="How far down the page you are" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-full rounded-full bg-primary transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
       </div>
       <ul ref={listRef} className="relative space-y-0.5 border-l border-line">
         {marker && (
           <span
             aria-hidden
-            className="absolute -left-px w-0.5 rounded-full bg-accent transition-[transform,height] duration-300 ease-out"
+            className="absolute -left-px w-0.5 rounded-full bg-primary transition-[transform,height] duration-300 ease-out"
             style={{ transform: `translateY(${marker.top}px)`, height: marker.height, top: 0 }}
           />
         )}
@@ -92,7 +92,7 @@ function TocRow({ item, active, depth = 0 }: { item: TocItem; active: string; de
           href={`#${item.id}`}
           aria-current={item.id === active ? "location" : undefined}
           className={`block rounded-r py-1 pr-3 transition-colors ${depth > 0 ? "pl-6 text-[13px]" : "pl-3 text-sm"} ${
-            item.id === active ? "bg-accent/10 font-medium text-foreground" : inside ? "font-medium text-foreground" : "text-muted hover:text-foreground"
+            item.id === active ? "bg-primary-soft font-medium text-foreground" : inside ? "font-medium text-foreground" : "text-muted hover:text-foreground"
           }`}
         >
           {item.title}

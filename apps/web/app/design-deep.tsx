@@ -14,10 +14,10 @@ export function DesignDeepView({ deep }: { deep: WalkthroughDeep }) {
       <ArticleSection id="design-diagrams" title="Diagrams">
         <div className="space-y-6">
           {deep.diagrams.map((d) => (
-            <div key={d.title} className="space-y-2">
+            <figure key={d.title} className="space-y-2 rounded-md border border-line bg-surface p-4">
               <h3 className="text-base font-semibold">{d.title}</h3>
               <Diagram source={d.source} caption={d.caption} />
-            </div>
+            </figure>
           ))}
         </div>
         {deep.architecture && deep.architecture.length > 0 && <ArchitectureExplorer blocks={deep.architecture} />}
@@ -29,11 +29,17 @@ export function DesignDeepView({ deep }: { deep: WalkthroughDeep }) {
       {deep.code && deep.code.length > 0 && (
         <ArticleSection id="design-code" title="Key parts in Java">
           <p className="mb-3 text-sm text-muted">Standard library only. Save each file, compile with <code>javac</code> and run it with <code>java</code> and the class name. The checks in this app compile and run exactly this code.</p>
-          <div className="space-y-6">
-            {deep.code.map((c) => (
-              <Code key={c.name} code={c.code} lang="Java" label={c.name} maxHeight="32rem" />
-            ))}
-          </div>
+          <details className="group rounded-md border border-line bg-surface">
+            <summary className="flex cursor-pointer list-none items-center gap-2 p-4 text-sm font-medium">
+              <Chevron />
+              Show the Java ({deep.code.length} file{deep.code.length === 1 ? "" : "s"})
+            </summary>
+            <div className="space-y-6 border-t border-line p-4">
+              {deep.code.map((c) => (
+                <Code key={c.name} code={c.code} lang="Java" label={c.name} maxHeight="32rem" />
+              ))}
+            </div>
+          </details>
         </ArticleSection>
       )}
     </>
@@ -56,7 +62,7 @@ function ArchitectureExplorer({ blocks }: { blocks: ArchitectureBlock[] }) {
       <p className="text-sm text-muted">Open each part and say the three lines out loud before you read them: what it does, how it scales, what happens when it fails.</p>
       <div className="space-y-2">
         {blocks.map((b, i) => (
-          <details key={b.name} className="group rounded-xl border border-line bg-surface p-3">
+          <details key={b.name} className="group rounded-md border border-line bg-surface p-3">
             <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium">
               <Chevron />
               <span className="text-muted">{i + 1}.</span>
@@ -64,15 +70,15 @@ function ArchitectureExplorer({ blocks }: { blocks: ArchitectureBlock[] }) {
             </summary>
             <dl className="mt-3 grid gap-3 text-sm md:grid-cols-3">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Job</dt>
+                <dt className="text-xs font-semibold text-muted">Job</dt>
                 <dd className="mt-1">{b.role}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Scale</dt>
+                <dt className="text-xs font-semibold text-muted">Scale</dt>
                 <dd className="mt-1">{b.scale}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">When it fails</dt>
+                <dt className="text-xs font-semibold text-muted">When it fails</dt>
                 <dd className="mt-1">{b.failure}</dd>
               </div>
             </dl>
@@ -91,18 +97,18 @@ function EvaluationScorecard({ criteria }: { criteria: EvaluationCriterion[] }) 
       <p className="text-sm text-muted">Interviewers score areas like these. After your own attempt, open each row and mark yourself honestly.</p>
       <div className="space-y-2">
         {criteria.map((c) => (
-          <details key={c.area} className="group rounded-xl border border-line bg-surface p-3">
+          <details key={c.area} className="group rounded-md border border-line bg-surface p-3">
             <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium">
               <Chevron />
               <span>{c.area}</span>
             </summary>
             <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Strong answer</p>
+                <p className="text-xs font-semibold text-success">Strong answer</p>
                 <p className="mt-1">{c.strong}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Weak answer</p>
+                <p className="text-xs font-semibold text-danger">Weak answer</p>
                 <p className="mt-1">{c.weak}</p>
               </div>
             </div>

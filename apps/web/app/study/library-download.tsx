@@ -2,12 +2,13 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { buttonClass } from "../ui";
 import { installLibraryCourseAction, type LibraryInstallState } from "../actions";
 
 function Button({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="cursor-pointer rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent transition-opacity disabled:opacity-50">
+    <button type="submit" disabled={pending} className={buttonClass("primary", "sm", "cursor-pointer")}>
       {pending ? "Downloading..." : label}
     </button>
   );
@@ -21,7 +22,7 @@ export function LibraryDownload({ id, title, label }: { id: string; title: strin
       <input type="hidden" name="id" value={id} />
       <Button label={label} />
       {state && (
-        <p role="status" className={`max-w-xs text-right text-xs ${state.ok ? "text-muted" : "text-diff-hard"}`}>
+        <p role="status" className={`max-w-xs text-right text-xs ${state.ok ? "text-muted" : "text-danger"}`}>
           {state.message}
         </p>
       )}

@@ -8,7 +8,7 @@ function Inline({ text }: { text: string }) {
         p.kind === "bold" ? (
           <strong key={i}>{p.text}</strong>
         ) : p.kind === "code" ? (
-          <code key={i} className="rounded bg-background px-1 py-0.5 font-mono text-[0.9em]">
+          <code key={i} className="rounded-sm bg-surface-2 px-1 py-0.5 font-mono text-[0.9em]">
             {p.text}
           </code>
         ) : (

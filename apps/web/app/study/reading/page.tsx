@@ -7,7 +7,7 @@ import { getReadingList } from "@/lib/reading";
 import { toggleReadingAction } from "../../actions";
 import { SubmitButton } from "../../submit-button";
 import { LearnBack } from "../../section-tabs";
-import { PageMain } from "../../ui";
+import { PageMain, ProgressBar } from "../../ui";
 import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 export const metadata: Metadata = { title: "Reading list" };
@@ -49,15 +49,15 @@ async function Reading() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Reading list</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Reading list</h2>
           <p className="mt-1 max-w-3xl text-sm text-muted">
             Papers, books and engineering posts behind the system design, LLD and core CS concepts. Each one also appears on the concept or design
             pages it explains. Start with DDIA and the Dynamo, Kafka and Raft material.
           </p>
         </div>
-        <p className="text-sm text-muted">
-          {done} / {list.length} read
-        </p>
+        <div className="w-full sm:w-64">
+          <ProgressBar value={done} max={list.length} label="Readings done" showCount />
+        </div>
       </header>
 
       {ORDER.map((kind) => {
@@ -65,16 +65,21 @@ async function Reading() {
         if (group.length === 0) return null;
         return (
           <section key={kind}>
-            <h3 className="mb-2 text-lg font-semibold">{GROUP_TITLE[kind]}</h3>
-            <ul className="grid gap-2 lg:grid-cols-2">
+            <h3 className="mb-3 flex items-baseline gap-2 text-lg font-semibold">
+              {GROUP_TITLE[kind]}
+              <span className="text-sm font-normal text-muted tabular-nums">
+                {group.filter((r) => r.done).length} of {group.length}
+              </span>
+            </h3>
+            <ul className="grid gap-3 lg:grid-cols-2">
               {group.map((r) => (
-                <li key={r.id} className={`flex items-start gap-3 rounded-xl border border-line bg-surface p-3 ${r.done ? "opacity-75" : ""}`}>
+                <li key={r.id} className={`flex items-start gap-3 rounded-md border border-line bg-surface p-4 ${r.done ? "opacity-75" : ""}`}>
                   <form action={toggleReadingAction} className="pt-0.5">
                     <input type="hidden" name="readingId" value={r.id} />
                     <input type="hidden" name="done" value={r.done ? "0" : "1"} />
                     <SubmitButton
                       aria-label={r.done ? `Mark "${r.title}" unread` : `Mark "${r.title}" read`}
-                      className={`flex size-5 items-center justify-center rounded border text-xs ${r.done ? "border-accent bg-accent text-on-accent" : "border-line"}`}
+                      className={`flex size-5 items-center justify-center rounded-sm border text-xs ${r.done ? "border-primary bg-primary text-on-primary" : "border-line-strong"}`}
                     >
                       {r.done && (
                         <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
