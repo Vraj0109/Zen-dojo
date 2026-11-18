@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { CONFIDENCE_LABELS } from "@habit/shared";
+import { CONCEPT_REVIEW_DAYS, CONFIDENCE_LABELS, COVERED_CONFIDENCE } from "@habit/shared";
 import { REVIEW_KIND_LABELS, applySkips, getReviewQueue, splitReviewQueue, type ReviewItem } from "@/lib/review";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, rateConceptAction } from "../actions";
 import { ReviewTabs } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
-import { PageMain } from "../ui";
+import { EmptyState, PageMain, buttonClass } from "../ui";
 import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
 export const metadata: Metadata = { title: "Review" };
@@ -48,29 +48,32 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
       </header>
 
       {!next ? (
-        <p className="rounded-xl border border-accent bg-surface p-6 text-center">
-          Nothing due. Come back tomorrow, or{" "}
-          <Link href="/" className="font-medium underline">
-            pick up today&apos;s plan
-          </Link>
-          .
-        </p>
+        <EmptyState message="Nothing due. Come back tomorrow, or pick up today's plan." action={{ label: "Open Today", href: "/" }} />
       ) : (
         <>
-          <section aria-label="Up next" className="rounded-xl border border-accent bg-surface p-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              Up next · {REVIEW_KIND_LABELS[next.kind]} · {items.length} left
-            </p>
-            <h3 className="mt-1 text-xl font-semibold">
-              <Link href={itemHref(next)} className="hover:underline">
-                {next.title}
-              </Link>
-            </h3>
-            {next.detail && <p className="mt-1 text-sm text-muted">{next.detail}</p>}
-            <p className="mt-2 text-sm">{instruction(next)}</p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+          <section aria-label="Up next" className="overflow-hidden rounded-lg border border-line-strong bg-surface shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-5 py-2.5 text-xs text-muted">
+              <span className="font-medium">
+                {REVIEW_KIND_LABELS[next.kind]}
+              </span>
+              <span>
+                1 of {items.length} due today
+              </span>
+            </div>
+            <div className="px-5 py-8 text-center sm:px-10">
+              <h3 className="text-2xl font-semibold tracking-tight">
+                <Link href={itemHref(next)} className="hover:underline">
+                  {next.title}
+                </Link>
+              </h3>
+              {next.detail && <p className="mt-1 text-sm text-muted">{next.detail}</p>}
+              <p className="mx-auto mt-4 max-w-prose text-sm">{instruction(next)}</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-line px-5 py-4">
               <Actions item={next} big />
-              <Link href={skipHref(next)} className="ml-auto text-sm text-muted hover:text-foreground">
+            </div>
+            <div className="border-t border-line px-5 py-2.5 text-center">
+              <Link href={skipHref(next)} className="text-sm text-muted hover:text-foreground">
                 Skip for now
               </Link>
             </div>
@@ -79,7 +82,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
           {rest.length > 0 && (
             <section>
               <h3 className="mb-2 font-semibold">Also due</h3>
-              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+              <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
                 {rest.map((i) => (
                   <li key={keyOf(i)} className="hit flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
                     <span className="text-xs text-muted w-16 shrink-0">{KIND_LABEL[i.kind]}</span>
@@ -103,7 +106,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
 
           {backlog.length > 0 && (
             <section className="mt-8">
-              <details className="group rounded-xl border border-line bg-surface p-4">
+              <details className="group rounded-md border border-line bg-surface p-5">
                 <summary className="flex cursor-pointer items-center justify-between font-semibold">
                   <span>Catch-up backlog ({backlog.length} more)</span>
                   <span className="text-xs text-muted transition-transform group-open:rotate-180">▼</span>
@@ -152,9 +155,13 @@ function instruction(i: ReviewItem): string {
   }
 }
 
+/** The four ratings the flashcard offers, and when the concept comes back after each (study.ts rules). */
+const RATINGS = [2, 3, 4, 5] as const;
+const nextInterval = (n: number) => (n >= COVERED_CONFIDENCE ? "Leaves the queue" : `Back in ${CONCEPT_REVIEW_DAYS} days`);
+
 function Actions({ item, big = false }: { item: ReviewItem; big?: boolean }) {
-  const primary = big ? "rounded-lg bg-accent px-4 py-2 font-medium text-on-accent" : "rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-on-accent";
-  const secondary = big ? "rounded-lg border border-line px-4 py-2 font-medium hover:bg-background" : "rounded-lg border border-line px-2.5 py-1 text-xs hover:bg-background";
+  const primary = buttonClass("primary", big ? "md" : "sm");
+  const secondary = buttonClass("secondary", big ? "md" : "sm");
   switch (item.kind) {
     case "struggle":
       return (
@@ -187,6 +194,25 @@ function Actions({ item, big = false }: { item: ReviewItem; big?: boolean }) {
         </>
       );
     case "concept":
+      if (big)
+        return (
+          <form action={rateConceptAction} className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
+            <input type="hidden" name="conceptId" value={item.id} />
+            {RATINGS.map((n) => (
+              <SubmitButton
+                key={n}
+                name="confidence"
+                value={String(n)}
+                className={`flex flex-col items-center gap-0.5 rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors duration-120 ${
+                  n >= COVERED_CONFIDENCE ? "border-primary bg-primary-soft text-primary hover:bg-primary hover:text-on-primary" : "border-line-strong bg-surface hover:bg-surface-2"
+                }`}
+              >
+                {CONFIDENCE_LABELS[n]}
+                <span className="text-xs font-normal opacity-80">{nextInterval(n)}</span>
+              </SubmitButton>
+            ))}
+          </form>
+        );
       return (
         <form action={rateConceptAction} className="flex flex-wrap items-center gap-1">
           <input type="hidden" name="conceptId" value={item.id} />

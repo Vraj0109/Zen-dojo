@@ -40,8 +40,8 @@ function PetCard({ meta, selected, onPick, onRemove }: { meta: PetMeta; selected
     };
   }, [meta.id]);
   return (
-    <div className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-sm ${selected ? "border-accent bg-accent/10" : "border-line bg-background"}`}>
-      <label className="flex cursor-pointer flex-col items-center gap-1 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent">
+    <div className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-sm ${selected ? "border-primary bg-primary/10" : "border-line bg-background"}`}>
+      <label className="flex cursor-pointer flex-col items-center gap-1 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary">
         <input type="radio" name="buddyAvatar" value={`pet:${meta.id}`} checked={selected} onChange={onPick} className="sr-only" />
         <div className="flex h-16 items-center justify-center">
           {url ? <PetSprite sheetUrl={url} meta={meta} row="idle" size={56} /> : <span className="text-xs text-muted">Loading</span>}
@@ -181,8 +181,8 @@ export function BuddyAppearance({ aiEnabled, providerLabel, cloud }: { aiEnabled
     return (
       <label
         key={id}
-        className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-3 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
-          selected ? "border-accent bg-accent/10" : "border-line bg-background"
+        className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border p-3 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary ${
+          selected ? "border-primary bg-primary/10" : "border-line bg-background"
         }`}
         onMouseEnter={() => setPreview({ id, mood: "excited" })}
         onMouseLeave={() => setPreview(null)}
@@ -208,8 +208,8 @@ export function BuddyAppearance({ aiEnabled, providerLabel, cloud }: { aiEnabled
       {options.map((o) => (
         <label
           key={o.id}
-          className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
-            value === o.id ? "border-accent bg-accent/10 font-medium" : "border-line bg-background"
+          className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary ${
+            value === o.id ? "border-primary bg-primary/10 font-medium" : "border-line bg-background"
           }`}
         >
           <input type="radio" name={name} checked={value === o.id} onChange={() => onPick(o.id)} className="sr-only" />
@@ -258,7 +258,7 @@ export function BuddyAppearance({ aiEnabled, providerLabel, cloud }: { aiEnabled
             placeholder="Paste a Petdex link, for example https://petdex.dev/pets/shinchan"
             className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2 text-sm"
           />
-          <button type="submit" disabled={!!petBusy || !petLink.trim()} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-60">
+          <button type="submit" disabled={!!petBusy || !petLink.trim()} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary disabled:opacity-60">
             Add
           </button>
         </form>
@@ -326,7 +326,7 @@ export function BuddyAppearance({ aiEnabled, providerLabel, cloud }: { aiEnabled
             <BuddyAvatar id="custom" mood="idle" size={64} customSrc={pending} />
             <button
               type="button"
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary"
               onClick={() => {
                 save({ avatar: "custom", customSrc: pending });
                 setPending(null);

@@ -41,7 +41,7 @@ async function Certificate({ params }: { params: PageProps<"/profile/certificate
           Back to portfolio
         </Link>
       </div>
-      <section className="cert mx-auto flex min-h-[28rem] max-w-5xl flex-col items-center justify-center gap-4 rounded-sm border-[10px] border-double border-accent bg-white p-10 text-center text-neutral-900">
+      <section className="cert mx-auto flex min-h-[28rem] max-w-5xl flex-col items-center justify-center gap-4 rounded-sm border-[10px] border-double border-primary bg-white p-10 text-center text-neutral-900">
         <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
           <circle cx="32" cy="32" r="26" />
           <path d="M20 40c4-14 10-18 24-20-2 14-8 22-24 20Z" />

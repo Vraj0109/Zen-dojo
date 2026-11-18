@@ -8,7 +8,7 @@ export async function ReaderModeToggle() {
   await connection();
   const on = await isReaderMode();
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="rounded-md border border-line bg-surface p-5">
       <h4 className="font-semibold">Reader mode: {on ? "on" : "off"}</h4>
       <p className="mt-1 mb-3 text-sm text-muted">
         For reading on a phone. Hides Run, Submit, Reset and Mark solved, and shows your saved code read-only. Hints, solutions, lessons and
@@ -16,7 +16,7 @@ export async function ReaderModeToggle() {
       </p>
       <form action={setReaderModeAction}>
         <input type="hidden" name="reader" value={on ? "0" : "1"} />
-        <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">
+        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
           {on ? "Turn reader mode off" : "Turn reader mode on"}
         </SubmitButton>
       </form>

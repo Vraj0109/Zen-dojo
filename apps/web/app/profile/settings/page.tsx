@@ -55,7 +55,7 @@ const CATEGORIES: SettingsCategory[] = [
 
 const ENTRIES: SettingsEntry[] = [
   { id: "theme", category: "appearance", title: "Appearance and reading", description: "Light, dark or system theme and reading style, saved in this browser.", keywords: ["theme", "dark mode", "light", "style", "font", "reading", "text size"] },
-  { id: "customize", category: "appearance", title: "Make it yours", description: "Custom colours and fonts.", keywords: ["colour", "color", "accent", "font", "custom", "personalise"] },
+  { id: "customize", category: "appearance", title: "Make it yours", description: "Your own theme: colours for light and dark, fonts, corners and density; export and import it.", keywords: ["colour", "color", "accent", "font", "custom", "personalise", "theme editor", "corners", "density", "compact", "export", "import", "contrast"] },
   { id: "simple-mode", category: "appearance", title: "Simple mode", description: "Hides the power tools so each page shows what to do next.", keywords: ["simple mode", "boss fight", "cheat sheets", "diagrams", "reading list", "stuck list", "hide"] },
   { id: "reader-mode", category: "appearance", title: "Reader mode", description: "Read-only study for phones: hides Run and Submit, shows saved code read-only.", keywords: ["reader", "read only", "phone", "mobile", "study mode", "hide run", "submit"] },
   { id: "plan-start", category: "plan", title: "Plan start", description: "The Monday week 1 began; changing it regenerates unfinished tasks.", keywords: ["plan start date", "week", "shift", "monday", "schedule", "16 weeks"] },
@@ -84,8 +84,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
       <ProfileTabs active="/profile/settings" />
       <SettingsShell categories={CATEGORIES} entries={ENTRIES}>
         <SettingsBlock id="appearance" title="Appearance and reading">
-          <SettingsSection id="theme">
-            <section className="rounded-xl border border-line bg-surface p-4">
+          <SettingsSection id="theme" scope="sync">
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="mb-1 font-semibold">Appearance and reading</h4>
               <p className="mb-3 text-sm text-muted">
                 System follows your computer&apos;s light or dark setting. These choices are saved in this browser or app window and, when you
@@ -95,20 +95,20 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
               <ThemePicker />
             </section>
           </SettingsSection>
-          <SettingsSection id="customize">
-            <section className="space-y-5 rounded-xl border border-line bg-surface p-4">
+          <SettingsSection id="customize" scope="sync">
+            <section className="space-y-5 rounded-md border border-line bg-surface p-5">
               <h4 className="font-semibold">Make it yours</h4>
               <CustomColours />
               <hr className="border-line" />
               <CustomFontPicker />
             </section>
           </SettingsSection>
-          <SettingsSection id="simple-mode">
+          <SettingsSection id="simple-mode" scope="data">
             <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
               <InterfaceSettings />
             </Suspense>
           </SettingsSection>
-          <SettingsSection id="reader-mode">
+          <SettingsSection id="reader-mode" scope="device">
             <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
               <ReaderModeToggle />
             </Suspense>
@@ -116,7 +116,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="plan" title="Study plan">
-          <SettingsSection id="plan-start">
+          <SettingsSection id="plan-start" scope="data">
             <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
               <PlanSettings />
             </Suspense>
@@ -124,11 +124,11 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="practice" title="Practice and running code">
-          <SettingsSection id="tools">
-            <section className="rounded-xl border border-line bg-surface p-4">
+          <SettingsSection id="tools" scope="device">
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="mb-1 font-semibold">Tools for running code</h4>
               <p className="mb-3 text-sm text-muted">See which of C++, Java, Node and Python are installed on this computer and copy the command to install the rest.</p>
-              <Link href="/profile/settings/tools" className="inline-block rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background">
+              <Link href="/profile/settings/tools" className="inline-block inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
                 Check my tools
               </Link>
             </section>
@@ -136,8 +136,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="ai" title="AI and chat">
-          <SettingsSection id="ai">
-            <section className="rounded-xl border border-line bg-surface p-4">
+          <SettingsSection id="ai" scope={HOSTED ? "device" : "data"}>
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="mb-1 font-semibold">{HOSTED ? "AI help with your own key" : "AI help on your own computer"}</h4>
               <p className="mb-3 text-sm text-muted">
                 {HOSTED ? "Uses an API key you paste here. It stays in this browser only." : "Off until you turn it on. Explains hints and reviews your code with a model that runs here."}
@@ -148,7 +148,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="buddy" title="Buddy and focus">
-          <SettingsSection id="buddy">
+          <SettingsSection id="buddy" scope="data">
             <Suspense fallback={<ProfileSettingsSkeleton rows={3} />}>
               <BuddySettingsSection />
             </Suspense>
@@ -157,7 +157,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="account" title="Account and sync">
           <SettingsSection id="sync">
-            <section className="rounded-xl border border-line bg-surface p-4">
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="mb-1 font-semibold">Sync across devices</h4>
               <p className="mb-3 text-sm text-muted">
                 Sign in to keep your progress in step across devices. See sync status, run a sync and manage signed-in devices.
@@ -169,8 +169,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="content" title="Content and packs">
-          <SettingsSection id="packs">
-            <section className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <SettingsSection id="packs" scope="data">
+            <section className="space-y-3 rounded-md border border-line bg-surface p-5">
               <h4 className="font-semibold">Add problems and lessons</h4>
               <p className="text-sm text-muted">
                 A content pack is one JSON file with new lessons and Run-button problems. It becomes a course in Learn. Another AI can write one for you from
@@ -179,7 +179,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
               <PackImporter />
             </section>
           </SettingsSection>
-          <SettingsSection id="feed">
+          <SettingsSection id="feed" scope="data">
             <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
               <ContentFeedSection />
             </Suspense>
@@ -188,7 +188,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="connections" title="Connections">
           <div id="leetcode" className="scroll-mt-24" />
-          <SettingsSection id="connections">
+          <SettingsSection id="connections" scope="data">
             <div className="space-y-4">
               <Suspense fallback={<ProfileSettingsSkeleton rows={2} />}>
                 <Connections />
@@ -198,13 +198,13 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="profile" title="Profile and portfolio">
-          <SettingsSection id="profile-editor">
-            <section className="rounded-xl border border-line bg-surface p-4">
+          <SettingsSection id="profile-editor" scope="device">
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="mb-3 font-semibold">Profile</h4>
               <ProfileEditor />
             </section>
           </SettingsSection>
-          <SettingsSection id="portfolio-name">
+          <SettingsSection id="portfolio-name" scope="data">
             <Suspense fallback={<ProfileSettingsSkeleton rows={1} />}>
               <PortfolioNameSection />
             </Suspense>
@@ -216,19 +216,19 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             <Status searchParams={searchParams} />
           </Suspense>
           <SettingsSection id="backup-download">
-            <section className="rounded-xl border border-line bg-surface p-4">
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="font-semibold">Download a backup</h4>
               <p className="mt-1 mb-3 text-sm text-muted">
                 One JSON file with everything: tasks, solves, notes, saved LeetCode submissions, study progress and practice logs. Keep it
                 somewhere safe, or use it to move to another computer. The extension pairing key isn&apos;t included.
               </p>
-              <a href="/api/backup" download className="inline-block rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">
+              <a href="/api/backup" download className="inline-block rounded-lg bg-primary px-4 py-2 font-medium text-on-primary">
                 Download backup
               </a>
             </section>
           </SettingsSection>
           <SettingsSection id="backup-restore">
-            <section className="rounded-xl border border-line bg-surface p-4">
+            <section className="rounded-md border border-line bg-surface p-5">
               <h4 className="font-semibold">Restore from a backup</h4>
               <p className="mt-1 mb-3 text-sm text-muted">
                 <strong className="text-foreground">Replaces all your current data</strong> with the file&apos;s contents. A copy of your current
@@ -248,7 +248,7 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
                   <input type="checkbox" name="confirm" value="yes" required className="mt-0.5 size-4" />
                   <span>Yes, replace everything with this backup.</span>
                 </label>
-                <button className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">Restore</button>
+                <button className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Restore</button>
               </form>
             </section>
           </SettingsSection>
@@ -267,7 +267,7 @@ async function PortfolioNameSection() {
     refresh();
   }
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="rounded-md border border-line bg-surface p-5">
       <h4 className="mb-1 font-semibold">Portfolio name</h4>
       <p className="mb-3 text-sm text-muted">Shown on your portfolio and certificates. Leave it empty to use &quot;Learner&quot;.</p>
       <form action={save} className="flex flex-wrap items-center gap-2">
@@ -280,7 +280,7 @@ async function PortfolioNameSection() {
           aria-label="Portfolio name"
           className="rounded-lg border border-line bg-background px-3 py-2"
         />
-        <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">Save</SubmitButton>
+        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Save</SubmitButton>
       </form>
     </section>
   );
@@ -290,7 +290,7 @@ async function InterfaceSettings() {
   await connection();
   const simple = await getSimpleMode();
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="rounded-md border border-line bg-surface p-5">
       <h4 className="font-semibold">Simple mode: {simple ? "on" : "off"}</h4>
       <p className="mt-1 mb-3 text-sm text-muted">
         Hides the power tools so each page shows what to do next: the boss fight, pattern cheat sheets, your diagrams, the reading list and
@@ -298,7 +298,7 @@ async function InterfaceSettings() {
       </p>
       <form action={setSimpleModeAction}>
         <input type="hidden" name="simple" value={simple ? "0" : "1"} />
-        <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">
+        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
           {simple ? "Turn Simple mode off" : "Turn Simple mode on"}
         </SubmitButton>
       </form>
@@ -310,7 +310,7 @@ async function PlanSettings() {
   await connection();
   const planStart = await getPlanStart();
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="rounded-md border border-line bg-surface p-5">
       <h4 className="font-semibold">Plan start</h4>
       <p className="mt-1 mb-3 text-sm text-muted">
         Week 1 started on {formatLong(planStart)}. Weeks run Monday to Sunday, so any date snaps to its Monday. Changing it regenerates
@@ -324,7 +324,7 @@ async function PlanSettings() {
           aria-label="Plan start date"
           className="rounded-lg border border-line bg-background px-3 py-2"
         />
-        <SubmitButton className="rounded-lg border border-line px-4 py-2 font-medium hover:bg-background">Save</SubmitButton>
+        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Save</SubmitButton>
       </form>
     </section>
   );
@@ -356,7 +356,7 @@ async function Status({ searchParams }: { searchParams: PageProps<"/profile/sett
   if (restored) {
     const copy = one(p.copy);
     return (
-      <p role="status" className="rounded-xl border border-accent bg-surface p-4 text-sm">
+      <p role="status" className="rounded-xl border border-primary bg-surface p-4 text-sm">
         Restored {Number(restored) || 0} rows.{copy && <> Your previous data was saved to <code className="break-all">{copy.slice(0, 400)}</code>.</>}
       </p>
     );
@@ -368,7 +368,7 @@ async function ContentFeedSection() {
   await connection();
   const [feedUrl, patches] = await Promise.all([getFeedUrl(), listLessonPatches()]);
   return (
-    <section className="space-y-3 rounded-xl border border-line bg-surface p-4">
+    <section className="space-y-3 rounded-md border border-line bg-surface p-5">
       <h4 className="font-semibold">Updates and feeds</h4>
       <p className="text-sm text-muted">
         Connect to an over-the-air content feed to check for new and updated problem packs.
@@ -383,7 +383,7 @@ async function BuddySettingsSection() {
   const settings = await getBuddySettings();
   const ai = process.env.HABIT_HOSTED === "1" ? null : await getAiSettings();
   return (
-    <section className="space-y-4 rounded-xl border border-line bg-surface p-4">
+    <section className="space-y-4 rounded-md border border-line bg-surface p-5">
       <div>
         <h4 className="font-semibold">Accountability Buddy &amp; Gentle Pacing</h4>
         <p className="mt-1 text-sm text-muted">
@@ -444,7 +444,7 @@ async function BuddySettingsSection() {
           </p>
         </div>
 
-        <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent text-sm">
+        <SubmitButton className="rounded-lg bg-primary px-4 py-2 font-medium text-on-primary text-sm">
           Save pacing preferences
         </SubmitButton>
       </form>

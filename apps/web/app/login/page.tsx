@@ -3,6 +3,10 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
+import { buttonClass } from "../ui";
+
+/** Centered card on desktop, full width on a phone. */
+const CARD = "w-full space-y-4 rounded-lg border border-line bg-surface p-6 sm:max-w-md sm:p-8 sm:shadow-sm";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -54,11 +58,11 @@ async function LoginBody({
 
   if (session) {
     return (
-      <div className="max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
+      <div className={CARD}>
         <p className="text-sm">You are signed in as {session.name}.</p>
         <div className="flex flex-wrap gap-3">
-          <Link href={next} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent">Continue</Link>
-          <Link href="/profile/account" className="rounded-md border border-line px-4 py-2 text-sm hover:bg-background">Account</Link>
+          <Link href={next} className={buttonClass("primary")}>Continue</Link>
+          <Link href="/profile/account" className={buttonClass("secondary")}>Account</Link>
         </div>
       </div>
     );
@@ -68,42 +72,47 @@ async function LoginBody({
   if (waiting) {
     // Desktop: the sign-in continues in the system browser; the app comes back here through the zendojo:// link.
     return (
-      <div className="max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
+      <div className={CARD}>
         <p className="text-sm">Finish signing in in your browser. Zen Dojo will switch back here when you are done.</p>
         <div className="flex flex-wrap gap-3">
-          <a href={`/auth/start?next=${encodeURIComponent(next)}`} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+          <a href={`/auth/start?next=${encodeURIComponent(next)}`} className={buttonClass("primary")}>
             Start again
           </a>
-          <Link href="/" className="rounded-md border border-line px-4 py-2 text-sm hover:bg-background">Cancel</Link>
+          <Link href="/" className={buttonClass("secondary")}>Cancel</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
-      {error ? <p role="alert" className="text-sm text-diff-hard">{error}</p> : null}
+    <div className={CARD}>
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       <a
         href={`/auth/start?next=${encodeURIComponent(next)}`}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-on-accent"
+        className={buttonClass("primary", "md", "w-full")}
       >
         <GitHubMark />
         Continue with GitHub
       </a>
-      <p className="text-sm text-muted">
+      <Link href="/" className={buttonClass("secondary", "md", "w-full")}>
+        Try it without an account
+      </Link>
+      <p className="text-xs text-muted">
         The app works fully without an account. Signing in links this device to your account so your progress syncs across your
         devices. Nothing on this device is deleted when you sign in or out.
       </p>
-      <Link href="/" className="inline-block text-sm text-muted hover:underline">Keep using it signed out</Link>
     </div>
   );
 }
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="w-full px-4 py-6 lg:px-8">
-      <h1 className="mb-4 text-2xl font-semibold tracking-tight">Sign in</h1>
-      <Suspense fallback={<div className="h-40 max-w-md rounded-xl border border-line bg-surface" />}>
+    <main className="flex w-full flex-col items-center px-4 py-10 sm:min-h-[70vh] sm:justify-center">
+      <div className="w-full sm:max-w-md">
+        <h1 className="mb-1 text-2xl font-semibold tracking-tight">Sign in to Zen Dojo</h1>
+        <p className="mb-5 text-sm text-muted">Keep your plan, notes and progress in step on every device.</p>
+      </div>
+      <Suspense fallback={<div className="h-56 w-full rounded-lg border border-line bg-surface sm:max-w-md" />}>
         <LoginBody searchParams={searchParams} />
       </Suspense>
     </main>

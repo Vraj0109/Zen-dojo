@@ -7,46 +7,94 @@ export const CUSTOM_FONT_KEY = "habit-custom-font";
 export const PROFILE_KEY = "habit-profile";
 export const CUSTOM_EVENT = "habit-custom-change";
 
-export interface Palette {
+/** The colours the editor lets you change, per mode. The CSS variable is `--` + the key. */
+export const EDITABLE_TOKENS = ["background", "surface", "surface-2", "line", "foreground", "muted", "primary", "reward", "success", "warning", "danger"] as const;
+export type EditableToken = (typeof EDITABLE_TOKENS)[number];
+
+/** The five colours every saved palette has (older themes have only these), plus the Dojo keys when saved. */
+export interface Palette extends Partial<Record<EditableToken, string>> {
   background: string;
   surface: string;
   foreground: string;
   line: string;
   muted: string;
 }
+
+/** Built-in fonts the editor offers (any installed font name is also accepted). */
+export const FONT_CHOICES = ["figtree", "lexend", "atkinson", "jetbrains", "serif", "system"] as const;
+export const CORNERS = ["sharp", "default", "round"] as const;
+export type Corners = (typeof CORNERS)[number];
+export const DENSITIES = ["compact", "comfortable"] as const;
+export type Density = (typeof DENSITIES)[number];
+export type FontSlot = "ui" | "heading" | "code";
+
 export interface CustomTheme {
-  /** One accent for light and dark */
+  /** One accent for light and dark (older themes); a palette's own `primary` wins over it */
   accent?: string;
   light?: Palette;
   dark?: Palette;
+  /** The built-in theme (style id) the editor started from. For display; the colours are all in the palettes. */
+  base?: string;
+  /** Each a built-in font id from FONT_CHOICES or the name of an installed font */
+  fonts?: Partial<Record<FontSlot, string>>;
+  corners?: Corners;
+  density?: Density;
 }
 
 export const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
 
-const PALETTE_KEYS = ["background", "surface", "foreground", "line", "muted"] as const;
+const REQUIRED_KEYS = ["background", "surface", "foreground", "line", "muted"] as const;
 
 function cleanPalette(p: unknown): Palette | undefined {
   if (!p || typeof p !== "object") return undefined;
   const o = p as Record<string, unknown>;
-  if (!PALETTE_KEYS.every((k) => isHex(o[k]))) return undefined;
-  return Object.fromEntries(PALETTE_KEYS.map((k) => [k, (o[k] as string).toLowerCase()])) as unknown as Palette;
+  if (!REQUIRED_KEYS.every((k) => isHex(o[k]))) return undefined;
+  return Object.fromEntries(EDITABLE_TOKENS.filter((k) => isHex(o[k])).map((k) => [k, (o[k] as string).toLowerCase()])) as unknown as Palette;
 }
 
-/** Reads what was saved. Anything that is not a valid hex colour is dropped. */
+/** A font value is a built-in id or a safe font name (it ends up inside a CSS value). */
+const cleanFont = (v: unknown): string | undefined =>
+  typeof v === "string" && ((FONT_CHOICES as readonly string[]).includes(v) || isSafeFamily(v)) ? v : undefined;
+
+/** Reads what was saved. Anything that is not a valid hex colour, font or option is dropped. */
 export function parseCustomTheme(raw: string | null | undefined): CustomTheme {
   if (!raw) return {};
   try {
     const t = JSON.parse(raw) as Record<string, unknown>;
+    if (!t || typeof t !== "object") return {};
     const out: CustomTheme = {};
     if (isHex(t.accent)) out.accent = t.accent.toLowerCase();
     const light = cleanPalette(t.light);
     const dark = cleanPalette(t.dark);
     if (light) out.light = light;
     if (dark) out.dark = dark;
+    if (typeof t.base === "string" && /^[a-z]{1,20}$/.test(t.base)) out.base = t.base;
+    if (t.fonts && typeof t.fonts === "object") {
+      const f = t.fonts as Record<string, unknown>;
+      const fonts: Partial<Record<FontSlot, string>> = {};
+      for (const k of ["ui", "heading", "code"] as const) {
+        const v = cleanFont(f[k]);
+        if (v) fonts[k] = v;
+      }
+      if (Object.keys(fonts).length) out.fonts = fonts;
+    }
+    if ((CORNERS as readonly unknown[]).includes(t.corners)) out.corners = t.corners as Corners;
+    if ((DENSITIES as readonly unknown[]).includes(t.density)) out.density = t.density as Density;
     return out;
   } catch {
     return {};
   }
+}
+
+/** The file a theme is exported as. Import reads it back with the same checks as a saved theme. */
+export function exportCustomTheme(t: CustomTheme): string {
+  return JSON.stringify({ kind: "zen-dojo-theme", version: 2, ...parseCustomTheme(JSON.stringify(t)) }, null, 2);
+}
+
+/** Reads an exported (or saved) theme. Null when the text holds no colours. */
+export function importCustomTheme(text: string): CustomTheme | null {
+  const t = parseCustomTheme(text);
+  return t.light || t.dark || t.accent ? t : null;
 }
 
 /** WCAG relative luminance of #rrggbb. */
@@ -79,6 +127,25 @@ export function paletteWarnings(p: Palette): string[] {
 
 export function accentWarnings(accent: string, p: Palette): string[] {
   return contrast(accent, p.surface) < 3 ? ["The accent colour is hard to see against cards."] : [];
+}
+
+/** Text colours the editor measures, and the colour each is read on. */
+export const TEXT_ON: Partial<Record<EditableToken, "background" | "surface">> = {
+  foreground: "background",
+  muted: "surface",
+  primary: "surface",
+  success: "surface",
+  warning: "surface",
+  danger: "surface",
+};
+
+/** Contrast of a text colour against what it is read on (one decimal), and whether it meets 4.5:1. Null for fills. */
+export function textContrast(p: Palette, token: EditableToken): { ratio: number; ok: boolean; on: string } | null {
+  const on = TEXT_ON[token];
+  const fg = p[token];
+  if (!on || !fg) return null;
+  const ratio = Math.floor(contrast(fg, p[on]) * 10) / 10;
+  return { ratio, ok: contrast(fg, p[on]) >= 4.5, on };
 }
 
 // ---- fonts

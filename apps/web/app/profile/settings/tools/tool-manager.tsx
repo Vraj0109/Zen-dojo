@@ -114,14 +114,14 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
           type="button"
           disabled={working}
           onClick={() => setConfirm(missing.map((c) => c.id))}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
         >
           Set up all missing tools
         </button>
       )}
 
       {confirm && (
-        <div role="dialog" aria-label="Confirm download" className="space-y-3 rounded-xl border border-line bg-surface p-4">
+        <div role="dialog" aria-label="Confirm download" className="space-y-3 rounded-md border border-line bg-surface p-5">
           <h3 className="font-semibold">Download these tools?</h3>
           <ul className="space-y-1 text-sm">
             {confirm.map((id) => {
@@ -139,10 +139,10 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
             checked against its published checksum before it is unpacked. Nothing is installed system-wide and no administrator rights are needed.
           </p>
           <div className="flex gap-2">
-            <button type="button" onClick={() => run(confirm)} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+            <button type="button" onClick={() => run(confirm)} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90">
               Download
             </button>
-            <button type="button" onClick={() => setConfirm(null)} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background">
+            <button type="button" onClick={() => setConfirm(null)} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
               Not now
             </button>
           </div>
@@ -161,7 +161,7 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
           const pct = active && progress.total > 0 ? Math.min(100, Math.floor((progress.received / progress.total) * 100)) : 0;
           const queued = queue.includes(c.id) && !active;
           return (
-            <li key={c.id} className="space-y-3 rounded-xl border border-line bg-surface p-4">
+            <li key={c.id} className="space-y-3 rounded-md border border-line bg-surface p-5">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-semibold">{c.label}</h3>
                 <span
@@ -180,7 +180,7 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
               {active && (
                 <div className="space-y-2">
                   <div className="h-2 overflow-hidden rounded-full bg-background" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                    <div className="h-full bg-accent transition-all" style={{ width: `${progress.stage === "downloading" ? pct : 100}%` }} />
+                    <div className="h-full bg-primary transition-all" style={{ width: `${progress.stage === "downloading" ? pct : 100}%` }} />
                   </div>
                   <div className="flex items-center justify-between gap-3 text-xs text-muted">
                     <span>
@@ -196,7 +196,7 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
                         cancelled.current = true;
                         abort.current?.abort();
                       }}
-                      className="rounded-lg border border-line px-3 py-1 text-sm font-medium hover:bg-background"
+                      className="rounded-lg border border-line px-3 py-1 text-sm font-medium hover:bg-surface-2"
                     >
                       Cancel
                     </button>
@@ -212,18 +212,18 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
                       type="button"
                       disabled={working}
                       onClick={() => setConfirm([c.id])}
-                      className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background disabled:opacity-50"
+                      className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
                     >
                       Set up{c.offer ? ` (${formatBytes(c.offer.bytes)})` : ""}
                     </button>
                   )}
                   {c.action === "xcode" && !c.found && (
-                    <button type="button" disabled={working} onClick={() => run([c.id])} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background disabled:opacity-50">
+                    <button type="button" disabled={working} onClick={() => run([c.id])} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50">
                       Install Apple&apos;s command line tools
                     </button>
                   )}
                   {c.downloaded && (
-                    <button type="button" disabled={working} onClick={() => remove(c.id)} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background disabled:opacity-50">
+                    <button type="button" disabled={working} onClick={() => remove(c.id)} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50">
                       Remove the downloaded copy
                     </button>
                   )}

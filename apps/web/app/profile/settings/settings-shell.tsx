@@ -124,7 +124,7 @@ export function SettingsShell({
             }}
             placeholder="Search settings"
             aria-label="Search settings"
-            className="w-full min-w-0 max-w-full rounded-lg border border-line bg-surface py-2 pr-12 pl-9 text-base md:text-sm"
+            className="h-10 w-full min-w-0 max-w-full rounded-md border border-line-strong bg-surface pr-12 pl-9 text-base focus:border-primary focus:outline-2 focus:outline-primary/30 md:text-sm"
           />
           {!searching && (
             <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-line px-1.5 text-xs text-muted">/</kbd>
@@ -146,8 +146,8 @@ export function SettingsShell({
                   href={`#${c.id}`}
                   onClick={(e) => go(e, c.id)}
                   aria-current={active === c.id ? "true" : undefined}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm whitespace-nowrap lg:border-transparent lg:py-2 ${
-                    active === c.id ? "border-accent bg-surface font-medium text-foreground" : "border-line text-muted hover:bg-surface hover:text-foreground"
+                  className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm whitespace-nowrap lg:border-transparent lg:py-2 ${
+                    active === c.id ? "border-primary-soft bg-primary-soft font-medium text-primary" : "border-line text-muted hover:bg-surface-2 hover:text-foreground"
                   }`}
                 >
                   <Icon id={c.id} />
@@ -160,9 +160,9 @@ export function SettingsShell({
 
         <div className="min-w-0">
           {searching && matched.size === 0 && (
-            <div role="status" className="rounded-xl border border-line bg-surface p-6 text-center">
+            <div role="status" className="rounded-md border border-line bg-surface p-6 text-center">
               <p className="font-medium">No settings match &quot;{query.trim()}&quot;</p>
-              <button type="button" onClick={() => setQuery("")} className="mt-3 rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background">
+              <button type="button" onClick={() => setQuery("")} className="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
                 Clear search
               </button>
             </div>

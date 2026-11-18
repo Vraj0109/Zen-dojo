@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { TOTAL_WEEKS, type Category, type HeatCell } from "@habit/shared";
 import { BALANCE_DAYS, getStats } from "@/lib/stats";
 import { getPlanPosition, getPlanStart } from "@/lib/tasks";
-import { PageMain, ProgressBar, Stat, StatusMark } from "../ui";
+import { PageMain, ProgressBar, Stat } from "../ui";
 import { ProfileTabs } from "./profile-ui";
 import { ProfileStatsSkeleton } from "@/app/components/profile-skeleton";
 import { SignInCard } from "@/app/components/sign-in-card";
@@ -19,21 +19,16 @@ export default function ProfilePage() {
         <SignInCard next="/profile" />
       </Suspense>
       <ProfileTabs active="/profile" />
-      <p className="mb-6 text-sm">
-        <Link href="/profile/portfolio" className="font-medium text-accent hover:underline">
-          Portfolio and certificates
-        </Link>
-        <span className="text-muted"> · share your streaks, solved problems and finished courses</span>
-      </p>
-      <p className="mb-6 text-sm">
-        <Link href="/help" className="font-medium text-accent hover:underline">
-          Help and FAQ
-        </Link>
-        <span className="text-muted"> · install problems, running code, AI, sync and certificates</span>
-      </p>
       <Suspense fallback={<ProfileStatsSkeleton />}>
         <Stats />
       </Suspense>
+      <p className="mt-8 text-sm text-muted">
+        Stuck on setup?{" "}
+        <Link href="/help" className="font-medium text-primary hover:underline">
+          Help and FAQ
+        </Link>{" "}
+        covers installing problems, running code, AI, sync and certificates.
+      </p>
     </PageMain>
   );
 }
@@ -54,76 +49,36 @@ async function Stats() {
 
   return (
     <div className="space-y-8">
-      <section className="flex flex-col gap-6 rounded-xl border border-line bg-surface p-5 md:flex-row md:items-center">
-        <div className="gamify-only flex items-center gap-4 md:w-80 md:shrink-0">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-semibold text-on-accent" aria-hidden>
-            {level.level}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="gamify-only col-span-2 rounded-md border border-line bg-surface p-4 lg:col-span-1">
+          <p className="text-xs font-medium text-muted">Level</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">
+            {level.level} <span className="text-sm font-medium text-muted">{level.tier}</span>
+          </p>
+          <div className="mt-2">
+            <ProgressBar value={level.xpIntoLevel} max={level.xpForNext} label="Progress to next level" tone="reward" />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold">
-              Level {level.level} · {level.tier}
-            </p>
-            <div className="mt-2">
-              <ProgressBar value={level.xpIntoLevel} max={level.xpForNext} label="Progress to next level" />
-            </div>
-            <p className="mt-1 text-xs text-muted">
-              {totals.totalXp} XP · {toNext} to level {level.level + 1}
-            </p>
-          </div>
+          <p className="mt-1 text-xs text-muted">
+            {totals.totalXp} XP · {toNext} to level {level.level + 1}
+          </p>
         </div>
-        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Plan" value={weekNo < 1 ? "Not started" : weekNo > TOTAL_WEEKS ? "Finished" : `Week ${weekNo} / ${TOTAL_WEEKS}`} hint={`started ${fmt(planStart, { month: "short", day: "numeric" })}`} />
-          <Stat label="Streak" value={`${totals.streak} day${totals.streak === 1 ? "" : "s"}`} hint={`best ${totals.bestStreak}`} className="gamify-only" />
-          <Stat label="Active days" value={String(totals.activeDays)} hint={`${totals.hours} h logged`} />
-          <Stat label="Badges" value={`${earned} / ${s.badges.length}`} hint="earned" className="gamify-only" />
-        </div>
+        <Stat label="Plan" value={weekNo < 1 ? "Not started" : weekNo > TOTAL_WEEKS ? "Finished" : `Week ${weekNo} of ${TOTAL_WEEKS}`} hint={`started ${fmt(planStart, { month: "short", day: "numeric" })}`} href="/roadmap" />
+        <Stat label="Streak" value={`${totals.streak} day${totals.streak === 1 ? "" : "s"}`} hint={`best ${totals.bestStreak}`} className="gamify-only" />
+        <Stat label="Active days" value={String(totals.activeDays)} hint={`${totals.hours} h logged`} />
+        <Stat label="Badges" value={`${earned} of ${s.badges.length}`} hint="earned" href="/profile/badges" className="gamify-only" />
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <Heatmap weeks={s.heatmap} today={s.today} />
-        <div className="gamify-only">
-          <Balance rows={s.balance} recentXp={s.recentXp} />
-        </div>
+      <Heatmap weeks={s.heatmap.slice(-ACTIVITY_WEEKS)} today={s.today} />
+      <div className="gamify-only">
+        <Balance rows={s.balance} recentXp={s.recentXp} />
       </div>
-
-      <section className="gamify-only">
-        <h2 className="mb-3 text-lg font-semibold">Badges</h2>
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {s.badges.map((b) => (
-            <li
-              key={b.id}
-              className={`flex items-center gap-3 rounded-xl border p-3 ${b.earned ? "border-accent bg-surface" : "border-line bg-surface opacity-70"}`}
-            >
-              <span className={`text-2xl ${b.earned ? "" : "grayscale"}`} aria-hidden>
-                {b.icon}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {b.title}
-                  <span className="sr-only">{b.earned ? " (earned)" : " (locked)"}</span>
-                </p>
-                <p className="text-xs text-muted">{b.description}</p>
-                {!b.earned && b.target > 1 && (
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round((b.value / b.target) * 100)}%` }} />
-                    </div>
-                    <span className="text-xs text-muted">
-                      {b.value}/{b.target}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {b.earned && <StatusMark state="solved" />}
-            </li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }
 
-const HEAT = ["bg-line", "bg-accent/35", "bg-accent/55", "bg-accent/80", "bg-accent"] as const;
+/** The activity grid shows the last 12 weeks (the stats keep 16). */
+const ACTIVITY_WEEKS = 12;
+const HEAT = ["bg-surface-2", "bg-primary/30", "bg-primary/55", "bg-primary/80", "bg-primary"] as const;
 
 function Heatmap({ weeks, today }: { weeks: HeatCell[][]; today: string }) {
   const total = weeks.flat().reduce((a, c) => a + c.xp, 0);
@@ -131,17 +86,17 @@ function Heatmap({ weeks, today }: { weeks: HeatCell[][]; today: string }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">Activity, last 16 weeks</h2>
+        <h2 className="text-lg font-semibold">Activity, last 12 weeks</h2>
         <p className="text-sm text-muted">
           <span className="gamify-only">{total} XP on </span>
           {active} day{active === 1 ? "" : "s"}
         </p>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-line bg-surface p-4">
-        <div className="flex gap-[3px]" role="img" aria-label={`Activity heatmap: ${total} XP over ${active} active days in the last 16 weeks`}>
+      <div className="overflow-x-auto rounded-md border border-line bg-surface p-5">
+        <div className="flex gap-[3px]" role="img" aria-label={`Activity heatmap: ${total} XP over ${active} active days in the last 12 weeks`}>
           <div className="mr-1 flex flex-col gap-[3px] pt-5 text-[10px] leading-none text-muted" aria-hidden>
             {["Mon", "", "Wed", "", "Fri", "", "Sun"].map((d, i) => (
-              <span key={i} className="flex h-3.5 items-center">
+              <span key={i} className="flex h-4 items-center sm:h-5">
                 {d}
               </span>
             ))}
@@ -158,7 +113,7 @@ function Heatmap({ weeks, today }: { weeks: HeatCell[][]; today: string }) {
                   <span
                     key={c.date}
                     title={c.future ? undefined : `${fmt(c.date)}: ${c.xp} XP`}
-                    className={`size-3.5 rounded-[3px] ${c.future ? "bg-transparent" : HEAT[c.level]} ${c.date === today ? "ring-2 ring-foreground ring-offset-1 ring-offset-surface" : ""}`}
+                    className={`size-4 rounded-[3px] sm:size-5 ${c.future ? "bg-transparent" : HEAT[c.level]} ${c.date === today ? "ring-2 ring-foreground ring-offset-1 ring-offset-surface" : ""}`}
                   />
                 ))}
               </div>
@@ -215,9 +170,14 @@ function Balance({ rows, recentXp }: { rows: Awaited<ReturnType<typeof getStats>
         Share of your XP per area vs the roadmap&apos;s split (40% DSA, 35% system design, 15% behavioral + LLD, 10% mocks). The line marks the target.
       </p>
       {recentXp === 0 ? (
-        <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">No XP in the last {BALANCE_DAYS} days yet.</p>
+        <p className="rounded-md border border-line bg-surface p-5 text-sm text-muted">No XP in the last {BALANCE_DAYS} days yet.</p>
       ) : (
-        <ul className="space-y-3 rounded-xl border border-line bg-surface p-4">
+        <ul className="space-y-3 rounded-md border border-line bg-surface p-5">
+          <li aria-hidden className="flex h-3 overflow-hidden rounded-full bg-surface-2">
+            {rows.map((r) => (
+              <span key={r.category} className={CAT_COLOR[r.category]} style={{ width: `${pct(r.share)}%` }} title={`${r.label}: ${pct(r.share)}%`} />
+            ))}
+          </li>
           {rows.map((r) => {
             const diff = pct(r.share) - pct(r.target);
             const note = r.target === 0 ? "" : Math.abs(diff) <= 5 ? "on target" : diff > 0 ? `${diff} pts over` : `${-diff} pts under`;
@@ -230,7 +190,7 @@ function Balance({ rows, recentXp }: { rows: Awaited<ReturnType<typeof getStats>
                   </span>
                 </div>
                 <div
-                  className="relative h-2 rounded-full bg-line"
+                  className="relative h-1.5 rounded-full bg-surface-2"
                   title={`${r.label}: ${pct(r.share)}% of recent XP${r.target > 0 ? `, target ${pct(r.target)}%` : ""}`}
                 >
                   <div className={`h-full rounded-full ${CAT_COLOR[r.category]}`} style={{ width: `${Math.max(pct(r.share), r.xp > 0 ? 2 : 0)}%` }} />

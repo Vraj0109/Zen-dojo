@@ -30,7 +30,7 @@ export function DeleteCloudData({
 
   if (!signedIn) {
     return (
-      <section className="space-y-3 rounded-xl border border-line bg-surface p-6">
+      <section className="space-y-3 rounded-md border border-line bg-surface p-6">
         <div className="border-b border-line pb-3">
           <h2 className="text-base font-semibold">Cloud data</h2>
           <p className="mt-1 text-xs text-muted">Manage or delete data stored in your cloud account.</p>
@@ -93,7 +93,7 @@ export function DeleteCloudData({
   const isConfirmValid = confirmText === "DELETE" && understood;
 
   return (
-    <section className="space-y-4 rounded-xl border border-line bg-surface p-6">
+    <section className="space-y-4 rounded-md border border-line bg-surface p-6">
       <div className="border-b border-line pb-3">
         <h2 className="text-base font-semibold">Cloud data</h2>
         <p className="mt-1 text-xs text-muted">
@@ -106,8 +106,8 @@ export function DeleteCloudData({
       </div>
 
       {success && (
-        <div role="status" className="space-y-3 rounded-lg border border-diff-easy/30 bg-diff-easy/10 p-4 text-sm">
-          <div className="font-semibold text-diff-easy">
+        <div role="status" className="space-y-3 rounded-lg border border-success/30 bg-success/10 p-4 text-sm">
+          <div className="font-semibold text-success">
             {completedScope === "account" ? "Cloud account closed and data deleted" : "Cloud progress data deleted"}
           </div>
           <p className="text-xs text-muted">
@@ -116,7 +116,7 @@ export function DeleteCloudData({
               : "All synced progress data was removed from the cloud. This device has been unlinked."}
           </p>
           {lastDeleted && Object.keys(lastDeleted).length > 0 && (
-            <div className="space-y-1 border-t border-diff-easy/20 pt-2 text-xs">
+            <div className="space-y-1 border-t border-success/20 pt-2 text-xs">
               <div className="font-medium">Deleted cloud records:</div>
               {Object.entries(lastDeleted).map(([table, count]) => (
                 <div key={table} className="flex justify-between font-mono text-muted">
@@ -138,7 +138,7 @@ export function DeleteCloudData({
             value="data"
             checked={scope === "data"}
             onChange={() => setScope("data")}
-            className="mt-1 size-4 border-line text-accent focus:ring-accent"
+            className="mt-1 size-4 border-line text-primary focus:ring-primary"
           />
           <div>
             <div className="text-sm font-medium">Delete cloud progress only</div>
@@ -152,7 +152,7 @@ export function DeleteCloudData({
             value="account"
             checked={scope === "account"}
             onChange={() => setScope("account")}
-            className="mt-1 size-4 border-line text-accent focus:ring-accent"
+            className="mt-1 size-4 border-line text-primary focus:ring-primary"
           />
           <div>
             <div className="text-sm font-medium">Delete cloud progress and close account</div>
@@ -168,14 +168,14 @@ export function DeleteCloudData({
             checked={understood}
             onChange={(e) => setUnderstood(e.target.checked)}
             disabled={busy}
-            className="mt-0.5 size-4 rounded border-line text-accent focus:ring-accent"
+            className="mt-0.5 size-4 rounded border-line text-primary focus:ring-primary"
           />
-          <span className="text-sm font-medium text-diff-hard">I understand this cannot be undone</span>
+          <span className="text-sm font-medium text-danger">I understand this cannot be undone</span>
         </label>
 
         <div className="space-y-1.5">
           <label htmlFor="confirm-cloud-delete-input" className="block text-sm">
-            Type <span className="font-mono font-bold text-diff-hard">DELETE</span> to confirm:
+            Type <span className="font-mono font-bold text-danger">DELETE</span> to confirm:
           </label>
           <input
             id="confirm-cloud-delete-input"
@@ -185,12 +185,12 @@ export function DeleteCloudData({
             disabled={busy}
             placeholder="DELETE"
             autoComplete="off"
-            className="w-full max-w-xs rounded-md border border-line bg-background px-3 py-1.5 text-sm font-mono placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full max-w-xs rounded-md border border-line bg-background px-3 py-1.5 text-sm font-mono placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
 
         {error && (
-          <div role="alert" className="rounded-md border border-diff-hard/30 bg-diff-hard/10 p-3 text-sm text-diff-hard">
+          <div role="alert" className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
             {error}
           </div>
         )}
@@ -287,7 +287,7 @@ export function DeleteLocalData() {
   const isConfirmValid = confirmText === "DELETE" && understood;
 
   return (
-    <section className="space-y-4 rounded-xl border border-line bg-surface p-6">
+    <section className="space-y-4 rounded-md border border-line bg-surface p-6">
       <div className="border-b border-line pb-3">
         <h2 className="text-base font-semibold">Data on this device</h2>
         <p className="mt-1 text-xs text-muted">Erase your local progress and stored history on this device.</p>
@@ -298,26 +298,26 @@ export function DeleteLocalData() {
         {loadingSummary ? (
           <p className="text-xs text-muted">Loading data counts...</p>
         ) : summaryError ? (
-          <p className="text-xs text-diff-hard">{summaryError}</p>
+          <p className="text-xs text-danger">{summaryError}</p>
         ) : counts ? (
           <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
-            <div className="rounded border border-line/60 bg-surface p-2.5">
+            <div className="rounded-sm border border-line bg-surface-2 p-2.5">
               <div className="text-muted">Solves</div>
               <div className="mt-0.5 text-base font-semibold">{counts.solves}</div>
             </div>
-            <div className="rounded border border-line/60 bg-surface p-2.5">
+            <div className="rounded-sm border border-line bg-surface-2 p-2.5">
               <div className="text-muted">Notes</div>
               <div className="mt-0.5 text-base font-semibold">{counts.notes}</div>
             </div>
-            <div className="rounded border border-line/60 bg-surface p-2.5">
+            <div className="rounded-sm border border-line bg-surface-2 p-2.5">
               <div className="text-muted">Code runs</div>
               <div className="mt-0.5 text-base font-semibold">{counts.runs}</div>
             </div>
-            <div className="rounded border border-line/60 bg-surface p-2.5">
+            <div className="rounded-sm border border-line bg-surface-2 p-2.5">
               <div className="text-muted">Tasks</div>
               <div className="mt-0.5 text-base font-semibold">{counts.tasks}</div>
             </div>
-            <div className="rounded border border-line/60 bg-surface p-2.5">
+            <div className="rounded-sm border border-line bg-surface-2 p-2.5">
               <div className="text-muted">Other</div>
               <div className="mt-0.5 text-base font-semibold">{counts.other}</div>
             </div>
@@ -331,7 +331,7 @@ export function DeleteLocalData() {
         </svg>
         <span>
           Before deleting, consider downloading a backup first:{" "}
-          <a href="/api/backup" download className="font-medium text-accent hover:underline">
+          <a href="/api/backup" download className="font-medium text-primary hover:underline">
             Download backup
           </a>
         </span>
@@ -342,13 +342,13 @@ export function DeleteLocalData() {
       </div>
 
       {success && (
-        <div role="status" className="space-y-3 rounded-lg border border-diff-easy/30 bg-diff-easy/10 p-4 text-sm">
-          <div className="font-semibold text-diff-easy">Data on this device erased</div>
+        <div role="status" className="space-y-3 rounded-lg border border-success/30 bg-success/10 p-4 text-sm">
+          <div className="font-semibold text-success">Data on this device erased</div>
           <p className="text-xs text-muted">
             All local progress data has been removed. Sync triggers were silenced so no deletions were sent to the cloud.
           </p>
           {lastRemoved && Object.keys(lastRemoved).length > 0 && (
-            <div className="space-y-1 border-t border-diff-easy/20 pt-2 text-xs">
+            <div className="space-y-1 border-t border-success/20 pt-2 text-xs">
               <div className="font-medium">Removed local records:</div>
               {Object.entries(lastRemoved).map(([table, count]) => (
                 <div key={table} className="flex justify-between font-mono text-muted">
@@ -362,7 +362,7 @@ export function DeleteLocalData() {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium hover:bg-background cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium hover:bg-surface-2 cursor-pointer"
             >
               Reload page
             </button>
@@ -378,7 +378,7 @@ export function DeleteLocalData() {
             checked={keepSettings}
             onChange={(e) => setKeepSettings(e.target.checked)}
             disabled={busy}
-            className="mt-0.5 size-4 rounded border-line text-accent focus:ring-accent"
+            className="mt-0.5 size-4 rounded border-line text-primary focus:ring-primary"
           />
           <div>
             <div className="text-sm">Keep settings (extension pairing token, UI preferences)</div>
@@ -391,7 +391,7 @@ export function DeleteLocalData() {
             checked={includeImported}
             onChange={(e) => setIncludeImported(e.target.checked)}
             disabled={busy}
-            className="mt-0.5 size-4 rounded border-line text-accent focus:ring-accent"
+            className="mt-0.5 size-4 rounded border-line text-primary focus:ring-primary"
           />
           <div>
             <div className="text-sm">Also delete imported problem packs</div>
@@ -407,14 +407,14 @@ export function DeleteLocalData() {
             checked={understood}
             onChange={(e) => setUnderstood(e.target.checked)}
             disabled={busy}
-            className="mt-0.5 size-4 rounded border-line text-accent focus:ring-accent"
+            className="mt-0.5 size-4 rounded border-line text-primary focus:ring-primary"
           />
-          <span className="text-sm font-medium text-diff-hard">I understand this cannot be undone</span>
+          <span className="text-sm font-medium text-danger">I understand this cannot be undone</span>
         </label>
 
         <div className="space-y-1.5">
           <label htmlFor="confirm-local-erase-input" className="block text-sm">
-            Type <span className="font-mono font-bold text-diff-hard">DELETE</span> to confirm:
+            Type <span className="font-mono font-bold text-danger">DELETE</span> to confirm:
           </label>
           <input
             id="confirm-local-erase-input"
@@ -424,12 +424,12 @@ export function DeleteLocalData() {
             disabled={busy}
             placeholder="DELETE"
             autoComplete="off"
-            className="w-full max-w-xs rounded-md border border-line bg-background px-3 py-1.5 text-sm font-mono placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full max-w-xs rounded-md border border-line bg-background px-3 py-1.5 text-sm font-mono placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
 
         {error && (
-          <div role="alert" className="rounded-md border border-diff-hard/30 bg-diff-hard/10 p-3 text-sm text-diff-hard">
+          <div role="alert" className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
             {error}
           </div>
         )}

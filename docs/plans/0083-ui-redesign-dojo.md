@@ -136,19 +136,19 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 
 ### Phase 5: Review, profile, settings, sign in (one agent)
 
-- [ ] **26. Review, Quick revise, Roadmap** restyled to their mockups (flashcard with the four rating buttons showing the
+- [x] **26. Review, Quick revise, Roadmap** restyled to their mockups (flashcard with the four rating buttons showing the
   next interval, weak spots, last-days plan, key numbers, 16-week strip and phases).
-- [ ] **27. Profile.** Stat tiles, 12-week activity grid with the `primary` scale, subject balance bar, tabs Stats /
+- [x] **27. Profile.** Stat tiles, 12-week activity grid with the `primary` scale, subject balance bar, tabs Stats /
   Badges / Portfolio / Settings.
-- [ ] **28. Settings.** Search, section list, rows with label + help + control (segmented light/dark, theme swatches,
+- [x] **28. Settings.** Search, section list, rows with label + help + control (segmented light/dark, theme swatches,
   reading font select, switches). Note which settings sync and which stay on this device.
-- [ ] **29. Custom theme editor.** `custom-appearance.tsx`: start from any theme; edit background, surface, surface-2,
+- [x] **29. Custom theme editor.** `custom-appearance.tsx`: start from any theme; edit background, surface, surface-2,
   line, foreground, muted, primary, reward, success, warning, danger for light and dark separately; UI, heading and code
   font; corners Sharp/Default/Round; density Compact/Comfortable; live preview card; contrast ratio under each text colour
   with a warning below 4.5:1 (never blocks); export/import JSON. Extend the stored custom-theme JSON with the new keys,
   reading old values as before; it stays inside the `appearance_prefs` record so it syncs (plan 0075).
   - Done when: a theme exported on one device and imported on another looks identical, and old custom themes still load.
-- [ ] **30. Sign in.** Centered card on desktop, full-width on phone, "Continue with GitHub" and "Try it without an
+- [x] **30. Sign in.** Centered card on desktop, full-width on phone, "Continue with GitHub" and "Try it without an
   account". Matches "Sign in".
 
 ### Phase 6: finish (lead)
@@ -232,4 +232,60 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
   rows, `bg-primary-soft text-primary` for selected nav, `text-warning` for the Review count, `ProgressBar tone="reward"`
   for XP. Old skeleton components still use `bg-line/60` (`skeletons.test.ts` checks it); move them to `Skeleton` in
   phase 2 and update that test.
+
+### Phase 5 (steps 26-30), 2026-11-19
+
+- **Owned files only**: `app/review/*`, `app/revise/page.tsx`, `app/roadmap/page.tsx`, `app/profile/**` (incl. settings,
+  portfolio, certificates, account), `app/custom-appearance.tsx`, `app/theme-picker.tsx`, `lib/custom.ts`, `app/login`,
+  `app/welcome`. Old classes moved to tokens throughout (`*-accent` -> `*-primary`, `diff-*` -> `success|warning|danger`,
+  `hover:bg-background` -> `hover:bg-surface-2`, `rounded-xl` cards -> `rounded-md ... p-5`, buttons -> `buttonClass`).
+- **Review (26)**: the next item is a flashcard (kind and "1 of N due today" bar, centered title and instruction, actions,
+  Skip). Concepts get four rating buttons (Shaky, Okay, Solid, Can teach it) each showing what happens next, from the
+  existing rules: below `COVERED_CONFIDENCE` "Back in 7 days" (`CONCEPT_REVIEW_DAYS`), else "Leaves the queue". Rating 1
+  (Heard of it) is no longer offered on the big card (still on the small row buttons). Empty queue uses `EmptyState`.
+- **Quick revise (26)**: date input/buttons on `INPUT_CLASS`/`buttonClass`, current last-days phase ringed with a "Now"
+  badge, section headings `text-lg`. Layout otherwise unchanged.
+- **Roadmap (26)**: 16-week strip (done `primary`, current `primary-soft` + ring, future `surface-2`, each links to its
+  week card), progress bar with count, weeks grouped as four phases of four weeks ("Phase N · weeks a to b", count done).
+  The plan has no phase names in data, so phases are numbered only. Roadmap no longer shows the Profile tabs (it is a
+  main nav item now).
+- **Profile (27)**: tabs are Stats / Badges / Portfolio / Settings (`profile-ui.tsx`; Badges hides with game features).
+  New route `app/profile/badges/page.tsx` (earned and still-to-earn lists, progress bars). Stats: tiles (Level with a
+  `reward` XP bar, Plan linking to Roadmap, Streak, Active days, Badges linking to the tab), activity grid of the last 12
+  weeks (`s.heatmap.slice(-12)`, empty days `surface-2`, `primary` scale), balance with one stacked subject bar above the
+  per-subject rows. The portfolio/help link lines at the top were dropped (Portfolio is a tab; Help is a line at the end).
+- **Settings (28)**: search and section list kept; selected section is `primary-soft`. `SettingsSection` takes
+  `scope="data" | "sync" | "device"` and shows "Saved with your data", "Syncs when signed in" or "This device only" (top
+  right of the card from `sm`, above it on phones). Theme picker: light/dark, focus reading and animations are segmented
+  controls; "Style" is labelled "Theme" with a 4-column swatch grid on wide screens.
+- **Custom theme editor (29)**: `lib/custom.ts` palettes keep the five required keys and add optional `surface-2`,
+  `primary`, `reward`, `success`, `warning`, `danger` (`EDITABLE_TOKENS`); the theme adds `base` (style id it started
+  from), `fonts` (`ui`/`heading`/`code`: a built-in id from `FONT_CHOICES` or a safe installed font name), `corners`
+  (`sharp`/`round`; default = theme's) and `density` (`compact`). Invalid values are dropped one by one; old five-colour
+  themes parse unchanged. `exportCustomTheme` / `importCustomTheme` (JSON with `kind: "zen-dojo-theme", version: 2`),
+  `textContrast` (ratio for each text colour on page or cards). The value stays in `habit-custom-theme`, which already
+  travels in `appearance_prefs` (shell listens for `CUSTOM_EVENT`), so it syncs. The editor (`CustomColours`) has an
+  on/off switch, "Start from" any theme (fills both palettes), a Light/Dark segmented mode to edit, 11 colour rows with
+  the contrast ratio under each text colour and a warning below 4.5:1 (never blocks), three font selects (with "A font
+  installed on this computer"), Corners and Density segmented controls, a live preview card painted with the edited
+  palette (so the other mode can be previewed), Export JSON (download), Import a file or pasted JSON, and "Start again".
+  Every edit saves the full palettes (and drops the old single `accent`), so an import looks the same on any device.
+- **Init script (`lib/theme.ts`, Phase 1 file, small change)**: a palette's own `primary` wins over `accent` (hover, soft
+  and on-primary are derived as before); `line-strong` and `reward-soft` are derived with `color-mix` when a new-style
+  palette sets `line`/`reward` without them; fonts set `--font-ui|heading|code` + `data-ui|heading|code-font="on"`;
+  corners set `--r-sm/md/lg`; Compact sets `data-density="compact"`. `CUSTOM_THEME_VARS` now also clears those vars.
+  New exports `CUSTOM_FONT_CSS`, `CUSTOM_CORNERS`.
+- **globals.css (no token changes)**: one small block after the reading-font rules applies the editor's UI, heading and
+  code fonts and Compact density (`font-size: 93.75%` on the root, so rem spacing and text shrink together).
+- **Sign in (30)**: `/login` and `/welcome` are a centered card from `sm` (full width on phones) with "Continue with
+  GitHub" (primary, full width) and "Try it without an account" (secondary, links to `/`). Error, signed-in and
+  waiting states keep their text and use the same card.
+- **No `ui.tsx` changes.**
+- **Tests**: `lib/custom.test.ts` adds the export/import round trip (every value, and the saved value re-parses the
+  same), old-theme loading and dropping bad new values, contrast reporting, and an init-script test for per-mode primary,
+  fonts, corners and density. Ran `lib/custom`, `lib/theme`, `no-emoji`, `skeletons`, `design-tokens`, `settings-search`
+  (74 passed), `pnpm -r typecheck`, eslint on changed files. Checked in the browser on `next dev` with a scratch
+  database: editor on, Sharp sets `--r-md: 0px`, preview and contrast rows render; /profile, /profile/badges, /review,
+  /revise, /roadmap, /login, /welcome return 200. Not compared with the mockup frames (no canvas access) and not
+  screenshotted at 390 px or in every theme.
 ## Review

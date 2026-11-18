@@ -23,7 +23,7 @@ import { Confidence } from "../study/study-ui";
 import { ReviewTabs, ReviewTabsWithCount } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
-import { PageMain } from "../ui";
+import { Badge, INPUT_CLASS, PageMain, buttonClass } from "../ui";
 import { PrintButton } from "./print-button";
 import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
@@ -106,7 +106,7 @@ function Recap({ items }: { items: string[] }) {
     <ul className="mt-1 space-y-0.5 text-sm">
       {items.map((i) => (
         <li key={i} className="flex gap-2">
-          <span aria-hidden className="text-accent">▸</span>
+          <span aria-hidden className="text-primary">▸</span>
           <span>{i}</span>
         </li>
       ))}
@@ -123,8 +123,8 @@ async function PlanTab() {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
       <div className="min-w-0 space-y-6">
-        <section className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="font-semibold">Interview date</h3>
+        <section className="rounded-md border border-line bg-surface p-5">
+          <h3 className="text-lg font-semibold">Interview date</h3>
           {countdown ? (
             <p className="mt-1 text-lg">
               {countdown.daysLeft > 1 && (
@@ -147,9 +147,9 @@ async function PlanTab() {
               defaultValue={countdown?.date ?? ""}
               required
               aria-label="Interview date"
-              className="rounded-lg border border-line bg-background px-3 py-1.5"
+              className={`${INPUT_CLASS} w-auto`}
             />
-            <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Save</SubmitButton>
+            <SubmitButton className={buttonClass("primary", "sm")}>Save</SubmitButton>
           </form>
           {countdown && (
             <form action={setInterviewDateAction} className="mt-2 print:hidden">
@@ -160,15 +160,15 @@ async function PlanTab() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="font-semibold">The last days</h3>
+          <h3 className="text-lg font-semibold">The last days</h3>
           <div className="grid gap-3 lg:grid-cols-2">
             {LAST_DAYS_PLAN.map((p) => {
               const now = countdown?.phase?.id === p.id;
               return (
-                <div key={p.id} className={`rounded-xl border bg-surface p-4 ${now ? "border-accent" : "border-line"}`}>
+                <div key={p.id} className={`rounded-md border bg-surface p-5 ${now ? "border-primary ring-1 ring-primary" : "border-line"}`}>
                   <p className="font-medium">
                     {p.title}
-                    {now && <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs text-on-accent">now</span>}
+                    {now && <span className="ml-2 align-middle"><Badge tone="primary">Now</Badge></span>}
                   </p>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                     {p.items.map((i) => (
@@ -182,13 +182,13 @@ async function PlanTab() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="font-semibold">Concepts below Solid ({weak.concepts.length})</h3>
+          <h3 className="text-lg font-semibold">Concepts below Solid ({weak.concepts.length})</h3>
           {weak.concepts.length === 0 ? (
             <p className="text-sm text-muted">Every concept is rated Solid or better.</p>
           ) : (
             <ul className="grid gap-2 lg:grid-cols-2">
               {weak.concepts.slice(0, 24).map((c) => (
-                <li key={c.id} className="hit hit-card flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+                <li key={c.id} className="hit hit-card flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm">
                   <Confidence value={c.confidence} />
                   <Link href={`/study/${c.area}/${c.id}`} className="hit-link min-w-0 flex-1 truncate">
                     {c.title}
@@ -207,8 +207,8 @@ async function PlanTab() {
       </div>
 
       <aside className="space-y-4">
-        <section className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 font-semibold">Stuck list ({weak.stuck.length})</h3>
+        <section className="rounded-md border border-line bg-surface p-5">
+          <h3 className="mb-2 text-lg font-semibold">Stuck list ({weak.stuck.length})</h3>
           {weak.stuck.length === 0 ? (
             <p className="text-sm text-muted">Nothing on it.</p>
           ) : (
@@ -225,8 +225,8 @@ async function PlanTab() {
             </ul>
           )}
         </section>
-        <section className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 font-semibold">DSA patterns to firm up ({weak.patterns.length})</h3>
+        <section className="rounded-md border border-line bg-surface p-5">
+          <h3 className="mb-2 text-lg font-semibold">DSA patterns to firm up ({weak.patterns.length})</h3>
           <ul className="space-y-1 text-sm">
             {weak.patterns.slice(0, 12).map((p) => (
               <li key={p.id} className="flex items-baseline justify-between gap-2">
@@ -241,8 +241,8 @@ async function PlanTab() {
             ))}
           </ul>
         </section>
-        <section className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 font-semibold">Designs to practise again ({weak.exercises.length})</h3>
+        <section className="rounded-md border border-line bg-surface p-5">
+          <h3 className="mb-2 text-lg font-semibold">Designs to practise again ({weak.exercises.length})</h3>
           <ul className="space-y-1 text-sm">
             {weak.exercises.slice(0, 12).map((e) => (
               <li key={e.id} className="flex items-baseline justify-between gap-2">
@@ -270,12 +270,12 @@ async function DsaTab({ weak }: { weak: boolean }) {
       {patterns.length === 0 && <p className="text-sm text-muted">No weak patterns. Nice.</p>}
       {groups.map((g) => (
         <section key={g} className="space-y-2 break-inside-avoid">
-          <h3 className="font-semibold">{g}</h3>
+          <h3 className="text-lg font-semibold">{g}</h3>
           <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
             {patterns
               .filter((p) => p.group === g)
               .map((p) => (
-                <div key={p.id} className="break-inside-avoid rounded-xl border border-line bg-surface p-3">
+                <div key={p.id} className="break-inside-avoid rounded-md border border-line bg-surface p-3">
                   <div className="flex items-baseline justify-between gap-2">
                     <Link href={`/dsa/pattern/${p.id}`} className="font-medium hover:underline">
                       {p.name}
@@ -318,7 +318,7 @@ async function AreaTab({ area, weak }: { area: StudyAreaId; weak: boolean }) {
       <WeakToggle tab={area} weak={weak} />
       {sections.map((s) => (
         <section key={s} className="space-y-2">
-          <h3 className="font-semibold">{s}</h3>
+          <h3 className="text-lg font-semibold">{s}</h3>
           <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
             {concepts
               .filter((c) => c.section === s)
@@ -330,7 +330,7 @@ async function AreaTab({ area, weak }: { area: StudyAreaId; weak: boolean }) {
       ))}
       {exercises.length > 0 && (
         <section className="space-y-2">
-          <h3 className="font-semibold">{exTitle}</h3>
+          <h3 className="text-lg font-semibold">{exTitle}</h3>
           <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
             {exercises.map((e) => (
               <ExerciseCard key={e.id} e={e} area={area} />
@@ -345,7 +345,7 @@ async function AreaTab({ area, weak }: { area: StudyAreaId; weak: boolean }) {
 
 function ConceptCard({ c, area }: { c: ReviseConcept; area: StudyAreaId }) {
   return (
-    <div className="break-inside-avoid rounded-xl border border-line bg-surface p-3">
+    <div className="break-inside-avoid rounded-md border border-line bg-surface p-3">
       <div className="flex items-baseline justify-between gap-2">
         <Link href={`/study/${area}/${c.id}`} className="font-medium hover:underline">
           {c.title}
@@ -362,7 +362,7 @@ function ConceptCard({ c, area }: { c: ReviseConcept; area: StudyAreaId }) {
 function ExerciseCard({ e, area }: { e: ReviseExercise; area: StudyAreaId }) {
   const lld = LLD_GUIDES[e.id];
   return (
-    <div className="break-inside-avoid rounded-xl border border-line bg-surface p-3">
+    <div className="break-inside-avoid rounded-md border border-line bg-surface p-3">
       <div className="flex items-baseline justify-between gap-2">
         <Link href={`/study/${area}/${e.id}`} className="font-medium hover:underline">
           {e.title}
@@ -383,8 +383,8 @@ function NumbersTab() {
   return (
     <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
       {KEY_NUMBERS.map((t) => (
-        <section key={t.title} className="break-inside-avoid rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 font-semibold">{t.title}</h3>
+        <section key={t.title} className="break-inside-avoid rounded-md border border-line bg-surface p-5">
+          <h3 className="mb-2 text-lg font-semibold">{t.title}</h3>
           <table className="w-full text-sm">
             <tbody>
               {t.rows.map(([k, v]) => (
@@ -397,8 +397,8 @@ function NumbersTab() {
           </table>
         </section>
       ))}
-      <section className="break-inside-avoid rounded-xl border border-line bg-surface p-4">
-        <h3 className="mb-2 font-semibold">Big-O you should never have to think about</h3>
+      <section className="break-inside-avoid rounded-md border border-line bg-surface p-5">
+        <h3 className="mb-2 text-lg font-semibold">Big-O you should never have to think about</h3>
         <table className="w-full text-sm">
           <tbody>
             {COMPLEXITY_TABLE.map(([k, v]) => (
@@ -412,8 +412,8 @@ function NumbersTab() {
       </section>
       <Framework title="System design: 45 minutes" steps={sd} />
       <Framework title="LLD: 45 minutes" steps={lld} />
-      <section className="break-inside-avoid rounded-xl border border-line bg-surface p-4">
-        <h3 className="mb-2 font-semibold">Coding round loop</h3>
+      <section className="break-inside-avoid rounded-md border border-line bg-surface p-5">
+        <h3 className="mb-2 text-lg font-semibold">Coding round loop</h3>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
           <li>Restate the problem, ask about input size, duplicates, negatives, empty input.</li>
           <li>Work one example by hand.</li>
@@ -430,8 +430,8 @@ function NumbersTab() {
 
 function Framework({ title, steps }: { title: string; steps: { id: string; title: string; minutes: number; hint: string }[] }) {
   return (
-    <section className="break-inside-avoid rounded-xl border border-line bg-surface p-4">
-      <h3 className="mb-2 font-semibold">{title}</h3>
+    <section className="break-inside-avoid rounded-md border border-line bg-surface p-5">
+      <h3 className="mb-2 text-lg font-semibold">{title}</h3>
       <ol className="space-y-1.5 text-sm">
         {steps.map((s, i) => (
           <li key={s.id}>
@@ -488,15 +488,15 @@ async function QuizTab({ sp }: { sp: SP }) {
       </div>
 
       {!card ? (
-        <p className="rounded-xl border border-line bg-surface p-6 text-center text-muted">No cards for this filter.</p>
+        <p className="rounded-md border border-line bg-surface p-6 text-center text-muted">No cards for this filter.</p>
       ) : (
-        <article className="rounded-xl border border-line bg-surface p-6">
+        <article className="rounded-md border border-line bg-surface p-6">
           <p className="text-xs text-muted">
             {card.itemTitle} · {STUDY_AREAS.find((a) => a.id === card.area)?.title}
           </p>
           <h3 className="mt-2 text-xl font-semibold leading-snug">{card.question}</h3>
           <p className="mt-2 text-sm text-muted">Answer out loud (aim for under 2 minutes), then check yourself.</p>
-          <details className="group mt-4 rounded-lg border border-line bg-background/40">
+          <details className="group mt-4 rounded-md border border-line bg-background/40">
             <summary className="cursor-pointer list-none px-4 py-2 font-medium">
               <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
               Reveal
@@ -509,13 +509,13 @@ async function QuizTab({ sp }: { sp: SP }) {
                   <Recap items={card.points} />
                 </div>
               )}
-              <Link href={`/study/${card.area}/${card.itemId}`} className="inline-block text-sm font-medium text-accent hover:underline">
+              <Link href={`/study/${card.area}/${card.itemId}`} className="inline-block text-sm font-medium text-primary hover:underline">
                 Open the full lesson →
               </Link>
             </div>
           </details>
           <div className="mt-5 flex justify-end">
-            <Link href={qs(`&s=${step + 1}&prev=${card.n}`)} className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">
+            <Link href={qs(`&s=${step + 1}&prev=${card.n}`)} className={buttonClass("primary")}>
               Next card →
             </Link>
           </div>

@@ -43,7 +43,7 @@ async function Tools() {
       {cards && <ToolManager cards={cards} />}
       <ul className="grid gap-4 xl:grid-cols-2">
         {listed.map((t) => (
-          <li key={t.id} className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <li key={t.id} className="space-y-3 rounded-md border border-line bg-surface p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold">{t.label}</h3>
               <span
@@ -68,7 +68,7 @@ async function Tools() {
         ))}
       </ul>
       <form action="/profile/settings/tools" method="get">
-        <button type="submit" className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background">
+        <button type="submit" className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
           Check again
         </button>
       </form>

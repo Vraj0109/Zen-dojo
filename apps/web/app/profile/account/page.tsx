@@ -15,12 +15,12 @@ async function AccountBody() {
   if (!session) {
     return (
       <div className="max-w-2xl space-y-6">
-        <div className="space-y-4 rounded-xl border border-line bg-surface p-6">
+        <div className="space-y-4 rounded-md border border-line bg-surface p-6">
           <p className="text-sm">You are not signed in. The app works fully this way. Sign in to sync your progress across devices.</p>
           <SyncPanel signedIn={false} />
           <a
             href={`/auth/start?next=${encodeURIComponent("/profile/account")}`}
-            className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+            className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary"
           >
             Continue with GitHub
           </a>
@@ -34,7 +34,7 @@ async function AccountBody() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-line bg-surface p-5">
         <div className="flex min-w-0 items-center gap-3">
           {session.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- remote GitHub avatar, no image loader configured
@@ -61,7 +61,7 @@ async function AccountBody() {
 
       {session.admin ? (
         <p className="text-sm">
-          <Link href="/admin" className="text-accent hover:underline">Open the admin portal</Link>
+          <Link href="/admin" className="text-primary hover:underline">Open the admin portal</Link>
         </p>
       ) : null}
 
@@ -75,7 +75,7 @@ export default function AccountPage() {
   return (
     <main className="w-full px-4 py-6 lg:px-8">
       <h1 className="mb-4 text-2xl font-semibold tracking-tight">Account</h1>
-      <Suspense fallback={<div className="h-40 max-w-2xl rounded-xl border border-line bg-surface" />}>
+      <Suspense fallback={<div className="h-40 max-w-2xl rounded-md border border-line bg-surface" />}>
         <AccountBody />
       </Suspense>
     </main>
