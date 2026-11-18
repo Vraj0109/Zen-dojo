@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import { Skeleton as Block } from "../ui";
 
 /**
  * Utility to join class names safely.
@@ -12,15 +13,19 @@ export interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Base skeleton primitive with pulse animation and Zen Dojo theme line color.
+ * Base skeleton block: the shared `Skeleton` from ui.tsx (surface-2, slow pulse). Wrap a whole placeholder in
+ * `LateSkeleton` (or give its root `anim-late`) so it only appears when the wait passes one second.
  */
-export function Skeleton({ className, ...props }: SkeletonProps) {
+export function Skeleton({ className }: SkeletonProps) {
+  return <Block className={cn("h-4", className)} />;
+}
+
+/** Root for a loading placeholder: `role="status"`, invisible for the first second, then fades in. */
+export function LateSkeleton({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   return (
-    <div
-      aria-hidden="true"
-      className={cn("animate-pulse rounded bg-line/60", className)}
-      {...props}
-    />
+    <div role="status" aria-label={label} className={cn("anim-late", className)}>
+      {children}
+    </div>
   );
 }
 
@@ -88,7 +93,7 @@ export function SkeletonCard({
     <div
       aria-hidden="true"
       className={cn(
-        "rounded-xl border border-line bg-surface p-4 space-y-3",
+        "rounded-md border border-line bg-surface p-4 space-y-3",
         className
       )}
       {...props}
@@ -153,13 +158,13 @@ export function SkeletonTable({
     <div
       aria-hidden="true"
       className={cn(
-        "overflow-hidden rounded-xl border border-line bg-surface",
+        "overflow-hidden rounded-md border border-line bg-surface",
         className
       )}
       {...props}
     >
       {/* Header row */}
-      <div className="flex items-center gap-4 border-b border-line bg-background/60 p-3">
+      <div className="flex items-center gap-4 border-b border-line bg-surface-2 p-3">
         {Array.from({ length: columns }).map((_, c) => (
           <Skeleton
             key={c}

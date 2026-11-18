@@ -6,6 +6,7 @@ import { DsaRoadmapSkeleton, RoadmapSkeleton } from "./components/roadmap-skelet
 import { StudyArticleSkeleton, StudyHubSkeleton, StudyAreaSkeleton } from "./components/study-skeleton";
 import { ReviewQueueSkeleton } from "./components/review-skeleton";
 import { ProfileStatsSkeleton, ProfileSettingsSkeleton } from "./components/profile-skeleton";
+import { TodayCardSkeleton, TodayTopSkeleton, UpNextSkeleton } from "./components/today-skeleton";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -21,43 +22,54 @@ async function renderHtml(element: React.ReactNode): Promise<string> {
   return html;
 }
 
-describe("Skeletons (Roadmap, Study, Review, Profile)", () => {
+describe("Skeletons (Roadmap, Study, Review, Profile, Today)", () => {
+  it("Today's section skeletons use the shared block and wait a second before showing", async () => {
+    for (const el of [React.createElement(TodayTopSkeleton), React.createElement(UpNextSkeleton), React.createElement(TodayCardSkeleton, { label: "Loading reviews" })]) {
+      const html = await renderHtml(el);
+      expect(html).toContain('role="status"');
+      expect(html).toContain("anim-late");
+      expect(html).toContain("bg-surface-2");
+      expect(html).not.toContain("bg-line/60");
+    }
+  });
+
   it("renders DsaRoadmapSkeleton with aria status and pulse elements", async () => {
     const html = await renderHtml(React.createElement(DsaRoadmapSkeleton));
     expect(html).toContain('role="status"');
-    expect(html).toContain("animate-pulse");
-    expect(html).toContain("bg-line/60");
+    expect(html).toContain("anim-pulse");
+    expect(html).toContain("bg-surface-2");
+    expect(html).toContain("anim-late");
   });
 
   it("renders RoadmapSkeleton", async () => {
     const html = await renderHtml(React.createElement(RoadmapSkeleton));
     expect(html).toContain('role="status"');
-    expect(html).toContain("animate-pulse");
+    expect(html).toContain("anim-pulse");
   });
 
   it("renders StudyArticleSkeleton with table of contents and code placeholder", async () => {
     const html = await renderHtml(React.createElement(StudyArticleSkeleton));
     expect(html).toContain('role="status"');
     expect(html).toContain("font-mono");
-    expect(html).toContain("animate-pulse");
+    expect(html).toContain("anim-pulse");
   });
 
   it("renders StudyHubSkeleton with course grid", async () => {
     const html = await renderHtml(React.createElement(StudyHubSkeleton));
     expect(html).toContain('role="status"');
-    expect(html).toContain("animate-pulse");
+    expect(html).toContain("anim-pulse");
   });
 
   it("renders StudyAreaSkeleton with KPI grid", async () => {
     const html = await renderHtml(React.createElement(StudyAreaSkeleton));
     expect(html).toContain('role="status"');
-    expect(html).toContain("animate-pulse");
+    expect(html).toContain("anim-pulse");
   });
 
   it("renders ReviewQueueSkeleton with tabs and queue list", async () => {
     const html = await renderHtml(React.createElement(ReviewQueueSkeleton));
     expect(html).toContain('role="status"');
-    expect(html).toContain("animate-pulse");
+    expect(html).toContain("anim-pulse");
   });
 
   it("renders ProfileStatsSkeleton and ProfileSettingsSkeleton", async () => {

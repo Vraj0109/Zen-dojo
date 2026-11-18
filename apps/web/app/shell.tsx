@@ -13,6 +13,8 @@ import { HistoryButtons } from "./history-buttons";
 import { SyncStatusPill } from "./components/sync-status";
 import { BottomNav } from "./components/bottom-nav";
 import { StudyModeSuggestion } from "./components/phone-study";
+import { Logo } from "./logo";
+import { tabTitle } from "./nav";
 
 /** Pages where the work (a problem and its editor) should fill the window: the sidebar becomes a slim bar. */
 export function isFocusPage(pathname: string | null): boolean {
@@ -26,7 +28,17 @@ export function isFocusPage(pathname: string | null): boolean {
  * sidebar slides in from the left on demand (button, or Ctrl+B), so the problem and the editor get the room.
  */
 /** The pathname is unknown while prerendering a dynamic route, so the full layout is the fallback. */
-export function Shell(props: { aside: ReactNode; children: ReactNode; account?: ReactNode }) {
+type ShellProps = {
+  aside: ReactNode;
+  children: ReactNode;
+  account?: ReactNode;
+  /** Streak chip for the phone header (server-rendered, streams in). */
+  streak?: ReactNode;
+  /** Slim notice bar at the top of the content area (the guest notice). */
+  notice?: ReactNode;
+};
+
+export function Shell(props: ShellProps) {
   return (
     <Suspense fallback={<FullShell {...props} />}>
       <ShellInner {...props} />
@@ -36,11 +48,30 @@ export function Shell(props: { aside: ReactNode; children: ReactNode; account?: 
 
 const BAR_PAD = "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]";
 
-function FullShell({ aside, children, pathname = null }: { aside: ReactNode; children: ReactNode; pathname?: string | null }) {
+/** Phones: the page's tab name and the streak chip, above the content. The tab bar at the bottom does the navigating. */
+function PhoneHeader({ pathname, streak }: { pathname: string | null; streak?: ReactNode }) {
+  return (
+    <header className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur md:hidden print:hidden">
+      <Link href="/" aria-label="Zen Dojo, Today" className="shrink-0">
+        <Logo className="size-7" />
+      </Link>
+      <p className="min-w-0 flex-1 truncate text-lg font-semibold">{tabTitle(pathname) ?? "Zen Dojo"}</p>
+      {streak}
+    </header>
+  );
+}
+
+function FullShell({ aside, children, pathname = null, streak, notice }: ShellProps & { pathname?: string | null }) {
   return (
     <div className={`min-h-full lg:flex ${BAR_PAD}`}>
       {aside}
       <div className="flex min-w-0 flex-1 flex-col">
+        <PhoneHeader pathname={pathname} streak={streak} />
+        {notice}
+        {/* Back and forward stay one click away on wide screens (the desktop app has no browser buttons). */}
+        <div className="flex h-10 items-center px-6 max-md:hidden lg:px-10 print:hidden [&_button]:size-7 [&_button]:rounded-md [&_button]:border-0">
+          <HistoryButtons />
+        </div>
         <StudyModeSuggestion />
         {children}
       </div>
@@ -49,7 +80,7 @@ function FullShell({ aside, children, pathname = null }: { aside: ReactNode; chi
   );
 }
 
-function ShellInner({ aside, children, account }: { aside: ReactNode; children: ReactNode; account?: ReactNode }) {
+function ShellInner({ aside, children, account, streak, notice }: ShellProps) {
   const pathname = usePathname();
   const compact = isFocusPage(pathname);
   const [openFor, setOpenFor] = useState<string | null>(null);
@@ -182,7 +213,12 @@ function ShellInner({ aside, children, account }: { aside: ReactNode; children: 
     return () => window.removeEventListener("keydown", onKey);
   }, [pathname]);
 
-  if (!compact) return <FullShell aside={aside} pathname={pathname}>{children}</FullShell>;
+  if (!compact)
+    return (
+      <FullShell aside={aside} pathname={pathname} streak={streak} notice={notice}>
+        {children}
+      </FullShell>
+    );
 
   return (
     <div className={`shell-compact flex min-h-full flex-col [--pane-h:calc(100dvh-7.75rem)] max-md:[--pane-h:calc(100dvh-11.25rem)] ${BAR_PAD}`}>

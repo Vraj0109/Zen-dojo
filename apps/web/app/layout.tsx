@@ -10,9 +10,9 @@ import { BuddyCompanion } from "./buddy/buddy-companion";
 import { GlobalTimer } from "./global-timer";
 import { CustomFontLoader } from "./custom-font-loader";
 import { FocusReading } from "./focus-reading";
-import { HistoryButtons } from "./history-buttons";
 import { Nav, NavFooter, NavFooterLinks, NavLinks } from "./nav";
 import { SidebarAccount } from "./components/sidebar-account";
+import { HeaderStreak, ReviewCount, SidebarProgress } from "./components/sidebar-progress";
 import { Logo } from "./logo";
 import { Shell } from "./shell";
 import { RegisterSw } from "./register-sw";
@@ -59,13 +59,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full">
-        <Shell aside={asideNode} account={<Suspense fallback={null}><SidebarAccount compact /></Suspense>}>{children}</Shell>
+        <Shell
+          aside={asideNode}
+          account={<Suspense fallback={null}><SidebarAccount compact /></Suspense>}
+          streak={<Suspense fallback={null}><HeaderStreak /></Suspense>}
+          notice={<Suspense fallback={null}><GuestNotice /></Suspense>}
+        >
+          {children}
+        </Shell>
         <RegisterSw />
         <Suspense fallback={null}>
           <HostedSyncOnRequest />
-        </Suspense>
-        <Suspense fallback={null}>
-          <GuestNotice />
         </Suspense>
         <HapticsListener />
         <SyncedPrefs />
@@ -90,38 +94,38 @@ async function BuddySessionLoader() {
 }
 
 const asideNode = (
-        <>
-        {/* Sidebar on wide screens, a scrolling top bar on phones */}
-        <aside className="sticky top-0 z-10 print:hidden border-b border-line bg-surface/95 px-4 py-3 backdrop-blur lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
-          <div className="mb-2 flex items-center justify-between gap-2 px-1 lg:mb-6 lg:px-3">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Logo className="size-9 shrink-0" />
-              <span className="block leading-tight">
-                <span className="block text-base font-semibold tracking-tight">Zen Dojo</span>
-                <span className="block whitespace-nowrap text-[11px] text-muted">{process.env.HABIT_HOSTED === "1" ? "Interview prep" : "Offline learning"}</span>
-              </span>
-            </Link>
-            {/* Phones: no back/forward arrows or Sign in up here; the bottom tab bar has Today, Practice, Learn, Review and You. */}
-            <div className="flex items-center gap-1 max-md:hidden">
-              <HistoryButtons />
-              {/* Phones: the account button (the sidebar footer is wide-screen only). Hidden inside the drawer. */}
-              <div className="lg:hidden [.drawer-panel_&]:hidden">
-                <Suspense fallback={null}>
-                  <SidebarAccount compact />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-          <Suspense fallback={<NavLinks pathname={null} />}>
-            <Nav />
+  <>
+    {/* Sidebar from lg (240px, surface-2); a top bar between md and lg; on phones only a running timer shows (the phone
+        header and tab bar replace the rest). */}
+    <aside className="sticky top-0 z-10 border-b border-line bg-surface/95 px-4 py-2.5 backdrop-blur max-md:contents print:hidden lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:bg-surface-2 lg:px-3 lg:py-5 lg:backdrop-blur-none">
+      <div className="mb-2 flex items-center gap-3 max-md:hidden lg:mb-5 lg:flex-col lg:items-stretch lg:gap-3 lg:px-1">
+        <Link href="/" className="flex items-center gap-2.5 rounded-md">
+          <Logo className="size-8 shrink-0" />
+          <span className="block leading-tight">
+            <span className="block text-base font-semibold tracking-tight">Zen Dojo</span>
+            <span className="block whitespace-nowrap text-xs text-muted">{process.env.HABIT_HOSTED === "1" ? "Interview prep" : "Offline learning"}</span>
+          </span>
+        </Link>
+        <Suspense fallback={null}>
+          <SidebarProgress />
+        </Suspense>
+        {/* Tablet top bar: the account button (the sidebar footer is lg only). Hidden inside the problem-page drawer. */}
+        <div className="ml-auto lg:hidden [.drawer-panel_&]:hidden">
+          <Suspense fallback={null}>
+            <SidebarAccount compact />
           </Suspense>
-          {/* The one focus timer, above Profile on wide screens and under the top bar on phones */}
-          <div className="mt-2 space-y-3 lg:mt-auto">
-            <GlobalTimer />
-            <Suspense fallback={<NavFooterLinks pathname={null} />}>
-              <NavFooter account={<Suspense fallback={null}><SidebarAccount /></Suspense>} />
-            </Suspense>
-          </div>
-        </aside>
-        </>
+        </div>
+      </div>
+      <Suspense fallback={<NavLinks pathname={null} />}>
+        <Nav counts={{ "/review": <Suspense fallback={null}><ReviewCount /></Suspense> }} />
+      </Suspense>
+      {/* The one focus timer (only while it runs), then the account and sync row */}
+      <div className="mt-2 space-y-3 max-md:mx-4 max-md:mt-3 max-md:empty:hidden lg:mt-auto">
+        <GlobalTimer />
+        <Suspense fallback={<NavFooterLinks pathname={null} />}>
+          <NavFooter account={<Suspense fallback={null}><SidebarAccount /></Suspense>} />
+        </Suspense>
+      </div>
+    </aside>
+  </>
 );

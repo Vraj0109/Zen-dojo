@@ -4,9 +4,9 @@ import { Skeleton } from "@/app/components/skeleton";
 /** Profile stats, level progress, KPIs, and heatmap skeleton (matches profile/page.tsx) */
 export function ProfileStatsSkeleton() {
   return (
-    <div className="space-y-8" role="status" aria-label="Loading profile stats">
+    <div className="anim-late space-y-8" role="status" aria-label="Loading profile stats">
       {/* Level + Stats Hero Card */}
-      <section className="flex flex-col gap-6 rounded-xl border border-line bg-surface p-5 md:flex-row md:items-center">
+      <section className="flex flex-col gap-6 rounded-md border border-line bg-surface p-5 md:flex-row md:items-center">
         {/* Avatar / Level Indicator */}
         <div className="flex items-center gap-4 md:w-80 md:shrink-0">
           <Skeleton className="size-16 shrink-0 rounded-full" />
@@ -20,7 +20,7 @@ export function ProfileStatsSkeleton() {
         {/* 4-Stat Grid */}
         <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-line bg-surface p-3.5 space-y-1.5">
+            <div key={i} className="rounded-md border border-line bg-surface p-3.5 space-y-1.5">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-6 w-24" />
               <Skeleton className="h-2.5 w-20" />
@@ -30,7 +30,7 @@ export function ProfileStatsSkeleton() {
       </section>
 
       {/* Heatmap / Activity matrix placeholder */}
-      <section className="rounded-xl border border-line bg-surface p-5 space-y-4">
+      <section className="rounded-md border border-line bg-surface p-5 space-y-4">
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-36" />
           <Skeleton className="h-3.5 w-24" />
@@ -57,7 +57,7 @@ export function ProfileStatsSkeleton() {
       {/* Categories & Badges Grid */}
       <section className="grid gap-6 md:grid-cols-2">
         {/* Category Breakdown */}
-        <div className="rounded-xl border border-line bg-surface p-5 space-y-4">
+        <div className="rounded-md border border-line bg-surface p-5 space-y-4">
           <Skeleton className="h-5 w-40" />
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
@@ -73,7 +73,7 @@ export function ProfileStatsSkeleton() {
         </div>
 
         {/* Badges showcase */}
-        <div className="rounded-xl border border-line bg-surface p-5 space-y-4">
+        <div className="rounded-md border border-line bg-surface p-5 space-y-4">
           <div className="flex justify-between items-center">
             <Skeleton className="h-5 w-28" />
             <Skeleton className="h-4 w-16 rounded-full" />
@@ -95,7 +95,7 @@ export function ProfileStatsSkeleton() {
 /** Settings form rows, toggle switches, and card skeleton (matches profile/settings/page.tsx) */
 export function ProfileSettingsSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-4 space-y-4" role="status" aria-label="Loading settings">
+    <section className="anim-late rounded-md border border-line bg-surface p-4 space-y-4" role="status" aria-label="Loading settings">
       <div className="space-y-1.5">
         <Skeleton className="h-5 w-36" />
         <Skeleton className="h-3.5 w-4/5 max-w-md" />

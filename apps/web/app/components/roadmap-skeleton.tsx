@@ -3,11 +3,11 @@ import { Skeleton } from "@/app/components/skeleton";
 
 export function DsaRoadmapSkeleton() {
   return (
-    <div className="space-y-6" role="status" aria-label="Loading roadmap content">
+    <div className="anim-late space-y-6" role="status" aria-label="Loading roadmap content">
       {/* 4-Stat KPI Grid */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl border border-line bg-surface p-4 space-y-2">
+          <div key={i} className="rounded-md border border-line bg-surface p-4 space-y-2">
             <Skeleton className="h-3.5 w-20" />
             <Skeleton className="h-7 w-28" />
             <Skeleton className="h-3 w-16" />
@@ -44,7 +44,7 @@ export function DsaRoadmapSkeleton() {
           {/* Pattern cards accordion */}
           <div className="space-y-4">
             {[...Array(4)].map((_, cardIndex) => (
-              <div key={cardIndex} className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div key={cardIndex} className="overflow-hidden rounded-md border border-line bg-surface">
                 {/* Pattern Header */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/40 p-4">
                   <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ export function DsaRoadmapSkeleton() {
 
         {/* Sidebar cheat sheet / sync card */}
         <aside className="space-y-6">
-          <div className="space-y-4 rounded-xl border border-line bg-surface p-5">
+          <div className="space-y-4 rounded-md border border-line bg-surface p-5">
             <Skeleton className="h-5 w-36" />
             <div className="space-y-2.5">
               <Skeleton className="h-3.5 w-full" />
@@ -94,7 +94,7 @@ export function DsaRoadmapSkeleton() {
             <Skeleton className="h-8 w-full rounded-lg" />
           </div>
 
-          <div className="space-y-3 rounded-xl border border-line bg-surface p-4">
+          <div className="space-y-3 rounded-md border border-line bg-surface p-4">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-3 w-full" />
             <Skeleton className="h-3 w-4/5" />
@@ -108,9 +108,9 @@ export function DsaRoadmapSkeleton() {
 /** Roadmap 16-week timeline skeleton view */
 export function RoadmapSkeleton() {
   return (
-    <div className="space-y-6" role="status" aria-label="Loading roadmap timeline">
+    <div className="anim-late space-y-6" role="status" aria-label="Loading roadmap timeline">
       {/* 16-week plan banner card */}
-      <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
+      <section className="rounded-md border border-line bg-surface p-4 space-y-3">
         <div className="flex items-baseline justify-between">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-4 w-24" />
@@ -129,7 +129,7 @@ export function RoadmapSkeleton() {
       {/* Week cards grid */}
       <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {[...Array(6)].map((_, i) => (
-          <li key={i} className="rounded-xl border border-line bg-surface p-4 space-y-3">
+          <li key={i} className="rounded-md border border-line bg-surface p-4 space-y-3">
             <div className="flex items-baseline justify-between">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-3.5 w-20" />
