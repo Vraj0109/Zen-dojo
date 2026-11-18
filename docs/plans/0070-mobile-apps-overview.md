@@ -1,6 +1,6 @@
 # 0070: Mobile apps overview (decision record: PWA, Capacitor, React Native, native)
 
-- **Status:** ready
+- **Status:** dropped (not wanted for now, 2026-11-18)
 - **Planned by:** Claude Code, 2026-11-12
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on 0058 (hosted web app) and 0059 (phone read-only mode, installable web app). Child plans: 0071 (Android), 0072 (iOS and iPad).

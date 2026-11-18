@@ -1,6 +1,6 @@
 # 0072: iOS and iPad app (same Capacitor project as Android)
 
-- **Status:** ready (start only after 0071 step 5 works on Android and the user has chosen iOS in plan 0070, *Open questions*)
+- **Status:** dropped (not wanted for now, 2026-11-18)
 - **Planned by:** Claude Code, 2026-11-12
 - **Implemented by:** (implementer fills in)
 - **Spec:** decision in 0070; Android plan 0071 (shared project `apps/mobile/`, shared sign-in design)

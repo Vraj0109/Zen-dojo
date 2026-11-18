@@ -1,6 +1,6 @@
 # 0071: Android app (Capacitor shell around the hosted site)
 
-- **Status:** ready (start only after the user has chosen Android in plan 0070, *Open questions*)
+- **Status:** dropped (not wanted for now, 2026-11-18)
 - **Planned by:** Claude Code, 2026-11-12
 - **Implemented by:** (implementer fills in)
 - **Spec:** decision in 0070; hosted site in 0058; phone mode in 0059; desktop deep-link sign-in in 0051
