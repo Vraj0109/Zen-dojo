@@ -96,27 +96,27 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 
 ### Phase 3: Practice and the workspace (one agent)
 
-- [ ] **11. Practice list.** `app/dsa/page.tsx`: plain-case stat line, tabs (Patterns, All problems · count, Re-solve due,
+- [x] **11. Practice list.** `app/dsa/page.tsx`: plain-case stat line, tabs (Patterns, All problems · count, Re-solve due,
   Boss battles), search plus one Filters button (popover on desktop, the 0074 bottom sheet on phone) applied as you pick,
   removable filter chips, sort menu. Groups with progress bars. "All problems" is a table (status, #, problem, pattern,
   difficulty, source, last solved) with paging of 50 and a collapsed phone row. Matches "Practice", "All problems".
-- [ ] **12. Pattern page.** `app/dsa/pattern/[id]`: header with progress, Learn / Practice / My template tabs, problem
+- [x] **12. Pattern page.** `app/dsa/pattern/[id]`: header with progress, Learn / Practice / My template tabs, problem
   cards with "Next up", cheat sheet aside, next-pattern link. Matches "DSA pattern page".
-- [ ] **13. Workspace header.** `judge-workspace.tsx` / `[id]/page.tsx`: slim bar with back, "pattern · n of m", title,
+- [x] **13. Workspace header.** `judge-workspace.tsx` / `[id]/page.tsx`: slim bar with back, "pattern · n of m", title,
   difficulty, timer, and a 4-icon layout switcher wired to the existing `pane-layout` presets.
-- [ ] **14. Panes.** `pane-layout.tsx`: each pane gets a title bar with a drag handle, its tabs and a maximise button;
+- [x] **14. Panes.** `pane-layout.tsx`: each pane gets a title bar with a drag handle, its tabs and a maximise button;
   12 px radius panes on `surface-2` with 8 px gaps; dividers stay keyboard-resizable. Behaviour (swap, maximise, presets,
   storage) does not change.
-- [ ] **15. Code pane.** Language select, Reset, Restore last run and Run (Ctrl+Enter) in the pane header; line numbers.
-- [ ] **16. Results pane.** Tabs: **Cases** (list on the left: examples, tests, large inputs, each with pass/fail icon and
+- [x] **15. Code pane.** Language select, Reset, Restore last run and Run (Ctrl+Enter) in the pane header; line numbers.
+- [x] **16. Results pane.** Tabs: **Cases** (list on the left: examples, tests, large inputs, each with pass/fail icon and
   time; detail on the right: input, expected, yours in `success`/`danger`, the reason for a failure from
   `CaseResult.problem`/`error`, and "Printed during this case" from `CaseResult.output`), **Console** (compile output and
   `beforeTests`), **Custom input** (existing run-on-this-input), **Last runs** (existing list with Load code). All cases
   passed: a `success` banner with "Saved to Notes", the XP gained and a Next problem link.
-- [ ] **17. Phone problem view.** Tabs Problem / Code / Last run / Notes; Code shows the existing "Open on a computer to
+- [x] **17. Phone problem view.** Tabs Problem / Code / Last run / Notes; Code shows the existing "Open on a computer to
   write and run code" note and the read-only last run or saved code; Last run lists cases from the last saved run.
   Matches "DSA problem (phone, dark)".
-- [ ] **18. Boss battle and Backlog** restyled to their mockups.
+- [x] **18. Boss battle and Backlog** restyled to their mockups.
 
 ### Phase 4: Learn (one agent)
 
@@ -232,4 +232,58 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
   rows, `bg-primary-soft text-primary` for selected nav, `text-warning` for the Review count, `ProgressBar tone="reward"`
   for XP. Old skeleton components still use `bg-line/60` (`skeletons.test.ts` checks it); move them to `Skeleton` in
   phase 2 and update that test.
+### Phase 3 (steps 11-18), 2026-11-19
+
+- **Practice list** (`app/dsa/page.tsx`): page title "Practice"; a plain-case stat sentence replaces the four `Stat`
+  tiles; tabs Patterns, All problems (count), Re-solve due, Other solves (kept: it held the synced extras and
+  `AddedProblems`), Boss battles (links to `/dsa/boss`, hidden in simple mode). Groups sit in one card with
+  `GroupHeaderLink` now drawing a chevron, the title and a `ProgressBar` (`showCount` from `sm`). Patterns inside the
+  open group are cards with progress, "Learn the pattern" and the cheat sheet.
+- **Filters** (`filter-group.tsx`): `FilterGroup` (five dropdowns) is replaced by `FiltersMenu` (one "Filters" button,
+  popover from `md`, bottom sheet below, the five groups as fieldsets) and `SortSelect`. With JS a tick or sort change
+  calls `router.replace` with the form's values (menu stays open); without JS "Show results" / a noscript Apply
+  submits the GET form. Chips are `primary-soft` links with "Remove filter" labels.
+- **All problems table** (`problem-ui.tsx` `ProblemTable`): status, #, problem, pattern, difficulty, source, last
+  solved; paging of 50 (`?page=`), Previous/Next. Columns drop by width (# and last solved below `lg`, pattern and
+  source below `xl`) and a second line under the title shows them; the header row is `sr-only` below `md`. Filtering
+  on the Patterns tab shows the same table (not paged). New helpers in `lib/dsa-filters.ts`: `"all"` tab,
+  `DSA_SORTS`/`parseDsaSort`/`sortProblems` (roadmap, difficulty, title, last solved), `DSA_PAGE_SIZE`/`parseDsaPage`,
+  `sourceLabel`, `lastSolvedOn` (tests added in `dsa-filters.test.ts`). Row actions are shared by rows, cards and the
+  table (`RowActions`).
+- **Pattern page**: breadcrumb, 3xl title, header progress bar in its own Suspense (the static header paints first);
+  tabs Learn / Practice / My template (+ Reference when it has articles). Practice shows `ProblemCard`s (2 columns) with
+  "Next up" on the first unsolved one, an aside with the timer and a cheat-sheet summary (recognize line, template code,
+  "Write/Edit my template" link); the editable `CheatSheet` moved to the My template tab. Prev/next pattern are cards.
+- **Workspace header** (`[id]/page.tsx`): one slim header passed to `JudgeWorkspace` as `header` (back icon to the
+  pattern's Practice tab, "pattern · n of m" from `ALL_PATTERNS`, title, difficulty, status, solve buttons, timer) and a
+  small meta line (pattern chips, why, source link). `JudgeWorkspace` renders it in a bar with `LayoutSwitcher` (new
+  export of `pane-layout.tsx`: 4 preset icon buttons + reset sizes, same `habit-pane-layout` store). The old text
+  toolbar in `PaneLayout` is gone. The non-judged problem page keeps its layout, restyled, with its own back link.
+- **Panes**: `PaneDef.tabs` puts tabs in the title bar (title becomes the sr-only name); grip-dot drag handle,
+  SVG maximise/restore; panes `rounded-[12px]` on a `surface-2` box with 8 px gaps; dividers are invisible until
+  hover/focus/drag (primary). Swap, maximise, presets, sizes and storage unchanged.
+- **Code pane**: header has language, Zen, Reset, Restore last run (was "Last run"), Save, help and a primary Run with
+  a Ctrl+Enter hint. Custom input moved out of the code pane into the Results pane. Editor (`code-editor.tsx`): primary
+  focus ring (inset in the workspace), gutter padding, primary-tinted active line and selection; line numbers were
+  already there.
+- **Results pane** (`judge-panel.tsx` rewritten): `CasesView` (verdict line, case list grouped Examples / Tests / Large
+  inputs with pass/fail icon and time; detail with input, expected, yours in `success`/`danger`, a failure reason from
+  `problem`/`error`, first wrong operation for design problems, "Printed during this case"), `ConsoleView` (compiler
+  message, `beforeTests`, per-case output), Custom input, Last runs (each language's run with "Load code"). All cases
+  passed: a `success` banner with "Saved to Notes" (when saved), "+N XP" (`gamify-only`, from the page's
+  `xpGain`) and Next problem (`nextHref`: next problem in the pattern, else the pattern's Practice tab). `Results`
+  export is gone (only the workspace used it).
+- **Phone view**: below 768 px `JudgeWorkspace` renders a separate view (`matchMedia`, like `PaneLayout`'s narrow check;
+  server render shows the pane layout until hydration): tabs Problem (with the section tabs except Notes) / Code
+  (`PhoneCodeNote` + saved solution or last run, read-only) / Last run (verdict and failed cases of the saved run) /
+  Notes.
+- **Boss battle and Backlog**: restyled (Boss: wide two-column with the timer aside, cards with a DSA edge, result
+  chips as radio pills, `INPUT_CLASS` inputs; Backlog: count in the header, warning border while overdue, danger
+  Skip button).
+- **Deviations / notes**: not compared with the mockup canvas (no access); checked in the browser on `next dev` with a
+  fresh database (All problems table, Filters popover applying as you pick, workspace at 1400 px with a run, phone
+  view at 375 px, pattern page). `ui.tsx` and `globals.css` untouched. "Other solves" tab kept so no data disappears.
+  Ran: `dsa-filters`, `no-emoji`, `skeletons`, `saved-solutions`, `design-tokens` tests, `pnpm -r typecheck`, eslint on
+  changed files. `pnpm check` not run.
+
 ## Review

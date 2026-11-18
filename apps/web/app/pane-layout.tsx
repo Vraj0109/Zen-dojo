@@ -90,6 +90,84 @@ function parse(raw: string): Saved {
 }
 
 const narrowQuery = "(max-width: 1023px)";
+
+const PRESET_ICON: Record<PresetId, ReactNode> = {
+  // Each icon draws its layout: rectangles for the panes.
+  classic: (
+    <>
+      <rect x="3" y="4" width="7" height="16" rx="1.5" />
+      <rect x="12" y="4" width="9" height="9" rx="1.5" />
+      <rect x="12" y="15" width="9" height="5" rx="1.5" />
+    </>
+  ),
+  columns: (
+    <>
+      <rect x="3" y="4" width="5" height="16" rx="1.5" />
+      <rect x="10" y="4" width="5" height="16" rx="1.5" />
+      <rect x="17" y="4" width="4" height="16" rx="1.5" />
+    </>
+  ),
+  stacked: (
+    <>
+      <rect x="3" y="3" width="18" height="5" rx="1.5" />
+      <rect x="3" y="10" width="18" height="6" rx="1.5" />
+      <rect x="3" y="18" width="18" height="3" rx="1" />
+    </>
+  ),
+  focus: (
+    <>
+      <rect x="3" y="4" width="11" height="16" rx="1.5" />
+      <rect x="16" y="4" width="5" height="9" rx="1.5" />
+      <rect x="16" y="15" width="5" height="5" rx="1.5" />
+    </>
+  ),
+};
+
+/**
+ * The four layout presets as icon buttons, plus "Reset sizes". Reads and writes the same stored layout as PaneLayout
+ * (`habit-pane-layout`), so it can sit anywhere on the page, such as the workspace header. Hidden where panes stack.
+ */
+export function LayoutSwitcher() {
+  const raw = useSyncExternalStore(subscribe, snapshot, () => DEFAULT_RAW);
+  const saved = parse(raw);
+  const choose = (p: PresetId) => write({ preset: p, order: PRESETS[p].order, sizes: saved.sizes });
+  const reset = () => write({ preset: saved.preset, order: PRESETS[saved.preset].order, sizes: { ...saved.sizes, [saved.preset]: {} } });
+  return (
+    <div className="flex items-center gap-1 max-lg:hidden">
+      <div role="group" aria-label="Layout" className="flex items-center gap-0.5 rounded-sm border border-line bg-surface p-0.5">
+        {PRESET_IDS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-pressed={saved.preset === p}
+            aria-label={`${PRESETS[p].label} layout`}
+            title={`${PRESETS[p].label} layout. Drag a pane's title onto another pane to swap them.`}
+            onClick={() => choose(p)}
+            className={`grid size-7 place-items-center rounded-[4px] transition-colors duration-120 ${
+              saved.preset === p ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-foreground"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+              {PRESET_ICON[p]}
+            </svg>
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={reset}
+        aria-label="Reset pane sizes"
+        title="Reset pane sizes (or double-click a divider)"
+        className="grid size-8 place-items-center rounded-sm text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
+      >
+        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 const subscribeNarrow = (cb: () => void) => {
   const mq = window.matchMedia(narrowQuery);
   mq.addEventListener("change", cb);
@@ -98,6 +176,8 @@ const subscribeNarrow = (cb: () => void) => {
 
 export interface PaneDef {
   title: string;
+  /** Tabs shown in the title bar in place of the title (the title stays the pane's accessible name) */
+  tabs?: ReactNode;
   /** Extra controls shown in the pane's title bar */
   actions?: ReactNode;
   /** Not shown below the `md` breakpoint (phones), for panes that only make sense with a keyboard. */
@@ -116,8 +196,6 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
 
   const sizesOf = (node: Extract<Node, { kind: "split" }>) => saved.sizes[saved.preset]?.[node.id] ?? node.sizes;
   const setSizes = (id: string, sizes: number[]) => write({ ...saved, sizes: { ...saved.sizes, [saved.preset]: { ...saved.sizes[saved.preset], [id]: sizes } } });
-  const choose = (p: PresetId) => write({ preset: p, order: PRESETS[p].order, sizes: saved.sizes });
-  const reset = () => write({ preset: saved.preset, order: PRESETS[saved.preset].order, sizes: { ...saved.sizes, [saved.preset]: {} } });
   const swap = (a: PaneId, b: PaneId) => {
     if (a === b) return;
     write({ ...saved, order: saved.order.map((p) => (p === a ? b : p === b ? a : p)) });
@@ -152,36 +230,13 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
     return <SplitView key={node.id} node={node} sizes={sizesOf(node)} onSizes={(s) => setSizes(node.id, s)} onReset={() => setSizes(node.id, node.sizes)} render={render} />;
   };
 
-  const toolbar = (
-    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-      <span className="text-muted">Layout</span>
-      <div role="group" aria-label="Layout" className="flex overflow-hidden rounded-lg border border-line">
-        {PRESET_IDS.map((p) => (
-          <button
-            key={p}
-            type="button"
-            aria-pressed={saved.preset === p}
-            onClick={() => choose(p)}
-            className={`px-2.5 py-1 ${saved.preset === p ? "bg-accent text-on-accent" : "bg-surface hover:bg-background"}`}
-          >
-            {PRESETS[p].label}
-          </button>
-        ))}
-      </div>
-      <button type="button" onClick={reset} className="rounded-lg border border-line px-2.5 py-1 hover:bg-background">
-        Reset sizes
-      </button>
-      <span className="text-muted">Drag a divider to resize. Drag a pane&apos;s title onto another pane to swap them.</span>
-    </div>
-  );
-
   if (narrow) {
     return (
       <div className="space-y-4">
         {saved.order.map((id) => (
-          <section key={id} aria-label={panes[id].title} className={`overflow-hidden rounded-xl border border-line bg-surface ${panes[id].phoneHidden ? "max-md:hidden" : ""}`}>
-            <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-1">
-              <h3 className="text-sm font-semibold">{panes[id].title}</h3>
+          <section key={id} aria-label={panes[id].title} className={`overflow-hidden rounded-[12px] border border-line bg-surface ${panes[id].phoneHidden ? "max-md:hidden" : ""}`}>
+            <header className="flex min-h-10 flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2/60 px-3 py-1">
+              {panes[id].tabs ? <div className="min-w-0 flex-1">{panes[id].tabs}</div> : <h3 className="text-sm font-semibold">{panes[id].title}</h3>}
               {panes[id].actions}
             </header>
             <div className={id === "code" ? "md:h-[28rem] max-md:p-3" : "p-3"}>{panes[id].children}</div>
@@ -193,8 +248,7 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
 
   return (
     <div className="pane-root">
-      {toolbar}
-      <div style={{ height }} className="pane-box min-h-[30rem]">
+      <div style={{ height }} className="pane-box min-h-[30rem] rounded-lg bg-surface-2 p-2">
         {maximised ? frame(maximised) : render(preset.tree)}
       </div>
     </div>
@@ -305,7 +359,7 @@ function Divider({
     >
       <span
         aria-hidden
-        className={`absolute rounded-full bg-line transition-colors group-hover:bg-accent group-focus-visible:bg-accent ${active ? "bg-accent" : ""} ${
+        className={`absolute rounded-full transition-colors duration-120 group-hover:bg-primary group-focus-visible:bg-primary ${active ? "bg-primary" : "bg-transparent"} ${
           row ? "inset-y-2 left-1/2 w-0.5 -translate-x-1/2" : "inset-x-2 top-1/2 h-0.5 -translate-y-1/2"
         }`}
       />
@@ -348,11 +402,11 @@ function PaneFrame({
         e.preventDefault();
         onDrop();
       }}
-      className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-surface transition-colors ${
-        isOver ? "border-accent ring-2 ring-accent/40" : "border-line"
+      className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[12px] border bg-surface transition-colors duration-120 ${
+        isOver ? "border-primary ring-2 ring-primary/40" : "border-line"
       } ${isDragging ? "opacity-50" : ""}`}
     >
-      <header className="flex h-7 shrink-0 items-center justify-between gap-2 border-b border-line bg-background/60 px-2">
+      <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-line px-1.5">
         <div
           draggable={draggable}
           onDragStart={(e) => {
@@ -361,14 +415,20 @@ function PaneFrame({
             onDragStart();
           }}
           onDragEnd={onDragEnd}
-          title={draggable ? "Drag onto another pane to swap them" : undefined}
-          className={`flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-sm font-semibold ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+          title={draggable ? `Drag ${def.title} onto another pane to swap them` : undefined}
+          className={`flex shrink-0 items-center gap-1.5 rounded-sm px-1 py-1 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-foreground ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
         >
-          <span aria-hidden className="text-muted">
-            ⠿
-          </span>
-          <span className="truncate">{def.title}</span>
+          <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
+            <circle cx="6" cy="4" r="1.1" />
+            <circle cx="10" cy="4" r="1.1" />
+            <circle cx="6" cy="8" r="1.1" />
+            <circle cx="10" cy="8" r="1.1" />
+            <circle cx="6" cy="12" r="1.1" />
+            <circle cx="10" cy="12" r="1.1" />
+          </svg>
+          <span className={def.tabs ? "sr-only" : "truncate text-foreground"}>{def.title}</span>
         </div>
+        {def.tabs && <div className="min-w-0 flex-1 self-stretch">{def.tabs}</div>}
         <div className="flex shrink-0 items-center gap-1">
           {def.actions}
           <button
@@ -377,9 +437,11 @@ function PaneFrame({
             aria-pressed={maximised}
             aria-label={maximised ? `Restore ${def.title}` : `Maximise ${def.title}`}
             title={maximised ? "Restore" : "Maximise"}
-            className="grid size-6 place-items-center rounded text-muted hover:bg-background hover:text-foreground"
+            className="grid size-7 place-items-center rounded-sm text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
           >
-            {maximised ? "–" : "⤢"}
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              {maximised ? <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /> : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}
+            </svg>
           </button>
         </div>
       </header>

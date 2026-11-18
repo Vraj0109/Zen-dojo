@@ -1,3 +1,4 @@
+import type { ProblemView } from "./dsa";
 import { JUDGE_PROBLEMS } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDsaView, markSolved } from "./dsa";
@@ -13,6 +14,11 @@ import {
   parseSource,
   removeFilterValue,
   searchText,
+  parseDsaPage,
+  parseDsaSort,
+  sortProblems,
+  sourceLabel,
+  DSA_PAGE_SIZE,
 } from "./dsa-filters";
 import { importFromExtension } from "./leetcode/extension";
 import { saveNote } from "./notes";
@@ -109,6 +115,7 @@ describe("parseDsaTab", () => {
     expect(parseDsaTab({ tab: "patterns" })).toBe("patterns");
     expect(parseDsaTab({ tab: "resolve" })).toBe("resolve");
     expect(parseDsaTab({ tab: "other" })).toBe("other");
+    expect(parseDsaTab({ tab: "all" })).toBe("all");
     expect(parseDsaTab({ tab: ["resolve", "other"] })).toBe("resolve");
   });
 });
@@ -256,5 +263,40 @@ describe("source filter", () => {
     expect(logic.filter((p) => matchesSource(p, "codeforces"))).toEqual([logic[2]]);
     expect(logic.filter((p) => matchesSource(p, "kattis"))).toEqual([logic[3]]);
     expect(logic.filter((p) => matchesSource(p, "leetcode"))).toEqual([]);
+  });
+});
+
+describe("All problems table helpers", () => {
+  const row = (id: string, title: string, difficulty: "easy" | "medium" | "hard", solvedOn?: string) => ({
+    problem: {
+      id,
+      title,
+      difficulty,
+      status: solvedOn ? { state: "solved", solvedOn, resolveOn: solvedOn, resolveDue: false } : { state: "unsolved" },
+    } as unknown as ProblemView,
+  });
+
+  it("sorts by difficulty, title and last solved, keeping roadmap order on ties", () => {
+    const rows = [row("a", "Beta", "hard"), row("b", "Alpha", "easy", "2026-01-02"), row("c", "Gamma", "easy", "2026-03-01")];
+    expect(sortProblems(rows, "roadmap").map((r) => r.problem.id)).toEqual(["a", "b", "c"]);
+    expect(sortProblems(rows, "difficulty").map((r) => r.problem.id)).toEqual(["b", "c", "a"]);
+    expect(sortProblems(rows, "title").map((r) => r.problem.id)).toEqual(["b", "a", "c"]);
+    expect(sortProblems(rows, "recent").map((r) => r.problem.id)).toEqual(["c", "b", "a"]);
+  });
+
+  it("parses sort and page with safe defaults", () => {
+    expect(parseDsaSort({})).toBe("roadmap");
+    expect(parseDsaSort({ sort: "title" })).toBe("title");
+    expect(parseDsaSort({ sort: "nope" })).toBe("roadmap");
+    expect(parseDsaPage({}, 120)).toBe(1);
+    expect(parseDsaPage({ page: "3" }, 120)).toBe(3);
+    expect(parseDsaPage({ page: "9" }, 120)).toBe(Math.ceil(120 / DSA_PAGE_SIZE));
+    expect(parseDsaPage({ page: "x" }, 0)).toBe(1);
+  });
+
+  it("labels sources", () => {
+    expect(sourceLabel({ id: "lc-two-sum" })).toBe("LeetCode");
+    expect(sourceLabel({ id: "cses-1068" })).toBe("CSES");
+    expect(sourceLabel({ id: "x" })).toBe("Other");
   });
 });

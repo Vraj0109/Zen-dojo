@@ -11,9 +11,11 @@ import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
 import { emitBuddy } from "./buddy/buddy-events";
 import { EditorField } from "./code-editor";
 import { editorHelp } from "./editor-help";
-import { Results, ToolSetupHint } from "./judge-panel";
+import { CaseIcon, CasesView, ConsoleView, ToolSetupHint, caseLabel } from "./judge-panel";
 import { isSetupProblem } from "@/lib/judge/setup-hint";
-import { PaneLayout } from "./pane-layout";
+import { LayoutSwitcher, PaneLayout } from "./pane-layout";
+import { buttonClass } from "./ui";
+import Link from "next/link";
 import { ProblemMicroSteps } from "./problem-micro-steps";
 
 type Lang = "cpp" | "java" | "javascript" | "python";
@@ -80,14 +82,14 @@ function HelpTip({ text, id }: { text: string; id: string }) {
         aria-controls={id}
         onClick={() => setShown((v) => !v)}
         onBlur={() => setShown(false)}
-        className="grid size-6 place-items-center rounded-md border border-line text-xs font-semibold text-muted hover:bg-background hover:text-foreground"
+        className="grid size-7 place-items-center rounded-sm border border-line text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground"
       >
         ?
       </button>
       <span
         id={id}
         role="tooltip"
-        className={`absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-line bg-surface p-2 text-xs leading-snug text-foreground shadow-lg group-focus-within:block group-hover:block ${shown ? "block" : "hidden"}`}
+        className={`absolute right-0 top-full z-20 mt-1 w-64 rounded-md border border-line bg-surface p-2 text-xs leading-snug text-foreground shadow-lg group-focus-within:block group-hover:block ${shown ? "block" : "hidden"}`}
       >
         {text}
       </span>
@@ -101,18 +103,18 @@ function LastRuns({ runs, saved, onLoad, readOnly, children }: { runs: SavedRun[
       {saved.length > 0 && (
         <section aria-label="Saved solutions" className="space-y-3">
           {saved.map((v) => (
-            <div key={v.lang} className="rounded-xl border border-line bg-background p-3">
+            <div key={v.lang} className="rounded-md border border-line bg-surface-2 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">
                   Saved solution ({LABEL[v.lang]}), {v.verified ? "verified" : "not verified"}, {v.savedOn}
                 </p>
                 {!readOnly && (
-                  <button type="button" onClick={() => onLoad(v)} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-surface">
+                  <button type="button" onClick={() => onLoad(v)} className={buttonClass("secondary", "sm")}>
                     Load into editor
                   </button>
                 )}
               </div>
-              <pre className="mt-2 max-h-72 overflow-auto text-xs whitespace-pre">{v.code}</pre>
+              <pre className="mt-2 max-h-72 overflow-auto font-mono text-xs whitespace-pre">{v.code}</pre>
             </div>
           ))}
         </section>
@@ -120,7 +122,7 @@ function LastRuns({ runs, saved, onLoad, readOnly, children }: { runs: SavedRun[
       {runs.length > 0 && (
         <section aria-label="Last run" className="space-y-3">
           {runs.map((r) => (
-            <div key={r.lang} className="rounded-xl border border-line bg-background p-3">
+            <div key={r.lang} className="rounded-md border border-line bg-surface-2 p-3">
               <p className="text-sm font-medium">
                 Last run, {LABEL[r.lang]}: {verdict(r)}, {r.ranOn}
               </p>
@@ -135,7 +137,7 @@ function LastRuns({ runs, saved, onLoad, readOnly, children }: { runs: SavedRun[
                   {r.failed.length > 10 && <li>and {r.failed.length - 10} more</li>}
                 </ul>
               )}
-              <pre className="mt-2 max-h-72 overflow-auto text-xs whitespace-pre">{r.code}</pre>
+              <pre className="mt-2 max-h-72 overflow-auto font-mono text-xs whitespace-pre">{r.code}</pre>
             </div>
           ))}
         </section>
@@ -146,6 +148,44 @@ function LastRuns({ runs, saved, onLoad, readOnly, children }: { runs: SavedRun[
 }
 
 const noopSubscribe = () => () => {};
+
+const PHONE_QUERY = "(max-width: 767px)";
+const subscribePhone = (cb: () => void) => {
+  const mq = window.matchMedia(PHONE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+
+type ResultsTab = "cases" | "console" | "custom" | "runs";
+const RESULTS_TABS: { id: ResultsTab; label: string }[] = [
+  { id: "cases", label: "Cases" },
+  { id: "console", label: "Console" },
+  { id: "custom", label: "Custom input" },
+  { id: "runs", label: "Last runs" },
+];
+
+/** Underline tabs for a pane title bar (buttons, client state). */
+function PaneTabs<T extends string>({ label, tabs, active, onPick }: { label: string; tabs: { id: T; label: string; count?: number }[]; active: T; onPick: (id: T) => void }) {
+  return (
+    <div role="tablist" aria-label={label} className="flex h-full touch-pan-x items-stretch gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={t.id === active}
+          onClick={() => onPick(t.id)}
+          className={`-mb-px shrink-0 border-b-2 px-2.5 text-sm font-medium whitespace-nowrap transition-colors duration-120 ${
+            t.id === active ? "border-primary text-foreground" : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          {t.label}
+          {t.count !== undefined && t.count > 0 && <span className="ml-1 rounded-full bg-surface-2 px-1.5 text-xs text-muted">{t.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export interface ProblemTab {
   id: string;
@@ -160,8 +200,33 @@ export interface ProblemTab {
  * button, and the results. The three are panes you can resize, swap and maximise (see pane-layout.tsx). When every test
  * passes, the server keeps the solution with the problem. `templates` has the starter code for each language.
  */
-export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = false }: { id: string; templates: Record<Lang, string>; tabs: ProblemTab[]; initialTab?: string; readOnly?: boolean }) {
+export function JudgeWorkspace({
+  id,
+  templates,
+  tabs,
+  initialTab,
+  readOnly = false,
+  header,
+  nextHref,
+  xpGain,
+}: {
+  id: string;
+  templates: Record<Lang, string>;
+  tabs: ProblemTab[];
+  initialTab?: string;
+  readOnly?: boolean;
+  /** The slim workspace bar's content (back link, title, difficulty, timer); the layout switcher is added on the right. */
+  header?: ReactNode;
+  /** Where the "Next problem" link in the all-passed banner goes */
+  nextHref?: string;
+  /** XP for solving it, shown in the all-passed banner when game features are on */
+  xpGain?: number;
+}) {
   const router = useRouter();
+  const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE_QUERY).matches, () => false);
+  const [resultsTab, setResultsTab] = useState<ResultsTab>("cases");
+  const [runCount, setRunCount] = useState(0);
+  const [phoneTab, setPhoneTab] = useState<"problem" | "code" | "run" | "notes">("problem");
   // False while rendering on the server and during hydration, so saved code is read only in the browser.
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const zen = useSyncExternalStore(subscribeZen, getZenMode, () => false);
@@ -235,6 +300,8 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
     setRunning(true);
     setResult(null);
     setFailure(null);
+    setResultsTab("cases");
+    setRunCount((n) => n + 1);
     try {
       const res = await fetch("/api/judge/run", {
         method: "POST",
@@ -325,6 +392,15 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
     setResult(null);
   }
 
+  function loadRun(r: SavedRun) {
+    store.set(codeKey(id, r.lang), r.code);
+    store.set(LANG_KEY, r.lang);
+    store.set(problemLangKey(id), r.lang);
+    setPickedLang(r.lang);
+    setResetCount((n) => n + 1);
+    setResult(null);
+  }
+
   function restoreLastRun() {
     if (!lastRun) return;
     store.set(codeKey(id, lang), lastRun.code);
@@ -347,31 +423,16 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
   const selectId = `judge-lang-${id}`;
   const active = effectiveTabs.find((t) => t.id === tab) ?? effectiveTabs[0];
 
+  const problemTabs = (
+    <PaneTabs label="Problem sections" tabs={effectiveTabs.map((t) => ({ id: t.id, label: t.label, count: t.count }))} active={active.id} onPick={setTab} />
+  );
   const problemPane = (
-    <div className="flex h-full min-h-0 flex-col">
-      <div role="tablist" aria-label="Problem sections" className="flex shrink-0 touch-pan-x gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-line px-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {effectiveTabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={t.id === active.id}
-            onClick={() => setTab(t.id)}
-            className={`relative shrink-0 rounded-t-md px-3 py-1 text-sm font-medium ${t.id === active.id ? "text-foreground" : "text-muted hover:text-foreground"}`}
-          >
-            {t.label}
-            {t.count !== undefined && t.count > 0 && <span className="ml-1 rounded-full bg-background px-1.5 text-xs text-muted">{t.count}</span>}
-            {t.id === active.id && <span aria-hidden className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-accent" />}
-          </button>
-        ))}
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto p-4">
-        {effectiveTabs.map((t) => (
-          <div key={t.id} role="tabpanel" hidden={t.id !== active.id} className="anim-fade-up">
-            {t.id === "notes" ? <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved} readOnly={readOnly}>{t.node}</LastRuns> : t.node}
-          </div>
-        ))}
-      </div>
+    <div className="p-4">
+      {effectiveTabs.map((t) => (
+        <div key={t.id} role="tabpanel" aria-label={t.label} hidden={t.id !== active.id} className="anim-fade-up">
+          {t.id === "notes" ? <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved} readOnly={readOnly}>{t.node}</LastRuns> : t.node}
+        </div>
+      ))}
     </div>
   );
 
@@ -384,7 +445,7 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
         id={selectId}
         value={LABEL[lang]}
         onChange={(e) => switchLang((Object.keys(LABEL) as Lang[]).find((l) => LABEL[l] === e.target.value) ?? "cpp")}
-        className="rounded-md border border-line bg-background px-2 py-1 text-xs"
+        className="h-8 rounded-sm border border-line-strong bg-surface px-2 text-xs text-foreground"
       >
         {(Object.keys(LABEL) as Lang[]).map((l) => (
           <option key={l} value={LABEL[l]}>
@@ -397,63 +458,54 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
         onClick={toggleZenMode}
         aria-pressed={zen}
         title="Zen mode: anti-overwhelm focus (Ctrl+Shift+Z)"
-        className={`rounded-md border px-2 py-1 text-xs transition-colors ${
-          zen ? "border-accent bg-accent text-on-accent font-medium" : "border-line hover:bg-background"
-        }`}
+        className={buttonClass("quiet", "sm", zen ? "bg-primary-soft text-primary" : "")}
       >
         Zen
       </button>
-      {!readOnly && lastRun && (
-        <button
-          type="button"
-          onClick={restoreLastRun}
-          title={`Last run: ${verdict(lastRun)}, ${lastRun.ranOn}`}
-          className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background"
-        >
-          Last run
-        </button>
-      )}
       {readOnly ? (
         <span className="text-xs text-muted">Read-only</span>
       ) : (
         <>
-          <button type="button" onClick={reset} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
+          <button type="button" onClick={reset} title="Replace your code with the starter code" className={buttonClass("quiet", "sm")}>
             Reset
           </button>
-          <button type="button" onClick={() => void save()} title="Save your solution (Ctrl+S)" className="rounded-md border border-line px-2 py-1 text-xs hover:bg-background">
+          {lastRun && (
+            <button type="button" onClick={restoreLastRun} title={`Last run: ${verdict(lastRun)}, ${lastRun.ranOn}`} className={buttonClass("quiet", "sm")}>
+              Restore last run
+            </button>
+          )}
+          <button type="button" onClick={() => void save()} title="Save your solution (Ctrl+S)" className={buttonClass("quiet", "sm")}>
             Save
           </button>
           <span role="status" aria-live="polite" className="text-xs text-muted">
             {saveNote}
           </span>
-          <button
-            type="button"
-            onClick={run}
-            disabled={running || !hydrated}
-            title="Run (Ctrl+Enter)"
-            className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-on-accent disabled:opacity-60"
-          >
-            {running ? "Running…" : "Run"}
-          </button>
           <HelpTip text={editorHelp(lang)} id={`editor-help-${id}`} />
+          <button type="button" onClick={run} disabled={running || !hydrated} title="Run (Ctrl+Enter)" className={buttonClass("primary", "sm")}>
+            <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="currentColor">
+              <path d="M4.5 3.2v9.6a.6.6 0 0 0 .9.5l7.6-4.8a.6.6 0 0 0 0-1L5.4 2.7a.6.6 0 0 0-.9.5Z" />
+            </svg>
+            {running ? "Running…" : "Run"}
+            <kbd className="ml-1 hidden font-sans text-[11px] opacity-80 xl:inline">Ctrl+Enter</kbd>
+          </button>
         </>
       )}
     </div>
   );
 
-  // Below `md` (phones) the editor is not shown at all: plain read-only text of the saved code instead (CSS only).
+  // Phones cannot run code: plain read-only text of the saved code instead of the editor.
   const phoneSaved = savedForLang ?? savedSolutions[0];
   const phoneRun = lastRun ?? runs[0];
   const phoneCode = phoneSaved ?? phoneRun;
   const phoneCodePane = (
-    <div className="space-y-2 md:hidden">
+    <div className="space-y-2">
       <PhoneCodeNote />
       {phoneCode ? (
         <>
           <p className="text-xs text-muted">
             {phoneSaved ? `Saved solution (${LABEL[phoneSaved.lang]})` : `Last run (${LABEL[phoneCode.lang]}): ${verdict(phoneRun!)}`}
           </p>
-          <pre data-testid="phone-code" className="max-h-96 overflow-auto rounded-lg border border-line bg-background p-3 text-xs whitespace-pre">{phoneCode.code}</pre>
+          <pre data-testid="phone-code" className="max-h-[60dvh] overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-xs whitespace-pre">{phoneCode.code}</pre>
         </>
       ) : (
         <p className="text-sm text-muted">No saved code yet.</p>
@@ -462,125 +514,268 @@ export function JudgeWorkspace({ id, templates, tabs, initialTab, readOnly = fal
   );
 
   const codePane = (
-    <>
-    {phoneCodePane}
-    <div className="flex h-full min-h-0 flex-col max-md:hidden">
+    <div className="flex h-full min-h-0 flex-col">
       {blockedBanner && (
-        <div role="alert" className="flex shrink-0 items-start justify-between gap-2 border-b border-line bg-surface p-2.5 text-xs text-foreground">
+        <div role="alert" className="flex shrink-0 items-start justify-between gap-2 border-b border-line bg-warning/10 p-2.5 text-xs text-foreground">
           <p>{blockedBanner}</p>
           <button
             type="button"
             onClick={() => setBlockedBanner(null)}
             aria-label="Dismiss banner"
-            className="rounded px-1.5 py-0.5 text-muted hover:bg-background hover:text-foreground"
+            className="rounded-sm px-1.5 py-0.5 text-muted hover:bg-surface-2 hover:text-foreground"
           >
             ×
           </button>
         </div>
       )}
       <div
-      ref={areaRef}
-      className="min-h-0 flex-1"
-      onBlurCapture={readOnly ? undefined : saveDraft}
-      onKeyDown={(e) => {
-        if (readOnly) return;
-        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-          e.preventDefault();
-          void run();
-        }
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
-          e.preventDefault();
-          void save();
-        }
-      }}
-    >
-      {/* Remounted when the language changes or the code is reset, so the editor starts from the right text. */}
-      <EditorField key={`${lang}-${resetCount}-${hydrated}-${draft === null && lastRun ? "r" : "s"}-${readOnly ? (savedForLang ? "v" : "n") : ""}`} languageSelectId={selectId} rows={16} fill>
-        <textarea
-          aria-label="Your code"
-          aria-describedby={`editor-help-text-${id}`}
-          defaultValue={initial}
-          readOnly={readOnly}
-          spellCheck={false}
-          rows={16}
-          maxLength={100000}
-          className="h-full w-full resize-none bg-background p-3 font-mono text-sm"
-        />
-      </EditorField>
-      <span id={`editor-help-text-${id}`} className="sr-only">
-        {editorHelp(lang)}
-      </span>
-      </div>
-      <div className="shrink-0 space-y-1 border-t border-line px-3 py-1.5 text-xs text-muted">
-        {lastRun && (
-          <p>
-            Last run: {verdict(lastRun)}, {lastRun.ranOn}
-          </p>
-        )}
-        {!readOnly && <details>
-          <summary className="cursor-pointer select-none">Custom input</summary>
-          <div className="mt-1.5 space-y-1.5">
-            <label htmlFor={`custom-${id}`} className="block">
-              One JSON value per parameter, one per line (in the order of the function).
-            </label>
-            <textarea
-              id={`custom-${id}`}
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              rows={3}
-              spellCheck={false}
-              placeholder={"[2,7,11,15]\n9"}
-              className="w-full resize-y rounded-md border border-line bg-background p-2 font-mono text-xs text-foreground"
-            />
-            <button type="button" onClick={runCustom} disabled={customBusy || !hydrated} className="rounded-md border border-line px-2 py-1 text-xs text-foreground hover:bg-background disabled:opacity-60">
-              {customBusy ? "Running…" : "Run on this input"}
-            </button>
-            {custom && (
-              <div role="status" className="space-y-1 text-foreground">
-                {custom.compile && <pre className="overflow-x-auto whitespace-pre-wrap">{custom.compile}</pre>}
-                {custom.error && <p className="text-diff-hard">{custom.error}</p>}
-                {(isSetupProblem(custom.compile) || isSetupProblem(custom.error)) && <ToolSetupHint />}
-                {custom.output !== undefined && (
-                  <p>
-                    Output: <code className="font-mono">{custom.output}</code>
-                  </p>
-                )}
-                {custom.printed && <pre className="overflow-x-auto whitespace-pre-wrap">{custom.printed}</pre>}
-              </div>
-            )}
-          </div>
-        </details>}
+        ref={areaRef}
+        className="min-h-0 flex-1"
+        onBlurCapture={readOnly ? undefined : saveDraft}
+        onKeyDown={(e) => {
+          if (readOnly) return;
+          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+            e.preventDefault();
+            void run();
+          }
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
+            e.preventDefault();
+            void save();
+          }
+        }}
+      >
+        {/* Remounted when the language changes or the code is reset, so the editor starts from the right text. */}
+        <EditorField key={`${lang}-${resetCount}-${hydrated}-${draft === null && lastRun ? "r" : "s"}-${readOnly ? (savedForLang ? "v" : "n") : ""}`} languageSelectId={selectId} rows={16} fill>
+          <textarea
+            aria-label="Your code"
+            aria-describedby={`editor-help-text-${id}`}
+            defaultValue={initial}
+            readOnly={readOnly}
+            spellCheck={false}
+            rows={16}
+            maxLength={100000}
+            className="h-full w-full resize-none bg-surface p-3 font-mono text-sm"
+          />
+        </EditorField>
+        <span id={`editor-help-text-${id}`} className="sr-only">
+          {editorHelp(lang)}
+        </span>
       </div>
     </div>
-    </>
   );
 
-  const resultsPane = (
-    <div className="space-y-3 p-3" aria-live="polite">
+  const customPanel = readOnly ? (
+    <p className="text-sm text-muted">Reader mode: code cannot be run here.</p>
+  ) : (
+    <div className="space-y-2 text-sm">
+      <label htmlFor={`custom-${id}`} className="block text-xs text-muted">
+        One JSON value per parameter, one per line (in the order of the function).
+      </label>
+      <textarea
+        id={`custom-${id}`}
+        value={customText}
+        onChange={(e) => setCustomText(e.target.value)}
+        rows={4}
+        spellCheck={false}
+        placeholder={"[2,7,11,15]\n9"}
+        className="w-full resize-y rounded-sm border border-line-strong bg-surface p-2 font-mono text-xs text-foreground focus:border-primary"
+      />
+      <button type="button" onClick={runCustom} disabled={customBusy || !hydrated} className={buttonClass("secondary", "sm")}>
+        {customBusy ? "Running…" : "Run on this input"}
+      </button>
+      {custom && (
+        <div role="status" className="space-y-2 text-foreground">
+          {custom.compile && <pre className="overflow-x-auto rounded-sm border border-danger bg-surface-2 p-2 font-mono text-xs whitespace-pre-wrap">{custom.compile}</pre>}
+          {custom.error && <p className="text-danger">{custom.error}</p>}
+          {(isSetupProblem(custom.compile) || isSetupProblem(custom.error)) && <ToolSetupHint />}
+          {custom.output !== undefined && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted">Output</p>
+              <pre className="overflow-x-auto rounded-sm border border-line bg-surface-2 p-2 font-mono text-xs whitespace-pre-wrap">{custom.output}</pre>
+            </div>
+          )}
+          {custom.printed && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted">Printed</p>
+              <pre className="overflow-x-auto rounded-sm border border-line bg-surface-2 p-2 font-mono text-xs whitespace-pre-wrap">{custom.printed}</pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const runsPanel = (
+    <div className="space-y-2">
+      {runs.length === 0 ? (
+        <p className="text-sm text-muted">No runs saved yet. Your latest run of each language is kept here.</p>
+      ) : (
+        <ul className="divide-y divide-line overflow-hidden rounded-md border border-line">
+          {runs.map((r) => (
+            <li key={r.lang} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+              <span className="flex items-center gap-2">
+                <CaseIcon pass={r.status === "done" && r.total > 0 && r.passed === r.total} />
+                <span className="font-medium">{LABEL[r.lang]}</span>
+                <span className="text-muted">
+                  {verdict(r)}, {r.ranOn}
+                </span>
+              </span>
+              {!readOnly && (
+                <button type="button" onClick={() => loadRun(r)} className={buttonClass("secondary", "sm")}>
+                  Load code
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  const allPassed = result?.status === "done" && result.total > 0 && result.passed === result.total;
+  const casesPanel = (
+    <div className="space-y-3">
       {running && <p className="anim-pulse text-sm text-muted">Compiling and running your code…</p>}
       {failure && (
-        <p role="alert" className="rounded-xl border border-cat-mock bg-surface p-3 text-sm">
+        <p role="alert" className="rounded-md border border-danger bg-surface p-3 text-sm">
           <FailureText text={failure} />
         </p>
       )}
       {readOnly && <p className="text-sm text-muted">Reader mode: code is shown read-only and cannot be run here. Turn it off in Settings to run code.</p>}
-      {!readOnly && !running && !failure && !result && <p className="text-sm text-muted">Press Run (or Ctrl+Enter) to test your code on the examples and the extra cases. {id.startsWith("pack:") ? "When every case passes, the problem is marked done in its course." : "When every case passes, your solution is saved with the problem."}</p>}
-      {result && <Results result={result} />}
-      {result?.status === "done" && result.saved && (
-        <p role="status" className="anim-pop rounded-xl border border-diff-easy bg-surface p-3 text-sm">
-          Every case passed, so this solution was saved. You can find it, with your notes, in the Notes tab.
+      {!readOnly && !running && !failure && !result && (
+        <p className="text-sm text-muted">
+          Press Run (or Ctrl+Enter) to test your code on the examples and the extra cases.{" "}
+          {id.startsWith("pack:") ? "When every case passes, the problem is marked done in its course." : "When every case passes, your solution is saved with the problem."}
         </p>
       )}
+      {allPassed && (
+        <div role="status" className="anim-pop flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-success bg-success/10 px-4 py-3 text-sm">
+          <CaseIcon pass />
+          <p className="font-semibold text-success">
+            All {result.total} cases passed
+          </p>
+          {result.saved && <span className="text-foreground">Saved to Notes</span>}
+          {xpGain !== undefined && result.saved && <span className="gamify-only font-medium text-reward">+{xpGain} XP</span>}
+          {nextHref && (
+            <Link href={nextHref} className={buttonClass("primary", "sm", "ml-auto")}>
+              Next problem
+            </Link>
+          )}
+        </div>
+      )}
+      {result && <CasesView key={runCount} result={result} />}
     </div>
   );
 
-  return (
-    <PaneLayout
-      panes={{
-        problem: { title: "Problem", children: problemPane },
-        code: { title: "Code", actions: codeActions, children: codePane },
-        results: { title: result?.status === "done" ? `Results · ${result.passed}/${result.total}` : "Results", phoneHidden: true, children: resultsPane },
-      }}
+  const resultsPane = (
+    <div className="p-3" aria-live="polite">
+      <div role="tabpanel" aria-label="Cases" hidden={resultsTab !== "cases"}>
+        {casesPanel}
+      </div>
+      <div role="tabpanel" aria-label="Console" hidden={resultsTab !== "console"}>
+        <ConsoleView result={result} />
+      </div>
+      <div role="tabpanel" aria-label="Custom input" hidden={resultsTab !== "custom"}>
+        {customPanel}
+      </div>
+      <div role="tabpanel" aria-label="Last runs" hidden={resultsTab !== "runs"}>
+        {runsPanel}
+      </div>
+    </div>
+  );
+  const resultsTabs = (
+    <PaneTabs
+      label="Results sections"
+      tabs={RESULTS_TABS.map((t) => (t.id === "cases" && result?.status === "done" ? { ...t, label: `Cases · ${result.passed}/${result.total}` } : t))}
+      active={resultsTab}
+      onPick={setResultsTab}
     />
+  );
+
+  const bar = (
+    <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="min-w-0 flex-1">{header}</div>
+      <LayoutSwitcher />
+    </div>
+  );
+
+  if (phone) {
+    const notesTab = effectiveTabs.find((t) => t.id === "notes");
+    const readTabs = effectiveTabs.filter((t) => t.id !== "notes");
+    const readActive = readTabs.find((t) => t.id === tab) ?? readTabs[0];
+    const lastSaved = runs.find((r) => r.lang === lang) ?? runs[0];
+    const phoneTabs = [
+      { id: "problem" as const, label: "Problem" },
+      { id: "code" as const, label: "Code" },
+      { id: "run" as const, label: "Last run" },
+      ...(notesTab ? [{ id: "notes" as const, label: "Notes" }] : []),
+    ];
+    return (
+      <div className="space-y-3">
+        {header}
+        <div className="sticky top-0 z-10 -mx-4 h-12 border-b border-line bg-background px-4">
+          <PaneTabs label="Problem view" tabs={phoneTabs} active={phoneTab} onPick={setPhoneTab} />
+        </div>
+        {phoneTab === "problem" && (
+          <div className="space-y-3">
+            {readTabs.length > 1 && (
+              <div className="h-10 border-b border-line">
+                <PaneTabs label="Problem sections" tabs={readTabs.map((t) => ({ id: t.id, label: t.label, count: t.count }))} active={readActive.id} onPick={setTab} />
+              </div>
+            )}
+            {readTabs.map((t) => (
+              <div key={t.id} role="tabpanel" aria-label={t.label} hidden={t.id !== readActive.id}>
+                {t.node}
+              </div>
+            ))}
+          </div>
+        )}
+        {phoneTab === "code" && phoneCodePane}
+        {phoneTab === "run" &&
+          (lastSaved ? (
+            <section aria-label="Last run" className="space-y-3">
+              <p className="flex items-center gap-2 text-sm">
+                <CaseIcon pass={lastSaved.status === "done" && lastSaved.total > 0 && lastSaved.passed === lastSaved.total} />
+                <span className="font-medium">{LABEL[lastSaved.lang]}</span>
+                <span className="text-muted">
+                  {verdict(lastSaved)}, {lastSaved.ranOn}
+                </span>
+              </p>
+              {lastSaved.failed && lastSaved.failed.length > 0 ? (
+                <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+                  {lastSaved.failed.slice(0, 20).map((f) => (
+                    <li key={`${f.kind}-${f.id}`} className="space-y-1 px-3 py-2 text-sm">
+                      <p className="flex items-center gap-2">
+                        <CaseIcon pass={false} />
+                        {f.kind === "stress" ? `Large input #${f.id}` : caseLabel({ kind: f.kind, index: f.id })}
+                      </p>
+                      {f.input && <pre className="overflow-x-auto rounded-sm bg-surface-2 p-2 font-mono text-xs whitespace-pre-wrap">Input: {JSON.stringify(f.input)}</pre>}
+                      {f.input && <pre className="overflow-x-auto rounded-sm bg-surface-2 p-2 font-mono text-xs whitespace-pre-wrap">Expected: {JSON.stringify(f.expected)}</pre>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                lastSaved.status === "done" && <p className="text-sm text-muted">Every case passed in that run.</p>
+              )}
+            </section>
+          ) : (
+            <p className="text-sm text-muted">No runs yet. Run your code on a computer to see the cases here.</p>
+          ))}
+        {phoneTab === "notes" && notesTab && <div>{notesTab.node}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {bar}
+      <PaneLayout
+        panes={{
+          problem: { title: "Problem", tabs: problemTabs, children: problemPane },
+          code: { title: "Code", actions: codeActions, children: codePane },
+          results: { title: "Results", tabs: resultsTabs, phoneHidden: true, children: resultsPane },
+        }}
+      />
+    </>
   );
 }

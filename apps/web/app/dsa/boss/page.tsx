@@ -8,15 +8,15 @@ import { BOSS_ITEM, focusMinutes } from "@/lib/timer";
 import { saveBossFightAction } from "../../actions";
 import { StartTimer } from "../../start-timer";
 import { SubmitButton } from "../../submit-button";
-import { Difficulty, PageMain, StatusMark } from "../../ui";
+import { Badge, buttonClass, Difficulty, EmptyState, INPUT_CLASS, PageMain, StatusMark } from "../../ui";
 
-export const metadata: Metadata = { title: "Boss fight" };
+export const metadata: Metadata = { title: "Boss battle" };
 
 export default function BossPage({ searchParams }: PageProps<"/dsa/boss">) {
   return (
-    <PageMain title="Boss fight" narrow>
+    <PageMain title="Boss battle">
       <Link href="/dsa" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
-        ← DSA
+        ← Practice
       </Link>
       <Suspense fallback={<p className="text-muted">Picking problems…</p>}>
         <Boss searchParams={searchParams} />
@@ -38,9 +38,9 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
 
   return (
     <div className="space-y-6">
-      <header>
-        <h2 className="text-2xl font-semibold tracking-tight">Boss fight</h2>
-        <p className="mt-1 text-sm text-muted">
+      <header className="space-y-1">
+        <h2 className="text-3xl font-semibold tracking-tight">Boss battle</h2>
+        <p className="max-w-[68ch] text-sm text-muted">
           Two problems, {BOSS_MINUTES / 60} hours, no hints, like a real onsite. Picked from{" "}
           {v.source === "weak" ? `your weakest patterns up to week ${v.weekNo}` : "all unsolved mediums and hards"}. Solves count as normal solves;
           hints and misses go on your stuck list.
@@ -48,7 +48,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
       </header>
 
       {v.foughtToday && (
-        <p role="status" className="flex items-center gap-2 rounded-xl border border-accent bg-surface p-4 text-sm">
+        <p role="status" className="flex items-center gap-2 rounded-md border border-success bg-success/10 p-4 text-sm">
           <StatusMark state="solved" />
           <span>
             Fought today:{" "}
@@ -59,37 +59,37 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
       )}
 
       {v.picks.length === 0 ? (
-        <p className="rounded-xl border border-line bg-surface p-4">No unsolved mediums or hards left. Impressive. Use re-solves instead.</p>
+        <EmptyState message="No unsolved mediums or hards left. Use re-solves instead." action={{ label: "Open re-solves", href: "/dsa?tab=resolve" }} />
       ) : (
-        <>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0 space-y-4">
           <ol className="grid gap-3 sm:grid-cols-2">
             {v.picks.map(({ problem: p, pattern }, i) => (
-              <li key={p.id} className="rounded-xl border border-line bg-surface p-4">
-                <p className="text-xs text-muted">Problem {i + 1} · {pattern}</p>
-                <p className="mt-1 font-semibold">{p.number ? `${p.number}. ` : ""}{p.title}</p>
-                <div className="mt-0.5">
+              <li key={p.id} className="rounded-md border border-line border-l-[3px] border-l-cat-dsa bg-surface p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <Badge>Problem {i + 1}</Badge>
                   <Difficulty level={p.difficulty} />
                 </div>
-                <div className="mt-3 flex gap-3 text-sm">
+                <p className="mt-3 text-lg font-semibold">{p.number ? `${p.number}. ` : ""}{p.title}</p>
+                <p className="text-sm text-muted">{pattern}</p>
+                <div className="mt-4 flex flex-wrap gap-2 text-sm">
                   {p.url && (
-                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+                    <a href={p.url} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "sm")}>
                       Open on LeetCode ↗
                     </a>
                   )}
-                  <Link href={`/dsa/${encodeURIComponent(p.id)}`} className="text-muted hover:text-foreground">
+                  <Link href={`/dsa/${encodeURIComponent(p.id)}`} className={buttonClass("quiet", "sm")}>
                     Notes page
                   </Link>
                 </div>
               </li>
             ))}
           </ol>
-          <Link href={`/dsa/boss?r=${reroll + 1}`} className="inline-block text-sm text-muted hover:text-foreground">
-            ↻ Different problems
+          <Link href={`/dsa/boss?r=${reroll + 1}`} className={buttonClass("quiet", "sm")}>
+            Different problems
           </Link>
 
-          <StartTimer itemId={BOSS_ITEM} label="Boss fight" href="/dsa/boss" defaultMinutes={BOSS_MINUTES} totalMinutes={focused} />
-
-          <form action={saveBossFightAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
+          <form action={saveBossFightAction} className="space-y-4 rounded-md border border-line bg-surface p-5">
             <h3 className="font-semibold">How did it go?</h3>
             {v.picks.map(({ problem: p }) => (
               <fieldset key={p.id}>
@@ -99,7 +99,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
                   {Object.entries(BOSS_RESULTS).map(([k, label]) => (
                     <label
                       key={k}
-                      className="flex cursor-pointer items-center rounded-lg border border-line px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-on-accent"
+                      className="flex min-h-9 cursor-pointer items-center rounded-full border border-line-strong px-3 text-sm transition-colors duration-120 hover:bg-surface-2 has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:checked]:font-medium has-[:checked]:text-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary"
                     >
                       <input type="radio" name={`result:${p.id}`} value={k} required className="sr-only" />
                       {label}
@@ -109,21 +109,25 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
               </fieldset>
             ))}
             <div className="flex flex-wrap gap-2">
-              <input name="minutes" type="number" min={1} max={600} placeholder="Minutes used" aria-label="Minutes used" className="w-36 rounded-lg border border-line bg-background px-3 py-2" />
-              <input name="notes" maxLength={5000} placeholder="What slowed you down?" aria-label="Notes" className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2" />
+              <input name="minutes" type="number" min={1} max={600} placeholder="Minutes used" aria-label="Minutes used" className={`${INPUT_CLASS} w-36`} />
+              <input name="notes" maxLength={5000} placeholder="What slowed you down?" aria-label="Notes" className={`${INPUT_CLASS} min-w-0 flex-1`} />
             </div>
-            <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save result</SubmitButton>
+            <SubmitButton className={buttonClass("primary", "md")}>Save result</SubmitButton>
             <p className="text-xs text-muted">Saving also ticks today&apos;s &quot;Boss fight&quot; task if it&apos;s on your plan.</p>
           </form>
-        </>
+          </div>
+          <aside className="self-start lg:sticky lg:top-6">
+            <StartTimer itemId={BOSS_ITEM} label="Boss fight" href="/dsa/boss" defaultMinutes={BOSS_MINUTES} totalMinutes={focused} />
+          </aside>
+        </div>
       )}
 
       {v.history.length > 0 && (
         <section>
           <h3 className="mb-2 font-semibold">Past fights</h3>
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface text-sm">
+          <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface text-sm">
             {v.history.map((h) => (
-              <li key={h.id} className="px-4 py-2">
+              <li key={h.id} className="px-4 py-3">
                 <span className="font-medium">{fmt(h.foughtOn)}</span>
                 {h.minutes ? <span className="text-muted"> · {h.minutes} min</span> : null}
                 <span className="block text-muted">

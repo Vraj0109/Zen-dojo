@@ -19,7 +19,7 @@ export const HAS_FILTERS = {
   none: "No notes yet",
 } as const;
 
-export const DSA_TABS = ["patterns", "resolve", "other"] as const;
+export const DSA_TABS = ["patterns", "all", "resolve", "other"] as const;
 export type DsaTab = (typeof DSA_TABS)[number];
 
 export const PROBLEM_TABS = ["solve", "notes", "submissions", "stuck"] as const;
@@ -236,4 +236,56 @@ export function matchesSource(problem: { id: string; url?: string }, source: Dsa
   if (source === "kattis") return problem.id.startsWith("c-kattis-");
   if (source === "cp-algorithms") return (problem.url ?? "").includes("cp-algorithms.com");
   return true;
+}
+
+/** The source label for a problem (the first source it matches), for the "All problems" table. */
+export function sourceLabel(problem: { id: string; url?: string }): string {
+  for (const s of SOURCE_FILTERS) if (s.value && matchesSource(problem, s.value)) return s.label;
+  return "Other";
+}
+
+/** Sort orders for the problem list (?sort=). "roadmap" keeps the roadmap order. */
+export const DSA_SORTS = [
+  { value: "roadmap", label: "Roadmap order" },
+  { value: "difficulty", label: "Difficulty" },
+  { value: "title", label: "Title" },
+  { value: "recent", label: "Last solved" },
+] as const;
+export type DsaSort = (typeof DSA_SORTS)[number]["value"];
+
+export function parseDsaSort(params: Params): DsaSort {
+  const s = one(params.sort);
+  return DSA_SORTS.some((o) => o.value === s) ? (s as DsaSort) : "roadmap";
+}
+
+/** Rows per page in the "All problems" table. */
+export const DSA_PAGE_SIZE = 50;
+
+/** A 1-based page number from ?page=, clamped to the pages that exist. */
+export function parseDsaPage(params: Params, total: number): number {
+  const pages = Math.max(1, Math.ceil(total / DSA_PAGE_SIZE));
+  const n = Number.parseInt(one(params.page), 10);
+  return Number.isFinite(n) ? Math.min(pages, Math.max(1, n)) : 1;
+}
+
+/** The date a problem was last solved (re-solve or first solve), or "" when not solved. */
+export function lastSolvedOn(p: ProblemView): string {
+  const s = p.status;
+  return s.state === "resolved" ? s.resolvedOn : s.state === "solved" ? s.solvedOn : "";
+}
+
+const DIFF_RANK: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
+
+/** A sorted copy; ties keep roadmap order. */
+export function sortProblems<T extends { problem: ProblemView }>(rows: T[], sort: DsaSort): T[] {
+  if (sort === "roadmap") return rows;
+  const keyed = rows.map((r, i) => ({ r, i }));
+  keyed.sort((a, b) => {
+    let d = 0;
+    if (sort === "difficulty") d = (DIFF_RANK[a.r.problem.difficulty ?? ""] ?? 3) - (DIFF_RANK[b.r.problem.difficulty ?? ""] ?? 3);
+    else if (sort === "title") d = a.r.problem.title.localeCompare(b.r.problem.title);
+    else d = lastSolvedOn(b.r.problem).localeCompare(lastSolvedOn(a.r.problem));
+    return d || a.i - b.i;
+  });
+  return keyed.map((k) => k.r);
 }

@@ -7,7 +7,7 @@ import { getBacklogView } from "@/lib/tasks";
 import type { Task } from "@/lib/schema";
 import { skipPlanWeekAction, toggleTaskAction } from "../actions";
 import { SubmitButton } from "../submit-button";
-import { PageMain, ProgressBar } from "../ui";
+import { buttonClass, PageMain, ProgressBar } from "../ui";
 
 export const metadata: Metadata = { title: "Backlog" };
 
@@ -43,34 +43,35 @@ async function Backlog() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-line bg-surface p-4">
-        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">Backlog</h2>
+      <section className="rounded-md border border-line bg-surface p-5">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-2xl font-semibold tracking-tight">Backlog</h2>
           <span className="text-sm text-muted">
             {v.position.finished
               ? "Plan complete"
               : `Week ${v.position.cursor} of ${TOTAL_WEEKS} · ${v.position.weeksLeft} ${v.position.weeksLeft === 1 ? "week" : "weeks"} left`}
           </span>
         </div>
-        <ProgressBar value={v.doneCount} max={Math.max(v.totalCount, 1)} label="This week's tasks done" />
+        <ProgressBar value={v.doneCount} max={Math.max(v.totalCount, 1)} label="This week's tasks done" showCount />
         <p className="mt-2 text-xs text-muted">
           {v.doneCount} of {v.totalCount} tasks of this plan week are done. Finish them all and the plan moves to the next week.{" "}
-          <Link href="/" className="font-medium hover:underline">
+          <Link href="/" className="font-medium text-primary hover:underline">
             Back to Today
           </Link>
         </p>
       </section>
 
-      <section aria-labelledby="overdue-h" className="rounded-xl border border-line bg-surface">
-        <h2 id="overdue-h" className="border-b border-line p-4 font-semibold">
+      <section aria-labelledby="overdue-h" className={`overflow-hidden rounded-md border bg-surface ${v.overdue.length ? "border-warning" : "border-line"}`}>
+        <h2 id="overdue-h" className="flex items-center justify-between gap-2 border-b border-line px-4 py-3 font-semibold">
           Planned for earlier days
+          {overdueCount > 0 && <span className="text-sm font-medium text-warning tabular-nums">{overdueCount}</span>}
         </h2>
         {v.overdue.length === 0 ? (
           <p className="p-4 text-muted">{behind ? "Nothing behind. Good." : "Nothing from earlier days."}</p>
         ) : (
           v.overdue.map((g) => (
             <div key={g.date}>
-              <p className="border-b border-line bg-background px-4 py-2 text-sm text-muted">
+              <p className="border-b border-line bg-surface-2 px-4 py-2 text-xs font-medium text-muted">
                 Planned {planned(g.date)}, {ago(g.date, v.today)}
               </p>
               <TaskList tasks={g.tasks} />
@@ -79,15 +80,15 @@ async function Backlog() {
         )}
       </section>
 
-      <section aria-labelledby="goals-h" className="rounded-xl border border-line bg-surface">
-        <h2 id="goals-h" className="border-b border-line p-4 font-semibold">
+      <section aria-labelledby="goals-h" className="overflow-hidden rounded-md border border-line bg-surface">
+        <h2 id="goals-h" className="border-b border-line px-4 py-3 font-semibold">
           Weekly goals
         </h2>
         {v.goals.length === 0 ? <p className="p-4 text-muted">All goals for this week are done.</p> : <TaskList tasks={v.goals} />}
       </section>
 
-      <section aria-labelledby="ahead-h" className="rounded-xl border border-line bg-surface">
-        <h2 id="ahead-h" className="border-b border-line p-4 font-semibold">
+      <section aria-labelledby="ahead-h" className="overflow-hidden rounded-md border border-line bg-surface">
+        <h2 id="ahead-h" className="border-b border-line px-4 py-3 font-semibold">
           Rest of this week
         </h2>
         {v.upcoming.length === 0 ? (
@@ -95,7 +96,7 @@ async function Backlog() {
         ) : (
           v.upcoming.map((g) => (
             <div key={g.date}>
-              <p className="border-b border-line bg-background px-4 py-2 text-sm text-muted">Planned {planned(g.date)}. You can work ahead.</p>
+              <p className="border-b border-line bg-surface-2 px-4 py-2 text-xs font-medium text-muted">Planned {planned(g.date)}. You can work ahead.</p>
               <TaskList tasks={g.tasks} />
             </div>
           ))
@@ -103,7 +104,7 @@ async function Backlog() {
       </section>
 
       {!v.position.finished && (
-        <section className="rounded-xl border border-line bg-surface p-4">
+        <section className="rounded-md border border-line bg-surface p-5">
           <h2 className="font-semibold">Skip the rest of this week</h2>
           <p className="mt-1 text-sm text-muted">
             This deletes every task of week {v.position.cursor} that is not done and starts week{" "}
@@ -111,9 +112,9 @@ async function Backlog() {
           </p>
           <form action={skipPlanWeekAction} className="mt-3 flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="confirm" className="size-4" />I understand, skip this week
+              <input type="checkbox" name="confirm" className="size-4 accent-[var(--danger)]" />I understand, skip this week
             </label>
-            <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">Skip the rest of this week</SubmitButton>
+            <SubmitButton className={buttonClass("danger", "md")}>Skip the rest of this week</SubmitButton>
           </form>
         </section>
       )}
@@ -128,13 +129,13 @@ function TaskList({ tasks }: { tasks: Task[] }) {
         const done = t.status === "done";
         const cat = (t.category in CATEGORIES ? t.category : "other") as Category;
         return (
-          <li key={t.id} className="flex items-start gap-3 p-4">
+          <li key={t.id} className="flex items-start gap-3 px-4 py-3 transition-colors duration-120 hover:bg-surface-2">
             <form action={toggleTaskAction} className="pt-0.5">
               <input type="hidden" name="id" value={t.id} />
               <SubmitButton
                 aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
                 className={`flex size-6 shrink-0 items-center justify-center rounded-md border-2 ${
-                  done ? "border-accent bg-accent text-on-accent" : "border-line hover:border-accent"
+                  done ? "border-primary bg-primary text-on-primary" : "border-line-strong hover:border-primary"
                 }`}
               >
                 {done && (
