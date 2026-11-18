@@ -8,9 +8,12 @@
 export const THEME_MODES = ["system", "light", "dark"] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
-/** One colour each, the same in light and dark. */
+/**
+ * One colour each, the same in light and dark. The default ("green", the stored id since before themes had their own
+ * colour) keeps the theme's own primary: green in Dojo, orange in Ember and so on. `color` is Dojo's green.
+ */
 export const ACCENTS = [
-  { id: "green", label: "Green", color: "#2f7d5b" },
+  { id: "green", label: "Theme colour", color: "#2f7d5b" },
   { id: "blue", label: "Blue", color: "#2f6fe0" },
   { id: "violet", label: "Violet", color: "#7c4dde" },
   { id: "amber", label: "Amber", color: "#b8590a" },
@@ -19,79 +22,88 @@ export const ACCENTS = [
 export type AccentId = (typeof ACCENTS)[number]["id"];
 export const DEFAULT_ACCENT: AccentId = "green";
 
-interface Palette {
-  background: string;
-  foreground: string;
-  surface: string;
-  line: string;
-  muted: string;
-}
+/** Every colour token a theme sets (DESIGN.md). The CSS variable is `--` + the name. */
+export const THEME_TOKENS = ["background", "surface", "surface-2", "line", "line-strong", "foreground", "muted", "primary", "primary-hover", "primary-soft", "on-primary", "reward", "reward-soft", "success", "warning", "danger"] as const;
+export type ThemeToken = (typeof THEME_TOKENS)[number];
+export type Palette = Record<ThemeToken, string>;
 
-/** Whole-UI looks. They change surfaces, text, corner roundness and (Paper, Terminal) the font. */
+/**
+ * Themes (stored as `style`; the ids never change so saved choices keep working). `classic` is shown as Dojo, the
+ * default. Each sets every token for light and dark; Terminal is dark only (its light palette is the dark one and the
+ * init script forces dark).
+ */
 export const STYLES = [
   {
     id: "classic",
-    label: "Classic",
-    blurb: "Neutral greys, rounded cards",
-    light: { background: "#f7f7f5", foreground: "#1a1a1a", surface: "#ffffff", line: "#e4e4e0", muted: "#6b6b66" },
-    dark: { background: "#111211", foreground: "#ececea", surface: "#1a1b1a", line: "#2c2d2b", muted: "#9a9a94" },
-    radius: "0.75rem",
+    label: "Dojo",
+    blurb: "Neutral and green, the default",
+    light: { background: "#f7f7f5", surface: "#ffffff", "surface-2": "#efefeb", line: "#e4e4e0", "line-strong": "#d3d3ce", foreground: "#1a1a1a", muted: "#66665f", primary: "#2f7d5b", "primary-hover": "#256a4c", "primary-soft": "#e3f0e8", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
+    dark: { background: "#111211", surface: "#1a1b1a", "surface-2": "#222322", line: "#2c2d2b", "line-strong": "#3b3d3a", foreground: "#ececea", muted: "#9a9a94", primary: "#5bb98a", "primary-hover": "#73c69c", "primary-soft": "#1d3328", "on-primary": "#0b1a12", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
+    radius: "0.625rem",
+    darkOnly: false,
   },
   {
     id: "paper",
     label: "Paper",
-    blurb: "Warm paper, serif text, small corners",
-    light: { background: "#f6f1e7", foreground: "#2b2418", surface: "#fffaf0", line: "#e3d9c4", muted: "#75684f" },
-    dark: { background: "#1c1812", foreground: "#efe7d6", surface: "#26211a", line: "#3a3327", muted: "#b3a688" },
+    blurb: "Black on cream, like a book",
+    light: { background: "#fbf8f1", surface: "#fffdf8", "surface-2": "#f2ede1", line: "#e6dfcf", "line-strong": "#d4cbb6", foreground: "#1f1a14", muted: "#6b6152", primary: "#1f1a14", "primary-hover": "#3a3227", "primary-soft": "#efe9dc", "on-primary": "#fbf8f1", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
+    dark: { background: "#1a1713", surface: "#221e19", "surface-2": "#2a251f", line: "#363028", "line-strong": "#463f35", foreground: "#efe7d6", muted: "#b0a48e", primary: "#efe7d6", "primary-hover": "#d9d0be", "primary-soft": "#332d24", "on-primary": "#1a1713", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
     radius: "0.375rem",
+    darkOnly: false,
   },
   {
     id: "ocean",
     label: "Ocean",
-    blurb: "Cool blue-grey, very round",
-    light: { background: "#eef3f9", foreground: "#14213a", surface: "#ffffff", line: "#d5e0ee", muted: "#5a6b82" },
-    dark: { background: "#0b1220", foreground: "#e4ecf8", surface: "#121b2e", line: "#22304a", muted: "#8fa3c2" },
-    radius: "1rem",
+    blurb: "Cool blue, clear",
+    light: { background: "#f4f7fa", surface: "#ffffff", "surface-2": "#e9eef4", line: "#dce3ec", "line-strong": "#c8d2df", foreground: "#14213a", muted: "#56657a", primary: "#2563b8", "primary-hover": "#1e529a", "primary-soft": "#e0eaf7", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
+    dark: { background: "#0d131c", surface: "#141c27", "surface-2": "#1b2431", line: "#253041", "line-strong": "#34425a", foreground: "#e4ecf8", muted: "#93a3ba", primary: "#6ea2f0", "primary-hover": "#8ab5f4", "primary-soft": "#18283f", "on-primary": "#0a1424", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
+    radius: "0.75rem",
+    darkOnly: false,
   },
   {
     id: "terminal",
     label: "Terminal",
-    blurb: "Green on black, monospace, square corners",
-    light: { background: "#f2f5f2", foreground: "#0f1a0f", surface: "#ffffff", line: "#c9d4c9", muted: "#5b6b5b" },
-    dark: { background: "#060906", foreground: "#c8f5c8", surface: "#0c120c", line: "#1d2b1d", muted: "#6fa06f" },
+    blurb: "Green on black, monospace, square corners (dark only)",
+    light: { background: "#0e110e", surface: "#131813", "surface-2": "#192019", line: "#223022", "line-strong": "#2e402e", foreground: "#c8f5c8", muted: "#7fae7f", primary: "#4ade80", "primary-hover": "#6ee79a", "primary-soft": "#143220", "on-primary": "#052e12", reward: "#f2b63c", "reward-soft": "#2e2a0f", success: "#4ade80", warning: "#e0b23a", danger: "#f07a6e" },
+    dark: { background: "#0e110e", surface: "#131813", "surface-2": "#192019", line: "#223022", "line-strong": "#2e402e", foreground: "#c8f5c8", muted: "#7fae7f", primary: "#4ade80", "primary-hover": "#6ee79a", "primary-soft": "#143220", "on-primary": "#052e12", reward: "#f2b63c", "reward-soft": "#2e2a0f", success: "#4ade80", warning: "#e0b23a", danger: "#f07a6e" },
     radius: "0",
+    darkOnly: true,
   },
   {
     id: "sage",
     label: "Sage",
     blurb: "Soft green-grey. Calm, low glare",
-    light: { background: "#e9efe7", foreground: "#1c2a21", surface: "#f6f9f4", line: "#cbd8c8", muted: "#4a5d50" },
-    dark: { background: "#17201b", foreground: "#dbe7de", surface: "#1e2923", line: "#2f3f35", muted: "#9db3a3" },
+    light: { background: "#e9efe7", surface: "#f6f9f4", "surface-2": "#dfe7dc", line: "#cbd8c8", "line-strong": "#b7c7b3", foreground: "#1c2a21", muted: "#4a5d50", primary: "#276b4d", "primary-hover": "#1f5a40", "primary-soft": "#d5e6da", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2a7348", warning: "#8e5a0e", danger: "#a82d25" },
+    dark: { background: "#17201b", surface: "#1e2923", "surface-2": "#25312a", line: "#2f3f35", "line-strong": "#3e5045", foreground: "#dbe7de", muted: "#9db3a3", primary: "#6cc59a", "primary-hover": "#86d1ac", "primary-soft": "#21382b", "on-primary": "#0b1a12", reward: "#f2b63c", "reward-soft": "#33280f", success: "#66be8c", warning: "#e0a23a", danger: "#ef7a70" },
     radius: "0.625rem",
+    darkOnly: false,
   },
   {
     id: "dusk",
     label: "Dusk",
-    blurb: "Slate blue-grey. Cool, even light",
-    light: { background: "#e8edf3", foreground: "#1b2533", surface: "#f5f8fb", line: "#cdd7e3", muted: "#4b5a70" },
-    dark: { background: "#1b222c", foreground: "#d5dde8", surface: "#232c38", line: "#34404f", muted: "#9aa9bd" },
+    blurb: "Muted violet evening",
+    light: { background: "#f7f5f9", surface: "#fdfcfe", "surface-2": "#eeeaf3", line: "#e2ddea", "line-strong": "#d0c9dc", foreground: "#2a2438", muted: "#645c74", primary: "#6b4fb8", "primary-hover": "#5a41a0", "primary-soft": "#ece6f7", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
+    dark: { background: "#15131a", surface: "#1d1a24", "surface-2": "#25212e", line: "#302b3a", "line-strong": "#403a4d", foreground: "#e2ddeb", muted: "#a39cb2", primary: "#b49af0", "primary-hover": "#c5b0f4", "primary-soft": "#2a2240", "on-primary": "#170f2a", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
     radius: "0.625rem",
+    darkOnly: false,
   },
   {
     id: "ember",
     label: "Ember",
-    blurb: "Warm cream and brown. Less blue light",
-    light: { background: "#f3e9d9", foreground: "#3a2c1e", surface: "#faf3e6", line: "#dccdb2", muted: "#6a5640" },
-    dark: { background: "#1a1511", foreground: "#e8dcc8", surface: "#231d17", line: "#3a3026", muted: "#b09f86" },
-    radius: "0.5rem",
+    blurb: "Warm paper and orange",
+    light: { background: "#faf7f2", surface: "#fffdf9", "surface-2": "#f1ebe1", line: "#e6ded1", "line-strong": "#d6cbb9", foreground: "#3a2c1e", muted: "#6e5d4c", primary: "#c2481b", "primary-hover": "#a63c15", "primary-soft": "#f8e4d9", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
+    dark: { background: "#171310", surface: "#201a16", "surface-2": "#29221c", line: "#352c25", "line-strong": "#463b32", foreground: "#e8dcc8", muted: "#a8998a", primary: "#f08a5d", "primary-hover": "#f4a27d", "primary-soft": "#3a2318", "on-primary": "#1f0d05", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
+
+    radius: "0.625rem",
+    darkOnly: false,
   },
-] as const satisfies readonly { id: string; label: string; blurb: string; light: Palette; dark: Palette; radius: string }[];
+] as const satisfies readonly { id: string; label: string; blurb: string; light: Palette; dark: Palette; radius: string; darkOnly: boolean }[];
 export type StyleId = (typeof STYLES)[number]["id"];
 export const DEFAULT_STYLE: StyleId = "classic";
 
-/** Reading fonts. "default" is the app font (Geist). Lexend and Atkinson Hyperlegible are made for easy reading. */
+/** Reading fonts. "default" is the app font (Figtree). Lexend and Atkinson Hyperlegible are made for easy reading. */
 export const FONTS = [
-  { id: "default", label: "Default", sample: "Geist" },
+  { id: "default", label: "Figtree (default)", sample: "Friendly and clear at small sizes" },
   { id: "lexend", label: "Lexend", sample: "Wide, even letter spacing" },
   { id: "atkinson", label: "Atkinson Hyperlegible", sample: "Letters that are hard to confuse" },
   { id: "serif", label: "Serif", sample: "Georgia, like a book" },
@@ -143,11 +155,15 @@ export function parseStyle(value: unknown): StyleId {
   return STYLES.find((s) => s.id === value)?.id ?? DEFAULT_STYLE;
 }
 
-/** The colour scheme actually shown: System means whatever the OS prefers. */
-export function resolveMode(mode: ThemeMode, systemDark: boolean): "light" | "dark" {
+/** The colour scheme actually shown: System means whatever the OS prefers; a dark-only theme is always dark. */
+export function resolveMode(mode: ThemeMode, systemDark: boolean, style?: StyleId): "light" | "dark" {
+  if (style && STYLES.find((s) => s.id === style)?.darkOnly) return "dark";
   if (mode === "system") return systemDark ? "dark" : "light";
   return mode;
 }
+
+/** The CSS custom properties the init script may set inline for a custom theme (cleared on every apply). */
+export const CUSTOM_THEME_VARS = [...THEME_TOKENS.map((t) => "--" + t), "--accent", "--on-accent"];
 
 /**
  * Runs in <head> before the page paints. Sets data-mode (the choice), data-theme (light or dark, resolved),
@@ -155,14 +171,14 @@ export function resolveMode(mode: ThemeMode, systemDark: boolean): "light" | "da
  * mode is System. Plain ES5; the tests run it against a fake document.
  */
 export const THEME_INIT_SCRIPT = `(function(){
-var d=document.documentElement,modes=${JSON.stringify(THEME_MODES)},accents=${JSON.stringify(ACCENTS.map((a) => a.id))},styles=${JSON.stringify(STYLES.map((s) => s.id))},fonts=${JSON.stringify(FONTS.map((f) => f.id))};
+var d=document.documentElement,modes=${JSON.stringify(THEME_MODES)},accents=${JSON.stringify(ACCENTS.map((a) => a.id))},styles=${JSON.stringify(STYLES.map((s) => s.id))},fonts=${JSON.stringify(FONTS.map((f) => f.id))},darkOnly=${JSON.stringify(STYLES.filter((s) => s.darkOnly).map((s) => s.id))},tokens=${JSON.stringify(THEME_TOKENS)};
 var mq=window.matchMedia("(prefers-color-scheme: dark)"),rm=window.matchMedia("(prefers-reduced-motion: reduce)");
 function read(key){try{return localStorage.getItem(key)}catch(e){return null}}
 function apply(){
 var m=read(${JSON.stringify(THEME_KEY)}),a=read(${JSON.stringify(ACCENT_KEY)}),s=read(${JSON.stringify(STYLE_KEY)});
 if(modes.indexOf(m)<0)m="system";
 d.setAttribute("data-mode",m);
-d.setAttribute("data-theme",m==="system"?(mq.matches?"dark":"light"):m);
+d.setAttribute("data-theme",darkOnly.indexOf(s)>=0?"dark":m==="system"?(mq.matches?"dark":"light"):m);
 if(accents.indexOf(a)>0)d.setAttribute("data-accent",a);else d.removeAttribute("data-accent");
 if(styles.indexOf(s)>0)d.setAttribute("data-style",s);else d.removeAttribute("data-style");
 var f=read(${JSON.stringify(FONT_KEY)});
@@ -174,16 +190,17 @@ var b=read(${JSON.stringify(BIONIC_KEY)});if(b==="on")b="subtle";
 if(b==="subtle"||b==="strong")d.setAttribute("data-bionic",b);else d.removeAttribute("data-bionic");
 custom();
 }
-var CV=["--accent","--on-accent","--background","--surface","--foreground","--line","--muted"];
+var CV=${JSON.stringify(CUSTOM_THEME_VARS)};
 function hex(v){return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)}
 function lum(h){var c=[1,3,5].map(function(i){var x=parseInt(h.substr(i,2),16)/255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4)});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]}
 function custom(){
 if(!d.style)return;
 for(var i=0;i<CV.length;i++)d.style.removeProperty(CV[i]);
 var t=null;try{var raw=read("habit-custom-theme");t=raw?JSON.parse(raw):null}catch(e){}
-if(t&&hex(t.accent)){d.style.setProperty("--accent",t.accent);d.style.setProperty("--on-accent",lum(t.accent)>0.179?"#111111":"#ffffff")}
-var p=t&&t[d.getAttribute("data-theme")==="dark"?"dark":"light"];
-if(p)["background","surface","foreground","line","muted"].forEach(function(k){if(hex(p[k]))d.style.setProperty("--"+k,p[k])});
+var dk=d.getAttribute("data-theme")==="dark";
+if(t&&hex(t.accent)){d.style.setProperty("--primary",t.accent);d.style.setProperty("--on-primary",lum(t.accent)>0.179?"#111111":"#ffffff");d.style.setProperty("--primary-hover","color-mix(in oklab, "+t.accent+" 92%, "+(dk?"white":"black")+")");d.style.setProperty("--primary-soft","color-mix(in oklab, "+t.accent+" 14%, var(--surface))")}
+var p=t&&t[dk?"dark":"light"];
+if(p&&typeof p==="object")tokens.forEach(function(k){if(hex(p[k]))d.style.setProperty("--"+k,p[k])});
 var cf=null;try{var fr=read("habit-custom-font");cf=fr?JSON.parse(fr):null}catch(e){}
 if(cf&&typeof cf.family==="string"&&/^[A-Za-z0-9][A-Za-z0-9 ._\\-]{0,60}$/.test(cf.family)){d.setAttribute("data-custom-font","on");d.style.setProperty("--font-custom",String.fromCharCode(34)+cf.family+String.fromCharCode(34))}else{d.removeAttribute("data-custom-font");d.style.removeProperty("--font-custom")}
 window.__habitCustom=custom;
@@ -317,7 +334,7 @@ export function applyTheme({ mode, accent, style, font, gamify, bionic, motion, 
   }
   const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   root.setAttribute("data-mode", mode);
-  root.setAttribute("data-theme", resolveMode(mode, dark));
+  root.setAttribute("data-theme", resolveMode(mode, dark, style));
   if (accent === DEFAULT_ACCENT) root.removeAttribute("data-accent");
   else root.setAttribute("data-accent", accent);
   if (style === DEFAULT_STYLE) root.removeAttribute("data-style");

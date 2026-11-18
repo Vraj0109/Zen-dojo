@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible, Geist, Geist_Mono, Lexend } from "next/font/google";
+import { Atkinson_Hyperlegible, Figtree, JetBrains_Mono, Lexend } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -23,19 +23,14 @@ import { SyncedPrefs } from "./components/synced-prefs";
 import { PullToRefresh } from "./components/pull-to-refresh";
 import { SectionScrubber } from "./components/section-scrubber";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// App fonts (DESIGN.md): Figtree for UI and body, JetBrains Mono for code.
+const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
 
 // Optional reading fonts (Settings > Interface > Reading font). Loaded with the page, used only when chosen.
 const lexend = Lexend({ variable: "--font-lexend", subsets: ["latin"], display: "swap" });
 const atkinson = Atkinson_Hyperlegible({ variable: "--font-atkinson", subsets: ["latin"], weight: ["400", "700"], display: "swap" });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const jetbrainsMono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400", "500"], display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Zen Dojo", template: "%s · Zen Dojo" },
@@ -59,7 +54,7 @@ export const viewport: Viewport = { themeColor: "#1c1715", viewportFit: "cover" 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning: the init script sets data-mode/data-theme/data-accent on <html> before React runs.
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} ${atkinson.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${figtree.variable} ${jetbrainsMono.variable} ${lexend.variable} ${atkinson.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

@@ -70,11 +70,22 @@ describe("init script applies custom colours and font", () => {
   it("sets the accent, picks readable text on it, and uses the palette of the current scheme", () => {
     const theme = JSON.stringify({ accent: "#ffff00", light: { ...DEFAULT_LIGHT, background: "#fafafa" }, dark: { ...DEFAULT_DARK, background: "#010203" } });
     const light = run({ [CUSTOM_THEME_KEY]: theme }, false);
-    expect(light.style.get("--accent")).toBe("#ffff00");
-    expect(light.style.get("--on-accent")).toBe("#111111"); // dark text on a light accent
+    expect(light.style.get("--primary")).toBe("#ffff00");
+    expect(light.style.get("--on-primary")).toBe("#111111"); // dark text on a light accent
     expect(light.style.get("--background")).toBe("#fafafa");
     expect(run({ [CUSTOM_THEME_KEY]: theme }, true).style.get("--background")).toBe("#010203");
-    expect(run({ [CUSTOM_THEME_KEY]: JSON.stringify({ accent: "#102030" }) }, false).style.get("--on-accent")).toBe("#ffffff");
+    expect(run({ [CUSTOM_THEME_KEY]: JSON.stringify({ accent: "#102030" }) }, false).style.get("--on-primary")).toBe("#ffffff");
+  });
+
+  it("applies an old five-colour theme and the new Dojo keys when they are saved", () => {
+    const old = run({ [CUSTOM_THEME_KEY]: JSON.stringify({ accent: "#2f7d5b", light: DEFAULT_LIGHT, dark: DEFAULT_DARK }) }, false);
+    expect(old.style.get("--muted")).toBe(DEFAULT_LIGHT.muted);
+    expect(old.style.get("--primary")).toBe("#2f7d5b");
+    expect(old.style.has("--surface-2")).toBe(false); // left to the theme
+    const next = run({ [CUSTOM_THEME_KEY]: JSON.stringify({ light: { ...DEFAULT_LIGHT, "surface-2": "#eeeeee", danger: "#aa0000", reward: "bad" } }) }, false);
+    expect(next.style.get("--surface-2")).toBe("#eeeeee");
+    expect(next.style.get("--danger")).toBe("#aa0000");
+    expect(next.style.has("--reward")).toBe(false);
   });
 
   it("ignores invalid colours and sets nothing without a saved theme", () => {

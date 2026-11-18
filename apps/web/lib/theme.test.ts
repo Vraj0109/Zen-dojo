@@ -23,7 +23,9 @@ import {
   MOTION_KEY,
   motionEnabled,
   parseMotion,
+  THEME_TOKENS,
 } from "./theme";
+import { parseCustomTheme } from "./custom";
 
 describe("theme parsing", () => {
   it("falls back to System and the default accent for anything unknown", () => {
@@ -146,7 +148,7 @@ describe("theme CSS", () => {
     expect(start, selector).toBeGreaterThanOrEqual(0);
     return css.slice(start, css.indexOf("}", start));
   };
-  const value = (block: string, name: string) => new RegExp("--" + name + ":\\s*([^;]+);").exec(block)?.[1].trim();
+  const value = (block: string, name: string) => new RegExp("(?:^|[\\s;{])--" + name + ":\\s*([^;]+);").exec(block)?.[1].trim();
 
   it("no longer depends on the OS media query alone", () => {
     expect(css).not.toContain("prefers-color-scheme");
@@ -156,9 +158,10 @@ describe("theme CSS", () => {
   it("gives each accent one colour, with no separate dark value", () => {
     expect(css).not.toMatch(/data-theme="dark"\]\[data-accent/);
     for (const a of ACCENTS.filter((x) => x.id !== DEFAULT_ACCENT)) {
-      expect(value(rule(':root[data-accent="' + a.id + '"]'), "accent"), a.id).toBe(a.color);
+      expect(value(rule(':root[data-accent="' + a.id + '"][data-accent][data-accent]'), "primary"), a.id).toBe(a.color);
     }
-    expect(value(rule(":root"), "accent")).toBe(ACCENTS.find((a) => a.id === DEFAULT_ACCENT)!.color);
+    expect(value(rule(":root"), "primary")).toBe(ACCENTS.find((a) => a.id === DEFAULT_ACCENT)!.color);
+    expect(value(rule(":root"), "accent")).toBe("var(--primary)");
   });
 
   it("does not touch the accent in dark mode", () => {
@@ -171,7 +174,7 @@ describe("theme CSS", () => {
     for (const s of STYLES) {
       const light = s.id === DEFAULT_STYLE ? rule(":root") : rule(':root[data-style="' + s.id + '"]');
       const dark = s.id === DEFAULT_STYLE ? rule(':root[data-theme="dark"]') : rule(':root[data-theme="dark"][data-style="' + s.id + '"]');
-      for (const name of ["background", "foreground", "surface", "line", "muted"] as const) {
+      for (const name of THEME_TOKENS) {
         expect(value(light, name), s.id + " light " + name).toBe(s.light[name]);
         expect(value(dark, name), s.id + " dark " + name).toBe(s.dark[name]);
       }
@@ -257,5 +260,65 @@ describe("readability of every style (WCAG contrast)", () => {
       expect(contrast(a.color, "#111211"), a.id + " on dark").toBeGreaterThanOrEqual(3);
       expect(contrast(a.color, "#ffffff"), a.id + " on light").toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe("Dojo themes (plan 0083)", () => {
+  it("every built-in theme sets every token in light and dark with a hex colour", () => {
+    for (const s of STYLES) {
+      for (const scheme of ["light", "dark"] as const) {
+        for (const t of THEME_TOKENS) expect(s[scheme][t], `${s.id} ${scheme} ${t}`).toMatch(/^#[0-9a-f]{6}$/);
+      }
+    }
+  });
+
+  it("text tokens of every theme are 4.5:1 or more on background and surface, and on-primary reads on primary", () => {
+    for (const s of STYLES) {
+      for (const scheme of ["light", "dark"] as const) {
+        const p = s[scheme];
+        for (const t of ["muted", "primary", "success", "warning", "danger"] as const) {
+          expect(contrast(p[t], p.background), `${s.id} ${scheme} ${t}`).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(p[t], p.surface), `${s.id} ${scheme} ${t} on surface`).toBeGreaterThanOrEqual(4.5);
+        }
+        expect(contrast(p["on-primary"], p.primary), `${s.id} ${scheme} on-primary`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("the stored id classic still loads, as Dojo, and is the default", () => {
+    expect(DEFAULT_STYLE).toBe("classic");
+    expect(parseStyle("classic")).toBe("classic");
+    expect(STYLES.find((s) => s.id === "classic")!.label).toBe("Dojo");
+    expect(STYLES.map((s) => s.id)).toEqual(["classic", "paper", "ocean", "terminal", "sage", "dusk", "ember"]);
+    const init = runInit({ [STYLE_KEY]: "classic" }, false);
+    expect(init.attrs.has("data-style")).toBe(false);
+    expect(init.attrs.get("data-theme")).toBe("light");
+  });
+
+  it("Terminal is dark only, whatever the saved mode", () => {
+    expect(runInit({ [STYLE_KEY]: "terminal", [THEME_KEY]: "light" }, false).attrs.get("data-theme")).toBe("dark");
+    expect(resolveMode("light", false, "terminal")).toBe("dark");
+    expect(resolveMode("light", false, "ember")).toBe("light");
+    const t = STYLES.find((s) => s.id === "terminal")!;
+    expect(t.darkOnly).toBe(true);
+    expect(t.light).toEqual(t.dark);
+  });
+
+  it("Ember uses the DESIGN.md background and primary", () => {
+    const e = STYLES.find((s) => s.id === "ember")!;
+    expect(e.light.background).toBe("#faf7f2");
+    expect(e.light.primary).toBe("#c2481b");
+  });
+
+  it("an old custom theme (five colours and an accent) still parses", () => {
+    const old = JSON.stringify({
+      accent: "#2f7d5b",
+      light: { background: "#f7f7f5", surface: "#ffffff", foreground: "#1a1a1a", line: "#e4e4e0", muted: "#6b6b66" },
+      dark: { background: "#111211", surface: "#1a1b1a", foreground: "#ececea", line: "#2c2d2b", muted: "#9a9a94" },
+    });
+    const t = parseCustomTheme(old);
+    expect(t.accent).toBe("#2f7d5b");
+    expect(t.light?.muted).toBe("#6b6b66");
+    expect(t.dark?.background).toBe("#111211");
   });
 });

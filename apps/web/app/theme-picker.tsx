@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import {
   ACCENTS,
+  DEFAULT_ACCENT,
   FONTS,
   STYLES,
   THEME_EVENT,
@@ -111,7 +112,14 @@ export function ThemePicker() {
                     <span className="mt-0.5 block text-xs" style={{ color: p.muted }}>
                       {s.blurb}
                     </span>
-                    <span className="mt-2 inline-block px-2.5 py-1 text-xs font-medium text-white" style={{ background: accentColor, borderRadius: s.radius }}>
+                    <span
+                      className="mt-2 inline-block px-2.5 py-1 text-xs font-medium"
+                      style={{
+                        background: accent === DEFAULT_ACCENT ? p.primary : accentColor,
+                        color: accent === DEFAULT_ACCENT ? p["on-primary"] : "#ffffff",
+                        borderRadius: s.radius,
+                      }}
+                    >
                       Button
                     </span>
                   </span>
@@ -121,7 +129,7 @@ export function ThemePicker() {
           })}
         </div>
         <p className="mt-1 text-xs text-muted">
-          Previews use your current light or dark choice and accent. Sage, Dusk and Ember are soft, low-glare palettes: text is at least 10:1 against the
+          Previews use your current light or dark choice and accent. Terminal is dark only. Sage, Dusk and Ember are soft, low-glare palettes: text is at least 10:1 against the
           background (the web standard asks for 4.5:1, or 7:1 for the strictest level).
         </p>
       </div>
@@ -140,12 +148,12 @@ export function ThemePicker() {
               onClick={() => applyTheme({ ...current, accent: a.id })}
               className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium ${accent === a.id ? "border-foreground" : "border-line hover:bg-background"}`}
             >
-              <span aria-hidden className="size-3.5 rounded-full" style={{ background: a.color }} />
+              <span aria-hidden className="size-3.5 rounded-full" style={{ background: a.id === DEFAULT_ACCENT ? STYLES.find((s) => s.id === style)![scheme].primary : a.color }} />
               {a.label}
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-muted">The accent is the same colour in light and dark.</p>
+        <p className="mt-1 text-xs text-muted">Theme colour keeps the style&apos;s own colour. The others are the same colour in light and dark.</p>
       </div>
 
       <div>
@@ -216,7 +224,7 @@ export function ThemePicker() {
 }
 
 const FONT_CSS: Record<FontId, string> = {
-  default: "var(--font-geist-sans), system-ui, sans-serif",
+  default: "var(--font-figtree), system-ui, sans-serif",
   lexend: "var(--font-lexend), system-ui, sans-serif",
   atkinson: "var(--font-atkinson), system-ui, sans-serif",
   serif: 'Georgia, "Times New Roman", serif',

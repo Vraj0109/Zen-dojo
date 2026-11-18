@@ -58,7 +58,7 @@ values. Contrast: body text 4.5:1 or more on its background, large text and icon
 | `reward` | `#E8A317` | Streak flame, XP bar fill, earned badges. Decoration only, never text on light backgrounds |
 | `reward-soft` | `#FDF1D6` | Background of streak and XP chips |
 | `success` | `#2E7D4F` | Solved, passed tests, done tasks |
-| `warning` | `#A86A12` | Due for review, slow run, near limit |
+| `warning` | `#9A6210` | Due for review, slow run, near limit (4.9:1 on background; `#A86A12` was 4.1:1) |
 | `danger` | `#B8322A` | Failed tests, destructive actions, errors |
 
 ### Dark

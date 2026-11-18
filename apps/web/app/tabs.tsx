@@ -30,9 +30,9 @@ export function Tabs({
             href={hrefFor(t.id)}
             scroll={false}
             aria-current={isActive ? "page" : undefined}
-            className={`-mb-px shrink-0 pb-2 text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`-mb-px shrink-0 pb-2 text-sm font-medium whitespace-nowrap transition-colors duration-180 ease-dojo ${
               isActive
-                ? "border-b-2 border-accent text-foreground"
+                ? "border-b-2 border-primary text-foreground"
                 : "border-b-2 border-transparent text-muted hover:text-foreground"
             }`}
           >

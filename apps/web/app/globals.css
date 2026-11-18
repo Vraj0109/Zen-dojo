@@ -1,84 +1,126 @@
 @import "tailwindcss";
 
+/* ---- Dojo design tokens (DESIGN.md) ----
+   Colour: every colour has one role; pages use the Tailwind names (bg-surface, bg-surface-2, border-line,
+   border-line-strong, text-muted, bg-primary, hover:bg-primary-hover, bg-primary-soft, text-on-primary, text-reward,
+   bg-reward-soft, text-success, text-warning, text-danger, border-cat-*). `accent` / `on-accent` are old names kept as
+   aliases of `primary` / `on-primary` until every screen is moved (plan 0083).
+   Type: text-xs 12/16, text-sm 14/20, text-base 16/26, text-lg 18/28, text-xl 22/30, text-2xl 28/36, text-3xl 36/44.
+   Radius: rounded-sm 6px (badges, inputs), rounded-md 10px (buttons, cards), rounded-lg 14px (panels, dialogs),
+   rounded-full (chips, bars). Themes change the scale through --r-sm / --r-md / --r-lg.
+   Shadow: shadow-sm (raised card on hover), shadow-lg (menus, popovers, dialogs). Dark mode has no shadows.
+   Motion: duration-120 (hover, press), duration-180 (menus, tabs), duration-240 (sheets, dialogs) with ease-dojo;
+   also var(--dur-fast|base|slow). Settings > Animations and the OS "reduce motion" switch all of it off (data-motion).
+   Themes: lib/theme.ts STYLES holds the same values (a test keeps them equal). Default theme Dojo is the style id
+   `classic` and lives in :root. */
 :root {
   color-scheme: light;
-  --background: #f7f7f5;
-  --foreground: #1a1a1a;
-  --surface: #ffffff;
-  --line: #e4e4e0;
-  --muted: #6b6b66;
-  --accent: #2f7d5b;
-  --on-accent: #ffffff;
-  --cat-dsa: #3b82f6;
-  --cat-sd: #a855f7;
-  --cat-beh: #f59e0b;
-  --cat-mock: #ef4444;
-  --cat-other: #9ca3af;
-  --diff-easy: #059669;
-  --diff-medium: #d97706;
-  --diff-hard: #dc2626;
+  --background: #f7f7f5; --surface: #ffffff; --surface-2: #efefeb; --line: #e4e4e0; --line-strong: #d3d3ce; --foreground: #1a1a1a; --muted: #66665f; --primary: #2f7d5b; --primary-hover: #256a4c; --primary-soft: #e3f0e8; --on-primary: #ffffff; --reward: #e8a317; --reward-soft: #fdf1d6; --success: #2e7d4f; --warning: #9a6210; --danger: #b8322a;
+  --cat-dsa: #2f6fd6; --cat-sd: #8a4fc9; --cat-lld: #0f8a8a; --cat-core: #7a6a55; --cat-beh: #b7791f; --cat-mock: #2f7d5b; --cat-other: #9ca3af;
+  /* Old names: keep working on screens not yet moved to the new tokens. */
+  --accent: var(--primary);
+  --on-accent: var(--on-primary);
+  --diff-easy: var(--success);
+  --diff-medium: var(--warning);
+  --diff-hard: var(--danger);
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+  --elev-sm: 0 1px 2px rgba(31, 26, 20, 0.06);
+  --elev-lg: 0 8px 24px rgba(31, 26, 20, 0.12);
+  --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 240ms;
 }
 
-/* Dark scheme. data-theme is set on <html> by the inline script in lib/theme.ts (the choice, or the OS when System).
-   The accent colour is deliberately NOT changed here: an accent looks the same in light and dark. */
+/* Dark scheme. data-theme is set on <html> by the inline script in lib/theme.ts (the choice, or the OS when System). */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #111211;
-  --foreground: #ececea;
-  --surface: #1a1b1a;
-  --line: #2c2d2b;
-  --muted: #9a9a94;
-  --diff-easy: #10b981;
-  --diff-medium: #fbbf24;
-  --diff-hard: #f87171;
+  --background: #111211; --surface: #1a1b1a; --surface-2: #222322; --line: #2c2d2b; --line-strong: #3b3d3a; --foreground: #ececea; --muted: #9a9a94; --primary: #5bb98a; --primary-hover: #73c69c; --primary-soft: #1d3328; --on-primary: #0b1a12; --reward: #f2b63c; --reward-soft: #33280f; --success: #5cb884; --warning: #e0a23a; --danger: #ef6f64;
+  --cat-dsa: #6ea2f0; --cat-sd: #b48ae8; --cat-lld: #4cc2c2; --cat-core: #b8a88f; --cat-beh: #e3ae55; --cat-mock: #5bb98a;
+  /* No shadows in dark mode: floating things get a line-strong border instead. */
+  --elev-sm: 0 0 #0000;
+  --elev-lg: 0 0 #0000;
 }
 
-/* Accent colours: one colour each, used in light and dark (green is the default and lives in :root). Each has to be
-   readable on white and on near-black, with white text on top. lib/theme.ts holds the same values for the picker. */
-:root[data-accent="blue"] { --accent: #2f6fe0; }
-:root[data-accent="violet"] { --accent: #7c4dde; }
-:root[data-accent="amber"] { --accent: #b8590a; }
-:root[data-accent="rose"] { --accent: #d6285a; }
-
-/* Styles: whole-UI looks. Each one sets the surface colours (light, then dark), corner roundness and sometimes the
-   font. lib/theme.ts holds the same colours for the picker previews; a test keeps them equal. */
-:root[data-style="paper"] { --background: #f6f1e7; --foreground: #2b2418; --surface: #fffaf0; --line: #e3d9c4; --muted: #75684f; --radius-lg: 0.25rem; --radius-xl: 0.375rem; --radius-2xl: 0.5rem; }
-:root[data-theme="dark"][data-style="paper"] { --background: #1c1812; --foreground: #efe7d6; --surface: #26211a; --line: #3a3327; --muted: #b3a688; }
-:root[data-style="paper"] body { font-family: Georgia, "Times New Roman", serif; }
-
-:root[data-style="ocean"] { --background: #eef3f9; --foreground: #14213a; --surface: #ffffff; --line: #d5e0ee; --muted: #5a6b82; --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-2xl: 1.5rem; }
-:root[data-theme="dark"][data-style="ocean"] { --background: #0b1220; --foreground: #e4ecf8; --surface: #121b2e; --line: #22304a; --muted: #8fa3c2; }
-
-:root[data-style="terminal"] { --background: #f2f5f2; --foreground: #0f1a0f; --surface: #ffffff; --line: #c9d4c9; --muted: #5b6b5b; --radius-lg: 0; --radius-xl: 0; --radius-2xl: 0; --radius-md: 0; }
-:root[data-theme="dark"][data-style="terminal"] { --background: #060906; --foreground: #c8f5c8; --surface: #0c120c; --line: #1d2b1d; --muted: #6fa06f; }
-/* Focus styles: soft, low-glare palettes. Text contrast is at least 10:1 and muted text at least 4.5:1 (a test checks it). */
-:root[data-style="sage"] { --background: #e9efe7; --foreground: #1c2a21; --surface: #f6f9f4; --line: #cbd8c8; --muted: #4a5d50; --radius-lg: 0.5rem; --radius-xl: 0.625rem; --radius-2xl: 0.875rem; }
-:root[data-theme="dark"][data-style="sage"] { --background: #17201b; --foreground: #dbe7de; --surface: #1e2923; --line: #2f3f35; --muted: #9db3a3; }
-:root[data-style="dusk"] { --background: #e8edf3; --foreground: #1b2533; --surface: #f5f8fb; --line: #cdd7e3; --muted: #4b5a70; --radius-lg: 0.5rem; --radius-xl: 0.625rem; --radius-2xl: 0.875rem; }
-:root[data-theme="dark"][data-style="dusk"] { --background: #1b222c; --foreground: #d5dde8; --surface: #232c38; --line: #34404f; --muted: #9aa9bd; }
-:root[data-style="ember"] { --background: #f3e9d9; --foreground: #3a2c1e; --surface: #faf3e6; --line: #dccdb2; --muted: #6a5640; --radius-lg: 0.375rem; --radius-xl: 0.5rem; --radius-2xl: 0.75rem; }
-:root[data-theme="dark"][data-style="ember"] { --background: #1a1511; --foreground: #e8dcc8; --surface: #231d17; --line: #3a3026; --muted: #b09f86; }
+/* Themes (the stored id is "style"): each sets the full colour set, light then dark. Terminal is dark only (the init
+   script also forces data-theme="dark" for it). */
+:root[data-style="paper"] { --background: #fbf8f1; --surface: #fffdf8; --surface-2: #f2ede1; --line: #e6dfcf; --line-strong: #d4cbb6; --foreground: #1f1a14; --muted: #6b6152; --primary: #1f1a14; --primary-hover: #3a3227; --primary-soft: #efe9dc; --on-primary: #fbf8f1; --reward: #e8a317; --reward-soft: #fdf1d6; --success: #2e7d4f; --warning: #9a6210; --danger: #b8322a; --r-sm: 4px; --r-md: 6px; --r-lg: 8px; }
+:root[data-theme="dark"][data-style="paper"] { --background: #1a1713; --surface: #221e19; --surface-2: #2a251f; --line: #363028; --line-strong: #463f35; --foreground: #efe7d6; --muted: #b0a48e; --primary: #efe7d6; --primary-hover: #d9d0be; --primary-soft: #332d24; --on-primary: #1a1713; --reward: #f2b63c; --reward-soft: #33280f; --success: #5cb884; --warning: #e0a23a; --danger: #ef6f64; }
+:root[data-style="ocean"] { --background: #f4f7fa; --surface: #ffffff; --surface-2: #e9eef4; --line: #dce3ec; --line-strong: #c8d2df; --foreground: #14213a; --muted: #56657a; --primary: #2563b8; --primary-hover: #1e529a; --primary-soft: #e0eaf7; --on-primary: #ffffff; --reward: #e8a317; --reward-soft: #fdf1d6; --success: #2e7d4f; --warning: #9a6210; --danger: #b8322a; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; }
+:root[data-theme="dark"][data-style="ocean"] { --background: #0d131c; --surface: #141c27; --surface-2: #1b2431; --line: #253041; --line-strong: #34425a; --foreground: #e4ecf8; --muted: #93a3ba; --primary: #6ea2f0; --primary-hover: #8ab5f4; --primary-soft: #18283f; --on-primary: #0a1424; --reward: #f2b63c; --reward-soft: #33280f; --success: #5cb884; --warning: #e0a23a; --danger: #ef6f64; }
+:root[data-style="terminal"] { color-scheme: dark; --background: #0e110e; --surface: #131813; --surface-2: #192019; --line: #223022; --line-strong: #2e402e; --foreground: #c8f5c8; --muted: #7fae7f; --primary: #4ade80; --primary-hover: #6ee79a; --primary-soft: #143220; --on-primary: #052e12; --reward: #f2b63c; --reward-soft: #2e2a0f; --success: #4ade80; --warning: #e0b23a; --danger: #f07a6e; --r-sm: 0px; --r-md: 0px; --r-lg: 0px; --radius-xl: 0; --radius-2xl: 0; }
+:root[data-theme="dark"][data-style="terminal"] { color-scheme: dark; --background: #0e110e; --surface: #131813; --surface-2: #192019; --line: #223022; --line-strong: #2e402e; --foreground: #c8f5c8; --muted: #7fae7f; --primary: #4ade80; --primary-hover: #6ee79a; --primary-soft: #143220; --on-primary: #052e12; --reward: #f2b63c; --reward-soft: #2e2a0f; --success: #4ade80; --warning: #e0b23a; --danger: #f07a6e; }
+/* Soft, low-glare themes: body text between 10:1 and 15:1 (a test checks it). */
+:root[data-style="sage"] { --background: #e9efe7; --surface: #f6f9f4; --surface-2: #dfe7dc; --line: #cbd8c8; --line-strong: #b7c7b3; --foreground: #1c2a21; --muted: #4a5d50; --primary: #276b4d; --primary-hover: #1f5a40; --primary-soft: #d5e6da; --on-primary: #ffffff; --reward: #e8a317; --reward-soft: #fdf1d6; --success: #2a7348; --warning: #8e5a0e; --danger: #a82d25; }
+:root[data-theme="dark"][data-style="sage"] { --background: #17201b; --surface: #1e2923; --surface-2: #25312a; --line: #2f3f35; --line-strong: #3e5045; --foreground: #dbe7de; --muted: #9db3a3; --primary: #6cc59a; --primary-hover: #86d1ac; --primary-soft: #21382b; --on-primary: #0b1a12; --reward: #f2b63c; --reward-soft: #33280f; --success: #66be8c; --warning: #e0a23a; --danger: #ef7a70; }
+:root[data-style="dusk"] { --background: #f7f5f9; --surface: #fdfcfe; --surface-2: #eeeaf3; --line: #e2ddea; --line-strong: #d0c9dc; --foreground: #2a2438; --muted: #645c74; --primary: #6b4fb8; --primary-hover: #5a41a0; --primary-soft: #ece6f7; --on-primary: #ffffff; --reward: #e8a317; --reward-soft: #fdf1d6; --success: #2e7d4f; --warning: #9a6210; --danger: #b8322a; }
+:root[data-theme="dark"][data-style="dusk"] { --background: #15131a; --surface: #1d1a24; --surface-2: #25212e; --line: #302b3a; --line-strong: #403a4d; --foreground: #e2ddeb; --muted: #a39cb2; --primary: #b49af0; --primary-hover: #c5b0f4; --primary-soft: #2a2240; --on-primary: #170f2a; --reward: #f2b63c; --reward-soft: #33280f; --success: #5cb884; --warning: #e0a23a; --danger: #ef6f64; }
+:root[data-style="ember"] { --background: #faf7f2; --surface: #fffdf9; --surface-2: #f1ebe1; --line: #e6ded1; --line-strong: #d6cbb9; --foreground: #3a2c1e; --muted: #6e5d4c; --primary: #c2481b; --primary-hover: #a63c15; --primary-soft: #f8e4d9; --on-primary: #ffffff; --reward: #e8a317; --reward-soft: #fdf1d6; --success: #2e7d4f; --warning: #9a6210; --danger: #b8322a; }
+:root[data-theme="dark"][data-style="ember"] { --background: #171310; --surface: #201a16; --surface-2: #29221c; --line: #352c25; --line-strong: #463b32; --foreground: #e8dcc8; --muted: #a8998a; --primary: #f08a5d; --primary-hover: #f4a27d; --primary-soft: #3a2318; --on-primary: #1f0d05; --reward: #f2b63c; --reward-soft: #33280f; --success: #5cb884; --warning: #e0a23a; --danger: #ef6f64; }
 
 :root[data-style="terminal"] body { font-family: var(--font-mono), ui-monospace, monospace; }
+
+/* Accent swatches: one colour each, the same in light and dark, replacing the theme's own primary ("Theme colour",
+   the default, keeps it). The repeated attribute raises specificity above the dark theme rules. lib/theme.ts holds
+   the same values for the picker. */
+:root[data-accent="blue"][data-accent][data-accent] { --primary: #2f6fe0; }
+:root[data-accent="violet"][data-accent][data-accent] { --primary: #7c4dde; }
+:root[data-accent="amber"][data-accent][data-accent] { --primary: #b8590a; }
+:root[data-accent="rose"][data-accent][data-accent] { --primary: #d6285a; }
+:root[data-accent][data-accent][data-accent] {
+  --on-primary: #ffffff;
+  --primary-hover: color-mix(in oklab, var(--primary) 85%, black);
+  --primary-soft: color-mix(in oklab, var(--primary) 14%, var(--surface));
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-reward: var(--reward);
+  --color-reward-soft: var(--reward-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
   --color-cat-dsa: var(--cat-dsa);
   --color-cat-sd: var(--cat-sd);
+  --color-cat-lld: var(--cat-lld);
+  --color-cat-core: var(--cat-core);
   --color-cat-beh: var(--cat-beh);
   --color-cat-mock: var(--cat-mock);
   --color-cat-other: var(--cat-other);
   --color-diff-easy: var(--diff-easy);
   --color-diff-medium: var(--diff-medium);
   --color-diff-hard: var(--diff-hard);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-jetbrains-mono);
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.625rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.25rem;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 2.75rem;
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --shadow-sm: var(--elev-sm);
+  --shadow-lg: var(--elev-lg);
+  --ease-dojo: cubic-bezier(0.2, 0, 0, 1);
 }
 
 body {
@@ -92,7 +134,7 @@ body {
 :root[data-font="atkinson"] body { font-family: var(--font-atkinson), system-ui, sans-serif; }
 :root[data-font="serif"] body { font-family: Georgia, "Times New Roman", serif; }
 /* A font you chose yourself (Settings > Your own font) wins over the built-in choices. */
-:root[data-custom-font="on"] body { font-family: var(--font-custom), var(--font-geist-sans), system-ui, sans-serif; }
+:root[data-custom-font="on"] body { font-family: var(--font-custom), var(--font-figtree), system-ui, sans-serif; }
 
 /* Game features (XP, levels, streaks, badges) are hidden unless switched on in Settings. */
 :root:not([data-gamify="on"]) .gamify-only { display: none !important; }
@@ -101,7 +143,8 @@ body {
 :root[data-bionic="subtle"] .bionic-lead { font-weight: 600; }
 :root[data-bionic="strong"] .bionic-lead { font-weight: 700; }
 
-/* Code colours: used by Shiki (read-only code) and the CodeMirror editor, in light and dark. */
+/* Code colours: used by Shiki (read-only code) and the CodeMirror editor, in light and dark. Checked against the code
+   backgrounds (#ffffff light, #0d0e0d dark): comments are 4.5:1 or more in both (design-tokens.test.ts). */
 :root {
   --shiki-foreground: #24292f;
   --shiki-background: #ffffff;
@@ -118,7 +161,7 @@ body {
 
 :root[data-theme="dark"] {
   --shiki-foreground: #e6edf3;
-  --shiki-background: #151716;
+  --shiki-background: #0d0e0d;
   --shiki-token-keyword: #ff7b72;
   --shiki-token-string: #a5d6ff;
   --shiki-token-string-expression: #a5d6ff;
@@ -222,17 +265,17 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
  * (it hovers, shows a pointer, has one focus ring); other buttons and links inside stay separately clickable. */
 .hit { position: relative; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
 .hit:hover { background-color: color-mix(in oklab, var(--foreground) 4%, var(--surface)); }
-.hit-card:hover { border-color: color-mix(in oklab, var(--accent) 55%, var(--line)); box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.22); }
+.hit-card:hover { border-color: var(--line-strong); box-shadow: var(--elev-sm); }
 .hit a.hit-link { position: static; }
 .hit a.hit-link::after { content: ""; position: absolute; inset: 0; z-index: 0; }
 .hit a:not(.hit-link), .hit button, .hit form, .hit select, .hit input, .hit summary, .hit details { position: relative; z-index: 1; }
 .hit:hover a.hit-link { text-decoration: underline; }
-.hit:has(a.hit-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hit:has(a.hit-link:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
 .hit a.hit-link:focus-visible { outline: none; }
 :root[data-motion="off"] .hit { transition: none; }
 
 /* Keyboard focus: one visible ring everywhere (mouse clicks don't show it). */
-:where(a, button, select, summary, input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:where(a, button, select, summary, input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* Zen mode: Anti-overwhelm focus mode */
 html.zen-mode .zen-hide { display: none !important; }

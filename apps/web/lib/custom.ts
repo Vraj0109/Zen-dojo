@@ -64,8 +64,8 @@ export function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Starting palettes for the editor: the built-in Classic colours. */
-export const DEFAULT_LIGHT: Palette = { background: "#f7f7f5", surface: "#ffffff", foreground: "#1a1a1a", line: "#e4e4e0", muted: "#6b6b66" };
+/** Starting palettes for the editor: the built-in Dojo colours (style id `classic`). */
+export const DEFAULT_LIGHT: Palette = { background: "#f7f7f5", surface: "#ffffff", foreground: "#1a1a1a", line: "#e4e4e0", muted: "#66665f" };
 export const DEFAULT_DARK: Palette = { background: "#111211", surface: "#1a1b1a", foreground: "#ececea", line: "#2c2d2b", muted: "#9a9a94" };
 
 /** Plain-language problems with a palette (text you cannot read). Empty when it is fine. */

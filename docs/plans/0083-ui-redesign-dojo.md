@@ -2,7 +2,7 @@
 
 - **Status:** ready
 - **Planned by:** Claude Code, 2026-11-19
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (Phase 1, steps 1-5), 2026-11-19
 - **Spec:** `DESIGN.md` (repo root) and the mockup canvas "Zen Dojo redesign mockups"
   (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj, private to the user; ask the lead for screenshots if you cannot open it)
 
@@ -49,26 +49,26 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 
 ### Phase 1: foundations (one agent)
 
-- [ ] **1. Tokens.** In `globals.css` replace the light and dark values with DESIGN.md's Dojo values and add the new
+- [x] **1. Tokens.** In `globals.css` replace the light and dark values with DESIGN.md's Dojo values and add the new
   tokens: `surface-2`, `line-strong`, `primary-hover`, `primary-soft`, `reward`, `reward-soft`, `success`, `warning`,
   `danger`, `cat-lld`, `cat-core`. Keep `--accent`/`--on-accent` as aliases of `--primary`/`--on-primary` so old classes
   keep working until each screen is moved. Map every new token in the Tailwind theme block. Retune the Shiki colours for
   the new backgrounds (contrast 4.5:1 for comments in both modes).
   - Done when: the app builds, nothing looks broken with the old classes, and a token test (below) passes.
-- [ ] **2. Fonts.** In `layout.tsx` load Figtree (400/500/600/700) and JetBrains Mono (400/500) with `next/font/google`
+- [x] **2. Fonts.** In `layout.tsx` load Figtree (400/500/600/700) and JetBrains Mono (400/500) with `next/font/google`
   and point `--font-sans` / `--font-mono` at them. Keep Lexend, Atkinson and the custom font for Settings > Reading font.
   Drop Geist once nothing uses it. Default reading font label becomes "Figtree (default)" in `lib/theme.ts` `FONTS`.
   - Done when: body text renders in Figtree, code in JetBrains Mono, and the reading-font options still switch.
-- [ ] **3. Type, spacing, radius, shadow, motion tokens.** Add the scale from DESIGN.md as CSS variables/Tailwind theme
+- [x] **3. Type, spacing, radius, shadow, motion tokens.** Add the scale from DESIGN.md as CSS variables/Tailwind theme
   values (`text-xs` to `text-3xl` with line heights, radius `sm 6 / md 10 / lg 14`, `shadow-sm`, `shadow-lg`, motion
   durations 120/180/240 ms and the easing). Respect `prefers-reduced-motion` globally.
   - Done when: utilities exist and are documented in a short comment block in `globals.css`.
-- [ ] **4. Themes.** In `lib/theme.ts` keep the stored ids so nobody's choice breaks: `classic` is shown as **Dojo**
+- [x] **4. Themes.** In `lib/theme.ts` keep the stored ids so nobody's choice breaks: `classic` is shown as **Dojo**
   (default). Add **Ember** values to the existing `ember` style, retune `ocean`, `dusk`, `paper`, `terminal`, `sage` so
   each sets the full token set (light and dark, Terminal dark only). Accent swatches stay. Update the boot script so a
   theme sets every token before paint (no flash).
   - Done when: switching each theme in Settings repaints every token, with no flash on reload.
-- [ ] **5. Shared components.** Restyle `app/ui.tsx` and friends to DESIGN.md: buttons (primary/secondary/quiet/danger
+- [x] **5. Shared components.** Restyle `app/ui.tsx` and friends to DESIGN.md: buttons (primary/secondary/quiet/danger
   with focus ring and disabled), inputs with visible labels, cards (no shadow at rest; linked cards get `line-strong` +
   `shadow-sm` on hover), `ProgressBar` (6 px, `full` radius, number beside it), new `StreakChip` and `XpChip`
   (`reward-soft` + `reward` icon), `Difficulty` as tinted badges, `StatusMark` as check/ring icons, `Tabs` as underline
@@ -183,4 +183,53 @@ files). Each step ends with a screenshot check at 1280 px and 390 px in light an
 
 ## Implementation notes
 
+### Phase 1 (steps 1-5), 2026-11-19
+
+- **Tokens** (`app/globals.css`): Dojo light/dark values from DESIGN.md in `:root` / `:root[data-theme="dark"]`, all new
+  tokens mapped in `@theme inline` (`bg-surface-2`, `border-line-strong`, `bg-primary`, `hover:bg-primary-hover`,
+  `bg-primary-soft`, `text-on-primary`, `text-reward`, `bg-reward-soft`, `text-success|warning|danger`,
+  `border-cat-lld|core` ...). `--accent`/`--on-accent` are `var(--primary)`/`var(--on-primary)`; `--diff-*` are
+  `var(--success|warning|danger)`. Shiki dark background is now `#0d0e0d` (DESIGN.md "Code"); comment colours pass 4.5:1.
+- **Deviation: Dojo light `warning`** is `#9A6210`, not `#A86A12`: the DESIGN.md value is 4.1:1 on background and fails
+  the 4.5:1 rule the token test enforces. DESIGN.md is updated to match.
+- **Fonts** (`layout.tsx`): Figtree 400-700 (`--font-figtree`) and JetBrains Mono 400/500 (`--font-jetbrains-mono`); Geist
+  is gone (theme-picker preview and the custom-font fallback now use Figtree). Lexend/Atkinson/custom font unchanged.
+  `FONTS` default label is "Figtree (default)".
+- **Scales**: text-xs..3xl with DESIGN.md line heights (this changes old `text-xl/2xl/3xl` sizes slightly), radius
+  `rounded-sm/md/lg` = 6/10/14 via `--r-sm/md/lg` (themes change those three; old `rounded-xl/2xl` keep Tailwind defaults),
+  `shadow-sm`/`shadow-lg` via `--elev-*` (`0 0 #0000` in dark), `duration-120/180/240` + `ease-dojo`, also
+  `--dur-fast|base|slow`. Reduced motion stays global through the existing `data-motion="off"` rule (set by the init
+  script from Settings > Animations or the OS); no separate media query, so "On" still overrides the OS as before.
+- **Themes** (`lib/theme.ts`): `THEME_TOKENS` (16 colour tokens) and `Palette = Record<ThemeToken, string>`; every
+  `STYLES` entry has full light and dark palettes, and the CSS blocks are equal (test). Ids unchanged; `classic` shows as
+  **Dojo**. Ember uses DESIGN.md's `#FAF7F2`/`#C2481B`; Ocean blue, Dusk violet, Paper black-on-cream, Sage retuned;
+  Terminal is `darkOnly` (light palette = dark; init script and `resolveMode(mode, osDark, style)` force `data-theme=dark`).
+  Paper no longer switches body text to Georgia (DESIGN.md: Figtree everywhere; the "Serif" reading font still exists).
+- **Accents**: a theme now has its own primary, so the default accent `green` is relabelled **"Theme colour"** (keeps the
+  theme's primary); blue/violet/amber/rose override `--primary` in light and dark (selector repeats `[data-accent]` to
+  beat the dark theme rules) with hover/soft from `color-mix`. The picker swatch and preview button show the theme's own
+  primary for the default.
+- **Custom theme boot script**: sets `--primary`/`--on-primary` (plus hover/soft via `color-mix`) from `accent` instead
+  of `--accent`, and applies any `THEME_TOKENS` key found in the saved light/dark palette (so step 29 can add keys
+  without touching the script). Old five-colour themes still load (tests). `lib/custom.ts` editor is unchanged except
+  the Dojo muted default.
+- **Components** (`app/ui.tsx`): `Button`, `ButtonLink`, `buttonClass(variant, size)` (primary/secondary/quiet/danger,
+  sm/md), `INPUT_CLASS`, `Field`, `TextInput`, `Card` (`href`, `subject`), `Badge` (`tone`), `Difficulty` (tinted badge),
+  `StatusMark` (success check, warning dashed ring, faint ring for unsolved), `ProgressBar` (`tone` primary|reward,
+  `showCount` for "12 of 40"; off by default so existing callers don't print the number twice), `ProgressRing`,
+  `StreakChip`, `XpChip` (both `gamify-only`), `EmptyState`, `Skeleton`, icons `FlameIcon`/`BoltIcon`/`CheckIcon`.
+  `Stat` is plain case now. `Tabs` underline uses `border-primary`. `.hit-card` hover uses `line-strong` + `shadow-sm`;
+  the focus ring uses `--primary`.
+- **`/dev/components`** (`app/dev/components/page.tsx` + `scheme-toggle.tsx`): 404 when `isHosted()`, not in the nav,
+  `robots: noindex`. A preview toggle flips light/dark and each theme without saving. Checked in the browser on
+  `next dev` (light, dark, Ember). Not compared with the mockup frame (no access to the canvas from this session).
+- **Tests**: new `app/design-tokens.test.ts` (DESIGN.md tables vs CSS, Tailwind mapping, scales, contrast of text
+  tokens and Shiki comments); `lib/theme.test.ts` extended (every theme sets every token, contrast per theme, `classic`
+  loads as Dojo, Terminal dark only, Ember values, old custom theme parses); `lib/custom.test.ts` updated for
+  `--primary` and new keys. Ran: those three plus `nav`, `no-emoji`, `skeletons`, `ui-prefs` (101 passed),
+  `pnpm -r typecheck`, eslint on changed files. `pnpm check` not run (phases 2-6 remain).
+- For phases 2-5: use the components above rather than raw class strings, `bg-surface-2` for sidebar/table header/hover
+  rows, `bg-primary-soft text-primary` for selected nav, `text-warning` for the Review count, `ProgressBar tone="reward"`
+  for XP. Old skeleton components still use `bg-line/60` (`skeletons.test.ts` checks it); move them to `Skeleton` in
+  phase 2 and update that test.
 ## Review
