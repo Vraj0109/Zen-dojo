@@ -166,3 +166,4 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | implemented (partial: steps 1, 4, 8 wait for the courses repo) |
 | 0082 | [Run any GGUF model through Ollama; remove LM Studio](0082-gguf-models-through-ollama.md) | implemented |
 | 0083 | [UI redesign: the Dojo design system, screen by screen (DESIGN.md and the mockups)](0083-ui-redesign-dojo.md) | ready |
+| 0084 | [Fix the redesign's broken screens (Practice, Roadmap, course pages, Your classes) and scan the whole site](0084-redesign-fixes-and-site-scan.md) | ready |
