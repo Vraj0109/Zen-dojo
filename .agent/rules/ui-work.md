@@ -4,7 +4,7 @@ When a plan changes how a screen looks:
 
 - Follow `DESIGN.md` (tokens, type, spacing, components). Use the shared pieces in `apps/web/app/ui.tsx` and the
   colour classes from `apps/web/app/globals.css`; never hard-code colours. Red (`danger`) is only for errors.
-- Before you change a screen, read the matching skill in `.agent/skills/` (local copies, not in git):
+- Before you change a screen, read the matching skill in `.agents/skills/` (local copies, not in git):
   - Look and taste: `frontend-design`, `design-elevation`, `taste-visual-taste`, `taste-animation`, `taste-interaction`
   - Design system and review: `web-design-system`, `web-review`, `ui-review`, `ui-polish`, `ui-compare`,
     `design-critique`, `design-systems`, `interaction-design`, `ux-writing`

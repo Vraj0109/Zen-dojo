@@ -41,7 +41,7 @@ every page systematically and fix what else is wrong, before anything is pushed 
   which is part of why screens broke. Before step 1, load and follow: `ux-audit`, `viewports`, `anti-slop`,
   `page-patterns`, `spacing`, `typography`, `colour-palette`, `surfaces`, `loaders`, `empty-states` (VectorLab UX skills),
   `frontend-design`, `ui-review`, `web-review`, `accessibility-audit`. Re-run `ux-audit` and `ui-review` on every screen
-  you change, and record their findings in Implementation notes. Antigravity: the local copies in `.agent/skills/` (see
+  you change, and record their findings in Implementation notes. Antigravity: the local copies in `.agents/skills/` (see
   `.agent/rules/ui-work.md`).
 - [ ] **1. Reproduce each reported problem** in `pnpm dev` against a copy of the data or `:memory:` with seeded progress
   (never `data/habit.db`). Write what you saw and the cause in Implementation notes.
