@@ -163,7 +163,19 @@ export function resolveMode(mode: ThemeMode, systemDark: boolean, style?: StyleI
 }
 
 /** The CSS custom properties the init script may set inline for a custom theme (cleared on every apply). */
-export const CUSTOM_THEME_VARS = [...THEME_TOKENS.map((t) => "--" + t), "--accent", "--on-accent"];
+export const CUSTOM_THEME_VARS = [...THEME_TOKENS.map((t) => "--" + t), "--accent", "--on-accent", "--r-sm", "--r-md", "--r-lg", "--font-ui", "--font-heading", "--font-code"];
+
+/** Custom theme fonts: built-in ids map to these CSS values; any other (safe) name is used as an installed font. */
+export const CUSTOM_FONT_CSS: Record<string, string> = {
+  figtree: "var(--font-figtree)",
+  lexend: "var(--font-lexend)",
+  atkinson: "var(--font-atkinson)",
+  jetbrains: "var(--font-jetbrains-mono)",
+  serif: "Georgia, serif",
+  system: "system-ui",
+};
+/** Custom theme corners: --r-sm / --r-md / --r-lg. "default" leaves the theme's own. */
+export const CUSTOM_CORNERS: Record<string, [string, string, string]> = { sharp: ["0px", "0px", "0px"], round: ["8px", "14px", "20px"] };
 
 /**
  * Runs in <head> before the page paints. Sets data-mode (the choice), data-theme (light or dark, resolved),
@@ -198,9 +210,18 @@ if(!d.style)return;
 for(var i=0;i<CV.length;i++)d.style.removeProperty(CV[i]);
 var t=null;try{var raw=read("habit-custom-theme");t=raw?JSON.parse(raw):null}catch(e){}
 var dk=d.getAttribute("data-theme")==="dark";
-if(t&&hex(t.accent)){d.style.setProperty("--primary",t.accent);d.style.setProperty("--on-primary",lum(t.accent)>0.179?"#111111":"#ffffff");d.style.setProperty("--primary-hover","color-mix(in oklab, "+t.accent+" 92%, "+(dk?"white":"black")+")");d.style.setProperty("--primary-soft","color-mix(in oklab, "+t.accent+" 14%, var(--surface))")}
-var p=t&&t[dk?"dark":"light"];
-if(p&&typeof p==="object")tokens.forEach(function(k){if(hex(p[k]))d.style.setProperty("--"+k,p[k])});
+var p=t&&t[dk?"dark":"light"];if(!p||typeof p!=="object")p=null;
+var pr=p&&hex(p.primary)?p.primary:t&&hex(t.accent)?t.accent:null;
+if(pr){d.style.setProperty("--primary",pr);d.style.setProperty("--on-primary",lum(pr)>0.179?"#111111":"#ffffff");d.style.setProperty("--primary-hover","color-mix(in oklab, "+pr+" 92%, "+(dk?"white":"black")+")");d.style.setProperty("--primary-soft","color-mix(in oklab, "+pr+" 14%, var(--surface))")}
+if(p){tokens.forEach(function(k){if(k!=="primary"&&hex(p[k]))d.style.setProperty("--"+k,p[k])});
+if(hex(p["surface-2"])&&hex(p.line)&&!hex(p["line-strong"]))d.style.setProperty("--line-strong","color-mix(in oklab, "+p.line+" 80%, "+p.foreground+")");
+if(hex(p.reward)&&!hex(p["reward-soft"]))d.style.setProperty("--reward-soft","color-mix(in oklab, "+p.reward+" 16%, var(--surface))")}
+var FC=${JSON.stringify(CUSTOM_FONT_CSS)},fo=t&&t.fonts&&typeof t.fonts==="object"?t.fonts:{};
+["ui","heading","code"].forEach(function(k){var v=fo[k],c=typeof v==="string"?(FC.hasOwnProperty(v)?FC[v]:/^[A-Za-z0-9][A-Za-z0-9 ._\\-]{0,60}$/.test(v)?String.fromCharCode(34)+v+String.fromCharCode(34):null):null;
+if(c){d.setAttribute("data-"+k+"-font","on");d.style.setProperty("--font-"+k,c)}else d.removeAttribute("data-"+k+"-font")});
+var RC=${JSON.stringify(CUSTOM_CORNERS)},co=t&&RC.hasOwnProperty(t.corners)?RC[t.corners]:null;
+if(co){d.style.setProperty("--r-sm",co[0]);d.style.setProperty("--r-md",co[1]);d.style.setProperty("--r-lg",co[2])}
+if(t&&t.density==="compact")d.setAttribute("data-density","compact");else d.removeAttribute("data-density");
 var cf=null;try{var fr=read("habit-custom-font");cf=fr?JSON.parse(fr):null}catch(e){}
 if(cf&&typeof cf.family==="string"&&/^[A-Za-z0-9][A-Za-z0-9 ._\\-]{0,60}$/.test(cf.family)){d.setAttribute("data-custom-font","on");d.style.setProperty("--font-custom",String.fromCharCode(34)+cf.family+String.fromCharCode(34))}else{d.removeAttribute("data-custom-font");d.style.removeProperty("--font-custom")}
 window.__habitCustom=custom;

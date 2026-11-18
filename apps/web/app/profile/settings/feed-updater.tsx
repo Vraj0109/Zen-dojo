@@ -84,7 +84,7 @@ export function FeedUpdater({
             <button
               type="submit"
               disabled={isPending}
-              className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background disabled:opacity-50"
+              className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
             >
               Save
             </button>
@@ -102,20 +102,20 @@ export function FeedUpdater({
           type="button"
           onClick={handleCheckUpdates}
           disabled={isPending || !feedUrl.trim()}
-          className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-on-accent disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-on-primary disabled:opacity-50"
         >
           {isPending ? "Checking…" : "Check for updates"}
         </button>
       </div>
 
       {error && (
-        <div role="alert" className="rounded-lg border border-diff-hard p-3 text-sm">
+        <div role="alert" className="rounded-lg border border-danger p-3 text-sm">
           <p className="font-medium text-foreground">{error}</p>
         </div>
       )}
 
       {actionMessage && (
-        <div role="status" className="rounded-lg border border-diff-easy p-3 text-sm">
+        <div role="status" className="rounded-lg border border-success p-3 text-sm">
           <p className="font-medium text-foreground">{actionMessage}</p>
         </div>
       )}
@@ -134,12 +134,12 @@ export function FeedUpdater({
                       <span className="font-medium">{it.title}</span>
                       <span className="rounded bg-surface px-1.5 py-0.5 text-xs text-muted">v{it.version}</span>
                       {it.status === "available" && (
-                        <span className="rounded bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">
+                        <span className="rounded bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
                           Available
                         </span>
                       )}
                       {it.status === "update-available" && (
-                        <span className="rounded bg-accent/25 px-2 py-0.5 text-xs font-medium text-accent">
+                        <span className="rounded bg-primary/25 px-2 py-0.5 text-xs font-medium text-primary">
                           Update (was v{it.installedRevision})
                         </span>
                       )}
@@ -157,7 +157,7 @@ export function FeedUpdater({
                         type="button"
                         onClick={() => handleInstall(it)}
                         disabled={isPending}
-                        className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-on-accent hover:opacity-90 disabled:opacity-50"
+                        className="rounded-lg bg-primary px-3 py-1 text-xs font-medium text-on-primary hover:opacity-90 disabled:opacity-50"
                       >
                         Install
                       </button>
@@ -167,7 +167,7 @@ export function FeedUpdater({
                         type="button"
                         onClick={() => handleInstall(it)}
                         disabled={isPending}
-                        className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-on-accent hover:opacity-90 disabled:opacity-50"
+                        className="rounded-lg bg-primary px-3 py-1 text-xs font-medium text-on-primary hover:opacity-90 disabled:opacity-50"
                       >
                         Update
                       </button>
@@ -195,7 +195,7 @@ export function FeedUpdater({
                   {p.isReset ? (
                     <span className="ml-2 rounded bg-surface px-1.5 py-0.5 text-xs text-muted">Reset to built-in</span>
                   ) : (
-                    <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 text-xs text-accent">Active override</span>
+                    <span className="ml-2 rounded bg-primary/15 px-1.5 py-0.5 text-xs text-primary">Active override</span>
                   )}
                 </div>
                 <div>

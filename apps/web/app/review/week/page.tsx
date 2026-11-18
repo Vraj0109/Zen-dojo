@@ -7,7 +7,7 @@ import { REFLECTION_MAX, getWeeklyReview, weekOf } from "@/lib/weekly";
 import { saveReflectionAction } from "../../actions";
 import { ReviewTabsWithCount } from "../../section-tabs";
 import { SubmitButton } from "../../submit-button";
-import { PageMain, Stat } from "../../ui";
+import { PageMain, Stat, buttonClass } from "../../ui";
 import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
 export const metadata: Metadata = { title: "Weekly review" };
@@ -57,16 +57,16 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
           {isCurrent && <p className="mt-1 text-sm text-muted">This week so far. Come back on Sunday to write your reflection.</p>}
         </div>
         <nav aria-label="Choose a week" className="flex gap-2 text-sm">
-          <Link href={`/review/week?week=${addDays(monday, -7)}`} className="rounded-lg border border-line px-3 py-1.5 hover:bg-background">
+          <Link href={`/review/week?week=${addDays(monday, -7)}`} className="rounded-md border border-line px-3 py-1.5 hover:bg-surface-2">
             Earlier week
           </Link>
           {!isCurrent && (
-            <Link href={`/review/week?week=${addDays(monday, 7)}`} className="rounded-lg border border-line px-3 py-1.5 hover:bg-background">
+            <Link href={`/review/week?week=${addDays(monday, 7)}`} className="rounded-md border border-line px-3 py-1.5 hover:bg-surface-2">
               Later week
             </Link>
           )}
           {!isCurrent && (
-            <Link href="/review/week" className="rounded-lg border border-line px-3 py-1.5 hover:bg-background">
+            <Link href="/review/week" className="rounded-md border border-line px-3 py-1.5 hover:bg-surface-2">
               This week
             </Link>
           )}
@@ -100,12 +100,12 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
             Your reflection
           </h3>
           <p className="text-sm text-muted">A few honest lines. Saved for this week only, and part of your backup.</p>
-          <form action={saveReflectionAction} className="space-y-4 rounded-xl border border-line bg-surface p-4">
+          <form action={saveReflectionAction} className="space-y-4 rounded-md border border-line bg-surface p-5">
             <input type="hidden" name="week" value={r.monday} />
             <Field name="wins" label="What went well" value={r.reflection.wins} />
             <Field name="struggles" label="What was hard or slipped" value={r.reflection.struggles} />
             <Field name="nextFocus" label="What to do first next week" value={r.reflection.nextFocus} />
-            <SubmitButton className="rounded-lg bg-accent px-4 py-2 font-medium text-on-accent">Save reflection</SubmitButton>
+            <SubmitButton className={buttonClass("primary")}>Save reflection</SubmitButton>
           </form>
         </section>
 
@@ -115,9 +115,9 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
               Weak spots to look at
             </h3>
             {weakCount === 0 ? (
-              <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">Nothing stands out right now.</p>
+              <p className="rounded-md border border-line bg-surface p-5 text-sm text-muted">Nothing stands out right now.</p>
             ) : (
-              <ul className="divide-y divide-line rounded-xl border border-line bg-surface text-sm">
+              <ul className="divide-y divide-line rounded-md border border-line bg-surface text-sm">
                 {r.weak.stuck.map((x) => (
                   <Row key={`stuck-${x.id}`} href={`/dsa/${encodeURIComponent(x.id)}?tab=stuck#stuck`} kind="Stuck" title={x.title} detail={x.reason || `${x.count} time${x.count === 1 ? "" : "s"}`} />
                 ))}
@@ -146,7 +146,7 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
               <h3 id="site" className="text-lg font-semibold">
                 Most time on LeetCode this week
               </h3>
-              <ul className="divide-y divide-line rounded-xl border border-line bg-surface text-sm">
+              <ul className="divide-y divide-line rounded-md border border-line bg-surface text-sm">
                 {r.topProblems.map((x) => (
                   <li key={x.slug} className="flex items-center justify-between gap-3 p-3">
                     {x.id ? (
@@ -177,7 +177,7 @@ function Field({ name, label, value }: { name: string; label: string; value: str
         defaultValue={value}
         rows={4}
         maxLength={REFLECTION_MAX}
-        className="w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+        className="w-full rounded-md border border-line bg-background px-3 py-2 text-sm"
       />
     </label>
   );
@@ -186,7 +186,7 @@ function Field({ name, label, value }: { name: string; label: string; value: str
 function Row({ href, kind, title, detail }: { href: string; kind: string; title: string; detail: string }) {
   return (
     <li>
-      <Link href={href} className="flex items-center justify-between gap-3 p-3 hover:bg-background">
+      <Link href={href} className="flex items-center justify-between gap-3 p-3 hover:bg-surface-2">
         <span>
           <span className="mr-2 text-xs uppercase tracking-wide text-muted">{kind}</span>
           <span className="font-medium">{title}</span>

@@ -135,6 +135,11 @@ body {
 :root[data-font="serif"] body { font-family: Georgia, "Times New Roman", serif; }
 /* A font you chose yourself (Settings > Your own font) wins over the built-in choices. */
 :root[data-custom-font="on"] body { font-family: var(--font-custom), var(--font-figtree), system-ui, sans-serif; }
+/* Custom theme editor (lib/custom.ts): UI, heading and code fonts, and Compact density. Set by the init script. */
+:root[data-ui-font="on"] body { font-family: var(--font-ui), var(--font-figtree), system-ui, sans-serif; }
+:root[data-heading-font="on"] :is(h1, h2, h3, h4) { font-family: var(--font-heading), var(--font-figtree), system-ui, sans-serif; }
+:root[data-code-font="on"] :is(code, pre, kbd, samp, .font-mono) { font-family: var(--font-code), ui-monospace, monospace; }
+:root[data-density="compact"] { font-size: 93.75%; }
 
 /* Game features (XP, levels, streaks, badges) are hidden unless switched on in Settings. */
 :root:not([data-gamify="on"]) .gamify-only { display: none !important; }

@@ -5,7 +5,11 @@ import {
   DEFAULT_DARK,
   DEFAULT_LIGHT,
   contrast,
+  exportCustomTheme,
+  importCustomTheme,
   isSafeFamily,
+  textContrast,
+  type CustomTheme,
   paletteWarnings,
   parseCustomFont,
   parseCustomTheme,
@@ -32,6 +36,45 @@ describe("custom theme", () => {
     expect(paletteWarnings(DEFAULT_LIGHT)).toEqual([]);
     expect(paletteWarnings(DEFAULT_DARK)).toEqual([]);
     expect(paletteWarnings({ ...DEFAULT_LIGHT, foreground: "#f0f0f0" }).length).toBeGreaterThan(0);
+  });
+});
+
+describe("custom theme editor: export and import", () => {
+  const full: CustomTheme = {
+    base: "ember",
+    light: { ...DEFAULT_LIGHT, "surface-2": "#eeeeee", primary: "#c2481b", reward: "#e8a317", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
+    dark: { ...DEFAULT_DARK, "surface-2": "#222222", primary: "#f08a5d", reward: "#f2b63c", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
+    fonts: { ui: "atkinson", heading: "Fira Sans", code: "jetbrains" },
+    corners: "round",
+    density: "compact",
+  };
+
+  it("round-trips every value through export and import", () => {
+    const text = exportCustomTheme(full);
+    expect(JSON.parse(text).kind).toBe("zen-dojo-theme");
+    expect(importCustomTheme(text)).toEqual(full);
+    // What import saves is what the other device applies: parsing the saved value gives the same theme again.
+    expect(parseCustomTheme(JSON.stringify(importCustomTheme(text)))).toEqual(full);
+    expect(JSON.stringify(full).length).toBeLessThan(4096); // fits the synced appearance record
+  });
+
+  it("still loads old five-colour themes and drops bad new values", () => {
+    const old = { accent: "#2f7d5b", light: DEFAULT_LIGHT, dark: DEFAULT_DARK };
+    expect(importCustomTheme(JSON.stringify(old))).toEqual(old);
+    const bad = parseCustomTheme(JSON.stringify({ ...full, fonts: { ui: "a;b" }, corners: "wobbly", density: 3, light: { ...full.light, danger: "red" } }));
+    expect(bad.fonts).toBeUndefined();
+    expect(bad.corners).toBeUndefined();
+    expect(bad.density).toBeUndefined();
+    expect(bad.light?.danger).toBeUndefined();
+    expect(bad.light?.primary).toBe("#c2481b");
+    expect(importCustomTheme("{}")).toBeNull();
+    expect(importCustomTheme("nope")).toBeNull();
+  });
+
+  it("reports contrast under each text colour", () => {
+    expect(textContrast(DEFAULT_LIGHT, "foreground")?.ok).toBe(true);
+    expect(textContrast({ ...DEFAULT_LIGHT, warning: "#ffee00" }, "warning")?.ok).toBe(false);
+    expect(textContrast(DEFAULT_LIGHT, "surface")).toBeNull();
   });
 });
 
@@ -91,6 +134,28 @@ describe("init script applies custom colours and font", () => {
   it("ignores invalid colours and sets nothing without a saved theme", () => {
     expect(run({}, false).style.size).toBe(0);
     expect(run({ [CUSTOM_THEME_KEY]: JSON.stringify({ accent: "red; x:y" }) }, false).style.size).toBe(0);
+  });
+
+  it("applies per-mode primary, fonts, corners and density from the theme editor", () => {
+    const theme = JSON.stringify({
+      accent: "#000000",
+      light: { ...DEFAULT_LIGHT, primary: "#ffff00", "surface-2": "#eeeeee", reward: "#cc8800" },
+      dark: DEFAULT_DARK,
+      fonts: { ui: "lexend", heading: "Fira Sans", code: 'x"}a{' },
+      corners: "sharp",
+      density: "compact",
+    });
+    const light = run({ [CUSTOM_THEME_KEY]: theme }, false);
+    expect(light.style.get("--primary")).toBe("#ffff00");
+    expect(light.style.get("--on-primary")).toBe("#111111");
+    expect(light.style.get("--line-strong")).toContain("color-mix");
+    expect(light.style.get("--reward-soft")).toContain("#cc8800");
+    expect(light.style.get("--font-ui")).toBe("var(--font-lexend)");
+    expect(light.style.get("--font-heading")).toBe('"Fira Sans"');
+    expect(light.attrs.has("data-code-font")).toBe(false);
+    expect(light.style.get("--r-md")).toBe("0px");
+    expect(light.attrs.get("data-density")).toBe("compact");
+    expect(run({ [CUSTOM_THEME_KEY]: theme }, true).style.get("--primary")).toBe("#000000"); // dark has no primary: the accent
   });
 
   it("sets a safe custom font and refuses an unsafe one", () => {

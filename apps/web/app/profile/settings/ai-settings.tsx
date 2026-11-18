@@ -166,7 +166,7 @@ export function AiSettings() {
       <p className="text-sm">{info.summary}</p>
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span className="rounded-full border border-line px-2 py-0.5">{info.ollama.running ? `Ollama is running${info.ollama.version ? ` (${info.ollama.version})` : ""}` : "Ollama not found"}</span>
-        <button type="button" onClick={() => void load()} disabled={busy} className="rounded-lg border border-line px-3 py-1.5 font-medium hover:bg-background disabled:opacity-50">
+        <button type="button" onClick={() => void load()} disabled={busy} className="rounded-lg border border-line px-3 py-1.5 font-medium hover:bg-surface-2 disabled:opacity-50">
           Check again
         </button>
       </div>
@@ -213,7 +213,7 @@ export function AiSettings() {
                       <span>I understand my problem text and code go to {CLOUD_WHAT[p.id] ?? p.label}.</span>
                     </label>
                     <div className="flex flex-wrap items-center gap-2">
-                      <button type="button" onClick={() => void runTest(p.id)} disabled={!ok || t?.busy} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-background disabled:opacity-50">
+                      <button type="button" onClick={() => void runTest(p.id)} disabled={!ok || t?.busy} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-surface-2 disabled:opacity-50">
                         {t?.busy ? "Testing..." : "Test"}
                       </button>
                       {t?.text && (
@@ -250,15 +250,15 @@ export function AiSettings() {
                 ))}
             </select>
             {have ? (
-              <button type="button" onClick={() => void save({ model: pickModel })} disabled={info.model === pickModel} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50">
+              <button type="button" onClick={() => void save({ model: pickModel })} disabled={info.model === pickModel} className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-on-primary disabled:opacity-50">
                 {info.model === pickModel ? "In use" : "Use this model"}
               </button>
             ) : progress ? (
-              <button type="button" onClick={() => cancel.current?.abort()} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-background">
+              <button type="button" onClick={() => cancel.current?.abort()} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-surface-2">
                 Cancel
               </button>
             ) : (
-              <button type="button" onClick={() => void download()} disabled={!info.ollama.running} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50">
+              <button type="button" onClick={() => void download()} disabled={!info.ollama.running} className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-on-primary disabled:opacity-50">
                 Download
               </button>
             )}
@@ -266,7 +266,7 @@ export function AiSettings() {
           {progress && (
             <div role="status" className="space-y-1 text-sm">
               <div className="h-2 w-full overflow-hidden rounded bg-background">
-                <div className="h-full bg-accent transition-all" style={{ width: `${progress.pct ?? 5}%` }} />
+                <div className="h-full bg-primary transition-all" style={{ width: `${progress.pct ?? 5}%` }} />
               </div>
               <span className="text-muted">
                 {progress.text}
@@ -333,7 +333,7 @@ function InstallMore({ info }: { info: Info }) {
                       onClick={() => {
                         void navigator.clipboard?.writeText(c.command).then(() => setCopied(c.command)).catch(() => {});
                       }}
-                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background"
+                      className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-surface-2"
                     >
                       {copied === c.command ? "Copied" : "Copy"}
                     </button>

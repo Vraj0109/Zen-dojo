@@ -34,7 +34,7 @@ export function PublicProfileCard({ initial, signedIn }: { initial: PublicProfil
   }
 
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="rounded-md border border-line bg-surface p-5">
       <h3 className="text-lg font-semibold">Public profile</h3>
       <p className="mt-1 text-sm text-muted">
         Off by default. When on, anyone with the link sees the snapshot above: your name, level, streaks, solved counts, course progress, activity heatmap and
@@ -62,11 +62,11 @@ export function PublicProfileCard({ initial, signedIn }: { initial: PublicProfil
                 type="button"
                 disabled={pending}
                 onClick={() => run(refreshPublicProfile, "Public profile updated.")}
-                className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background disabled:opacity-50"
+                className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
               >
                 Update public profile
               </button>
-              <button type="button" onClick={copy} className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">
+              <button type="button" onClick={copy} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-on-primary">
                 Copy public link
               </button>
             </>

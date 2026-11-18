@@ -126,7 +126,7 @@ export function GgufFiles({ installed, running, current, onUse, onAdded }: { ins
         {folders.map((f) => (
           <li key={f} className="flex flex-wrap items-center gap-2">
             <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded border border-line bg-background px-2 py-1 text-xs">{f}</code>
-            <button type="button" onClick={() => void removeFolder(f)} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background">
+            <button type="button" onClick={() => void removeFolder(f)} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-surface-2">
               Remove
             </button>
           </li>
@@ -143,10 +143,10 @@ export function GgufFiles({ installed, running, current, onUse, onAdded }: { ins
           placeholder="Full path of a folder with GGUF files"
           className="min-w-72 flex-1 rounded-lg border border-line bg-background px-3 py-2 text-sm"
         />
-        <button type="button" onClick={() => void addFolder()} disabled={!newFolder.trim() || folders.length >= 10} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-background disabled:opacity-50">
+        <button type="button" onClick={() => void addFolder()} disabled={!newFolder.trim() || folders.length >= 10} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50">
           Add folder
         </button>
-        <button type="button" onClick={() => void scan()} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-background">
+        <button type="button" onClick={() => void scan()} className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-surface-2">
           Look again
         </button>
       </div>
@@ -187,21 +187,21 @@ export function GgufFiles({ installed, running, current, onUse, onAdded }: { ins
                       ) : added ? (
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs">Added as {added}</span>
-                          <button type="button" onClick={() => onUse(added)} disabled={current === added || current === `${added}:latest`} className="rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-on-accent disabled:opacity-50">
+                          <button type="button" onClick={() => onUse(added)} disabled={current === added || current === `${added}:latest`} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-on-primary disabled:opacity-50">
                             {current === added || current === `${added}:latest` ? "In use" : "Use this model"}
                           </button>
                         </div>
                       ) : busyHere ? (
                         <div role="status" className="space-y-1">
                           <div className="h-2 w-full min-w-40 overflow-hidden rounded bg-background">
-                            <div className="h-full bg-accent transition-all" style={{ width: `${progress.pct ?? 5}%` }} />
+                            <div className="h-full bg-primary transition-all" style={{ width: `${progress.pct ?? 5}%` }} />
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted">
                               {progress.text}
                               {progress.pct !== null ? ` ${progress.pct}%` : ""}
                             </span>
-                            <button type="button" onClick={() => cancel.current?.abort()} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-background">
+                            <button type="button" onClick={() => cancel.current?.abort()} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-surface-2">
                               Cancel
                             </button>
                           </div>
@@ -217,7 +217,7 @@ export function GgufFiles({ installed, running, current, onUse, onAdded }: { ins
                             onChange={(e) => setNames((n) => ({ ...n, [f.path]: e.target.value }))}
                             className="w-48 rounded-lg border border-line bg-background px-2 py-1 text-xs"
                           />
-                          <button type="button" onClick={() => void add(f)} disabled={!running || progress !== null || !value.trim()} className="rounded-lg bg-accent px-2.5 py-1 text-xs font-medium text-on-accent disabled:opacity-50">
+                          <button type="button" onClick={() => void add(f)} disabled={!running || progress !== null || !value.trim()} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-on-primary disabled:opacity-50">
                             Add to Ollama
                           </button>
                           {has(installed, value.trim()) && (

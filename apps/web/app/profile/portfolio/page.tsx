@@ -8,7 +8,7 @@ import { getSession } from "@/lib/auth/session";
 import { getPublicProfileState, publishPublicProfile, publicProfileLink } from "@/lib/public-profile";
 import type { PublicProfileResult } from "./public-actions";
 import { PublicProfileCard } from "./public-profile-card";
-import { PageMain } from "../../ui";
+import { PageMain, Skeleton } from "../../ui";
 import { PortfolioView } from "../../u/portfolio-view";
 import { ProfileTabs } from "../profile-ui";
 
@@ -17,8 +17,8 @@ export const metadata: Metadata = { title: "Portfolio" };
 export default function PortfolioPage() {
   return (
     <PageMain title="Portfolio" full>
-      <ProfileTabs active="/profile" />
-      <Suspense fallback={<p className="text-sm text-muted">Loading your portfolio...</p>}>
+      <ProfileTabs active="/profile/portfolio" />
+      <Suspense fallback={<div className="space-y-3"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div>}>
         <Portfolio />
       </Suspense>
     </PageMain>
@@ -41,16 +41,16 @@ async function Portfolio() {
       </p>
       <PortfolioView data={data} aiEnabled={process.env.HABIT_HOSTED === "1" || Boolean(ai?.enabled)} certificateHref={(id) => `/profile/certificates/${encodeURIComponent(id)}`} />
       <PublicProfileCard initial={publicProfile} signedIn={signedIn} />
-      <section className="rounded-xl border border-line bg-surface p-4">
+      <section className="rounded-md border border-line bg-surface p-5">
         <h3 className="text-lg font-semibold">Share</h3>
         <p className="mt-1 text-sm text-muted">
           The page holds your name, streaks, solved counts, course progress and certificate titles. It never holds notes, code, emails or keys.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <a href="/profile/portfolio/export" download className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+          <a href="/profile/portfolio/export" download className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary">
             Download my portfolio as a web page
           </a>
-          <Link href="/u/me" className="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background">
+          <Link href="/u/me" className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
             Preview public page
           </Link>
         </div>

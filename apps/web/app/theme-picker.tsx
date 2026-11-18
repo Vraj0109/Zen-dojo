@@ -71,7 +71,7 @@ export function ThemePicker() {
   const accentColor = ACCENTS.find((a) => a.id === accent)!.color;
 
   const pill = (active: boolean) =>
-    `rounded-lg border px-3 py-1.5 text-sm font-medium ${active ? "border-accent bg-accent text-on-accent" : "border-line hover:bg-background"}`;
+    `h-8 rounded-sm px-3 text-sm font-medium transition-colors duration-120 ${active ? "bg-surface text-foreground shadow-sm ring-1 ring-line-strong" : "text-muted hover:text-foreground"}`;
 
   return (
     <div className="space-y-6">
@@ -79,7 +79,7 @@ export function ThemePicker() {
         <p id="theme-mode-label" className="mb-2 text-sm font-medium">
           Light or dark
         </p>
-        <div role="radiogroup" aria-labelledby="theme-mode-label" className="flex flex-wrap gap-2">
+        <div role="radiogroup" aria-labelledby="theme-mode-label" className="inline-flex flex-wrap gap-0.5 rounded-md border border-line-strong bg-surface-2 p-0.5">
           {THEME_MODES.map((m) => (
             <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => applyTheme({ ...current, mode: m })} className={pill(mode === m)}>
               {MODE_LABEL[m]}
@@ -90,9 +90,9 @@ export function ThemePicker() {
 
       <div>
         <p id="theme-style-label" className="mb-2 text-sm font-medium">
-          Style
+          Theme
         </p>
-        <div role="radiogroup" aria-labelledby="theme-style-label" className="grid gap-3 sm:grid-cols-2">
+        <div role="radiogroup" aria-labelledby="theme-style-label" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {STYLES.map((s) => {
             const p = s[scheme];
             const selected = style === s.id;
@@ -103,7 +103,7 @@ export function ThemePicker() {
                 role="radio"
                 aria-checked={selected}
                 onClick={() => applyTheme({ ...current, style: s.id })}
-                className={`overflow-hidden border-2 text-left ${selected ? "border-accent" : "border-line"}`}
+                className={`overflow-hidden border-2 text-left ${selected ? "border-primary" : "border-line"}`}
                 style={{ background: p.background, borderRadius: s.radius, color: p.foreground }}
               >
                 <span className="block p-3">
@@ -146,7 +146,7 @@ export function ThemePicker() {
               role="radio"
               aria-checked={accent === a.id}
               onClick={() => applyTheme({ ...current, accent: a.id })}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium ${accent === a.id ? "border-foreground" : "border-line hover:bg-background"}`}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium ${accent === a.id ? "border-foreground" : "border-line hover:bg-surface-2"}`}
             >
               <span aria-hidden className="size-3.5 rounded-full" style={{ background: a.id === DEFAULT_ACCENT ? STYLES.find((s) => s.id === style)![scheme].primary : a.color }} />
               {a.label}
@@ -168,7 +168,7 @@ export function ThemePicker() {
               role="radio"
               aria-checked={font === f.id}
               onClick={() => applyTheme({ ...current, font: f.id })}
-              className={`rounded-lg border px-3 py-2 text-left text-sm ${font === f.id ? "border-accent bg-background" : "border-line hover:bg-background"}`}
+              className={`rounded-lg border px-3 py-2 text-left text-sm ${font === f.id ? "border-primary bg-background" : "border-line hover:bg-surface-2"}`}
               style={{ fontFamily: FONT_CSS[f.id] }}
             >
               <span className="block font-medium">{f.label}</span>
@@ -182,7 +182,7 @@ export function ThemePicker() {
         <p id="theme-bionic-label" className="mb-2 text-sm font-medium">
           Focus reading
         </p>
-        <div role="radiogroup" aria-labelledby="theme-bionic-label" className="flex flex-wrap gap-2">
+        <div role="radiogroup" aria-labelledby="theme-bionic-label" className="inline-flex flex-wrap gap-0.5 rounded-md border border-line-strong bg-surface-2 p-0.5">
           {(["off", "subtle", "strong"] as const).map((level) => (
             <button key={level} type="button" role="radio" aria-checked={bionic === level} onClick={() => applyTheme({ ...current, bionic: level })} className={pill(bionic === level)}>
               {level === "off" ? "Off" : level === "subtle" ? "Subtle" : "Strong"}
@@ -200,7 +200,7 @@ export function ThemePicker() {
         <p id="theme-motion-label" className="mb-2 text-sm font-medium">
           Animations
         </p>
-        <div role="radiogroup" aria-labelledby="theme-motion-label" className="flex flex-wrap gap-2">
+        <div role="radiogroup" aria-labelledby="theme-motion-label" className="inline-flex flex-wrap gap-0.5 rounded-md border border-line-strong bg-surface-2 p-0.5">
           {(["auto", "on", "off"] as const).map((m) => (
             <button key={m} type="button" role="radio" aria-checked={motion === m} onClick={() => applyTheme({ ...current, motion: m })} className={pill(motion === m)}>
               {m === "auto" ? "Auto" : m === "on" ? "On" : "Off"}
@@ -243,7 +243,7 @@ function Toggle({ label, on, onChange, text }: { label: string; on: boolean; onC
           aria-checked={on}
           aria-label={label}
           onClick={() => onChange(!on)}
-          className={`relative h-6 w-11 shrink-0 rounded-full border ${on ? "border-accent bg-accent" : "border-line bg-background"}`}
+          className={`relative h-6 w-11 shrink-0 rounded-full border ${on ? "border-primary bg-primary" : "border-line bg-background"}`}
         >
           <span className={`absolute top-0.5 size-4.5 rounded-full shadow transition-all ${on ? "left-[1.4rem] bg-white" : "left-0.5 bg-muted"}`} />
         </button>
