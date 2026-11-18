@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { JUDGE_PROBLEMS, PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
+import { ALL_PATTERNS, JUDGE_PROBLEMS, PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
 import { getProblemDetail } from "@/lib/dsa";
 import { parseProblemTab } from "@/lib/dsa-filters";
 import { getPatternNotes } from "@/lib/pattern-notes";
@@ -22,7 +22,7 @@ import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
 import { isReaderMode } from "@/lib/reader-mode";
 import { detectProviders } from "@/lib/ai/detect";
 import { AiChat } from "../ai-chat";
-import { Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
+import { buttonClass, Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 import { ProblemWorkspaceSkeleton } from "./problem-skeleton";
 
 /** The text of the link to the original problem page, by where the problem comes from. */
@@ -41,9 +41,6 @@ export const metadata: Metadata = { title: "Problem" };
 export default function ProblemPage({ params, searchParams }: PageProps<"/dsa/[id]">) {
   return (
     <PageMain title="Problem" full>
-      <Link href="/dsa" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
-        ← All patterns
-      </Link>
       <Suspense fallback={<ProblemWorkspaceSkeleton />}>
         <Problem params={params} searchParams={searchParams} />
       </Suspense>
@@ -139,79 +136,98 @@ async function Problem({
         : []),
     ];
     const wanted = typeof sp.tab === "string" ? sp.tab : undefined;
+    // "pattern · n of m" and the next problem, from the first pattern this problem is in.
+    const firstPattern = p.patterns[0] ? ALL_PATTERNS.find((x) => x.id === p.patterns[0].id) : undefined;
+    const position = firstPattern ? firstPattern.problems.indexOf(p.id) : -1;
+    const nextId = firstPattern && position >= 0 ? firstPattern.problems[position + 1] : undefined;
+    const statusState = s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none";
+    const header = (
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Link
+          href={firstPattern ? `/dsa/pattern/${firstPattern.id}?tab=practice` : "/dsa"}
+          aria-label={firstPattern ? `Back to ${firstPattern.name}` : "Back to Practice"}
+          className="grid size-9 shrink-0 place-items-center rounded-sm border border-line text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
+        >
+          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </Link>
+        <div className="min-w-0 flex-1">
+          {firstPattern && position >= 0 && (
+            <p className="truncate text-xs text-muted zen-dim">
+              <Link href={`/dsa/pattern/${firstPattern.id}`} className="hover:text-foreground">
+                {firstPattern.name}
+              </Link>{" "}
+              · {position + 1} of {firstPattern.problems.length}
+            </p>
+          )}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="truncate text-lg font-semibold tracking-tight">{label}</h2>
+            <Difficulty level={p.difficulty} />
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+              <StatusMark state={statusState} here={p.here} onLeetCode={p.onLeetCode} />
+              {s.state === "unsolved" && "Not solved"}
+              {s.state === "solved" && (s.resolveDue ? "Solved, re-solve due" : `Solved ${fmt(s.solvedOn)}`)}
+              {s.state === "resolved" && `Re-solved ${fmt(s.resolvedOn)}`}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 zen-dim">
+          {!readOnly && !p.judgeable && p.kind === "roadmap" && s.state !== "resolved" && (
+            <form action={markSolvedAction}>
+              <input type="hidden" name="problemId" value={p.id} />
+              <SubmitButton className={buttonClass("secondary", "sm")}>
+                {s.state === "unsolved" ? "Mark solved" : "Mark re-solved"}
+                <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
+              </SubmitButton>
+            </form>
+          )}
+          {!readOnly && p.kind === "roadmap" && s.state !== "unsolved" && (
+            <form action={undoSolveAction}>
+              <input type="hidden" name="problemId" value={p.id} />
+              <SubmitButton className={buttonClass("quiet", "sm")}>Undo</SubmitButton>
+            </form>
+          )}
+          <StartTimer
+            itemId={p.id}
+            label={p.title}
+            href={`/dsa/${encodeURIComponent(p.id)}`}
+            defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25}
+            totalMinutes={focused}
+          />
+        </div>
+        <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted zen-dim">
+          {p.patterns.map((pat) => (
+            <Link key={pat.id} href={`/dsa/pattern/${pat.id}`} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface-2 hover:text-foreground">
+              {pat.name}
+            </Link>
+          ))}
+          {PROBLEMS[p.id]?.why && <span>Why this one: {PROBLEMS[p.id].why}</span>}
+          {p.solveSource === "judge" && <span className="rounded-full bg-success/10 px-2 py-0.5 font-semibold text-success">Solved on Zen Dojo</span>}
+          {p.onLeetCode && <span>Synced from LeetCode</span>}
+          {!readOnly && p.judgeable && s.state === "unsolved" && <span>Run and pass all tests to solve on Zen Dojo</span>}
+          {!readOnly && p.judgeable && s.state === "solved" && s.resolveDue && <span>Run and pass all tests to re-solve</span>}
+          {p.url && (
+            <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
+              {linkLabel(p.id, p.url)}
+            </a>
+          )}
+          {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
+        </div>
+      </header>
+    );
     return (
-      <article className="judged space-y-3">
-        <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-          <div className="min-w-0 space-y-1">
-            <h2 className="text-xl font-semibold tracking-tight">{label}</h2>
-            {PROBLEMS[p.id]?.why && <p className="text-sm text-muted">Why this one: {PROBLEMS[p.id].why}</p>}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted zen-dim">
-              <Difficulty level={p.difficulty} />
-              {p.patterns.map((pat) => (
-                <Link key={pat.id} href={`/dsa/pattern/${pat.id}`} className="rounded-full border border-line px-2 py-0.5 text-xs hover:bg-background hover:text-foreground">
-                  {pat.name}
-                </Link>
-              ))}
-              <span className="inline-flex items-center gap-1.5">
-                <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} here={p.here} onLeetCode={p.onLeetCode} />
-                {s.state === "unsolved" && "Not solved"}
-                {s.state === "solved" && (s.resolveDue ? "Solved, re-solve due" : `Solved ${fmt(s.solvedOn)}`)}
-                {s.state === "resolved" && `Re-solved ${fmt(s.resolvedOn)}`}
-              </span>
-              {p.solveSource === "judge" && (
-                <span className="rounded bg-diff-easy/15 px-2 py-0.5 text-xs font-semibold text-diff-easy">
-                  Solved on Zen Dojo
-                </span>
-              )}
-              {p.onLeetCode && (
-                <span className="text-xs text-muted">
-                  · Synced from LeetCode
-                </span>
-              )}
-              {p.url && (
-                <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
-                  {linkLabel(p.id, p.url)}
-                </a>
-              )}
-              {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 zen-dim">
-            {!readOnly && p.judgeable && s.state === "unsolved" && (
-              <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
-                Run & pass all tests to solve on Zen Dojo
-              </span>
-            )}
-            {!readOnly && p.judgeable && s.state === "solved" && s.resolveDue && (
-              <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
-                Run & pass all tests to re-solve
-              </span>
-            )}
-            {!readOnly && !p.judgeable && p.kind === "roadmap" && s.state !== "resolved" && (
-              <form action={markSolvedAction}>
-                <input type="hidden" name="problemId" value={p.id} />
-                <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
-                  {s.state === "unsolved" ? "Mark solved" : "Mark re-solved"}
-                  <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
-                </SubmitButton>
-              </form>
-            )}
-            {!readOnly && p.kind === "roadmap" && s.state !== "unsolved" && (
-              <form action={undoSolveAction}>
-                <input type="hidden" name="problemId" value={p.id} />
-                <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm">Undo</SubmitButton>
-              </form>
-            )}
-            <StartTimer
-              itemId={p.id}
-              label={p.title}
-              href={`/dsa/${encodeURIComponent(p.id)}`}
-              defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25}
-              totalMinutes={focused}
-            />
-          </div>
-        </header>
-        <JudgeWorkspace id={p.id} templates={startersFor(spec)} tabs={judgedTabs} initialTab={wanted === "solve" ? "description" : wanted} readOnly={readOnly} />
+      <article className="judged">
+        <JudgeWorkspace
+          id={p.id}
+          templates={startersFor(spec)}
+          tabs={judgedTabs}
+          initialTab={wanted === "solve" ? "description" : wanted}
+          readOnly={readOnly}
+          header={header}
+          nextHref={nextId ? `/dsa/${encodeURIComponent(nextId)}` : firstPattern ? `/dsa/pattern/${firstPattern.id}?tab=practice` : undefined}
+          xpGain={p.kind === "roadmap" ? (s.state === "unsolved" ? solveXp(p) : RESOLVE_XP) : undefined}
+        />
       </article>
     );
   }
@@ -225,6 +241,9 @@ async function Problem({
 
   return (
     <article className="space-y-6">
+      <Link href="/dsa" className="inline-block text-sm text-muted hover:text-foreground">
+        ← Practice
+      </Link>
       <header className="space-y-2">
         <h2 className="text-2xl font-semibold tracking-tight">
           {label}
@@ -270,7 +289,7 @@ async function Problem({
         </div>
       </header>
 
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface p-4">
         <div className="flex items-center gap-2 text-sm">
           <StatusMark state={s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none"} here={p.here} onLeetCode={p.onLeetCode} />
           <span>
@@ -286,21 +305,21 @@ async function Problem({
             {!readOnly && !p.judgeable && s.state !== "resolved" && (
               <form action={markSolvedAction}>
                 <input type="hidden" name="problemId" value={p.id} />
-                <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-background">
+                <SubmitButton className={buttonClass("secondary", "md")}>
                   {s.state === "unsolved" ? "Mark solved" : "Mark re-solved"}
                   <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
                 </SubmitButton>
               </form>
             )}
             {!readOnly && p.judgeable && s.state !== "resolved" && (
-              <span className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-xs text-muted">
+              <span className="rounded-sm border border-line bg-surface-2 px-3 py-1.5 text-xs text-muted">
                 Run & pass all tests to solve on Zen Dojo
               </span>
             )}
             {!readOnly && s.state !== "unsolved" && (
               <form action={undoSolveAction}>
                 <input type="hidden" name="problemId" value={p.id} />
-                <SubmitButton className="rounded-lg border border-line px-3 py-1.5 text-sm">Undo</SubmitButton>
+                <SubmitButton className={buttonClass("quiet", "md")}>Undo</SubmitButton>
               </form>
             )}
           </div>
@@ -323,7 +342,7 @@ async function Problem({
           <PatternHelp p={p} cheats={cheats} simple={simple} />
 
           {open.length > 0 && (
-            <p className="rounded-xl border border-cat-mock bg-surface p-3 text-sm">
+            <p className="rounded-md border border-warning bg-surface p-3 text-sm">
               On your stuck list since {fmt(open[open.length - 1].loggedOn)}.{" "}
               <Link href={`/dsa/${encodeURIComponent(p.id)}?tab=stuck#stuck`} className="font-medium underline">
                 View stuck log ({open.length}) →
@@ -353,7 +372,7 @@ async function Problem({
 
 function StuckPanel({ problemId, open, history }: { problemId: string; open: Awaited<ReturnType<typeof getStruggles>>; history: Awaited<ReturnType<typeof getStruggles>> }) {
   return (
-    <section id="stuck" className={`rounded-xl border bg-surface p-4 ${open.length ? "border-cat-mock" : "border-line"}`}>
+    <section id="stuck" className={`rounded-md border bg-surface p-4 ${open.length ? "border-warning" : "border-line"}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-semibold">Stuck list</h3>
         {open.length > 0 && <span className="text-sm text-muted">On your list since {fmt(open[open.length - 1].loggedOn)}</span>}
@@ -365,7 +384,7 @@ function StuckPanel({ problemId, open, history }: { problemId: string; open: Awa
           </p>
           <form action={clearStruggleAction}>
             <input type="hidden" name="problemId" value={problemId} />
-            <SubmitButton className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">Solved it cold</SubmitButton>
+            <SubmitButton className={buttonClass("primary", "md")}>Solved it cold</SubmitButton>
           </form>
         </div>
       ) : (
@@ -373,7 +392,7 @@ function StuckPanel({ problemId, open, history }: { problemId: string; open: Awa
       )}
       <form action={logStruggleAction} className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input type="hidden" name="problemId" value={problemId} />
-        <select name="kind" aria-label="What happened" className="rounded-lg border border-line bg-background px-2 py-2 text-sm" defaultValue="hint">
+        <select name="kind" aria-label="What happened" className="h-9 rounded-sm border border-line-strong bg-surface px-2 text-sm" defaultValue="hint">
           {Object.entries(STRUGGLE_KINDS).map(([k, label]) => (
             <option key={k} value={k}>
               {label}
@@ -385,9 +404,9 @@ function StuckPanel({ problemId, open, history }: { problemId: string; open: Awa
           maxLength={500}
           placeholder="What tripped you up? e.g. didn't see it was a monotonic stack"
           aria-label="Reason"
-          className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-2 text-sm"
+          className="h-9 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-sm focus:border-primary"
         />
-        <SubmitButton className="rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-background">Log it</SubmitButton>
+        <SubmitButton className={buttonClass("secondary", "md")}>Log it</SubmitButton>
       </form>
       {history.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">
@@ -409,7 +428,7 @@ type Detail = NonNullable<Awaited<ReturnType<typeof getProblemDetail>>>;
 function PatternHelp({ p, cheats, simple }: { p: Detail; cheats: Awaited<ReturnType<typeof getPatternNotes>>; simple: boolean }) {
   if (p.patterns.length === 0 && p.topics.length === 0) return null;
   return (
-    <details className="rounded-xl border border-line bg-surface p-4" open>
+    <details className="rounded-md border border-line bg-surface p-4" open>
       <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-foreground">Stuck? Show the pattern</summary>
       <div className="mt-3 space-y-3">
         {p.patterns.length > 0 && (
@@ -451,7 +470,7 @@ function Submissions({ list }: { list: Detail["submissions"] }) {
       <ul className="space-y-2">
         {list.map((sub, i) => (
           <li key={sub.id}>
-            <details open={i === 0} className="group rounded-xl border border-line bg-surface">
+            <details open={i === 0} className="group rounded-md border border-line bg-surface">
               <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
                 <span className="inline-block transition-transform group-open:rotate-90">›</span>
                 <span className="font-medium">{when(sub.submittedAt)}</span>

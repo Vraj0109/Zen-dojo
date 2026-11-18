@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClass } from "../../../ui";
 
 /** End of a pattern lesson: open its Practice list, or go back to (or on to) a group. Static data only. */
 export function LessonEnd({
@@ -15,7 +16,7 @@ export function LessonEnd({
   nextGroup?: { id: string; title: string };
 }) {
   return (
-    <section aria-labelledby="lesson-end-heading" className="space-y-3 rounded-xl border border-line bg-surface p-4">
+    <section aria-labelledby="lesson-end-heading" className="space-y-3 rounded-md border border-line bg-surface p-5">
       <h3 id="lesson-end-heading" className="font-semibold">
         Ready to practice?
       </h3>
@@ -25,7 +26,7 @@ export function LessonEnd({
       {/* No scroll={false}: the Practice tab must open at the top of the page. */}
       <Link
         href={`/dsa/pattern/${id}?tab=practice`}
-        className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:opacity-90 max-md:min-h-11 max-md:w-full"
+        className={buttonClass("primary", "md", "max-md:min-h-11 max-md:w-full")}
       >
         Practice {name}
       </Link>
