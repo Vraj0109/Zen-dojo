@@ -204,54 +204,29 @@ export function LldProjectView({ project, deep }: { project?: LldProject; deep?:
 
 const fileAnchor = (name: string) => `file-${name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
 const classOf = (name: string) => name.replace(/^.*\//, "").replace(/\.java$/, "");
-const packageOf = (code: string) => /^\s*package\s+([\w.]+)\s*;/m.exec(code)?.[1] ?? "(default package)";
 
 /**
- * The project's files: a file tree grouped by package on the left (links that jump to each file, sticky on wide
- * screens), the code on the right. Each file shows a "Uses" line naming the project's other classes it refers to.
+ * The project's reference files: a clean file list showing each class, what it uses, and its code.
  */
-function ProjectFiles({ files }: { files: { name: string; code: string }[] }) {
-  const packages = new Map<string, { name: string; code: string }[]>();
-  for (const f of files) packages.set(packageOf(f.code), [...(packages.get(packageOf(f.code)) ?? []), f]);
+export function ProjectFiles({ files }: { files: { name: string; code: string }[] }) {
   const names = files.map((f) => classOf(f.name));
   const uses = (f: { name: string; code: string }) =>
     names.filter((n) => n !== "" && n !== classOf(f.name) && new RegExp(`\\b${n.replace(/[^\w$]/g, "")}\\b`).test(f.code));
   return (
-    <div className="grid gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-      <nav aria-label="Project files" className="self-start rounded-md border border-line bg-surface-2 p-3 text-sm lg:sticky lg:top-6">
-        <p className="mb-2 text-xs font-semibold text-muted">
-          {files.length} file{files.length === 1 ? "" : "s"}
-        </p>
-        {[...packages.entries()].map(([pkg, list]) => (
-          <div key={pkg} className="mb-2 last:mb-0">
-            <p className="truncate font-mono text-xs text-muted">{pkg}</p>
-            <ul className="mt-1 space-y-0.5 border-l border-line pl-2">
-              {list.map((f) => (
-                <li key={f.name}>
-                  <a href={`#${fileAnchor(f.name)}`} className="block truncate rounded-sm px-2 py-1 font-mono text-xs hover:bg-surface hover:text-foreground">
-                    {f.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
+    <div className="space-y-4">
+      {files.map((f) => {
+        const u = uses(f);
+        return (
+          <div key={f.name} id={fileAnchor(f.name)} className="scroll-mt-20 space-y-1.5">
+            {u.length > 0 && (
+              <p className="text-xs text-muted">
+                <span className="font-medium text-foreground">Uses</span> {u.join(", ")}
+              </p>
+            )}
+            <Code code={f.code} lang="Java" label={f.name} maxHeight="32rem" />
           </div>
-        ))}
-      </nav>
-      <div className="min-w-0 space-y-4">
-        {files.map((f) => {
-          const u = uses(f);
-          return (
-            <div key={f.name} id={fileAnchor(f.name)} className="scroll-mt-20 space-y-1.5">
-              {u.length > 0 && (
-                <p className="text-xs text-muted">
-                  <span className="font-medium text-foreground">Uses</span> {u.join(", ")}
-                </p>
-              )}
-              <Code code={f.code} lang="Java" label={f.name} maxHeight="32rem" />
-            </div>
-          );
-        })}
-      </div>
+        );
+      })}
     </div>
   );
 }

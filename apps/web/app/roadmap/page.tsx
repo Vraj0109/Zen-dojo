@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { TOTAL_WEEKS } from "@habit/shared";
 import { getRoadmapView, type RoadmapWeek } from "@/lib/roadmap";
 import { Badge, PageMain, ProgressBar } from "../ui";
-import { DsaRoadmapSkeleton } from "@/app/components/roadmap-skeleton";
+import { RoadmapSkeleton } from "@/app/components/roadmap-skeleton";
 
 export const metadata: Metadata = { title: "Roadmap" };
 
@@ -13,7 +13,7 @@ export default function RoadmapPage() {
   return (
     <PageMain title="Roadmap">
       <h2 className="mb-6 text-2xl font-semibold tracking-tight">Roadmap</h2>
-      <Suspense fallback={<DsaRoadmapSkeleton />}>
+      <Suspense fallback={<RoadmapSkeleton />}>
         <Roadmap />
       </Suspense>
     </PageMain>
@@ -41,7 +41,7 @@ async function Roadmap() {
             {finished ? "Complete" : `Week ${currentWeek} of ${TOTAL_WEEKS} · ${weeksLeft} ${weeksLeft === 1 ? "week" : "weeks"} left`}
           </span>
         </div>
-        <ol aria-label="Weeks" className="grid grid-cols-8 gap-1.5 sm:grid-cols-16">
+        <ol aria-label="Weeks" className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-[repeat(16,minmax(0,1fr))] gap-1.5">
           {weeks.map((w) => {
             const s = stateOf(w);
             return (
@@ -51,7 +51,11 @@ async function Roadmap() {
                   aria-current={s === "current" ? "step" : undefined}
                   title={`Week ${w.week}: ${w.dsa}`}
                   className={`flex h-9 items-center justify-center rounded-sm text-xs font-semibold transition-colors duration-120 ${
-                    s === "past" ? "bg-primary text-on-primary" : s === "current" ? "bg-primary-soft text-primary ring-2 ring-primary" : "bg-surface-2 text-muted hover:text-foreground"
+                    s === "past"
+                      ? "bg-success text-white"
+                      : s === "current"
+                      ? "bg-primary-soft text-primary ring-2 ring-primary"
+                      : "bg-surface-2 text-muted hover:bg-surface hover:text-foreground"
                   }`}
                 >
                   {w.week}

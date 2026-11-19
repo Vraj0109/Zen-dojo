@@ -165,5 +165,10 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0080 | [Sync pill shows one loader, not two](0080-sync-pill-one-loader.md) | done |
 | 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | implemented (partial: steps 1, 4, 8 wait for the courses repo) |
 | 0082 | [Run any GGUF model through Ollama; remove LM Studio](0082-gguf-models-through-ollama.md) | implemented |
-| 0083 | [UI redesign: the Dojo design system, screen by screen (DESIGN.md and the mockups)](0083-ui-redesign-dojo.md) | ready |
-| 0084 | [Fix the redesign's broken screens (Practice, Roadmap, course pages, Your classes) and scan the whole site](0084-redesign-fixes-and-site-scan.md) | ready |
+| 0083 | [UI redesign: the Dojo design system, screen by screen (DESIGN.md and the mockups)](0083-ui-redesign-dojo.md) | mostly built; look replaced by 0085-0089 |
+| 0084 | [Fix the redesign's broken screens (Practice, Roadmap, course pages, Your classes) and scan the whole site](0084-redesign-fixes-and-site-scan.md) | implemented (not committed); look replaced by 0085-0089 |
+| 0085 | [Expressive redesign 1: tokens, Google Sans, shared parts, fixed shell with rail, account menu, shortcuts sheet](0085-expressive-foundations-and-shell.md) | ready (do first) |
+| 0086 | [Expressive redesign 2: Practice with every pattern, split scrolling, one long problem list (no pagination)](0086-expressive-practice.md) | ready (after 0085) |
+| 0087 | [Expressive redesign 3: problem workspace with per-case results, Run vs Submit, my cases, shortcuts](0087-expressive-workspace-run-submit.md) | ready (after 0085) |
+| 0088 | [Expressive redesign 4: Today and every Learn page](0088-expressive-today-and-learn.md) | ready (after 0085) |
+| 0089 | [Expressive redesign 5: Review, Revise, Backlog, Roadmap, Profile, Settings and theme warning, Sign in, final scan](0089-expressive-review-profile-settings-and-scan.md) | ready (after 0085; scan last) |

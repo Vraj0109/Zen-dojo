@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrast } from "../lib/custom";
+import { ACCENTS, STYLES } from "../lib/theme";
 
 const css = fs.readFileSync(path.join(__dirname, "globals.css"), "utf8");
 const design = fs.readFileSync(path.join(__dirname, "..", "..", "..", "DESIGN.md"), "utf8");
@@ -92,6 +93,26 @@ describe("DESIGN.md tokens in globals.css", () => {
     expect(value(dark, "elev-lg")).toBe("0 0 #0000"); // no shadows in dark mode
     for (const d of ["120ms", "180ms", "240ms"]) expect(light).toContain(d);
     expect(theme).toContain("--ease-dojo: cubic-bezier(0.2, 0, 0, 1);");
+  });
+
+  it("primary never resolves to the danger value in any theme or accent", () => {
+    // In globals.css root
+    expect(value(light, "primary")).not.toBe(value(light, "danger"));
+    expect(value(dark, "primary")).not.toBe(value(dark, "danger"));
+
+    // Across all built-in styles
+    for (const style of STYLES) {
+      expect(style.light.primary.toLowerCase(), `${style.id} light primary vs danger`).not.toBe(style.light.danger.toLowerCase());
+      expect(style.dark.primary.toLowerCase(), `${style.id} dark primary vs danger`).not.toBe(style.dark.danger.toLowerCase());
+    }
+
+    // Across all accents vs styles' dangers
+    for (const accent of ACCENTS) {
+      for (const style of STYLES) {
+        expect(accent.color.toLowerCase(), `accent ${accent.id} vs ${style.id} light danger`).not.toBe(style.light.danger.toLowerCase());
+        expect(accent.color.toLowerCase(), `accent ${accent.id} vs ${style.id} dark danger`).not.toBe(style.dark.danger.toLowerCase());
+      }
+    }
   });
 });
 

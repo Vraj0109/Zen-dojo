@@ -260,13 +260,15 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS, ai }: { sett
     [vp, size],
   );
   // The Buddy lives on the screen edges only: its resting place is always flush with an edge (EDGE px in).
+  // On phones (< 768px), keep above the bottom navigation bar (3.5rem / ~64px).
+  const bottomInset = vp.w < 768 ? 68 : 0;
   const bounds: Bounds = {
     minX: EDGE,
     maxX: Math.max(EDGE, vp.w - size - EDGE),
     minY: EDGE,
-    maxY: Math.max(EDGE, vp.h - size - EDGE),
+    maxY: Math.max(EDGE, vp.h - size - EDGE - bottomInset),
   };
-  const basePos = snapToEdge(clamp(prefs.pos ?? { x: EDGE, y: vp.h - size - EDGE }), bounds);
+  const basePos = snapToEdge(clamp(prefs.pos ?? { x: EDGE, y: vp.h - size - EDGE - bottomInset }), bounds);
 
   // Thrown: a flick slides it with friction toward the edge it is headed for and it settles there on a soft spring (no gravity).
   const [flying, setFlying] = useState<{ pos: DragPos; vx: number } | null>(null);

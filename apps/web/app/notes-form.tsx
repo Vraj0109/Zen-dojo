@@ -6,7 +6,7 @@ import { LANGUAGES, NOTE_LIMITS } from "@/lib/note-limits";
 import { parseProjectCode, serializeProject, type ProjectFile } from "@/lib/project-files";
 import { saveNoteAction } from "./actions";
 import { EditorField } from "./code-editor";
-import { ProjectEditor } from "./components/project-editor";
+import { ProjectEditor, type ProjectReference } from "./components/project-editor";
 import { PhoneCodeNote } from "./components/phone-study";
 import { SubmitButton } from "./submit-button";
 
@@ -23,6 +23,7 @@ export function NotesForm({
   javaProject = false,
   readOnly = false,
   noRun = false,
+  reference,
 }: {
   id: string;
   note: ProblemNote | null;
@@ -37,6 +38,7 @@ export function NotesForm({
   readOnly?: boolean;
   /** Hosted site: LLD Java projects cannot run here, so the project editor shows a notice instead of Run Project. */
   noRun?: boolean;
+  reference?: ProjectReference;
 }) {
   const [files, setFiles] = useState<ProjectFile[]>(() => parseProjectCode(note?.code ?? "", note?.language ?? ""));
   const initialSerialized = useMemo(() => serializeProject(parseProjectCode(note?.code ?? "", note?.language ?? "")), [note]);
@@ -84,7 +86,7 @@ export function NotesForm({
             </div>
             {isDirty && <span className="text-xs text-amber-600 dark:text-amber-400">Unsaved changes</span>}
           </div>
-          <ProjectEditor projectId={id} value={files} onChange={setFiles} storageKey={`zen-dojo:lld:${id}`} readOnly={readOnly} noRun={noRun} />
+          <ProjectEditor projectId={id} value={files} onChange={setFiles} storageKey={`zen-dojo:lld:${id}`} readOnly={readOnly} noRun={noRun} reference={reference} title={codeLabel} />
         </div>
       ) : (
         <div>

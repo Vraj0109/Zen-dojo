@@ -102,7 +102,7 @@ export function ThemePicker() {
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                onClick={() => applyTheme({ ...current, style: s.id })}
+                onClick={() => applyTheme({ ...current, style: s.id, customTheme: null })}
                 className={`overflow-hidden border-2 text-left ${selected ? "border-primary" : "border-line"}`}
                 style={{ background: p.background, borderRadius: s.radius, color: p.foreground }}
               >
@@ -145,7 +145,7 @@ export function ThemePicker() {
               type="button"
               role="radio"
               aria-checked={accent === a.id}
-              onClick={() => applyTheme({ ...current, accent: a.id })}
+              onClick={() => applyTheme({ ...current, accent: a.id, customTheme: null })}
               className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium ${accent === a.id ? "border-foreground" : "border-line hover:bg-surface-2"}`}
             >
               <span aria-hidden className="size-3.5 rounded-full" style={{ background: a.id === DEFAULT_ACCENT ? STYLES.find((s) => s.id === style)![scheme].primary : a.color }} />

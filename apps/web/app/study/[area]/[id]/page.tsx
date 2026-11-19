@@ -531,26 +531,50 @@ async function ExerciseView({ id, diagramError, prev, next }: { id: string; diag
               </section>
             )}
 
-            <NotesForm
-              id={id}
-              note={d.note}
-              notesLabel="Your design notes"
-              notesPlaceholder={
-                isDesign
-                  ? "Requirements:\nEstimates:\nAPI / data model:\nHigh-level design:\nDeep dives:\nFailure modes:\nTrade-offs I'd mention:"
-                  : "Requirements:\nEntities and relationships:\nPatterns used:\nConcurrency:\nExtensions:"
-              }
-              codeLabel={isDesign ? "Schema, API or pseudo-code" : "Your classes"}
-              codePlaceholder={
-                isDesign
-                  ? "Optional: table schemas, API signatures, key algorithms."
-                  : "Write your design as Java files and run them. Saved with this problem."
-              }
-              codeHelp={!isDesign ? "Write your design as Java files and run them. Saved with this problem." : undefined}
-              javaProject={!isDesign}
-              readOnly={readOnly}
-              noRun={noRun}
-            />
+            {(() => {
+              const referenceMaterial = !isDesign && (LLD_PROJECTS[id] || LLD_DEEP[id] || ALL_EXERCISES[id]) ? {
+              requirements: {
+                title: ALL_EXERCISES[id]?.title ?? "Requirements",
+                prompt: LLD_GUIDES[id]?.requirements?.length ? "• " + LLD_GUIDES[id].requirements.join("\n• ") : ALL_EXERCISES[id]?.focus,
+              },
+              walkthrough: LLD_DEEP[id]?.walkthrough.map((sec) => ({
+                title: sec.title,
+                body: sec.body,
+                code: sec.code,
+              })),
+              diagrams: LLD_DEEP[id] ? [
+                ...(LLD_DEEP[id].classDiagram ? [{ title: "Class diagram", source: LLD_DEEP[id].classDiagram, caption: "Class diagram" }] : []),
+                ...(LLD_DEEP[id].sequenceDiagram ? [{ title: "Sequence diagram", source: LLD_DEEP[id].sequenceDiagram, caption: "Main flow" }] : []),
+                ...(LLD_DEEP[id].stateDiagram ? [{ title: "State diagram", source: LLD_DEEP[id].stateDiagram, caption: "State diagram" }] : []),
+                ...(LLD_DEEP[id].extraDiagrams ?? []).map((diag) => ({ title: diag.title, source: diag.source, caption: diag.caption })),
+              ] : [],
+              referenceFiles: LLD_PROJECTS[id] ? [...LLD_PROJECTS[id].files, ...(LLD_PROJECTS[id].tests ?? [])] : [],
+            } : undefined;
+
+            return (
+              <NotesForm
+                id={id}
+                note={d.note}
+                notesLabel="Your design notes"
+                notesPlaceholder={
+                  isDesign
+                    ? "Requirements:\nEstimates:\nAPI / data model:\nHigh-level design:\nDeep dives:\nFailure modes:\nTrade-offs I'd mention:"
+                    : "Requirements:\nEntities and relationships:\nPatterns used:\nConcurrency:\nExtensions:"
+                }
+                codeLabel={isDesign ? "Schema, API or pseudo-code" : "Your classes"}
+                codePlaceholder={
+                  isDesign
+                    ? "Optional: table schemas, API signatures, key algorithms."
+                    : "Write your design as Java files and run them. Saved with this problem."
+                }
+                codeHelp={!isDesign ? "Write your design as Java files and run them. Saved with this problem." : undefined}
+                javaProject={!isDesign}
+                readOnly={readOnly}
+                noRun={noRun}
+                reference={referenceMaterial}
+              />
+            );
+          })()}
           </div>
         </ArticleSection>
 

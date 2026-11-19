@@ -13,11 +13,9 @@ import {
   parseDsaFilters,
   parseDsaTab,
   removeFilterValue,
-  parseDsaPage,
   parseDsaSort,
   sortProblems,
   sourceLabel,
-  DSA_PAGE_SIZE,
   DSA_SORTS,
   type DsaFilters,
   type DsaSort,
@@ -75,9 +73,17 @@ function dsaTabHref(id: string, params: Record<string, string | string[] | undef
 }
 
 async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchParams"] }) {
-  const params = await searchParams;
   await connection();
-  if (process.env.HABIT_HOSTED !== "1") after(syncLeetCodeIfStale); // hosted: no database access inside after()
+  const params = await searchParams;
+  if (process.env.HABIT_HOSTED !== "1") {
+    after(async () => {
+      try {
+        await syncLeetCodeIfStale();
+      } catch (e) {
+        console.error("LeetCode background sync error:", e);
+      }
+    });
+  }
   const [{ groups, due, extras, topics, totals }, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
 
   const anywhere = params.platforms === "all";
@@ -92,17 +98,6 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   const allRows = filterProblems(groups.flatMap((g) => g.patterns), { q: "", source: [], status: [], difficulty: [], topic: [], has: [] });
   const sort = parseDsaSort(params);
   const tableRows = tab === "all" ? sortProblems(filtering ? results : allRows, sort) : tab === "patterns" && filtering ? sortProblems(results, sort) : [];
-  const page = parseDsaPage(params, tableRows.length);
-  const pages = Math.max(1, Math.ceil(tableRows.length / DSA_PAGE_SIZE));
-  const pageRows = tab === "all" ? tableRows.slice((page - 1) * DSA_PAGE_SIZE, page * DSA_PAGE_SIZE) : tableRows;
-  const pageHref = (n: number) => {
-    const sp = filtersToSearchParams(filters);
-    sp.set("tab", "all");
-    if (sort !== "roadmap") sp.set("sort", sort);
-    if (anywhere) sp.set("platforms", "all");
-    if (n > 1) sp.set("page", String(n));
-    return `/dsa?${sp}`;
-  };
 
   const tabs = [
     { id: "patterns", label: "Patterns" },
@@ -141,7 +136,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
           {tab === "patterns" && (
             <section className="space-y-3" aria-label="Patterns">
               {filtering ? (
-                <ResultTable rows={pageRows} />
+                <ResultTable rows={tableRows} />
               ) : (
                 <>
                   <p className="text-sm text-muted">Learn the template, solve 4 to 6 problems easy to hard, then re-solve cold two weeks later.</p>
@@ -169,34 +164,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
 
           {tab === "all" && (
             <section className="space-y-3" aria-label="All problems">
-              <ResultTable rows={pageRows} total={tableRows.length} filtering={filtering} />
-              {pages > 1 && (
-                <nav aria-label="Pages" className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-muted tabular-nums">
-                    {(page - 1) * DSA_PAGE_SIZE + 1} to {Math.min(page * DSA_PAGE_SIZE, tableRows.length)} of {tableRows.length}
-                  </span>
-                  <span className="flex gap-2">
-                    {page > 1 ? (
-                      <Link href={pageHref(page - 1)} className={buttonClass("secondary", "sm")}>
-                        Previous
-                      </Link>
-                    ) : (
-                      <span className={buttonClass("secondary", "sm", "pointer-events-none opacity-50")} aria-disabled="true">
-                        Previous
-                      </span>
-                    )}
-                    {page < pages ? (
-                      <Link href={pageHref(page + 1)} className={buttonClass("secondary", "sm")}>
-                        Next
-                      </Link>
-                    ) : (
-                      <span className={buttonClass("secondary", "sm", "pointer-events-none opacity-50")} aria-disabled="true">
-                        Next
-                      </span>
-                    )}
-                  </span>
-                </nav>
-              )}
+              <ResultTable rows={tableRows} total={tableRows.length} filtering={filtering} />
             </section>
           )}
 

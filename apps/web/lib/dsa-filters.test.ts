@@ -14,11 +14,9 @@ import {
   parseSource,
   removeFilterValue,
   searchText,
-  parseDsaPage,
   parseDsaSort,
   sortProblems,
   sourceLabel,
-  DSA_PAGE_SIZE,
 } from "./dsa-filters";
 import { importFromExtension } from "./leetcode/extension";
 import { saveNote } from "./notes";
@@ -284,14 +282,10 @@ describe("All problems table helpers", () => {
     expect(sortProblems(rows, "recent").map((r) => r.problem.id)).toEqual(["c", "b", "a"]);
   });
 
-  it("parses sort and page with safe defaults", () => {
+  it("parses sort with safe defaults", () => {
     expect(parseDsaSort({})).toBe("roadmap");
     expect(parseDsaSort({ sort: "title" })).toBe("title");
     expect(parseDsaSort({ sort: "nope" })).toBe("roadmap");
-    expect(parseDsaPage({}, 120)).toBe(1);
-    expect(parseDsaPage({ page: "3" }, 120)).toBe(3);
-    expect(parseDsaPage({ page: "9" }, 120)).toBe(Math.ceil(120 / DSA_PAGE_SIZE));
-    expect(parseDsaPage({ page: "x" }, 0)).toBe(1);
   });
 
   it("labels sources", () => {

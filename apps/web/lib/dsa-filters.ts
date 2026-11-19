@@ -258,16 +258,6 @@ export function parseDsaSort(params: Params): DsaSort {
   return DSA_SORTS.some((o) => o.value === s) ? (s as DsaSort) : "roadmap";
 }
 
-/** Rows per page in the "All problems" table. */
-export const DSA_PAGE_SIZE = 50;
-
-/** A 1-based page number from ?page=, clamped to the pages that exist. */
-export function parseDsaPage(params: Params, total: number): number {
-  const pages = Math.max(1, Math.ceil(total / DSA_PAGE_SIZE));
-  const n = Number.parseInt(one(params.page), 10);
-  return Number.isFinite(n) ? Math.min(pages, Math.max(1, n)) : 1;
-}
-
 /** The date a problem was last solved (re-solve or first solve), or "" when not solved. */
 export function lastSolvedOn(p: ProblemView): string {
   const s = p.status;
