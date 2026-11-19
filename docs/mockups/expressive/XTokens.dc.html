@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Expressive system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1280px; height: 1000px; box-sizing: border-box; padding: 48px; background: #F6FBF5; color: #171D19; font-family: 'Google Sans', system-ui, sans-serif; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px;">
+  <section style="display: flex; flex-direction: column; gap: 16px;">
+    <p style="margin: 0; font-size: 14px; font-weight: 500; color: #1E6B4A;">Expressive · seeded from Dojo green</p>
+    <h1 style="margin: 0; font-size: 44px; line-height: 52px; font-weight: 600; letter-spacing: -0.01em;">Rounded, tonal, a bit bouncy.</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #404943; max-width: 60ch;">One seed colour makes every surface: soft green containers, a warm tertiary for rewards, and calm neutrals. Shapes do the playing: pills, big 28 px cards, scalloped badges and a wavy progress line.</p>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; font-size: 12px;">
+      <div><div style="height: 64px; border-radius: 20px; background: #1E6B4A;"></div><p style="margin: 6px 0 0; font-weight: 500;">primary</p><p style="margin: 0; color: #404943;">#1E6B4A</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #B6F1CF;"></div><p style="margin: 6px 0 0; font-weight: 500;">primary container</p><p style="margin: 0; color: #404943;">#B6F1CF</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #D2E8D9;"></div><p style="margin: 6px 0 0; font-weight: 500;">secondary container</p><p style="margin: 0; color: #404943;">#D2E8D9</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #FFDDB2;"></div><p style="margin: 6px 0 0; font-weight: 500;">tertiary container</p><p style="margin: 0; color: #404943;">#FFDDB2 · rewards</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #F6FBF5; border: 1px solid #C0C9C1;"></div><p style="margin: 6px 0 0; font-weight: 500;">surface</p><p style="margin: 0; color: #404943;">#F6FBF5</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #EBF0EA;"></div><p style="margin: 6px 0 0; font-weight: 500;">container</p><p style="margin: 0; color: #404943;">#EBF0EA</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #FFFFFF; border: 1px solid #DEE5DD;"></div><p style="margin: 6px 0 0; font-weight: 500;">container lowest</p><p style="margin: 0; color: #404943;">#FFFFFF · cards</p></div>
+      <div><div style="height: 64px; border-radius: 20px; background: #BA1A1A;"></div><p style="margin: 6px 0 0; font-weight: 500;">error</p><p style="margin: 0; color: #404943;">#BA1A1A · only errors</p></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; font-size: 12px; padding: 14px; border-radius: 24px; background: #0F1512; color: #DEE4DE;">
+      <div><div style="height: 44px; border-radius: 16px; background: #8FD8B0;"></div><p style="margin: 6px 0 0;">primary · dark</p></div>
+      <div><div style="height: 44px; border-radius: 16px; background: #0F5236;"></div><p style="margin: 6px 0 0;">primary container</p></div>
+      <div><div style="height: 44px; border-radius: 16px; background: #1B211E;"></div><p style="margin: 6px 0 0;">container</p></div>
+      <div><div style="height: 44px; border-radius: 16px; background: #6A3C00;"></div><p style="margin: 6px 0 0;">tertiary container</p></div>
+    </div>
+  </section>
+  <section style="display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <p style="margin: 0; font-size: 36px; line-height: 44px; font-weight: 600;">Display 36 · Google Sans</p>
+      <p style="margin: 0; font-size: 28px; line-height: 36px; font-weight: 500;">Headline 28</p>
+      <p style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 500;">Title 22</p>
+      <p style="margin: 0; font-size: 16px; line-height: 24px;">Body 16 reads calmly at 68 characters per line.</p>
+      <p style="margin: 0; font-size: 14px; line-height: 20px; color: #404943;">Label 14 · weights 400, 500, 600 only</p>
+      <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 14px;">code · JetBrains Mono</p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <button type="button" style="height: 48px; padding: 0 24px; border: 0; border-radius: 999px; background: #1E6B4A; color: #FFFFFF; font: 500 15px 'Google Sans', sans-serif;">Start session</button>
+      <button type="button" style="height: 48px; padding: 0 24px; border: 0; border-radius: 999px; background: #B6F1CF; color: #00210F; font: 500 15px 'Google Sans', sans-serif;">Review now</button>
+      <button type="button" style="height: 48px; padding: 0 22px; border: 1px solid #707971; border-radius: 999px; background: transparent; color: #1E6B4A; font: 500 15px 'Google Sans', sans-serif;">Later</button>
+      <span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border-radius: 10px; background: #D2E8D9; color: #0D1F15; font-size: 14px; font-weight: 500;">Hash map ✓</span>
+      <span style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 10px; border: 1px solid #C0C9C1; font-size: 14px; font-weight: 500;">Medium</span>
+    </div>
+    <div style="display: flex; gap: 20px; align-items: center;">
+      <button type="button" style="display: inline-flex; align-items: center; gap: 12px; height: 64px; padding: 0 24px 0 20px; border: 0; border-radius: 20px; background: #B6F1CF; color: #00210F; font: 500 16px 'Google Sans', sans-serif; box-shadow: 0 3px 8px rgba(0,0,0,0.12);"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Focus 25 min</button>
+      <svg role="img" aria-label="Scalloped badge" width="72" height="72" viewBox="0 0 100 100"><path d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z" fill="#FFDDB2"/><text x="50" y="58" text-anchor="middle" font-family="Google Sans" font-size="26" font-weight="600" fill="#2C1600">14</text></svg>
+      <div style="flex: 1;">
+        <svg role="img" aria-label="Wavy progress 60 percent" width="100%" height="16" viewBox="0 0 300 16" preserveAspectRatio="none"><path d="M2 8 Q9 2 16 8 T30 8 T44 8 T58 8 T72 8 T86 8 T100 8 T114 8 T128 8 T142 8 T156 8 T170 8 T180 8" fill="none" stroke="#1E6B4A" stroke-width="4" stroke-linecap="round"/><path d="M190 8 H298" stroke="#D2E8D9" stroke-width="4" stroke-linecap="round"/></svg>
+        <p style="margin: 4px 0 0; font-size: 12px; color: #404943;">Wavy progress: moves while you are on a streak</p>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font-size: 12px; color: #404943; text-align: center;">
+      <div><div style="height: 56px; border-radius: 12px; background: #EBF0EA;"></div>12 · chips, fields</div>
+      <div><div style="height: 56px; border-radius: 20px; background: #EBF0EA;"></div>20 · small cards</div>
+      <div><div style="height: 56px; border-radius: 28px; background: #EBF0EA;"></div>28 · cards, sheets</div>
+    </div>
+    <p style="margin: 0; font-size: 13px; line-height: 20px; color: #404943;">Motion: spring easing (quick overshoot) on buttons, chips and the FAB; progress fills with a bounce. Reduced motion: instant. Fun comes from shape, colour and motion, never from emoji or cartoons.</p>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

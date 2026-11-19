@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone gallery B</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>body{margin:0}</style></helmet>
+<div style="box-sizing: border-box; width: 2680px; height: 920px; padding: 16px 50px; display: flex; gap: 48px; background: #E8EDE7;"><figure style="margin: 0; display: flex; flex-direction: column; gap: 14px;"><figcaption style="font: 500 18px 'Google Sans', sans-serif; color: #171D19;">Lesson</figcaption><div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; border: 1px solid #C0C9C1; background: #FFFFFF;"><dc-import name="XLesson" phone="{{yes}}" hint-size="390px,844px"></dc-import></div></figure><figure style="margin: 0; display: flex; flex-direction: column; gap: 14px;"><figcaption style="font: 500 18px 'Google Sans', sans-serif; color: #171D19;">LLD project</figcaption><div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; border: 1px solid #C0C9C1; background: #FFFFFF;"><dc-import name="XLld" phone="{{yes}}" hint-size="390px,844px"></dc-import></div></figure><figure style="margin: 0; display: flex; flex-direction: column; gap: 14px;"><figcaption style="font: 500 18px 'Google Sans', sans-serif; color: #171D19;">Your classes</figcaption><div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; border: 1px solid #C0C9C1; background: #FFFFFF;"><dc-import name="XClasses" phone="{{yes}}" hint-size="390px,844px"></dc-import></div></figure><figure style="margin: 0; display: flex; flex-direction: column; gap: 14px;"><figcaption style="font: 500 18px 'Google Sans', sans-serif; color: #171D19;">System design</figcaption><div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; border: 1px solid #C0C9C1; background: #FFFFFF;"><dc-import name="XSdDesign" phone="{{yes}}" hint-size="390px,844px"></dc-import></div></figure><figure style="margin: 0; display: flex; flex-direction: column; gap: 14px;"><figcaption style="font: 500 18px 'Google Sans', sans-serif; color: #171D19;">Review</figcaption><div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; border: 1px solid #C0C9C1; background: #FFFFFF;"><dc-import name="XReview" phone="{{yes}}" hint-size="390px,844px"></dc-import></div></figure><figure style="margin: 0; display: flex; flex-direction: column; gap: 14px;"><figcaption style="font: 500 18px 'Google Sans', sans-serif; color: #171D19;">Quick revise</figcaption><div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; border: 1px solid #C0C9C1; background: #FFFFFF;"><dc-import name="XRevise" phone="{{yes}}" hint-size="390px,844px"></dc-import></div></figure></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2680,"height":920}}'>
+class Component extends DCLogic { renderVals() { return { yes: true }; } }
+</script>
+</body>
+</html>

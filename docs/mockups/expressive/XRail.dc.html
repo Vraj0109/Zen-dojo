@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Navigation rail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}button{cursor:pointer}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{wrap}}">
+<nav aria-label="Main" style="{{root}}">
+  <div style="{{logo}}">ZD</div>
+  <a href="#" aria-label="Start a focus session" title="Start a focus session" style="{{fab}}"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></a>
+  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+    <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+      <a href="#" style="{{it.link}}"><span style="{{it.pill}}"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="{{it.fill}}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{it.icon}}"/></svg><sc-if value="{{it.hasBadge}}" hint-placeholder-val="{{false}}"><span style="{{it.badge}}">{{it.count}}</span></sc-if></span><span style="{{it.label}}">{{it.name}}</span></a>
+    </sc-for>
+  </div>
+  <button type="button" onClick="{{toggle}}" aria-haspopup="menu" aria-expanded="{{open}}" aria-label="Account menu" title="Account" style="{{avatarBtn}}"><span style="{{avatar}}">Y</span><span aria-hidden="true" style="{{syncDot}}"></span></button>
+</nav>
+<sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+  <div role="menu" aria-label="Account" style="{{menu}}">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 6px 2px;">
+      <span style="{{avatarBig}}">Y</span>
+      <div style="min-width: 0; flex: 1;"><p style="margin: 0; font-size: 16px; font-weight: 500;">Signed in with GitHub</p><p style="{{muted}}">Level 7 · 2,340 XP</p></div>
+    </div>
+    <div style="{{syncRow}}"><span style="{{dotOk}}"></span><span style="flex: 1;">Synced with the web app</span><span style="{{muted}}">2 min ago</span></div>
+    <span style="{{rule}}"></span>
+    <sc-for list="{{links}}" as="l" hint-placeholder-count="4"><a href="#" role="menuitem" style="{{item}}"><span style="{{iconWrap}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{l.icon}}"/></svg></span><span style="flex: 1; min-width: 0;"><span style="display: block;">{{l.name}}</span><sc-if value="{{l.hasSub}}" hint-placeholder-val="{{false}}"><span style="{{subText}}">{{l.sub}}</span></sc-if></span><sc-if value="{{l.hasKey}}" hint-placeholder-val="{{false}}"><kbd style="{{kbd}}">{{l.key}}</kbd></sc-if></a></sc-for>
+    <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 10px;">
+      <span style="{{iconWrap}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span>
+      <span style="flex: 1; font-size: 15px;">Theme</span>
+      <div role="radiogroup" aria-label="Theme" style="{{seg}}"><sc-for list="{{themes}}" as="t" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.name}}</button></sc-for></div>
+    </div>
+    <span style="{{rule}}"></span>
+    <button type="button" role="menuitem" style="{{itemBtn}}"><span style="{{iconWrap}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 8l-4 4 4 4M6 12h10"/></svg></span>Sign out</button>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["Today","Practice","Learn","Review","Roadmap",""],"default":"Today"},"dark":{"editor":"boolean","default":false},"menu":{"editor":"boolean","default":false},"$preview":{"width":96,"height":960}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { open: !!p.menu, theme: 'System' }; }
+renderVals() {
+const d = !!this.props.dark, a = this.props.active ?? 'Today', s = this.state;
+const t = d ? { bg: '#0F1512', fg: '#DEE4DE', v: '#BFC9C1', card: '#252B28', line: '#404943', pc: '#0F5236', opc: '#ABF4CB', sc: '#334B3D', osc: '#D2E8D9', tc: '#6A3C00', otc: '#FFDDB2', p: '#8FD8B0', op: '#003822' } : { bg: '#F6FBF5', fg: '#171D19', v: '#404943', card: '#FFFFFF', line: '#DEE5DD', pc: '#B6F1CF', opc: '#00210F', sc: '#D2E8D9', osc: '#0D1F15', tc: '#FFDDB2', otc: '#2C1600', p: '#1E6B4A', op: '#FFFFFF' };
+const icons = { Today: 'M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z', Practice: 'm8 6-6 6 6 6M16 6l6 6-6 6', Learn: 'M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z', Review: 'M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5', Roadmap: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14' };
+return { open: s.open, toggle: () => this.setState((st) => ({ open: !st.open })),
+wrap: 'position: relative; width: 96px; height: 960px; flex: none;',
+root: 'width: 96px; height: 100%; box-sizing: border-box; padding: 20px 0 24px; background: ' + t.bg + '; color: ' + t.fg + '; display: flex; flex-direction: column; align-items: center; gap: 16px; font-family: \'Google Sans\', system-ui, sans-serif;',
+logo: 'width: 40px; height: 40px; border-radius: 14px; background: ' + t.p + '; color: ' + t.op + '; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px;',
+fab: 'width: 56px; height: 56px; border-radius: 18px; background: ' + t.tc + '; color: ' + t.otc + '; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.12);',
+avatarBtn: 'margin-top: auto; position: relative; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: ' + (s.open ? t.sc : 'transparent') + ';',
+avatar: 'width: 40px; height: 40px; border-radius: 999px; background: ' + t.tc + '; color: ' + t.otc + '; display: flex; align-items: center; justify-content: center; font: 500 16px \'Google Sans\', sans-serif;',
+syncDot: 'position: absolute; right: 4px; bottom: 4px; width: 12px; height: 12px; border-radius: 999px; background: ' + t.p + '; border: 2px solid ' + t.bg + ';',
+items: Object.keys(icons).map((k) => { const on = k === a; return { name: k, icon: icons[k], fill: on ? 'currentColor' : 'none', hasBadge: k === 'Review', count: '5',
+link: 'display: flex; flex-direction: column; align-items: center; gap: 4px; width: 80px; text-decoration: none; color: ' + (on ? t.fg : t.v) + ';',
+pill: 'position: relative; width: 56px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: ' + (on ? t.sc : 'transparent') + '; color: ' + (on ? t.osc : t.v) + ';',
+badge: 'position: absolute; top: -2px; right: 8px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: ' + (d ? '#FFB4AB' : '#BA1A1A') + '; color: ' + (d ? '#690005' : '#FFFFFF') + '; font-size: 12px; font-weight: 600; line-height: 16px; text-align: center;',
+label: 'font-size: 12px; font-weight: ' + (on ? '600' : '500') + ';' }; }),
+menu: 'position: absolute; left: 88px; bottom: 16px; z-index: 50; width: 320px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 28px; background: ' + t.card + '; color: ' + t.fg + '; border: 1px solid ' + t.line + '; box-shadow: 0 8px 28px rgba(0,0,0,' + (d ? '0.4' : '0.07') + '); font-family: \'Google Sans\', system-ui, sans-serif;',
+avatarBig: 'width: 44px; height: 44px; flex: none; border-radius: 999px; background: ' + t.tc + '; color: ' + t.otc + '; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500;',
+muted: 'margin: 0; font-size: 13px; color: ' + t.v + ';',
+syncRow: 'display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; padding: 10px 14px; border-radius: 16px; background: ' + t.sc + '; color: ' + t.osc + '; font-size: 14px;',
+dotOk: 'width: 10px; height: 10px; flex: none; border-radius: 999px; background: ' + t.p + ';',
+rule: 'display: block; height: 1px; margin: 6px 10px; background: ' + t.line + ';',
+links: [['Profile and stats', 'M4 20V10M10 20V4M16 20v-7M22 20H2', '', ''], ['Account and devices', 'M4 5h16v11H4zM8 20h8M12 16v4', 'Desktop app, web, extension', ''], ['Settings', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-1-3-2 .5-1.5-1.5.5-2-3-1-1 2h-2l-1-2-3 1 .5 2L6 8l-2-.5-1 3 2 1v2l-2 1 1 3 2-.5L7.5 17 7 19l3 1 1-2h2l1 2 3-1-.5-2 1.5-1.5 2 .5 1-3-2-1z', '', ''], ['Upload this device\'s progress', 'M12 16V4M6 10l6-6 6 6M4 20h16', 'Copies local solves and notes to your account', ''], ['Keyboard shortcuts', 'M2 6h20v12H2zM6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10', '', '?']].map(([name, icon, sub, key]) => ({ name, icon, sub, key, hasSub: !!sub, hasKey: !!key })),
+item: 'display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 10px; border-radius: 16px; color: ' + t.fg + '; text-decoration: none; font-size: 15px;',
+itemBtn: 'display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 10px; border: 0; border-radius: 16px; background: transparent; color: ' + t.fg + '; font: 400 15px \'Google Sans\', sans-serif; text-align: left;',
+iconWrap: 'width: 24px; flex: none; display: flex; justify-content: center; color: ' + t.v + ';',
+subText: 'display: block; font-size: 12px; line-height: 16px; color: ' + t.v + ';',
+kbd: 'padding: 2px 8px; border-radius: 8px; border: 1px solid ' + t.line + '; font: 500 12px \'JetBrains Mono\', monospace; color: ' + t.v + ';',
+seg: 'display: flex; padding: 3px; border-radius: 999px; background: ' + (d ? '#1B211E' : '#EBF0EA') + ';',
+themes: ['Light', 'Dark', 'System'].map((name) => ({ name, on: s.theme === name, pick: () => this.setState({ theme: name }), style: 'height: 30px; padding: 0 10px; border: 0; border-radius: 999px; font: 500 12px \'Google Sans\', sans-serif; background: ' + (s.theme === name ? t.sc : 'transparent') + '; color: ' + (s.theme === name ? t.osc : t.v) + ';' }))
+};
+}
+}
+</script>
+</body>
+</html>

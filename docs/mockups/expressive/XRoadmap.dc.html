@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roadmap, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Roadmap" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <header><h1 style="{{h1}}">Your 16 weeks</h1><p style="{{muted}}">Week 6 · 38% done · on track for 4 March</p></header>
+    <section aria-label="Weeks" style="{{stripCard}}">
+      <ol style="{{strip}}">
+        <sc-for list="{{weeks}}" as="w" hint-placeholder-count="16"><li style="{{w.cell}}"><svg role="img" aria-label="{{w.label}}" width="{{w.size}}" height="{{w.size}}" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="{{w.track}}"/><circle cx="20" cy="20" r="18" fill="none" stroke="{{w.ring}}" stroke-width="{{w.ringW}}"/><path d="{{w.fillPath}}" fill="{{w.fill}}"/><text x="20" y="25" text-anchor="middle" font-family="Google Sans" font-size="13" font-weight="600" fill="{{w.text}}">{{w.n}}</text></svg></li></sc-for>
+      </ol>
+    </section>
+    <div style="{{phases}}">
+      <sc-for list="{{phaseList}}" as="p" hint-placeholder-count="4">
+        <section style="{{p.card}}"><span style="{{p.chip}}">{{p.weeks}}</span><p style="margin: 0; font-size: 18px; font-weight: 500;">{{p.name}}</p><p style="margin: 0; font-size: 14px; opacity: 0.85;">{{p.about}}</p><div style="{{p.track}}"><div style="{{p.bar}}"></div></div><p style="margin: 0; font-size: 13px; font-weight: 500;">{{p.state}}</p></section>
+      </sc-for>
+    </div>
+    <section style="{{weekCard}}">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"><p style="margin: 0; font-size: 20px; font-weight: 500;">Week 6 · this week</p><a href="#" style="{{primary}}">Open week 6</a></div>
+      <div style="{{focusGrid}}"><div style="{{focus1}}"><b style="font-weight: 600;">DSA</b> Sliding window, binary search</div><div style="{{focus2}}"><b style="font-weight: 600;">System design</b> Caching and CDNs</div><div style="{{focus3}}"><b style="font-weight: 600;">LLD</b> State pattern</div></div>
+    </section>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="You" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const pct = [100, 100, 100, 100, 70, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const fillPath = (p) => { if (p <= 0) return ''; if (p >= 100) return 'M20 2a18 18 0 1 1 0 36a18 18 0 1 1 0-36z'; const y = 38 - 36 * p / 100; const dx = Math.sqrt(Math.max(0, 324 - Math.pow(y - 20, 2))); return 'M' + (20 - dx) + ' ' + y + 'A18 18 0 1 0 ' + (20 + dx) + ' ' + y + 'Z'; };
+return { ph, desk: !ph,
+weeks: pct.map((p, i) => { const cur = i === 5; const size = cur ? (ph ? 44 : 56) : (ph ? 34 : 44); return { n: String(i + 1), label: 'Week ' + (i + 1) + ': ' + p + '% done', size, fillPath: fillPath(p), track: '#EBF0EA', fill: p >= 100 ? '#1E6B4A' : '#8FD8B0', ring: cur ? '#1E6B4A' : 'transparent', ringW: cur ? 3 : 0, text: p >= 60 ? '#FFFFFF' : '#171D19', cell: 'display: flex; align-items: center; justify-content: center;' }; }),
+phaseList: [['Weeks 1–4', 'Foundations', 'Arrays, hashing, two pointers, design basics', 100, 'Done', '#B6F1CF', '#00210F'], ['Weeks 5–8', 'Core patterns', 'Windows, search, caching, LLD patterns', 34, 'In progress · 16 of 47', '#D6E3FF', '#001B3E'], ['Weeks 9–12', 'Depth', 'Graphs, DP, distributed systems', 0, 'Starts 7 Dec', '#F0DBFF', '#2A0E45'], ['Weeks 13–16', 'Interview mode', 'Mocks, re-solves, rest', 0, 'Starts 4 Jan', '#FFDDB2', '#2C1600']].map(([weeks, name, about, pc, state, bg, fg]) => ({ weeks, name, about, state, card: 'display: flex; flex-direction: column; gap: 8px; padding: 20px; border-radius: 28px; background: ' + bg + '; color: ' + fg + ';', chip: 'align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.6); font-size: 12px; font-weight: 600;', track: 'height: 10px; border-radius: 999px; background: rgba(255,255,255,0.6); overflow: hidden;', bar: 'width: ' + pc + '%; height: 100%; border-radius: 999px; background: ' + fg + ';' })),
+root: 'box-sizing: border-box; display: flex; background: #F6FBF5; color: #171D19; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1120px; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 18px;',
+h1: 'margin: 0; font-size: ' + (ph ? '28px' : '36px') + '; font-weight: 600;', muted: 'margin: 4px 0 0; font-size: 14px; color: #404943;',
+stripCard: 'padding: ' + (ph ? '14px' : '20px 24px') + '; border-radius: 32px; background: #FFFFFF; border: 1px solid #DEE5DD;',
+strip: 'list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(' + (ph ? 8 : 16) + ', minmax(0, 1fr)); gap: ' + (ph ? '6px' : '8px') + '; align-items: center;',
+phases: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))') + '; gap: 12px;',
+weekCard: 'display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 28px; background: #FFFFFF; border: 1px solid #DEE5DD;' + (ph ? ' display: none;' : ''),
+primary: 'display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 999px; background: #1E6B4A; color: #FFFFFF; font-size: 14px; font-weight: 500; text-decoration: none;',
+focusGrid: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 10px; font-size: 14px;',
+focus1: 'display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 20px; background: #D6E3FF; color: #001B3E;',
+focus2: 'display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 20px; background: #F0DBFF; color: #2A0E45;',
+focus3: 'display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 20px; background: #BCEBEE; color: #002022;'
+};
+}
+}
+</script>
+</body>
+</html>

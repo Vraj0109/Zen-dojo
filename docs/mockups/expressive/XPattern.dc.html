@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pattern page, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Practice" dark="{{dark}}" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <a href="#" style="{{crumb}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>Arrays, strings, hashing</a>
+    <header style="{{hero}}">
+      <div style="flex: 1 1 260px; min-width: 0;"><h1 style="{{h1}}">Hash map / counting</h1><p style="{{heroSub}}">Spot it when a problem says pairs, duplicates, frequency or anagrams.</p></div>
+      <div style="position: relative; width: 88px; height: 88px; flex: none;"><svg role="img" aria-label="2 of 4 solved" width="88" height="88" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="{{c.ringTrack}}" stroke-width="12"/><circle cx="50" cy="50" r="38" fill="none" stroke="{{c.opc}}" stroke-width="12" stroke-linecap="round" stroke-dasharray="119 239" transform="rotate(-90 50 50)"/></svg><span style="{{ringText}}">2/4</span></div>
+    </header>
+    <div role="tablist" aria-label="Pattern" style="{{segWrap}}">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.on}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+    </div>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+      <section aria-label="Problems" style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+        <sc-for list="{{probs}}" as="p" hint-placeholder-count="4">
+          <a href="#" style="{{p.row}}"><span style="{{p.mark}}">{{p.markText}}</span><div style="flex: 1; min-width: 0;"><p style="{{p.title}}">{{p.name}}</p><p style="{{p.metaStyle}}">{{p.meta}}</p></div><span style="{{p.diff}}">{{p.d}}</span></a>
+        </sc-for>
+      </section>
+      <aside aria-label="Cheat sheet" style="{{cheat}}">
+        <span style="font-size: 15px; font-weight: 500;">Your template</span>
+        <pre style="{{code}}">unordered_map&lt;int,int&gt; seen;
+for (int i = 0; i &lt; n; i++) {
+  if (seen.count(t - a[i]))
+    return {seen[t - a[i]], i};
+  seen[a[i]] = i;
+}</pre>
+        <p style="{{muted}}">O(n) time, O(n) space. Check before you insert.</p>
+        <a href="#" style="{{btnTonal}}">Read the guide</a>
+      </aside>
+    </div>
+    <a href="#" style="{{nextCard}}"><span><span style="{{muted}}">Next pattern</span><span style="display: block; font-size: 18px; font-weight: 500;">Prefix sums</span></span><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Practice" dark="{{dark}}" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone, dk = !!this.props.dark;
+const c = dk ? { bg: '#0F1512', fg: '#DEE4DE', v: '#BFC9C1', card: '#1B211E', card2: '#252B28', line: '#2F3631', p: '#8FD8B0', op: '#003822', pc: '#0F5236', opc: '#ABF4CB', sc: '#334B3D', osc: '#D2E8D9', tc: '#6A3C00', otc: '#FFDDB2', ringTrack: '#1E6B4A', easy: '#8FD8B0', med: '#FFB95C' }
+ : { bg: '#F6FBF5', fg: '#171D19', v: '#404943', card: '#FFFFFF', card2: '#EBF0EA', line: '#DEE5DD', p: '#1E6B4A', op: '#FFFFFF', pc: '#B6F1CF', opc: '#00210F', sc: '#D2E8D9', osc: '#0D1F15', tc: '#FFDDB2', otc: '#2C1600', ringTrack: '#8FD8B0', easy: '#1E6B4A', med: '#9A5B00' };
+const border = dk ? '' : 'border: 1px solid ' + c.line + ';';
+const probs = [['1. Two Sum', 'Solved 3 days ago · re-solve in 11 days', 'Easy', 'done'], ['49. Group Anagrams', 'Next up · about 25 min', 'Medium', 'next'], ['347. Top K Frequent Elements', 'Bucket sort or a heap', 'Medium', ''], ['560. Subarray Sum Equals K', 'Prefix sums in a map', 'Medium', '']];
+return { ph, desk: !ph, dark: dk, c,
+tabs: ['Learn', 'Practice · 4', 'My template'].map((k, i) => ({ label: k, on: i === 1, style: 'height: 40px; padding: 0 18px; border: 0; border-radius: 999px; font: 500 14px \'Google Sans\', sans-serif; background: ' + (i === 1 ? c.sc : 'transparent') + '; color: ' + (i === 1 ? c.osc : c.v) + ';' })),
+probs: probs.map(([name, meta, d, st]) => ({ name, meta, d, markText: st === 'done' ? '✓' : '',
+row: 'display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 24px; text-decoration: none; color: ' + (st === 'next' ? c.opc : c.fg) + '; background: ' + (st === 'next' ? c.pc : c.card) + '; ' + (st === 'next' ? '' : border),
+mark: 'width: 28px; height: 28px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; box-sizing: border-box; ' + (st === 'done' ? 'background: ' + c.p + '; color: ' + c.op + ';' : 'border: 2px solid ' + (st === 'next' ? c.opc : (dk ? '#404943' : '#C0C9C1')) + ';'),
+title: 'margin: 0; font-size: 16px; font-weight: ' + (st === 'next' ? '600' : '500') + ';',
+metaStyle: 'margin: 0; font-size: 14px; opacity: 0.8;',
+diff: 'font-size: 14px; font-weight: 500; color: ' + (st === 'next' ? c.opc : d === 'Easy' ? c.easy : c.med) + ';' })),
+root: 'box-sizing: border-box; display: flex; background: ' + c.bg + '; color: ' + c.fg + '; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1120px; box-sizing: border-box; padding: 24px 40px 40px 24px; display: flex; flex-direction: column; gap: 16px;',
+crumb: 'display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 8px; border-radius: 999px; background: ' + c.card2 + '; color: ' + c.fg + '; font-size: 14px; font-weight: 500; text-decoration: none;',
+hero: 'display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: ' + (ph ? '20px' : '24px 28px') + '; border-radius: 32px; background: ' + c.pc + '; color: ' + c.opc + ';',
+h1: 'margin: 0; font-size: ' + (ph ? '26px' : '34px') + '; line-height: 1.2; font-weight: 600;',
+heroSub: 'margin: 6px 0 0; font-size: 15px; line-height: 22px; opacity: 0.85;',
+ringText: 'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: ' + c.opc + ';',
+segWrap: 'display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: ' + c.card2 + '; align-self: flex-start;',
+cheat: 'flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 28px; background: ' + c.card + '; ' + border + (ph ? ' display: none;' : ''),
+code: 'margin: 0; padding: 14px; border-radius: 16px; background: ' + c.card2 + '; font-family: \'JetBrains Mono\', monospace; font-size: 13px; line-height: 20px; overflow: hidden;',
+muted: 'margin: 0; font-size: 14px; color: ' + c.v + ';',
+btnTonal: 'display: inline-flex; align-self: flex-start; align-items: center; height: 40px; padding: 0 18px; border-radius: 999px; background: ' + c.sc + '; color: ' + c.osc + '; font-size: 14px; font-weight: 500; text-decoration: none;',
+nextCard: 'display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-radius: 28px; background: ' + c.card2 + '; color: ' + c.fg + '; text-decoration: none;'
+};
+}
+}
+</script>
+</body>
+</html>

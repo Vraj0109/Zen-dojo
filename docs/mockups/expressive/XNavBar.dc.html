@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone navigation bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="Main" style="{{root}}">
+  <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+    <a href="#" style="{{it.link}}"><span style="{{it.pill}}"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="{{it.fill}}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{it.icon}}"/></svg></span><span style="{{it.label}}">{{it.name}}</span></a>
+  </sc-for>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["Today","Practice","Learn","Review","You"],"default":"Today"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":88}}'>
+class Component extends DCLogic {
+renderVals() {
+const d = !!this.props.dark, a = this.props.active ?? 'Today';
+const t = d ? { bg: '#171D1A', fg: '#DEE4DE', v: '#BFC9C1', sc: '#334B3D', osc: '#D2E8D9' } : { bg: '#EBF0EA', fg: '#171D19', v: '#404943', sc: '#B6F1CF', osc: '#00210F' };
+const icons = { Today: 'M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z', Practice: 'm8 6-6 6 6 6M16 6l6 6-6 6', Learn: 'M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z', Review: 'M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5', You: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0' };
+return {
+root: 'width: 100%; box-sizing: border-box; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 12px 4px 20px; background: ' + t.bg + '; font-family: \'Google Sans\', system-ui, sans-serif;',
+items: Object.keys(icons).map((k) => { const on = k === a; return { name: k, icon: icons[k], fill: on ? 'currentColor' : 'none',
+link: 'display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 56px; text-decoration: none; color: ' + (on ? t.fg : t.v) + ';',
+pill: 'width: 64px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: ' + (on ? t.sc : 'transparent') + '; color: ' + (on ? t.osc : t.v) + ';',
+label: 'font-size: 12px; font-weight: ' + (on ? '600' : '500') + ';' }; })
+};
+}
+}
+</script>
+</body>
+</html>

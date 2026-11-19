@@ -3,7 +3,7 @@
 - **Status:** ready (start after 0085 is done; can run alongside 0086, 0087 and 0089)
 - **Planned by:** Claude Code, 2026-11-20
 - **Implemented by:** (implementer fills in)
-- **Spec:** mockup canvas (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj).
+- **Spec:** `docs/mockups/expressive/` (mockup sources in the repo; see its README), from the mockup canvas (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj).
   - Desktop boards: "Today", "Learn hub", "Course page", "Lesson", "LLD project", "Your classes: full-screen editor",
     "System design walkthrough", "Reading list", "Diagrams".
   - Phone galleries A, B and C, plus Today light and dark.

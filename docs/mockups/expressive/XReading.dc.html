@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reading list, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Learn" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <header><h1 style="{{h1}}">Reading list</h1><p style="{{muted}}">5 of 33 read · picked for what you are studying</p></header>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;"><sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><span style="{{f.style}}">{{f.name}}</span></sc-for></div>
+    <div style="{{grid}}">
+      <sc-for list="{{items}}" as="i" hint-placeholder-count="6">
+        <article style="{{i.card}}">
+          <div style="{{i.cover}}"><span style="{{i.kind}}">{{i.type}}</span></div>
+          <p style="margin: 0; font-size: 16px; font-weight: 500; line-height: 22px;">{{i.title}}</p>
+          <p style="margin: 0; font-size: 13px; color: #404943;">{{i.meta}}</p>
+          <div style="display: flex; gap: 8px; margin-top: auto;"><a href="#" style="{{openBtn}}">Open</a><button type="button" style="{{i.mark}}">{{i.markLabel}}</button></div>
+        </article>
+      </sc-for>
+    </div>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Learn" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const items = [['Paper', 'Dynamo: Amazon\'s key-value store', 'With consistent hashing · 45 min', '#F0DBFF', '#56397A', false], ['Book chapter', 'Designing Data-Intensive Applications, ch. 5', 'With replication · 60 min', '#D2E8D9', '#1E6B4A', false], ['Post', 'Sliding window, explained with pictures', 'Read on 12 November', '#D6E3FF', '#284777', true], ['Paper', 'The Google File System', 'With blob storage · 50 min', '#F0DBFF', '#56397A', false], ['Post', 'Rate limiting algorithms compared', 'With rate limiting · 15 min', '#FFDDB2', '#8B5000', false], ['Book chapter', 'Head First Design Patterns: State', 'With state pattern · 30 min', '#BCEBEE', '#1D4E51', false]];
+return { ph, desk: !ph,
+filters: ['This week', 'Books', 'Papers', 'Posts', 'Read'].map((name, i) => ({ name, style: 'display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 500; ' + (i === 0 ? 'background: #D2E8D9; color: #0D1F15;' : 'border: 1px solid #C0C9C1;') })),
+items: (ph ? items.slice(0, 2) : items).map(([type, title, meta, bg, deep, read]) => ({ type, title, meta,
+card: 'display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 28px; background: #FFFFFF; border: 1px solid #DEE5DD; min-height: 260px;' + (read ? ' opacity: 0.75;' : ''),
+cover: 'height: 96px; border-radius: 20px; background: ' + bg + '; display: flex; align-items: flex-end; padding: 10px; box-sizing: border-box;',
+kind: 'padding: 4px 10px; border-radius: 999px; background: ' + deep + '; color: #FFFFFF; font-size: 12px; font-weight: 600;',
+mark: 'height: 40px; padding: 0 16px; border: 0; border-radius: 999px; font: 500 14px \'Google Sans\', sans-serif; ' + (read ? 'background: #1E6B4A; color: #FFFFFF;' : 'background: #EBF0EA; color: #171D19;'),
+markLabel: read ? 'Read' : 'Mark read' })),
+root: 'box-sizing: border-box; display: flex; background: #F6FBF5; color: #171D19; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1160px; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 16px;',
+h1: 'margin: 0; font-size: ' + (ph ? '28px' : '36px') + '; font-weight: 600;', muted: 'margin: 4px 0 0; font-size: 14px; color: #404943;',
+grid: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))') + '; gap: 12px;',
+openBtn: 'display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #707971; color: #1E6B4A; font-size: 14px; font-weight: 500; text-decoration: none;'
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Problem workspace, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}button{cursor:pointer}kbd{font-family:'JetBrains Mono',monospace}@container zd (max-width: 980px){.zd-grid{grid-template-areas:"p" "c" "r" !important; grid-template-columns:1fr !important; grid-template-rows:minmax(160px, 22fr) 40fr 38fr !important}}@container zd (max-width: 1100px){.zd-kbd{display:none}}</style>
+</helmet>
+<div style="{{root}}">
+  <header style="{{top}}">
+    <a href="#" aria-label="Back to Hash map / counting" style="{{iconBtn}}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></a>
+    <div style="min-width: 0; flex: 1; line-height: 20px;"><p style="margin: 0; font-size: 13px; color: #BFC9C1;">Hash map · 2 of 4</p><p style="margin: 0; font-size: 17px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">49. Group Anagrams <span style="margin-left: 8px; font-size: 13px; color: #FFB95C;">Medium</span></p></div>
+    <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+      <span style="{{timer}}"><span style="width: 8px; height: 8px; border-radius: 999px; background: #FFDDB2;"></span>18:42</span>
+      <div role="radiogroup" aria-label="Layout" style="display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: #1B211E;">
+        <sc-for list="{{layouts}}" as="l" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{l.on}}" aria-label="{{l.label}}" title="{{l.label}}" onClick="{{l.pick}}" style="{{l.style}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="{{l.icon}}"/></svg></button></sc-for>
+      </div>
+      <button type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick="{{toggleKeys}}" style="{{iconBtnSm}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="3"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
+      <button type="button" onClick="{{run}}" title="Run the examples and your own cases" style="{{runBtn}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Run<kbd class="zd-kbd" style="{{kbdOnTonal}}">Ctrl '</kbd></button>
+      <button type="button" onClick="{{submit}}" title="Run every case, including the extra tests and large inputs, and save when all pass" style="{{submitBtn}}">Submit<kbd class="zd-kbd" style="{{kbdOnPrimary}}">Ctrl ↵</kbd></button>
+    </sc-if>
+  </header>
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+    <div class="zd-grid" style="{{grid}}">
+      <section aria-label="Problem" style="{{paneP}}">
+        <div style="{{paneHead}}"><sc-for list="{{pTabs}}" as="t" hint-placeholder-count="5"><span style="{{t.style}}">{{t.label}}</span></sc-for></div>
+        <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; overflow: hidden;">
+          <p style="margin: 0; font-size: 15px; line-height: 23px;">Group the strings in <code style="font-family: 'JetBrains Mono', monospace; color: #8FD8B0;">strs</code> that are anagrams of each other. Any order is fine.</p>
+          <div style="{{example}}"><span style="color: #BFC9C1;">Input</span><span>strs = ["eat","tea","tan","ate","nat","bat"]</span><span style="color: #BFC9C1;">Output</span><span>[["bat"],["nat","tan"],["ate","eat","tea"]]</span></div>
+          <div style="{{example}}"><span style="color: #BFC9C1;">Input</span><span>strs = [""]</span><span style="color: #BFC9C1;">Output</span><span>[[""]]</span></div>
+          <p style="margin: 0; font-size: 13px; color: #BFC9C1;">1 ≤ strs.length ≤ 10⁴ · lowercase letters only</p>
+        </div>
+      </section>
+      <section aria-label="Code" style="{{paneC}}">
+        <div style="{{paneHead}}"><span style="{{chipOn}}">C++</span><span style="{{chip}}">Reset</span><span style="{{chip}}">Restore last run</span><span style="margin-left: auto; font-size: 12px; color: #8A938B;">Draft saved · Ctrl S</span></div>
+        <pre style="{{codeStyle}}"><span style="color: #8FD8B0;">class</span> Solution {
+<span style="color: #8FD8B0;">public</span>:
+    vector&lt;vector&lt;string&gt;&gt; groupAnagrams(vector&lt;string&gt;&amp; strs) {
+        unordered_map&lt;string, vector&lt;string&gt;&gt; groups;
+        <span style="color: #8FD8B0;">for</span> (<span style="color: #8FD8B0;">auto</span>&amp; s : strs) {
+            string key = s;
+            sort(key.begin(), key.end());
+            cout &lt;&lt; s &lt;&lt; <span style="color: #FFDDB2;">" -&gt; "</span> &lt;&lt; key &lt;&lt; endl;
+            groups[key].push_back(s);
+        }
+        <span style="color: #8FD8B0;">return</span> collect(groups);
+    }
+};</pre>
+      </section>
+      <section aria-label="Results" style="{{paneR}}">
+        <div style="{{paneHead}}">
+          <span style="{{chipOn}}">Test cases</span><span style="{{chip}}">Last runs</span>
+          <span style="{{summary}}">{{summaryText}}</span>
+        </div>
+        <div style="padding: 4px 16px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: hidden;">
+          <sc-if value="{{win}}" hint-placeholder-val="{{false}}"><div style="{{winBox}}"><span style="font-weight: 600;">All 6 passed. Saved to Notes.</span><span style="{{xpChip}}">+40 XP</span><a href="#" style="margin-left: auto; color: #003822; font-weight: 600; text-decoration: none;">Next problem</a></div></sc-if>
+          <div role="tablist" aria-label="Cases" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+            <sc-for list="{{cases}}" as="k" hint-placeholder-count="6"><button type="button" role="tab" aria-selected="{{k.on}}" onClick="{{k.pick}}" style="{{k.style}}"><span style="{{k.dot}}"></span>{{k.label}}</button></sc-for>
+            <button type="button" style="{{addCase}}">+ Add case</button>
+          </div>
+          <div style="{{caseBody}}">
+            <sc-if value="{{showVerdict}}" hint-placeholder-val="{{false}}"><p style="{{verdict}}">{{verdictText}}</p></sc-if>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><span style="{{lbl}}">Input</span><sc-for list="{{inputs}}" as="i" hint-placeholder-count="1"><div style="{{box}}"><span style="color: #8A938B;">{{i.name}} =</span> {{i.value}}</div></sc-for></div>
+            <sc-if value="{{hasRun}}" hint-placeholder-val="{{false}}">
+              <div style="{{twoCol}}">
+                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="{{lbl}}">Your output</span><div style="{{yoursBox}}">{{yours}}</div></div>
+                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="{{lbl}}">Expected</span><div style="{{box}}">{{expected}}</div></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="{{lbl}}">Console for this case · {{lines}}</span><pre style="{{consoleBox}}">{{console}}</pre></div>
+            </sc-if>
+            <sc-if value="{{notRun}}" hint-placeholder-val="{{true}}"><p style="margin: 0; font-size: 14px; color: #BFC9C1;">Run checks the 2 examples and your own cases. Submit also runs 3 extra tests and 1 large input, and saves your code when everything passes.</p></sc-if>
+          </div>
+        </div>
+      </section>
+    </div>
+    <sc-if value="{{keysOpen}}" hint-placeholder-val="{{false}}">
+      <div role="dialog" aria-label="Keyboard shortcuts" style="{{keysSheet}}">
+        <div style="display: flex; align-items: center; justify-content: space-between;"><p style="margin: 0; font-size: 18px; font-weight: 500;">Keyboard shortcuts</p><button type="button" onClick="{{toggleKeys}}" style="{{closeBtn}}">Close</button></div>
+        <p style="margin: 0; font-size: 13px; color: #BFC9C1;">On a Mac, use Cmd instead of Ctrl.</p>
+        <sc-for list="{{keys}}" as="k" hint-placeholder-count="8"><div style="display: flex; align-items: center; gap: 12px; min-height: 36px;"><span style="flex: 1; font-size: 14px;">{{k.what}}</span><kbd style="{{kbd}}">{{k.combo}}</kbd></div></sc-for>
+      </div>
+    </sc-if>
+  </sc-if>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}">
+    <div style="display: flex; gap: 6px; padding: 8px 12px;"><sc-for list="{{phTabs}}" as="t" hint-placeholder-count="4"><button type="button" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for></div>
+    <main style="flex: 1; min-height: 0; overflow: hidden; padding: 8px 16px; display: flex; flex-direction: column; gap: 12px;">
+      <sc-if value="{{tProblem}}" hint-placeholder-val="{{true}}"><p style="margin: 0; font-size: 15px; line-height: 23px;">Group the strings in <code style="font-family: 'JetBrains Mono', monospace; color: #8FD8B0;">strs</code> that are anagrams of each other.</p><div style="{{example}}"><span style="color: #BFC9C1;">Input</span><span style="word-break: break-all;">strs = ["eat","tea","tan","ate","nat","bat"]</span><span style="color: #BFC9C1;">Output</span><span style="word-break: break-all;">[["bat"],["nat","tan"],["ate","eat","tea"]]</span></div></sc-if>
+      <sc-if value="{{tCode}}" hint-placeholder-val="{{false}}"><div style="{{note}}">Open on a computer to write and run code. Here you can read your last run.</div><pre style="{{codeStyle}}">string key = s;
+sort(key.begin(), key.end());
+groups[key].push_back(s);</pre></sc-if>
+      <sc-if value="{{tRun}}" hint-placeholder-val="{{false}}"><div style="{{note}}">Last submit on a computer: 5 of 6 passed. Large input was too slow.</div><div style="display: flex; flex-direction: column; gap: 6px;"><sc-for list="{{phCases}}" as="k" hint-placeholder-count="6"><div style="{{k.row}}"><span style="{{k.dot}}"></span><span style="flex: 1;">{{k.label}}</span><span style="font-size: 13px; color: #BFC9C1;">{{k.ms}}</span></div></sc-for></div></sc-if>
+      <sc-if value="{{tNotes}}" hint-placeholder-val="{{false}}"><div style="{{note}}">Key = letter counts, not the sorted word.</div></sc-if>
+    </main>
+    <dc-import name="XNavBar" active="Practice" dark="{{yes}}" hint-size="390px,88px"></dc-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { mode: 'submit', submits: 1, sel: 5, layout: 'classic', ptab: 'Problem', keys: false }; }
+renderVals() {
+const ph = !!this.props.phone, s = this.state;
+const pane = 'min-width: 0; min-height: 0; display: flex; flex-direction: column; border-radius: 24px; background: #171D1A; overflow: hidden;';
+const area = { classic: '"p c" "p r"', columns: '"p c r"', stacked: '"p" "c" "r"', focus: '"c p" "c r"' }[s.layout];
+const cols = { classic: '40fr 60fr', columns: '28fr 42fr 30fr', stacked: '1fr', focus: '60fr 40fr' }[s.layout];
+const rows = { classic: '50fr 50fr', columns: '1fr', stacked: '24fr 38fr 38fr', focus: '50fr 50fr' }[s.layout];
+const all = [
+ { label: 'Example 1', kind: 'example', in: [['strs', '["eat","tea","tan","ate","nat","bat"]']], exp: '[["bat"],["nat","tan"],["ate","eat","tea"]]', out: '[["bat"],["nat","tan"],["ate","eat","tea"]]', con: 'eat -> aet\ntea -> aet\ntan -> ant\nate -> aet\nnat -> ant\nbat -> abt', ms: '0 ms' },
+ { label: 'Example 2', kind: 'example', in: [['strs', '[""]']], exp: '[[""]]', out: '[[""]]', con: ' -> ', ms: '0 ms' },
+ { label: 'One word', kind: 'test', in: [['strs', '["a"]']], exp: '[["a"]]', out: '[["a"]]', con: 'a -> a', ms: '0 ms' },
+ { label: 'No anagrams', kind: 'test', in: [['strs', '["abc","def","ghi"]']], exp: '[["abc"],["def"],["ghi"]]', out: '[["abc"],["def"],["ghi"]]', con: 'abc -> abc\ndef -> def\nghi -> ghi', ms: '0 ms' },
+ { label: 'Repeats', kind: 'test', in: [['strs', '["ab","ba","ab"]']], exp: '[["ab","ba","ab"]]', out: '[["ab","ba","ab"]]', con: 'ab -> ab\nba -> ab\nab -> ab', ms: '0 ms' },
+ { label: '10k words', kind: 'stress', in: [['strs', '10,000 random words, 100 letters each (made by the app)']], exp: 'finish in under 1,000 ms', out: '', con: '…first 200 lines kept…\nqzkx… -> abc…\n(output stopped at 20 KB)', ms: '' }
+];
+const fixed = s.submits >= 2;
+const ran = s.mode === 'run' ? all.slice(0, 2).concat([{ label: 'My case', kind: 'mine', in: [['strs', '["abba","baab","ab"]']], exp: 'not given: your own case', out: '[["abba","baab"],["ab"]]', con: 'abba -> aabb\nbaab -> aabb\nab -> ab', ms: '0 ms' }]) : all;
+const list = s.mode ? ran : all.slice(0, 2);
+const sel = Math.min(s.sel, list.length - 1);
+const passOf = (k) => !(k.kind === 'stress' && !fixed);
+const cur = list[sel];
+const pass = s.mode ? passOf(cur) : null;
+const passed = list.filter(passOf).length;
+const chip = 'display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 500;';
+const lay = [['classic', 'Classic', 'M3 4h18v16H3zM10 4v16M10 13h11'], ['columns', 'Columns', 'M3 4h18v16H3zM9 4v16M15 4v16'], ['stacked', 'Stacked', 'M3 4h18v16H3zM3 9h18M3 15h18'], ['focus', 'Code focus', 'M3 4h18v16H3zM15 4v16M15 12h6']];
+const mono = 'font-family: \'JetBrains Mono\', monospace; font-size: 13px; line-height: 20px;';
+const box = 'padding: 10px 14px; border-radius: 14px; background: #252B28; ' + mono + ' word-break: break-all;';
+const conLines = cur.con.split('\n').length;
+return { ph, desk: !ph, yes: true, keysOpen: s.keys,
+layouts: lay.map(([id, label, icon]) => ({ label, icon, on: s.layout === id, pick: () => this.setState({ layout: id }), style: 'width: 36px; height: 32px; border: 0; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: ' + (s.layout === id ? '#334B3D' : 'transparent') + '; color: ' + (s.layout === id ? '#D2E8D9' : '#BFC9C1') + ';' })),
+run: () => this.setState({ mode: 'run', sel: 0 }),
+submit: () => this.setState((st) => ({ mode: 'submit', submits: st.submits + 1, sel: st.submits + 1 >= 2 ? 0 : 5 })),
+toggleKeys: () => this.setState((st) => ({ keys: !st.keys })),
+notRun: !s.mode, hasRun: !!s.mode, win: s.mode === 'submit' && fixed,
+summaryText: !s.mode ? '' : (s.mode === 'run' ? 'Run: ' : 'Submit: ') + passed + ' of ' + list.length + ' passed',
+summary: 'margin-left: auto; font-size: 13px; font-weight: 600; color: ' + (passed === list.length ? '#8FD8B0' : '#FFB95C') + ';',
+cases: list.map((k, i) => { const ok = passOf(k); const on = i === sel; return { label: k.label, on, pick: () => this.setState({ sel: i }),
+ style: 'display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 12px; font: 500 13px \'Google Sans\', sans-serif; color: #DEE4DE; border: 0; background: ' + (on ? '#334B3D' : '#1F2622') + ';',
+ dot: 'width: 8px; height: 8px; border-radius: 999px; background: ' + (!s.mode ? '#5A635C' : ok ? '#8FD8B0' : '#FFB4AB') + ';' }; }),
+addCase: 'height: 34px; padding: 0 12px; border: 1px dashed #5A635C; border-radius: 12px; background: transparent; color: #BFC9C1; font: 500 13px \'Google Sans\', sans-serif;',
+showVerdict: !!s.mode, verdictText: !s.mode ? '' : pass ? 'Accepted · ' + cur.ms : 'Time limit: stopped at 1,000 ms. Sorting each word costs k log k; count the 26 letters instead.',
+verdict: 'margin: 0; font-size: 15px; font-weight: 500; color: ' + (pass ? '#8FD8B0' : '#FFB4AB') + ';',
+inputs: cur.in.map(([name, value]) => ({ name, value })),
+expected: cur.exp, yours: cur.out || (fixed ? 'finished in 182 ms' : 'no answer: stopped by the time limit'), lines: conLines + (conLines === 1 ? ' line' : ' lines'), console: cur.con,
+twoCol: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px;',
+lbl: 'font-size: 12px; font-weight: 500; color: #BFC9C1;', box,
+yoursBox: box + (s.mode && !pass ? ' box-shadow: inset 3px 0 0 #FFB4AB;' : ''),
+consoleBox: 'margin: 0; padding: 10px 14px; border-radius: 14px; background: #0A0F0C; color: #C9D2CA; ' + mono + ' white-space: pre-wrap; max-height: 120px; overflow: hidden;',
+caseBody: 'display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden;',
+winBox: 'display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-radius: 18px; background: #8FD8B0; color: #003822;',
+keys: [["Run examples and your cases", "Ctrl '"], ['Submit (every case, then save)', 'Ctrl Enter'], ['Save draft', 'Ctrl S'], ['Next / previous case', 'Alt → / Alt ←'], ['Jump to case 1–9', 'Alt 1…9'], ['Show or hide the problem', 'Ctrl B'], ['Show or hide test cases', 'Ctrl J'], ['Show this list', '?']].map(([what, combo]) => ({ what, combo })),
+keysSheet: 'position: absolute; top: 72px; right: 16px; width: 340px; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; border-radius: 28px; background: #252B28; box-shadow: 0 8px 28px rgba(0,0,0,0.4); z-index: 5;',
+closeBtn: 'height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: #334B3D; color: #D2E8D9; font: 500 13px \'Google Sans\', sans-serif;',
+kbd: 'padding: 4px 8px; border-radius: 8px; background: #0F1512; border: 1px solid #404943; font-size: 12px;',
+kbdOnTonal: 'margin-left: 4px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,0.18); font-size: 12px;',
+kbdOnPrimary: 'margin-left: 4px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,0.15); font-size: 12px;',
+pTabs: ['Description', 'Hints', 'Notes', 'Ask AI', 'Stuck log'].map((k, i) => ({ label: k, style: chip + (i === 0 ? 'background: #334B3D; color: #D2E8D9;' : 'color: #BFC9C1;') })),
+phTabs: ['Problem', 'Code', 'Last run', 'Notes'].map((k) => ({ label: k, pick: () => this.setState({ ptab: k }), style: 'flex: 1; height: 40px; border: 0; border-radius: 999px; font: 500 14px \'Google Sans\', sans-serif; background: ' + (s.ptab === k ? '#334B3D' : 'transparent') + '; color: ' + (s.ptab === k ? '#D2E8D9' : '#BFC9C1') + ';' })),
+phCases: all.map((k, i) => ({ label: k.label, ms: i === 5 ? 'too slow' : k.ms, row: 'display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #1B211E; font-size: 14px;', dot: 'width: 8px; height: 8px; border-radius: 999px; background: ' + (i === 5 ? '#FFB4AB' : '#8FD8B0') + ';' })),
+tProblem: s.ptab === 'Problem', tCode: s.ptab === 'Code', tRun: s.ptab === 'Last run', tNotes: s.ptab === 'Notes',
+root: 'box-sizing: border-box; position: relative; container: zd / inline-size; display: flex; flex-direction: column; background: #0F1512; color: #DEE4DE; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px;'),
+top: 'display: flex; align-items: center; gap: 10px; padding: 12px 16px; flex-wrap: wrap;',
+iconBtn: 'width: 44px; height: 44px; flex: none; border-radius: 999px; background: #1B211E; color: #DEE4DE; display: flex; align-items: center; justify-content: center;',
+iconBtnSm: 'width: 44px; height: 44px; border: 0; border-radius: 999px; background: #1B211E; color: #DEE4DE; display: inline-flex; align-items: center; justify-content: center;',
+timer: 'display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: #6A3C00; color: #FFDDB2; font: 500 14px \'JetBrains Mono\', monospace;',
+runBtn: 'display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #334B3D; color: #D2E8D9; font: 500 15px \'Google Sans\', sans-serif;',
+submitBtn: 'display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: #8FD8B0; color: #003822; font: 500 15px \'Google Sans\', sans-serif;',
+grid: 'flex: 1; min-height: 0; display: grid; gap: 8px; padding: 0 12px 12px; grid-template-areas: ' + area + '; grid-template-columns: ' + cols + '; grid-template-rows: ' + rows + ';',
+paneP: pane + ' grid-area: p;', paneC: pane + ' grid-area: c;', paneR: pane + ' grid-area: r;',
+paneHead: 'display: flex; align-items: center; gap: 4px; padding: 8px 10px; flex-wrap: wrap;',
+chip: chip + 'color: #BFC9C1;', chipOn: chip + 'background: #334B3D; color: #D2E8D9;',
+example: 'display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 4px 10px; padding: 14px 16px; border-radius: 18px; background: #252B28; ' + mono,
+codeStyle: 'margin: 0; flex: 1; padding: 8px 20px 16px; font-family: \'JetBrains Mono\', monospace; font-size: 14px; line-height: 22px; overflow: hidden; white-space: pre;',
+xpChip: 'padding: 4px 12px; border-radius: 999px; background: #FFDDB2; color: #2C1600; font-size: 13px; font-weight: 600;',
+note: 'padding: 14px 16px; border-radius: 18px; background: #1B211E; font-size: 14px; line-height: 21px;'
+};
+}
+}
+</script>
+</body>
+</html>

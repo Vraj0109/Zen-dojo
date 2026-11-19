@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LLD project, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Learn" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <a href="#" style="{{crumb}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>Low-level design</a>
+    <section style="{{hero}}">
+      <div style="flex: 1 1 280px; min-width: 0;"><p style="margin: 0; font-size: 14px; font-weight: 500; opacity: 0.8;">Project 1 of 24 · about 45 min</p><h1 style="{{h1}}">Parking lot</h1><p style="margin: 6px 0 0; font-size: 15px; opacity: 0.85;">Entities, pricing strategy, concurrency on slots. Design it yourself, then compare.</p></div>
+      <a href="#" style="{{bigCta}}"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg><span><span style="display: block; font-size: 17px; font-weight: 500;">Write your classes</span><span style="display: block; font-size: 13px; opacity: 0.85;">Opens the full-screen editor</span></span></a>
+    </section>
+    <div role="tablist" aria-label="Project" style="{{segWrap}}"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><button type="button" role="tab" aria-selected="{{t.on}}" style="{{t.style}}">{{t.label}}</button></sc-for></div>
+    <div style="{{grid}}">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+        <section style="{{card}}"><span style="{{s.num}}">{{s.n}}</span><p style="margin: 0; font-size: 17px; font-weight: 500;">{{s.title}}</p><p style="margin: 0; font-size: 14px; line-height: 21px; color: #404943;">{{s.text}}</p></section>
+      </sc-for>
+    </div>
+    <section style="{{card}}">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"><p style="margin: 0; font-size: 17px; font-weight: 500;">Reference answer · 32 Java files</p><button type="button" style="{{tonalBtn}}">Reveal after you try</button></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;"><sc-for list="{{files}}" as="f" hint-placeholder-count="8"><span style="{{fileChip}}">{{f}}</span></sc-for></div>
+    </section>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Learn" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const steps = [['Clarify', 'Vehicle types, floors, entrances, pricing, what to skip. Write it as five lines.'], ['Entities', 'ParkingLot, Floor, Spot, Vehicle, Ticket, and the two strategies.'], ['Core flow', 'Enter, assign the smallest fitting spot, exit, charge. Get this working first.'], ['Extend', 'EV chargers, reservations, display boards, several gates in parallel.']];
+const files = ['Vehicle.java', 'Spot.java', 'Ticket.java', 'ParkingLot.java', 'SpotAllocationStrategy.java', 'HourlyPricing.java', 'DisplayBoard.java', '+25 more'];
+return { ph, desk: !ph,
+tabs: ['Walkthrough', 'Diagrams', 'Reference', 'Edge cases', 'Your turn'].map((k, i) => ({ label: k, on: i === 0, style: 'height: 40px; padding: 0 16px; border: 0; border-radius: 999px; white-space: nowrap; font: 500 14px \'Google Sans\', sans-serif; background: ' + (i === 0 ? '#BCEBEE' : 'transparent') + '; color: ' + (i === 0 ? '#002022' : '#404943') + ';' })),
+steps: (ph ? steps.slice(0, 2) : steps).map(([title, text], i) => ({ title, text, n: String(i + 1), num: 'width: 36px; height: 36px; border-radius: ' + ['999px', '12px', '18px 6px', '6px 18px'][i] + '; background: #BCEBEE; color: #002022; display: flex; align-items: center; justify-content: center; font-weight: 600;' })),
+files: ph ? files.slice(0, 4) : files,
+root: 'box-sizing: border-box; display: flex; background: #F6FBF5; color: #171D19; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1120px; padding: 24px 40px 40px 24px; display: flex; flex-direction: column; gap: 16px;',
+crumb: 'display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 8px; border-radius: 999px; background: #EBF0EA; color: #171D19; font-size: 14px; font-weight: 500; text-decoration: none;',
+hero: 'display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: ' + (ph ? '20px' : '28px 32px') + '; border-radius: 32px; background: #BCEBEE; color: #002022;',
+h1: 'margin: 4px 0 0; font-size: ' + (ph ? '28px' : '36px') + '; line-height: 1.15; font-weight: 600;',
+bigCta: 'display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-radius: 24px; background: #1D4E51; color: #BCEBEE; text-decoration: none; box-shadow: 0 3px 8px rgba(0,0,0,0.12);',
+segWrap: 'display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #EBF0EA; align-self: flex-start; max-width: 100%; overflow: hidden;',
+grid: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))') + '; gap: 12px;',
+card: 'display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 28px; background: #FFFFFF; border: 1px solid #DEE5DD;',
+tonalBtn: 'height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: #D2E8D9; color: #0D1F15; font: 500 14px \'Google Sans\', sans-serif;',
+fileChip: 'padding: 6px 12px; border-radius: 10px; background: #EBF0EA; font: 400 13px \'JetBrains Mono\', monospace;'
+};
+}
+}
+</script>
+</body>
+</html>

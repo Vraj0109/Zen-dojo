@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <section style="{{hero}}">
+      <div style="{{avatar}}">Y</div>
+      <div style="flex: 1 1 200px; min-width: 0;"><h1 style="{{h1}}">Level 7 · Steady climber</h1><p style="margin: 4px 0 10px; font-size: 14px; color: #404943;">2,340 XP · 260 to level 8</p><div style="height: 12px; border-radius: 999px; background: #D2E8D9; overflow: hidden;"><div style="width: 72%; height: 100%; border-radius: 999px; background: #1E6B4A;"></div></div></div>
+      <a href="#" style="{{outline}}">Settings</a>
+    </section>
+    <div style="{{stats}}">
+      <sc-for list="{{statList}}" as="s" hint-placeholder-count="4"><section style="{{s.card}}"><p style="margin: 0; font-size: 32px; font-weight: 600;">{{s.v}}</p><p style="margin: 0; font-size: 14px;">{{s.k}}</p></section></sc-for>
+    </div>
+    <section style="{{panel}}">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap;"><h2 style="{{h2}}">412 study sessions in the last year</h2><span style="font-size: 13px; color: #404943;">Best streak 21 days</span></div>
+      <div style="{{heat}}"><sc-for list="{{cells}}" as="c" hint-placeholder-count="364"><span style="{{c}}"></span></sc-for></div>
+      <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end; font-size: 12px; color: #404943;">Less<sc-for list="{{legend}}" as="l" hint-placeholder-count="5"><span style="{{l}}"></span></sc-for>More</div>
+    </section>
+    <div style="{{split}}">
+      <section style="{{panel}}"><h2 style="{{h2}}">Balance this month</h2><sc-for list="{{balance}}" as="b" hint-placeholder-count="5"><div style="display: flex; align-items: center; gap: 12px;"><span style="width: 120px; font-size: 14px;">{{b.k}}</span><div style="flex: 1; height: 12px; border-radius: 999px; background: #EBF0EA; overflow: hidden;"><div style="{{b.bar}}"></div></div><span style="width: 44px; text-align: right; font-size: 14px; font-weight: 500;">{{b.v}}</span></div></sc-for></section>
+      <section style="{{panel}}"><h2 style="{{h2}}">Badges · 9 of 24</h2><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 76px), 1fr)); gap: 12px;"><sc-for list="{{badges}}" as="g" hint-placeholder-count="8"><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;"><svg width="64" height="64" viewBox="0 0 100 100" role="img" aria-label="{{g.name}}"><path d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z" fill="{{g.fill}}"/><text x="50" y="58" text-anchor="middle" font-family="Google Sans" font-size="22" font-weight="600" fill="{{g.ink}}">{{g.mark}}</text></svg><span style="font-size: 12px; color: #404943;">{{g.name}}</span></div></sc-for></div></section>
+    </div>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="You" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const tones = ['#EBF0EA', '#B6F1CF', '#8FD8B0', '#3E9B6E', '#1E6B4A'];
+const weeks = ph ? 17 : 52;
+const cells = [];
+for (let i = 0; i < weeks * 7; i++) { const v = (i * 37 + (i % 11) * 13) % 10; const lvl = v < 3 ? 0 : v < 5 ? 1 : v < 7 ? 2 : v < 9 ? 3 : 4; cells.push('width: 100%; aspect-ratio: 1; border-radius: 4px; background: ' + tones[lvl] + ';'); }
+return { ph, desk: !ph, cells,
+legend: tones.map((t) => 'width: 12px; height: 12px; border-radius: 3px; background: ' + t + ';'),
+statList: [['14', 'day streak', '#FFDDB2', '#2C1600'], ['86', 'problems solved', '#D6E3FF', '#001B3E'], ['41', 'concepts covered', '#F0DBFF', '#2A0E45'], ['63 h', 'focus time', '#BCEBEE', '#002022']].map(([v, k, bg, fg]) => ({ v, k, card: 'display: flex; flex-direction: column; gap: 2px; padding: 18px 20px; border-radius: 28px; background: ' + bg + '; color: ' + fg + ';' })),
+balance: [['DSA', 46, '#284777'], ['System design', 22, '#56397A'], ['LLD', 14, '#1D4E51'], ['Core CS', 10, '#1E6B4A'], ['Behavioural', 8, '#8B5000']].map(([k, v, c]) => ({ k, v: v + '%', bar: 'width: ' + (v * 2) + '%; height: 100%; border-radius: 999px; background: ' + c + ';' })),
+badges: [['First solve', '1', true], ['7-day streak', '7', true], ['Boss beaten', 'B', true], ['50 solves', '50', true], ['Night owl', 'N', true], ['Re-solver', 'R', false], ['100 solves', '100', false], ['Full week', 'W', false]].map(([name, mark, got]) => ({ name, mark, fill: got ? '#FFDDB2' : '#EBF0EA', ink: got ? '#8B5000' : '#A0A9A1' })),
+root: 'box-sizing: border-box; display: flex; background: #F6FBF5; color: #171D19; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 12px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1240px; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 16px;',
+hero: 'display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: ' + (ph ? '18px' : '24px 28px') + '; border-radius: 32px; background: #FFFFFF; border: 1px solid #DEE5DD;',
+avatar: 'width: ' + (ph ? '56px' : '72px') + '; height: ' + (ph ? '56px' : '72px') + '; flex: none; border-radius: 999px; background: #FFDDB2; color: #2C1600; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 600;',
+h1: 'margin: 0; font-size: ' + (ph ? '22px' : '28px') + '; font-weight: 600;', h2: 'margin: 0; font-size: 18px; font-weight: 500;',
+outline: 'display: ' + (ph ? 'none' : 'inline-flex') + '; align-items: center; height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid #707971; color: #1E6B4A; font-size: 14px; font-weight: 500; text-decoration: none;',
+stats: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px;',
+panel: 'display: flex; flex-direction: column; gap: 14px; padding: ' + (ph ? '16px' : '22px 24px') + '; border-radius: 28px; background: #FFFFFF; border: 1px solid #DEE5DD; min-width: 0;',
+heat: 'display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, auto); grid-template-columns: repeat(' + weeks + ', minmax(0, 1fr)); gap: ' + (ph ? '3px' : '4px') + ';',
+split: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))') + '; gap: 12px;'
+};
+}
+}
+</script>
+</body>
+</html>

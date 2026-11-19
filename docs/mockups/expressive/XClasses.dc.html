@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your classes, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}button{cursor:pointer}@container zd (max-width: 1100px){.zd-drawer{position:absolute !important; top:76px; right:12px; bottom:12px; z-index:4}}@container zd (max-width: 820px){.zd-tree{display:none !important}}</style>
+</helmet>
+<div style="{{root}}">
+  <header style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; flex-wrap: wrap;">
+    <a href="#" aria-label="Back to Parking lot" style="{{iconBtn}}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></a>
+    <div style="min-width: 0; flex: 1; line-height: 20px;"><p style="margin: 0; font-size: 13px; color: #BFC9C1;">Parking lot</p><p style="margin: 0; font-size: 17px; font-weight: 500;">Your classes</p></div>
+    <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><div style="display: flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{refs}}" as="r" hint-placeholder-count="4"><button type="button" onClick="{{r.pick}}" style="{{r.style}}">{{r.label}}</button></sc-for></div></sc-if>
+    <button type="button" onClick="{{run}}" style="{{runBtn}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Run</button>
+  </header>
+  <div style="flex: 1; min-height: 0; display: flex; gap: 8px; padding: 0 12px 12px;">
+    <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+      <nav class="zd-tree" aria-label="Your files" style="{{tree}}">
+        <div style="display: flex; gap: 6px; padding: 10px;"><button type="button" onClick="{{addFile}}" style="{{smallBtn}}">+ File</button><button type="button" onClick="{{addFolder}}" style="{{smallBtn}}">+ Folder</button></div>
+        <div style="padding: 0 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+          <sc-for list="{{files}}" as="f" hint-placeholder-count="8"><button type="button" onClick="{{f.open}}" style="{{f.style}}"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{f.icon}}"/></svg>{{f.name}}</button></sc-for>
+        </div>
+      </nav>
+    </sc-if>
+    <section aria-label="Editor" style="{{editorPane}}">
+      <div style="display: flex; gap: 4px; padding: 8px 10px;"><span style="{{tabOn}}">{{current}}</span></div>
+      <label for="cls-code" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Code</label>
+      <textarea id="cls-code" spellcheck="false" value="{{code}}" onChange="{{edit}}" style="flex: 1; min-height: 0; margin: 0; padding: 6px 20px 14px; border: 0; resize: none; background: transparent; color: #DEE4DE; font: 400 14px/22px 'JetBrains Mono', monospace; outline: none;"></textarea>
+      <div style="{{console}}"><span style="font-weight: 500;">Output</span><span style="{{statusStyle}}">{{status}}</span><pre style="margin: 0; width: 100%; font: 400 12px/19px 'JetBrains Mono', monospace; color: #BFC9C1; white-space: pre-wrap;">{{out}}</pre></div>
+    </section>
+    <sc-if value="{{drawerOpen}}" hint-placeholder-val="{{false}}">
+      <aside class="zd-drawer" aria-label="{{drawerTitle}}" style="{{drawer}}">
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 18px; font-weight: 500;">{{drawerTitle}}</span><button type="button" onClick="{{closeDrawer}}" aria-label="Close" style="{{iconBtnSm}}">×</button></div>
+        <pre style="margin: 0; font: 400 14px/22px 'Google Sans', sans-serif; white-space: pre-wrap; color: #DEE4DE;">{{drawerText}}</pre>
+      </aside>
+    </sc-if>
+  </div>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Learn" dark="{{yes}}" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { current: 'ParkingLot.java', drawer: 'Requirements', ran: false, extra: [], code: { 'ParkingLot.java': 'public class ParkingLot {\n    private final List<Spot> spots;\n\n    public synchronized Ticket park(Vehicle v) {\n        // pick the smallest free spot that fits\n        \n    }\n}\n', 'Vehicle.java': 'public record Vehicle(String plate, VehicleType type) {}\n', 'Spot.java': 'public class Spot {\n    final SpotSize size;\n}\n', 'HourlyPricing.java': 'class HourlyPricing implements PricingStrategy {\n}\n', 'Main.java': 'public class Main {\n    public static void main(String[] a) {}\n}\n' } }; }
+renderVals() {
+const s = this.state, ph = !!this.props.phone;
+const folder = 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', file = 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6';
+const tree = [['model/', 0, 1], ['Vehicle.java', 1], ['Spot.java', 1], ['pricing/', 0, 1], ['HourlyPricing.java', 1], ['ParkingLot.java', 0], ['Main.java', 0]].concat(s.extra);
+const texts = { Requirements: 'Floors with spots: small, medium, large.\nCars may use larger spots, never smaller.\nHourly price by vehicle type.\nSeveral gates at once: thread-safe.\nOut of scope: cameras, plate reading.', Walkthrough: '1. Clarify (5 min)\n2. Entities and API (10 min)\n3. Core flow (20 min)\n4. Extensions (10 min)', Diagrams: 'ParkingLot 1..* Floor 1..* Spot\nTicket -> Spot, Vehicle\nPricingStrategy <- HourlyPricing', 'Reference answer': 'Hidden until you press Run once.\nThen compare file by file.' };
+const btn = 'height: 40px; padding: 0 16px; border: 0; border-radius: 999px; font: 500 14px \'Google Sans\', sans-serif;';
+return { ph, desk: !ph, yes: true, current: s.current, code: s.code[s.current] || 'public class ' + s.current.replace('.java', '') + ' {\n}\n',
+refs: Object.keys(texts).map((k) => ({ label: k, pick: () => this.setState((st) => ({ drawer: st.drawer === k ? null : k })), style: btn + (s.drawer === k ? 'background: #334B3D; color: #D2E8D9;' : 'background: #1B211E; color: #BFC9C1;') })),
+drawerOpen: !!s.drawer && !ph, drawerTitle: s.drawer || '', drawerText: texts[s.drawer] || '', closeDrawer: () => this.setState({ drawer: null }),
+files: tree.map(([name, depth, isFolder]) => ({ name, icon: isFolder ? folder : file, open: () => { if (!isFolder) this.setState({ current: name }); },
+style: 'display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 0 10px 0 ' + (10 + depth * 18) + 'px; border: 0; border-radius: 999px; text-align: left; font: inherit; ' + (name === s.current ? 'background: #334B3D; color: #D2E8D9;' : 'background: transparent; color: ' + (isFolder ? '#BFC9C1' : '#DEE4DE') + ';') })),
+addFile: () => this.setState((st) => { const n = 'NewClass' + (st.extra.length + 1) + '.java'; return { extra: st.extra.concat([[n, 0]]), current: n }; }),
+addFolder: () => this.setState((st) => ({ extra: st.extra.concat([['folder' + (st.extra.length + 1) + '/', 0, 1]]) })),
+edit: (e) => { const v = e.target.value; this.setState((st) => ({ code: Object.assign({}, st.code, { [st.current]: v }) })); },
+run: () => this.setState({ ran: true }),
+status: s.ran ? '2 of 3 tests passed' : 'Not run yet', statusStyle: 'font-weight: 600; color: ' + (s.ran ? '#FFB95C' : '#BFC9C1') + ';',
+out: s.ran ? 'PASS parks a car in the smallest fitting spot\nPASS rejects an unknown ticket\nFAIL full lot: expected LotFullException' : 'Run compiles your files and runs Tests.java.',
+root: 'box-sizing: border-box; position: relative; container: zd / inline-size; display: flex; flex-direction: column; background: #0F1512; color: #DEE4DE; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px;'),
+iconBtn: 'width: 44px; height: 44px; flex: none; border-radius: 999px; background: #1B211E; color: #DEE4DE; display: flex; align-items: center; justify-content: center;',
+iconBtnSm: 'width: 36px; height: 36px; border: 0; border-radius: 999px; background: #252B28; color: #DEE4DE; font-size: 20px;',
+runBtn: 'display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border: 0; border-radius: 999px; background: #8FD8B0; color: #003822; font: 500 15px \'Google Sans\', sans-serif;',
+tree: 'width: 240px; flex: none; border-radius: 24px; background: #171D1A; overflow: hidden;',
+smallBtn: 'flex: 1; height: 36px; border: 0; border-radius: 999px; background: #252B28; color: #DEE4DE; font: 500 13px \'Google Sans\', sans-serif;',
+editorPane: 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; display: flex; flex-direction: column; border-radius: 24px; background: #171D1A; overflow: hidden;',
+tabOn: 'padding: 6px 14px; border-radius: 999px; background: #334B3D; color: #D2E8D9; font: 500 13px \'JetBrains Mono\', monospace;',
+console: 'display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 12px 18px; margin: 0 8px 8px; border-radius: 18px; background: #252B28; font-size: 14px; max-height: 140px;',
+drawer: 'width: 340px; flex: none; display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 28px; background: #252B28; box-shadow: -4px 0 16px rgba(0,0,0,0.3);'
+};
+}
+}
+</script>
+</body>
+</html>

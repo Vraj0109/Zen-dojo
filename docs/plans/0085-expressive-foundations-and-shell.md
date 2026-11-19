@@ -3,7 +3,7 @@
 - **Status:** ready
 - **Planned by:** Claude Code, 2026-11-20
 - **Implemented by:** (implementer fills in)
-- **Spec:** the "Expressive (Google style)" page of the mockup canvas
+- **Spec:** `docs/mockups/expressive/` (mockup sources in the repo; see its README), from the "Expressive (Google style)" page of the mockup canvas
   (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj, private to the user; ask the lead for screenshots if you cannot
   open it). Boards used here: "Expressive system", "Part: navigation rail", "Account menu", "Part: phone navigation bar",
   "Today" (shell only). `docs/design-review-2026-11-19.md` lists what was wrong before.

@@ -3,7 +3,7 @@
 - **Status:** ready (start after 0085 is done)
 - **Planned by:** Claude Code, 2026-11-20
 - **Implemented by:** (implementer fills in)
-- **Spec:** the mockup canvas (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj), boards "Practice: patterns and all
+- **Spec:** `docs/mockups/expressive/` (mockup sources in the repo; see its README), from the mockup canvas (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj), boards "Practice: patterns and all
   problems", "DSA pattern page", "Boss battle" and the Practice, Pattern and Boss frames in the phone galleries.
 
 ## Goal

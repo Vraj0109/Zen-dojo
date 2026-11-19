@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System design walkthrough, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Learn" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <section style="{{hero}}">
+      <div style="flex: 1 1 280px; min-width: 0;"><p style="margin: 0; font-size: 14px; font-weight: 500; opacity: 0.8;">Design 3 of 27 · 45-minute interview</p><h1 style="{{h1}}">URL shortener</h1></div>
+      <span style="{{timer}}">Start mock · 45 min</span>
+    </section>
+    <ol aria-label="Interview steps" style="{{stepper}}">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="7"><li style="{{s.style}}"><span style="{{s.dot}}">{{s.mark}}</span>{{s.name}}</li></sc-for>
+    </ol>
+    <section style="{{card}}">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 500;">4 · High-level design</h2>
+      <p style="margin: 0; font-size: 16px; line-height: 25px; color: #404943; max-width: 68ch;">Two paths. Writes make a short code once; reads are 100 times busier, so they go through a cache first.</p>
+      <div style="{{diagram}}">
+        <sc-for list="{{nodes}}" as="n" hint-placeholder-count="5"><span style="{{n.style}}">{{n.name}}</span><sc-if value="{{n.arrow}}" hint-placeholder-val="{{true}}"><svg aria-hidden="true" width="28" height="16" viewBox="0 0 28 16"><path d="M2 8h20M16 2l6 6-6 6" fill="none" stroke="#707971" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></sc-if></sc-for>
+      </div>
+      <div style="{{cards2}}">
+        <div style="{{tradeoff}}"><span style="font-weight: 600;">Trade-off</span><span>301 lets browsers cache the redirect; 302 keeps every click countable.</span></div>
+        <div style="{{numbers}}"><span style="font-weight: 600;">Back of the envelope</span><span>100M links a month ≈ 40 writes/s, 4,000 reads/s.</span></div>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;"><a href="#" style="{{primary}}">Next: Deep dives</a><a href="#" style="{{tonal}}">Draw it</a></div>
+    </section>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Learn" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const steps = ['Requirements', 'Estimation', 'API and data', 'High-level', 'Deep dives', 'Failures', 'Wrap-up'];
+return { ph, desk: !ph,
+steps: (ph ? steps.slice(2, 5) : steps).map((name, i0) => { const i = ph ? i0 + 2 : i0; const st = i < 3 ? 'done' : i === 3 ? 'now' : ''; return { name, mark: st === 'done' ? '✓' : String(i + 1),
+style: 'display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 6px; border-radius: 999px; font-size: 14px; font-weight: 500; white-space: nowrap; ' + (st === 'now' ? 'background: #F0DBFF; color: #2A0E45;' : st === 'done' ? 'background: #EBF0EA; color: #171D19;' : 'color: #404943;'),
+dot: 'width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; ' + (st === 'now' ? 'background: #56397A; color: #FFFFFF;' : st === 'done' ? 'background: #1E6B4A; color: #FFFFFF;' : 'border: 2px solid #C0C9C1; box-sizing: border-box;') }; }),
+nodes: ['Client', 'Load balancer', 'API', 'Cache', 'Key-value store'].map((name, i, a) => ({ name, arrow: i < a.length - 1, style: 'padding: 12px 16px; border-radius: ' + ['999px', '16px', '16px', '22px 8px', '8px 22px'][i] + '; font-size: 14px; font-weight: 500; ' + (i === 2 ? 'background: #56397A; color: #FFFFFF;' : 'background: #F0DBFF; color: #2A0E45;') })),
+root: 'box-sizing: border-box; display: flex; background: #F6FBF5; color: #171D19; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1120px; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 16px;',
+hero: 'display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: ' + (ph ? '20px' : '28px 32px') + '; border-radius: 32px; background: #F0DBFF; color: #2A0E45;',
+h1: 'margin: 4px 0 0; font-size: ' + (ph ? '28px' : '36px') + '; font-weight: 600;',
+timer: 'display: inline-flex; align-items: center; height: 48px; padding: 0 22px; border-radius: 999px; background: #56397A; color: #FFFFFF; font-size: 15px; font-weight: 500;',
+stepper: 'list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: ' + (ph ? 'nowrap; overflow: hidden;' : 'wrap;'),
+card: 'display: flex; flex-direction: column; gap: 16px; padding: ' + (ph ? '20px' : '28px') + '; border-radius: 32px; background: #FFFFFF; border: 1px solid #DEE5DD;',
+diagram: 'display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 20px; border-radius: 24px; background: #F6FBF5;',
+cards2: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))') + '; gap: 12px;',
+tradeoff: 'display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 24px; background: #FFDDB2; color: #2C1600; font-size: 14px; line-height: 21px;',
+numbers: 'display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 24px; background: #D2E8D9; color: #0D1F15; font-size: 14px; line-height: 21px;',
+primary: 'display: inline-flex; align-items: center; height: 48px; padding: 0 22px; border-radius: 999px; background: #1E6B4A; color: #FFFFFF; font-size: 15px; font-weight: 500; text-decoration: none;',
+tonal: 'display: inline-flex; align-items: center; height: 48px; padding: 0 22px; border-radius: 999px; background: #D2E8D9; color: #0D1F15; font-size: 15px; font-weight: 500; text-decoration: none;'
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Course page, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Learn" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <section style="{{hero}}">
+      <span style="{{heroShape}}"><svg aria-hidden="true" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5zM3 13l9 5 9-5"/></svg></span>
+      <div style="flex: 1 1 260px; min-width: 0;"><h1 style="{{h1}}">Low-level design</h1><p style="margin: 6px 0 0; font-size: 15px; opacity: 0.85;">OOP, SOLID, patterns, then 24 real Java projects. About two weeks.</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;"><span style="{{statChip}}">12 of 30 done</span><span style="{{statChip}}">6 h practised</span><span style="{{statChip}}">2 reviews due</span></div></div>
+      <a href="#" style="{{heroBtn}}">Continue: State pattern</a>
+    </section>
+    <div role="tablist" aria-label="Course" style="{{segWrap}}"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.on}}" style="{{t.style}}">{{t.label}}</button></sc-for></div>
+    <ol aria-label="Topics" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="7">
+        <li style="display: flex; gap: 16px;">
+          <div style="display: flex; flex-direction: column; align-items: center; width: 48px; flex: none;"><span style="{{s.node}}">{{s.mark}}</span><span style="{{s.line}}"></span></div>
+          <a href="#" style="{{s.card}}"><div style="flex: 1; min-width: 0;"><p style="{{s.title}}">{{s.name}}</p><p style="margin: 2px 0 0; font-size: 14px; opacity: 0.8;">{{s.meta}}</p></div><sc-if value="{{s.isNext}}" hint-placeholder-val="{{false}}"><span style="{{startPill}}">Start</span></sc-if></a>
+        </li>
+      </sc-for>
+    </ol>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Learn" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const list = [['OOP principles', 'Lesson · 4 points', 'done'], ['SOLID', 'Lesson · 5 points', 'done'], ['Design patterns', 'Lesson · 10 points', 'done'], ['State pattern', 'Lesson · in Design patterns', 'next'], ['Modeling', 'Lesson · 8 sections', ''], ['Concurrency in code', 'Lesson · 9 sections', ''], ['Parking lot', 'Project · 32 Java files', 'project'], ['Elevator system', 'Project · state machine', 'project']];
+return { ph, desk: !ph,
+tabs: ['About', 'Learn · 6', 'Projects · 24'].map((k, i) => ({ label: k, on: i === 1, style: 'height: 40px; padding: 0 18px; border: 0; border-radius: 999px; font: 500 14px \'Google Sans\', sans-serif; background: ' + (i === 1 ? '#BCEBEE' : 'transparent') + '; color: ' + (i === 1 ? '#002022' : '#404943') + ';' })),
+steps: (ph ? list.slice(0, 6) : list).map(([name, meta, st], i, arr) => ({ name, meta, isNext: st === 'next', mark: st === 'done' ? '✓' : String(i + 1),
+node: 'width: 44px; height: 44px; border-radius: ' + (st === 'project' ? '14px' : '999px') + '; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; box-sizing: border-box; ' + (st === 'done' ? 'background: #1D4E51; color: #BCEBEE;' : st === 'next' ? 'background: #1E6B4A; color: #FFFFFF; box-shadow: 0 0 0 6px #B6F1CF;' : 'background: #EBF0EA; color: #404943;'),
+line: 'width: 4px; flex: 1; min-height: 16px; border-radius: 999px; background: ' + (i === arr.length - 1 ? 'transparent' : st === 'done' ? '#1D4E51' : '#DEE5DD') + ';',
+card: 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px 18px; border-radius: 24px; text-decoration: none; ' + (st === 'next' ? 'background: #B6F1CF; color: #00210F;' : 'background: #FFFFFF; color: #171D19; border: 1px solid #DEE5DD;'),
+title: 'margin: 0; font-size: 16px; font-weight: ' + (st === 'next' ? '600' : '500') + ';' })),
+root: 'box-sizing: border-box; display: flex; background: #F6FBF5; color: #171D19; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1240px; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 18px;',
+hero: 'display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: ' + (ph ? '20px' : '28px 32px') + '; border-radius: 32px; background: #BCEBEE; color: #002022;',
+heroShape: 'width: 72px; height: 72px; flex: none; border-radius: 28px 10px; background: #7DCFD4; display: flex; align-items: center; justify-content: center;' + (ph ? ' display: none;' : ''),
+h1: 'margin: 0; font-size: ' + (ph ? '26px' : '34px') + '; line-height: 1.2; font-weight: 600;',
+statChip: 'padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.65); font-size: 13px; font-weight: 500;',
+heroBtn: 'display: inline-flex; align-items: center; height: 48px; padding: 0 22px; border-radius: 999px; background: #1D4E51; color: #BCEBEE; font-size: 15px; font-weight: 500; text-decoration: none;',
+segWrap: 'display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #EBF0EA; align-self: flex-start;',
+startPill: 'padding: 8px 16px; border-radius: 999px; background: #1E6B4A; color: #FFFFFF; font-size: 14px; font-weight: 500;'
+};
+}
+}
+</script>
+</body>
+</html>

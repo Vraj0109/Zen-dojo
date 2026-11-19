@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Practice, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}button{cursor:pointer}sc-if,sc-for{display:contents}@container zd (max-width: 1260px){.zd-jump{display:none !important}}@container zd (max-width: 1020px){.zd-aside{display:none !important}}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Practice" dark="{{dark}}" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div><h1 style="{{h1}}">Practice</h1><p style="{{muted}}">84 of 496 solved · 67 patterns in 10 groups · 6 re-solves due</p></div>
+      <a href="#" style="{{btnTonal}}">Continue: Longest Consecutive Sequence</a>
+    </header>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+      <div role="tablist" aria-label="View" style="{{segWrap}}">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+      </div>
+      <label style="{{search}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Search problems and patterns</span><input type="search" placeholder="Search 496 problems or 67 patterns" style="flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: 400 15px 'Google Sans', sans-serif; outline: none;"></label>
+    </div>
+
+    <sc-if value="{{showPatterns}}" hint-placeholder-val="{{true}}">
+      <div style="{{patArea}}">
+        <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+          <nav class="zd-jump" aria-label="Jump to a group" style="{{jump}}">
+            <sc-for list="{{groups}}" as="g" hint-placeholder-count="10"><a href="#" style="{{g.jumpStyle}}"><span style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{g.short}}</span><span style="font-size: 12px; opacity: 0.75;">{{g.done}}/{{g.total}}</span></a></sc-for>
+          </nav>
+        </sc-if>
+        <div style="{{patScroll}}">
+          <sc-for list="{{shownGroups}}" as="g" hint-placeholder-count="3">
+            <section style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;">
+                <span style="{{g.badge}}">{{g.n}}</span>
+                <h2 style="{{h2}}">{{g.title}}</h2>
+                <span style="{{nowrapMuted}}">{{g.count}} patterns · {{g.solvedText}}</span>
+                <div style="{{g.track}}"><div style="{{g.bar}}"></div></div>
+              </div>
+              <div style="{{tileGrid}}">
+                <sc-for list="{{g.patterns}}" as="p" hint-placeholder-count="6">
+                  <a href="#" style="{{p.tile}}">
+                    <span style="display: flex; justify-content: space-between; align-items: center; gap: 8px;"><span style="{{p.shape}}"></span><span style="{{p.count}}">{{p.done}}/{{p.total}}</span></span>
+                    <span style="font-size: 15px; font-weight: 500; line-height: 20px;">{{p.name}}</span>
+                    <span style="{{p.hint}}">{{p.recognize}}</span>
+                  </a>
+                </sc-for>
+              </div>
+            </section>
+          </sc-for>
+          <p style="{{muted}}">7 more groups below: Linked lists and heaps, Trees, Graphs, Recursion and bits, DP, Greedy and math, Advanced, Logic building.</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showAll}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button type="button" style="{{f.style}}">{{f.label}}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button></sc-for>
+        <span style="{{muted}}">Showing all {{listCount}} · sorted by roadmap order</span>
+      </div>
+      <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+        <div style="{{menu}}">
+          <label style="{{menuSearch}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Find one of 67 patterns" style="flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: 400 14px 'Google Sans', sans-serif; outline: none;"></label>
+          <sc-for list="{{menuGroups}}" as="m" hint-placeholder-count="2"><p style="margin: 6px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: {{c.v}};">{{m.title}}</p><sc-for list="{{m.items}}" as="i" hint-placeholder-count="3"><span style="{{i.style}}"><span style="{{i.box}}">{{i.tick}}</span>{{i.name}}</span></sc-for></sc-for>
+        </div>
+      </sc-if>
+      <div style="{{listFrame}}">
+        <div style="{{headRow}}"><span></span><span>Problem</span><sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><span>Pattern</span></sc-if><span>Level</span><sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><span style="text-align: right;">Last solved</span></sc-if></div>
+        <sc-for list="{{problems}}" as="r" hint-placeholder-count="12">
+          <sc-if value="{{r.isGroup}}" hint-placeholder-val="{{false}}"><div style="{{groupRow}}">{{r.group}}</div></sc-if>
+          <sc-if value="{{r.isRow}}" hint-placeholder-val="{{true}}">
+            <a href="#" style="{{r.row}}">
+              <span style="{{r.mark}}">{{r.markText}}</span>
+              <span style="{{r.title}}">{{r.num}}. {{r.name}}</span>
+              <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><span style="{{r.pattern}}">{{r.pat}}</span></sc-if>
+              <span style="{{r.diff}}">{{r.d}}</span>
+              <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><span style="{{r.when}}">{{r.last}}</span></sc-if>
+            </a>
+          </sc-if>
+        </sc-for>
+        <div style="{{fade}}">The list keeps going as you scroll. All {{listCount}} rows are on this one page.</div>
+      </div>
+    </sc-if>
+  </main>
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+    <aside class="zd-aside" aria-label="Your progress" style="{{aside}}">
+      <section style="{{card}}">
+        <span style="{{label}}">Solved</span>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <svg role="img" aria-label="84 of 496 solved" width="96" height="96" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="{{c.card2}}" stroke-width="10"/><circle cx="50" cy="50" r="40" fill="none" stroke="{{c.easy}}" stroke-width="10" stroke-linecap="round" stroke-dasharray="30 252" transform="rotate(-90 50 50)"/><circle cx="50" cy="50" r="40" fill="none" stroke="{{c.med}}" stroke-width="10" stroke-linecap="round" stroke-dasharray="34 252" stroke-dashoffset="-36" transform="rotate(-90 50 50)"/><circle cx="50" cy="50" r="40" fill="none" stroke="{{c.hard}}" stroke-width="10" stroke-linecap="round" stroke-dasharray="8 252" stroke-dashoffset="-76" transform="rotate(-90 50 50)"/><text x="50" y="56" text-anchor="middle" font-family="Google Sans" font-size="22" font-weight="600" fill="{{c.fg}}">84</text></svg>
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 14px;"><span><span style="{{dotE}}"></span>Easy 31</span><span><span style="{{dotM}}"></span>Medium 44</span><span><span style="{{dotH}}"></span>Hard 9</span></div>
+        </div>
+      </section>
+      <section style="{{tCard}}">
+        <span style="{{label}}">Boss battle</span>
+        <p style="margin: 0; font-size: 15px;">3 problems, 60 minutes, no hints.</p>
+        <a href="#" style="{{btnFilledSm}}">Fight the week 6 boss</a>
+      </section>
+      <section style="{{card}}">
+        <span style="{{label}}">LeetCode</span>
+        <p style="{{muted}}">Synced 2 min ago · 4 new solves</p>
+      </section>
+    </aside>
+  </sc-if>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Practice" dark="{{dark}}" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"dark":{"editor":"boolean","default":false},"tab":{"editor":"string","default":"Patterns"},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+constructor(p) { super(p); this.state = { tab: p.tab || 'Patterns', menu: true }; }
+renderVals() {
+const ph = !!this.props.phone, dk = !!this.props.dark, s = this.state;
+const c = dk ? { bg: '#0F1512', fg: '#DEE4DE', v: '#BFC9C1', card: '#1B211E', card2: '#252B28', line: '#2F3631', p: '#8FD8B0', op: '#003822', pc: '#0F5236', opc: '#ABF4CB', sc: '#334B3D', osc: '#D2E8D9', tc: '#6A3C00', otc: '#FFDDB2', easy: '#8FD8B0', med: '#FFB95C', hard: '#FFB4AB', out: '#404943' }
+ : { bg: '#F6FBF5', fg: '#171D19', v: '#404943', card: '#FFFFFF', card2: '#EBF0EA', line: '#DEE5DD', p: '#1E6B4A', op: '#FFFFFF', pc: '#B6F1CF', opc: '#00210F', sc: '#D2E8D9', osc: '#0D1F15', tc: '#FFDDB2', otc: '#2C1600', easy: '#1E6B4A', med: '#9A5B00', hard: '#BA1A1A', out: '#C0C9C1' };
+const border = dk ? '' : 'border: 1px solid ' + c.line + ';';
+const tones = dk ? ['#284777', '#56397A', '#1D4E51', '#6A3C00'] : ['#D6E3FF', '#F0DBFF', '#BCEBEE', '#FFDDB2'];
+const shapes = ['14px', '999px', '22px 8px', '8px 22px', '18px', '50% 50% 14px 14px'];
+const G = [
+ ['Arrays, strings, hashing', 'Arrays and hashing', 9, 31, [['Hash map / counting', 'Pairs, duplicates, frequency', 5, 5], ['Prefix sums', 'Range and subarray sums', 4, 4], ['Two pointers', 'Sorted arrays, pairs', 4, 6], ['Sliding window', 'Longest or shortest subarray', 5, 8], ['Kadane', 'Best subarray so far', 2, 3], ['Matrix traversal', 'Spiral, rotate, search', 1, 4], ['String building', 'Parse, encode, compare', 3, 4], ['Intervals', 'Merge, insert, overlap', 2, 4], ['Cyclic sort', 'Numbers 1 to n', 0, 3]]],
+ ['Searching and sorting', 'Searching and sorting', 5, 9, [['Binary search on index', 'Sorted or rotated data', 3, 3], ['Binary search on answer', 'Monotone yes/no', 1, 4], ['Quickselect', 'Kth largest', 0, 2], ['Custom sort', 'Order by a key', 2, 3], ['Merge sort ideas', 'Count inversions', 0, 2]]],
+ ['Linked lists, stacks, queues, heaps', 'Lists, stacks, heaps', 8, 14, [['Fast and slow pointers', 'Cycles, middle', 2, 3], ['In-place reversal', 'Reverse sublists', 1, 2], ['Monotonic stack', 'Next greater element', 2, 4], ['Top K with a heap', 'K largest, K closest', 1, 3], ['Two heaps', 'Running median', 0, 2], ['K-way merge', 'Merge sorted lists', 0, 2]]]
+];
+const groups10 = [['Arrays and hashing', 26, 41], ['Searching and sorting', 6, 14], ['Lists, stacks, heaps', 9, 22], ['Trees', 12, 30], ['Graphs', 8, 44], ['Recursion and bits', 5, 20], ['Dynamic programming', 7, 52], ['Greedy and math', 6, 18], ['Advanced', 1, 15], ['Logic building', 4, 240]];
+const probs = [['g', 'Arrays, strings, hashing'], ['1', 'Two Sum', 'Hash map', 'E', '26 May', 'done'], ['49', 'Group Anagrams', 'Hash map', 'M', '6 Feb', 'done'], ['347', 'Top K Frequent Elements', 'Hash map', 'M', '', 'due'], ['128', 'Longest Consecutive Sequence', 'Hash map', 'M', '', 'next'], ['303', 'Range Sum Query', 'Prefix sums', 'E', '8 Nov', 'done'], ['238', 'Product of Array Except Self', 'Prefix sums', 'M', '', ''], ['11', 'Container With Most Water', 'Two pointers', 'M', '', 'due'], ['42', 'Trapping Rain Water', 'Two pointers', 'H', '', ''], ['3', 'Longest Substring Without Repeating', 'Sliding window', 'M', '2 Nov', 'done'], ['g', 'Searching and sorting'], ['33', 'Search in Rotated Sorted Array', 'Binary search', 'M', '', ''], ['875', 'Koko Eating Bananas', 'Search on answer', 'M', '', ''], ['215', 'Kth Largest Element', 'Quickselect', 'M', '', '']];
+const dcol = { E: c.easy, M: c.med, H: c.hard }, dname = { E: 'Easy', M: 'Medium', H: 'Hard' };
+const cols = ph ? '28px minmax(0, 1fr) 64px' : '32px minmax(0, 1fr) 170px 80px 90px';
+let alt = 0;
+return { ph, desk: !ph, dark: dk, c, listCount: 496, menuOpen: s.menu && !ph,
+showPatterns: s.tab === 'Patterns', showAll: s.tab !== 'Patterns',
+tabs: ['Patterns', 'All problems', 'Re-solve due · 6'].map((k) => ({ label: k, on: s.tab === k, pick: () => this.setState({ tab: k }), style: 'height: 40px; padding: 0 18px; border: 0; border-radius: 999px; font: 500 14px \'Google Sans\', sans-serif; white-space: nowrap; background: ' + (s.tab === k ? c.sc : 'transparent') + '; color: ' + (s.tab === k ? c.osc : c.v) + ';' })),
+groups: groups10.map(([short, done, total], i) => ({ short, done, total, jumpStyle: 'display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 500; text-decoration: none; color: ' + (i === 0 ? c.osc : c.fg) + '; background: ' + (i === 0 ? c.sc : 'transparent') + ';' })),
+shownGroups: (ph ? G.slice(0, 1) : G).map(([title, short, count, solved, pats], gi) => { const d = pats.reduce((a, p) => a + p[2], 0), t = pats.reduce((a, p) => a + p[3], 0); return { title, n: String(gi + 1), count, solvedText: d + ' of ' + t + ' solved',
+ badge: 'width: 32px; height: 32px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: ' + tones[gi % 4] + '; color: ' + (dk ? '#FFFFFF' : '#171D19') + ';',
+ track: (ph ? 'display: none;' : 'margin-left: auto; width: 140px; height: 8px; border-radius: 999px; background: ' + c.card2 + '; overflow: hidden;'),
+ bar: 'width: ' + Math.round(d / t * 100) + '%; height: 100%; border-radius: 999px; background: ' + c.p + ';',
+ patterns: (ph ? pats.slice(0, 4) : pats).map(([name, recognize, done, total], pi) => ({ name, recognize, done, total,
+  tile: 'display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 24px; text-decoration: none; color: ' + c.fg + '; background: ' + c.card + '; ' + border + (done === total ? ' box-shadow: inset 0 -4px 0 ' + c.p + ';' : ''),
+  shape: 'width: 28px; height: 28px; border-radius: ' + shapes[pi % shapes.length] + '; background: ' + (done === total ? c.p : tones[gi % 4]) + ';',
+  count: 'font-size: 13px; font-weight: 600; color: ' + (done === total ? c.p : c.v) + ';',
+  hint: 'font-size: 13px; line-height: 18px; color: ' + c.v + ';' })) }; }),
+filters: [['Pattern: Hash map, Two pointers', true], ['Level', false], ['Status', false], ['Source', false]].map(([label, on]) => ({ label, style: 'display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 16px; border-radius: 10px; font: 500 14px \'Google Sans\', sans-serif; color: ' + (on ? c.osc : c.fg) + '; ' + (on ? 'border: 0; background: ' + c.sc + ';' : 'background: transparent; border: 1px solid ' + c.out + ';') })),
+menu: 'position: relative; z-index: 2; margin-top: -4px; width: 300px; max-height: 280px; overflow: hidden; display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 20px; background: ' + c.card + '; ' + border + ' box-shadow: 0 6px 20px rgba(0,0,0,0.08);',
+menuSearch: 'display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 999px; background: ' + c.card2 + '; color: ' + c.v + ';',
+menuGroups: [['ARRAYS, STRINGS, HASHING', [['Hash map / counting', true], ['Prefix sums', false], ['Two pointers', true], ['Sliding window', false]]], ['SEARCHING AND SORTING', [['Binary search on index', false]]]].map(([title, items]) => ({ title, items: items.map(([name, on]) => ({ name, tick: on ? '✓' : '', style: 'display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 10px; font-size: 14px;' + (on ? ' background: ' + c.card2 + ';' : ''), box: 'width: 18px; height: 18px; flex: none; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; box-sizing: border-box; ' + (on ? 'background: ' + c.p + '; color: ' + c.op + ';' : 'border: 2px solid ' + c.out + ';') })) })),
+problems: (ph ? probs.slice(0, 10) : probs).map((r) => { if (r[0] === 'g') return { isGroup: true, isRow: false, group: r[1] }; const [num, name, pat, d, last, st] = r; alt++; return { isGroup: false, isRow: true, num, name, pat, d: dname[d], last: last || '—',
+ markText: st === 'done' ? '✓' : '', row: 'display: grid; grid-template-columns: ' + cols + '; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; text-decoration: none; color: ' + c.fg + '; border-top: 1px solid ' + c.line + ';' + (st === 'next' ? ' box-shadow: inset 3px 0 0 ' + c.p + ';' : ''),
+ mark: 'width: 22px; height: 22px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; box-sizing: border-box; ' + (st === 'done' ? 'background: ' + c.p + '; color: ' + c.op + ';' : st === 'due' ? 'background: ' + c.tc + '; color: ' + c.otc + ';' : 'border: 2px solid ' + c.out + ';'),
+ title: 'font-size: 15px; font-weight: ' + (st === 'next' ? '600' : '500') + '; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;',
+ pattern: 'font-size: 14px; color: ' + c.v + '; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;',
+ diff: 'font-size: 14px; font-weight: 500; color: ' + dcol[d] + ';', when: 'font-size: 13px; color: ' + c.v + '; text-align: right;' }; }),
+root: 'box-sizing: border-box; container: zd / inline-size; display: flex; background: ' + c.bg + '; color: ' + c.fg + '; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; box-sizing: border-box; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow: hidden; box-sizing: border-box; padding: 28px 24px 0; display: flex; flex-direction: column; gap: 16px;',
+aside: 'width: 280px; flex: none; overflow-y: auto; box-sizing: border-box; padding: 28px 32px 40px 0; display: flex; flex-direction: column; gap: 12px;',
+h1: 'margin: 0; font-size: ' + (ph ? '28px' : '36px') + '; line-height: 1.2; font-weight: 600;',
+h2: 'margin: 0; font-size: 18px; font-weight: 500;',
+nowrapMuted: 'margin: 0; font-size: 14px; color: ' + c.v + '; white-space: nowrap;',
+muted: 'margin: 0; font-size: 14px; line-height: 20px; color: ' + c.v + ';',
+label: 'font-size: 15px; font-weight: 500;',
+btnTonal: (ph ? 'display: none;' : 'display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 999px; background: ' + c.pc + '; color: ' + c.opc + '; font-size: 14px; font-weight: 500; text-decoration: none;'),
+segWrap: 'display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: ' + c.card2 + '; max-width: 100%; overflow: hidden;',
+search: 'flex: 1 1 240px; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 18px; border-radius: 999px; background: ' + c.card2 + '; color: ' + c.v + ';',
+jump: 'width: 220px; flex: none; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; padding-bottom: 32px; scrollbar-width: thin;',
+patArea: ph ? 'display: flex; gap: 20px; align-items: flex-start;' : 'flex: 1; min-height: 0; display: flex; gap: 20px;',
+patScroll: 'flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px;' + (ph ? '' : ' overflow-y: auto; padding: 0 8px 40px 0; scrollbar-width: thin;'),
+tileGrid: 'display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 10px;',
+listFrame: 'border-radius: 24px; overflow: hidden;' + (ph ? '' : ' flex: 1; min-height: 0; overflow-y: auto; margin-bottom: 24px; scrollbar-width: thin;') + ' background: ' + c.card + '; ' + border,
+headRow: 'position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: ' + cols + '; gap: 12px; align-items: center; height: 40px; padding: 0 18px; font-size: 13px; font-weight: 500; color: ' + c.v + '; background: ' + c.card2 + ';',
+groupRow: 'padding: 14px 18px 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: ' + c.p + '; border-top: 1px solid ' + c.line + ';',
+fade: 'padding: 14px 18px; font-size: 13px; color: ' + c.v + '; border-top: 1px solid ' + c.line + '; text-align: center;',
+card: 'display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 28px; background: ' + c.card + '; ' + border,
+tCard: 'display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 28px; background: ' + c.tc + '; color: ' + c.otc + ';',
+btnFilledSm: 'display: inline-flex; align-self: flex-start; align-items: center; height: 40px; padding: 0 18px; border-radius: 999px; background: ' + c.otc + '; color: ' + c.tc + '; font-size: 14px; font-weight: 500; text-decoration: none;',
+dotE: 'display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; background: ' + c.easy + ';',
+dotM: 'display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; background: ' + c.med + ';',
+dotH: 'display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; background: ' + c.hard + ';'
+};
+}
+}
+</script>
+</body>
+</html>

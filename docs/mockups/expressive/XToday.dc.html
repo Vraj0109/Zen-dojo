@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Today" dark="{{dark}}" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <header style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <div style="flex: 1 1 220px; min-width: 0;">
+        <p style="{{muted14}}">Week 1 of 16 · Thursday, 19 November</p>
+        <h1 style="{{h1}}">Three things today</h1>
+      </div>
+      <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+        <label style="{{search}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Search</span><input type="search" placeholder="Search problems, lessons, notes" style="flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: 400 15px 'Google Sans', sans-serif; outline: none;"></label>
+      </sc-if>
+    </header>
+
+    <section aria-label="Today's plan" style="{{hero}}">
+      <div style="position: relative; width: 132px; height: 132px; flex: none;">
+        <svg role="img" aria-label="1 of 3 done" width="132" height="132" viewBox="0 0 100 100"><path d="M50 3 58 9 68 7 73 16 83 19 84 29 92 36 89 46 94 55 87 62 88 72 79 77 76 87 66 87 58 94 50 89 42 94 34 87 24 87 21 77 12 72 13 62 6 55 11 46 8 36 16 29 17 19 27 16 32 7 42 9z" fill="{{c.heroShape}}"/><circle cx="50" cy="50" r="30" fill="none" stroke="{{c.ringTrack}}" stroke-width="8"/><circle cx="50" cy="50" r="30" fill="none" stroke="{{c.onHero}}" stroke-width="8" stroke-linecap="round" stroke-dasharray="63 189" transform="rotate(-90 50 50)"/></svg>
+        <span style="{{ringText}}">1/3</span>
+      </div>
+      <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+        <p style="{{heroKicker}}">Today's plan</p>
+        <p style="{{heroTitle}}">Nice start. Two left, about 90 minutes.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+          <a href="#" style="{{btnFilled}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start focus · 25 min</a>
+          <a href="#" style="{{btnTonal}}">See the week</a>
+        </div>
+      </div>
+      <sc-if value="{{desk}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none;">
+          <svg role="img" aria-label="14 day streak" width="96" height="96" viewBox="0 0 100 100"><path d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z" fill="{{c.tc}}"/><text x="50" y="59" text-anchor="middle" font-family="Google Sans" font-size="30" font-weight="600" fill="{{c.otc}}">14</text></svg>
+          <span style="{{heroKicker}}">day streak</span>
+        </div>
+      </sc-if>
+    </section>
+
+    <div style="{{statGrid}}">
+      <section style="{{card}}">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="{{label}}">Level 7</span><span style="{{muted14}}">1,240 / 1,500 XP</span></div>
+        <svg role="img" aria-label="83 percent to level 8" width="100%" height="18" viewBox="0 0 300 18" preserveAspectRatio="none"><path d="M3 9 Q10 2 17 9 T31 9 T45 9 T59 9 T73 9 T87 9 T101 9 T115 9 T129 9 T143 9 T157 9 T171 9 T185 9 T199 9 T213 9 T227 9 T241 9" fill="none" stroke="{{c.p}}" stroke-width="5" stroke-linecap="round"/><path d="M252 9 H297" stroke="{{c.sc}}" stroke-width="5" stroke-linecap="round"/></svg>
+        <p style="{{body}}">260 XP to level 8. Two medium problems gets you there.</p>
+      </section>
+      <section style="{{card}}">
+        <span style="{{label}}">This week</span>
+        <div style="display: flex; gap: 8px; align-items: flex-end; height: 56px;">
+          <sc-for list="{{week}}" as="w" hint-placeholder-count="7"><div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1;"><span style="{{w.bar}}"></span><span style="{{w.day}}">{{w.d}}</span></div></sc-for>
+        </div>
+      </section>
+      <section style="{{card}}">
+        <div style="display: flex; justify-content: space-between; align-items: center;"><span style="{{label}}">Due for review</span><span style="{{badge}}">5</span></div>
+        <p style="{{body}}">Two pointers, CAP theorem, Observer and two re-solves. About 10 minutes.</p>
+        <a href="#" style="{{btnTonalSm}}">Review now</a>
+      </section>
+    </div>
+
+    <section aria-labelledby="next" style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 id="next" style="{{h2}}">Up next</h2>
+      <sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
+        <div style="{{t.row}}">
+          <span style="{{t.check}}">{{t.mark}}</span>
+          <span style="{{t.shape}}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.icon}}"/></svg></span>
+          <div style="flex: 1; min-width: 0;"><p style="{{t.title}}">{{t.name}}</p><p style="{{muted14}}">{{t.meta}}</p></div>
+          <sc-if value="{{t.open}}" hint-placeholder-val="{{true}}"><a href="#" style="{{btnOutline}}">Open</a></sc-if>
+          <sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><span style="{{xp}}">+{{t.xp}} XP</span></sc-if>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}">
+    <a href="#" aria-label="Start a focus session" style="{{fab}}"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Focus</a>
+    <dc-import name="XNavBar" active="Today" dark="{{dark}}" hint-size="390px,88px"></dc-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone, dk = !!this.props.dark;
+const c = dk ? { bg: '#0F1512', fg: '#DEE4DE', v: '#BFC9C1', card: '#1B211E', card2: '#252B28', line: '#404943', p: '#8FD8B0', op: '#003822', pc: '#0F5236', opc: '#ABF4CB', sc: '#334B3D', osc: '#D2E8D9', tc: '#6A3C00', otc: '#FFDDB2', heroShape: '#0F5236', onHero: '#ABF4CB', ringTrack: '#1E6B4A', err: '#FFB4AB', onErr: '#690005' }
+ : { bg: '#F6FBF5', fg: '#171D19', v: '#404943', card: '#FFFFFF', card2: '#EBF0EA', line: '#DEE5DD', p: '#1E6B4A', op: '#FFFFFF', pc: '#B6F1CF', opc: '#00210F', sc: '#D2E8D9', osc: '#0D1F15', tc: '#FFDDB2', otc: '#2C1600', heroShape: '#8FD8B0', onHero: '#00210F', ringTrack: '#B6F1CF', err: '#BA1A1A', onErr: '#FFFFFF' };
+const font = "font-family: 'Google Sans', system-ui, sans-serif;";
+const pill = (bg, fg, extra) => 'display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 22px; border-radius: 999px; background: ' + bg + '; color: ' + fg + '; font-size: 15px; font-weight: 500; text-decoration: none; ' + (extra || '');
+const subj = { dsa: ['#D6E3FF', '#001B3E', '#284777', '#D6E3FF'], sd: ['#F0DBFF', '#2A0E45', '#56397A', '#F0DBFF'], lld: ['#BCEBEE', '#002022', '#1D4E51', '#BCEBEE'] };
+const tasks = [
+['Sliding window: Longest Substring Without Repeating', 'DSA · Medium · 22 min', 'dsa', true, 40, 'm8 6-6 6 6 6M16 6l6 6-6 6'],
+['Design a URL shortener, cold, then compare', 'System design · 75 min', 'sd', false, 60, 'M4 6h16v12H4zM4 10h16'],
+['Parking lot: classes and states', 'Low-level design · about 45 min', 'lld', false, 50, 'M12 3 3 8l9 5 9-5zM3 13l9 5 9-5']
+].map(([name, meta, s, done, xp, icon]) => { const col = subj[s]; return { name, meta, done, open: !done, xp, icon, mark: done ? '✓' : '',
+row: 'display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 24px; background: ' + c.card + '; ' + (dk ? '' : 'border: 1px solid ' + c.line + ';'),
+check: 'width: 28px; height: 28px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; ' + (done ? 'background: ' + c.p + '; color: ' + c.op + ';' : 'border: 2px solid ' + c.v + '; box-sizing: border-box;'),
+shape: 'width: 44px; height: 44px; flex: none; border-radius: ' + (s === 'dsa' ? '14px' : s === 'sd' ? '999px' : '22px 8px') + '; display: flex; align-items: center; justify-content: center; background: ' + (dk ? col[2] : col[0]) + '; color: ' + (dk ? col[3] : col[1]) + ';',
+title: 'margin: 0; font-size: 16px; font-weight: 500; ' + (done ? 'color: ' + c.v + '; text-decoration: line-through;' : '') }; });
+const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'], hs = [70, 45, 90, 100, 60, 30, 0];
+return { ph, desk: !ph, dark: dk, c,
+week: days.map((d, i) => ({ d, bar: 'width: 100%; height: ' + Math.max(hs[i], 8) + '%; border-radius: 999px; background: ' + (i === 3 ? c.p : hs[i] ? c.pc : c.card2) + ';', day: 'font-size: 12px; color: ' + (i === 3 ? c.fg : c.v) + '; font-weight: ' + (i === 3 ? '600' : '400') + ';' })),
+tasks,
+root: 'box-sizing: border-box; display: flex; background: ' + c.bg + '; color: ' + c.fg + '; ' + font + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden; position: relative;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; box-sizing: border-box; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1120px; box-sizing: border-box; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 20px;',
+h1: 'margin: 2px 0 0; font-size: ' + (ph ? '28px' : '36px') + '; line-height: ' + (ph ? '34px' : '44px') + '; font-weight: 600; letter-spacing: -0.01em;',
+h2: 'margin: 6px 0 0; font-size: 22px; line-height: 28px; font-weight: 500;',
+muted14: 'margin: 0; font-size: 14px; line-height: 20px; color: ' + c.v + ';',
+body: 'margin: 0; font-size: 15px; line-height: 22px; color: ' + c.v + ';',
+label: 'font-size: 15px; font-weight: 500;',
+search: 'flex: 0 1 380px; display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px; border-radius: 999px; background: ' + c.card2 + '; color: ' + c.v + ';',
+hero: 'display: flex; align-items: center; gap: 24px; flex-wrap: wrap; padding: ' + (ph ? '20px' : '28px 32px') + '; border-radius: 32px; background: ' + c.pc + '; color: ' + c.opc + ';',
+ringText: 'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; color: ' + c.opc + ';',
+heroKicker: 'margin: 0; font-size: 14px; font-weight: 500; opacity: 0.8;',
+heroTitle: 'margin: 0; font-size: ' + (ph ? '20px' : '26px') + '; line-height: 1.25; font-weight: 500;',
+btnFilled: pill(c.p, c.op),
+btnTonal: pill(dk ? '#1E6B4A' : '#FFFFFF', c.opc),
+btnTonalSm: pill(c.sc, c.osc, 'height: 40px; padding: 0 18px; align-self: flex-start;'),
+btnOutline: pill('transparent', c.p, 'height: 40px; padding: 0 18px; border: 1px solid ' + (dk ? '#8A938B' : '#707971') + ';'),
+statGrid: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))') + '; gap: 12px;' + (ph ? ' display: none;' : ''),
+card: 'display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 28px; background: ' + c.card + '; ' + (dk ? '' : 'border: 1px solid ' + c.line + ';'),
+badge: 'min-width: 28px; height: 28px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: ' + c.tc + '; color: ' + c.otc + '; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;',
+xp: 'padding: 6px 12px; border-radius: 999px; background: ' + c.tc + '; color: ' + c.otc + '; font-size: 13px; font-weight: 600;',
+fab: 'position: absolute; right: 16px; bottom: 104px; display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 20px 0 16px; border-radius: 18px; background: ' + c.tc + '; color: ' + c.otc + '; font-size: 15px; font-weight: 500; text-decoration: none; box-shadow: 0 3px 8px rgba(0,0,0,0.18);'
+};
+}
+}
+</script>
+</body>
+</html>

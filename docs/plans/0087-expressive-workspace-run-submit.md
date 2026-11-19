@@ -3,7 +3,7 @@
 - **Status:** ready (start after 0085 is done)
 - **Planned by:** Claude Code, 2026-11-20
 - **Implemented by:** (implementer fills in)
-- **Spec:** mockup canvas (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj), boards "Problem workspace (dark)" and
+- **Spec:** `docs/mockups/expressive/` (mockup sources in the repo; see its README), from the mockup canvas (https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj), boards "Problem workspace (dark)" and
   "Code workspace" in phone gallery A.
 
 ## Goal

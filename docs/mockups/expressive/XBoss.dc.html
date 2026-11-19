@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Boss battle, Expressive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}sc-if,sc-for{display:contents}</style>
+</helmet>
+<div style="{{root}}">
+  <sc-if value="{{desk}}" hint-placeholder-val="{{true}}"><dc-import name="XRail" active="Practice" dark="{{yes}}" hint-size="96px,960px"></dc-import></sc-if>
+  <main style="{{main}}">
+    <section style="{{hero}}">
+      <div style="flex: 1 1 280px; min-width: 0;">
+        <p style="margin: 0; font-size: 14px; font-weight: 500; opacity: 0.85;">Week 6 boss</p>
+        <h1 style="{{h1}}">Three problems. One hour. No hints.</h1>
+        <p style="margin: 8px 0 0; font-size: 15px; opacity: 0.85;">Clear all three for the Week 6 badge and 150 XP. Your best so far: 48 minutes.</p>
+      </div>
+      <div style="{{clock}}"><span style="font-size: 13px; opacity: 0.8;">time left</span><span style="font: 500 40px 'JetBrains Mono', monospace;">42:17</span></div>
+    </section>
+    <div style="{{grid}}">
+      <sc-for list="{{rounds}}" as="r" hint-placeholder-count="3">
+        <section style="{{r.card}}">
+          <div style="display: flex; justify-content: space-between; align-items: center;"><span style="{{r.badge}}">{{r.state}}</span><span style="font-size: 13px; color: #BFC9C1;">{{r.time}}</span></div>
+          <p style="margin: 0; font-size: 18px; font-weight: 500;">{{r.name}}</p>
+          <p style="margin: 0; font-size: 14px; color: #BFC9C1;">{{r.meta}}</p>
+          <sc-if value="{{r.go}}" hint-placeholder-val="{{false}}"><a href="#" style="{{goBtn}}">Continue</a></sc-if>
+        </section>
+      </sc-for>
+    </div>
+    <section style="{{reward}}">
+      <svg role="img" aria-label="Week 6 badge" width="64" height="64" viewBox="0 0 100 100"><path d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z" fill="#FFDDB2"/><text x="50" y="60" text-anchor="middle" font-family="Google Sans" font-size="28" font-weight="600" fill="#2C1600">6</text></svg>
+      <div><p style="margin: 0; font-size: 16px; font-weight: 500;">Week 6 badge, waiting for you</p><p style="margin: 0; font-size: 14px; color: #BFC9C1;">1 of 3 cleared</p></div>
+    </section>
+  </main>
+  <sc-if value="{{ph}}" hint-placeholder-val="{{false}}"><dc-import name="XNavBar" active="Practice" dark="{{yes}}" hint-size="390px,88px"></dc-import></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"phone":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+const ph = !!this.props.phone;
+const rounds = [['Cleared', '11 min', 'Longest Substring Without Repeating', 'Sliding window · Medium', 'done'], ['In progress', '7 min', 'Minimum Window Substring', 'Sliding window · Hard', 'now'], ['Locked', 'after round 2', 'Round 3', 'Two pointers · Medium', 'lock']];
+return { ph, desk: !ph, yes: true,
+rounds: rounds.map(([state, time, name, meta, k]) => ({ state, time, name, meta, go: k === 'now',
+card: 'display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 28px; background: ' + (k === 'now' ? '#0F5236' : '#1B211E') + '; color: ' + (k === 'now' ? '#ABF4CB' : k === 'lock' ? '#8A938B' : '#DEE4DE') + ';',
+badge: 'padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; ' + (k === 'done' ? 'background: #8FD8B0; color: #003822;' : k === 'now' ? 'background: #FFDDB2; color: #2C1600;' : 'background: #252B28; color: #BFC9C1;') })),
+root: 'box-sizing: border-box; display: flex; background: #0F1512; color: #DEE4DE; font-family: \'Google Sans\', system-ui, sans-serif; ' + (ph ? 'flex-direction: column; width: 390px; height: 844px; overflow: hidden;' : 'width: 100%; height: 960px; overflow: hidden;'),
+main: ph ? 'flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 14px;' : 'flex: 1; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-width: thin; max-width: 1120px; padding: 28px 40px 40px 24px; display: flex; flex-direction: column; gap: 18px;',
+hero: 'display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: ' + (ph ? '20px' : '28px 32px') + '; border-radius: 32px; background: #6A3C00; color: #FFDDB2;',
+h1: 'margin: 6px 0 0; font-size: ' + (ph ? '24px' : '32px') + '; line-height: 1.2; font-weight: 600;',
+clock: 'display: flex; flex-direction: column; align-items: center; padding: 14px 24px; border-radius: 24px; background: #2C1600;',
+grid: 'display: grid; grid-template-columns: ' + (ph ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))') + '; gap: 12px;',
+goBtn: 'display: inline-flex; align-self: flex-start; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; background: #8FD8B0; color: #003822; font-size: 15px; font-weight: 500; text-decoration: none;',
+reward: 'display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 28px; background: #1B211E;' + (ph ? ' display: none;' : '')
+};
+}
+}
+</script>
+</body>
+</html>
