@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { SlidingPill } from "./sliding-pill";
 
 // A small window manager for the problem page, like LeetCode's: three panes you can resize (drag the dividers, or focus
 // one and use the arrow keys), swap by dragging a pane's title onto another, switch between layouts, and maximise.
@@ -137,7 +138,7 @@ export function LayoutSwitcher() {
   return (
     // Hidden where the panes stack (the nearest @container is the workspace).
     <div className="flex items-center gap-1 @max-[980px]:hidden">
-      <div role="radiogroup" aria-label="Layout" className="flex items-center gap-0.5 rounded-full bg-surface p-1">
+      <SlidingPill role="radiogroup" aria-label="Layout" className="flex items-center gap-0.5 rounded-full bg-surface p-1">
         {PRESET_IDS.map((p) => {
           const isSelected = saved.preset === p;
           return (
@@ -159,7 +160,7 @@ export function LayoutSwitcher() {
             </button>
           );
         })}
-      </div>
+      </SlidingPill>
     </div>
   );
 }
@@ -370,6 +371,10 @@ function Divider({
         startRef.current = null;
         setActive(false);
       }}
+      onPointerCancel={() => {
+        startRef.current = null;
+        setActive(false);
+      }}
       onKeyDown={(e) => {
         const step = e.shiftKey ? 6 : 2;
         const back = row ? "ArrowLeft" : "ArrowUp";
@@ -379,7 +384,7 @@ function Divider({
         else return;
         e.preventDefault();
       }}
-      className={`group relative shrink-0 ${row ? "w-2 cursor-col-resize" : "h-2 cursor-row-resize"} touch-none outline-none`}
+      className={`group relative shrink-0 ${row ? "w-2 cursor-col-resize before:absolute before:inset-y-0 before:-inset-x-2" : "h-2 cursor-row-resize before:absolute before:inset-x-0 before:-inset-y-2"} touch-none outline-none`}
     >
       <span
         aria-hidden
@@ -439,7 +444,7 @@ function PaneFrame({
             onDragStart();
           }}
           onDragEnd={onDragEnd}
-          title={draggable ? `Drag ${def.title} onto another pane to swap them` : undefined}
+          title={draggable ? `Drag ${def.title} onto another pane to swap them. With a keyboard, pick a layout from the layout switcher instead.` : undefined}
           className={`flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
         >
           <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="currentColor">
@@ -462,7 +467,7 @@ function PaneFrame({
             aria-pressed={maximised}
             aria-label={maximised ? `Restore ${def.title}` : `Maximise ${def.title}`}
             title={maximised ? "Restore" : "Maximise"}
-            className="grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
+            className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               {maximised ? <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /> : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}

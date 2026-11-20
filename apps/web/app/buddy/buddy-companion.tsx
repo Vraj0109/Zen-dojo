@@ -17,6 +17,7 @@ import { BuddySession } from "../buddy-session";
 import { BuddyAvatar } from "./avatar";
 import { fetchAiLine } from "./ai-line";
 import { onBuddy } from "./buddy-events";
+import { motionOff } from "@/lib/motion";
 import { BUDDY_SIZE_PX, DEFAULT_BUDDY_PREFS, onBuddyPrefs, readBuddyPrefs, resetBuddyPosition, writeBuddyPrefs } from "./buddy-prefs";
 import type { PetMeta } from "./pets/pet-package";
 import { listPets, loadPetSheetUrl } from "./pets/pet-store";
@@ -282,8 +283,7 @@ export function BuddyCompanion({ settings = DEFAULT_BUDDY_SETTINGS, ai }: { sett
   function startThrow(from: DragPos, v: DragPos) {
     stopFlying();
     const target = throwTarget(from, v, bounds);
-    const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
+    if (motionOff()) {
       writeBuddyPrefs({ pos: target });
       return;
     }

@@ -17,6 +17,8 @@ import { Skeleton } from "@/app/components/skeleton";
 import { buttonClass } from "../../../ui";
 import { patternNeighbours } from "@/lib/pattern-nav";
 import { LessonEnd } from "./lesson-end";
+import { PatternTabs } from "./pattern-tabs";
+import { TabPanel } from "../../../tab-panel";
 
 /** One page per pattern, known at build time. */
 export function generateStaticParams() {
@@ -87,7 +89,7 @@ async function PatternView({
       {/* Breadcrumb pill */}
       <Link
         href={`/dsa?group=${group.id}#g-${group.id}`}
-        className="inline-flex max-w-full self-start items-center gap-1.5 min-h-10 py-1 pr-3.5 pl-2 rounded-full bg-surface-2 text-foreground text-sm font-medium hover:bg-line transition-colors"
+        className="sticky top-2 z-20 shadow-xs backdrop-blur-md inline-flex max-w-full self-start items-center gap-1.5 min-h-10 py-1 pr-3.5 pl-2 rounded-full bg-surface-2/95 text-foreground text-sm font-medium hover:bg-line transition-colors"
       >
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15 6-6 6 6 6" />
@@ -107,61 +109,45 @@ async function PatternView({
       </header>
 
       {/* Segmented tabs */}
-      <div role="tablist" aria-label="Pattern sections" className="flex gap-1 p-1 rounded-full bg-surface-2 self-start select-none max-w-full overflow-x-auto [scrollbar-width:none]">
-        {tabs.map((t) => {
-          const isActive = t.id === currentTab;
-          const href = t.id === "learn" ? `/dsa/pattern/${id}` : `/dsa/pattern/${id}?tab=${t.id}`;
-          return (
-            <Link
-              key={t.id}
-              href={href}
-              role="tab"
-              aria-selected={isActive}
-              className={`h-10 px-4.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center ${
-                isActive ? "bg-primary-soft text-on-primary-soft font-semibold" : "text-muted hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </Link>
-          );
-        })}
-      </div>
+      <PatternTabs id={id} tabs={tabs} currentTab={currentTab} />
 
-      {currentTab === "learn" && article && <ArticleView article={article} />}
+      <TabPanel tab={currentTab} order={tabs.map((t) => t.id)} className="min-w-0 flex flex-col gap-4">
+        {currentTab === "learn" && article && <ArticleView article={article} />}
 
-      {currentTab === "reference" && <Reference id={id} />}
+        {currentTab === "reference" && <Reference id={id} />}
 
-      {currentTab === "practice" && (
-        <Suspense
-          fallback={
-            <div className="space-y-4 rounded-2xl border border-line bg-surface p-4">
-              <Skeleton className="h-5 w-40" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
+        {currentTab === "practice" && (
+          <Suspense
+            fallback={
+              <div className="space-y-4 rounded-2xl border border-line bg-surface p-4">
+                <Skeleton className="h-5 w-40" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
               </div>
-            </div>
-          }
-        >
-          <Practice id={id} />
-        </Suspense>
-      )}
+            }
+          >
+            <Practice id={id} />
+          </Suspense>
+        )}
 
-      {currentTab === "template" && (
-        <Suspense fallback={<Skeleton className="h-40 w-full rounded-2xl" />}>
-          <Template id={id} />
-        </Suspense>
-      )}
+        {currentTab === "template" && (
+          <Suspense fallback={<Skeleton className="h-40 w-full rounded-2xl" />}>
+            <Template id={id} />
+          </Suspense>
+        )}
 
-      {currentTab === "learn" && article && nav && (
-        <LessonEnd
-          id={id}
-          name={pattern.name}
-          problemCount={pattern.problems.length}
-          group={{ id: group.id, title: group.title }}
-          nextGroup={nav.isLastInGroup && nav.nextGroup ? { id: nav.nextGroup.id, title: nav.nextGroup.title } : undefined}
-        />
-      )}
+        {currentTab === "learn" && article && nav && (
+          <LessonEnd
+            id={id}
+            name={pattern.name}
+            problemCount={pattern.problems.length}
+            group={{ id: group.id, title: group.title }}
+            nextGroup={nav.isLastInGroup && nav.nextGroup ? { id: nav.nextGroup.id, title: nav.nextGroup.title } : undefined}
+          />
+        )}
+      </TabPanel>
 
       {/* Next pattern card at the end */}
       {next && (

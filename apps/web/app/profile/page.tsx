@@ -11,7 +11,7 @@ import { getDsaView } from "@/lib/dsa";
 import { PageMain, Scallop, buttonClass } from "../ui";
 import { getSession } from "@/lib/auth/session";
 import { getProfileName } from "@/lib/ui-prefs";
-import { ProfileTabs } from "./profile-ui";
+import { PROFILE_PAGE_CLASS } from "./shared";
 import { ProfileStatsSkeleton } from "@/app/components/profile-skeleton";
 import { SignInCard } from "@/app/components/sign-in-card";
 
@@ -19,11 +19,10 @@ export const metadata: Metadata = { title: "Profile" };
 
 export default function ProfilePage() {
   return (
-    <PageMain title="Profile" hideTitle>
+    <PageMain title="Profile" hideTitle className={PROFILE_PAGE_CLASS}>
       <Suspense fallback={null}>
         <SignInCard next="/profile" />
       </Suspense>
-      <ProfileTabs active="/profile" />
       <Suspense fallback={<ProfileStatsSkeleton />}>
         <Stats />
       </Suspense>

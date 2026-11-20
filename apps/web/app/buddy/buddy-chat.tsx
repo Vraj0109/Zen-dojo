@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { emitBuddy } from "./buddy-events";
+import { buttonClass } from "../ui";
 import { errorText } from "../dsa/ai-chat";
 import { currentByokHeaders } from "@/lib/ai-key-store";
 
@@ -202,11 +203,11 @@ export function BuddyChat({
           className="min-w-0 flex-1 resize-none rounded-lg border border-line bg-background px-2.5 py-1.5 text-xs"
         />
         {pending ? (
-          <button type="button" onClick={() => ac.current?.abort()} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-background">
+          <button type="button" onClick={() => ac.current?.abort()} className={buttonClass("outline", "sm", "max-md:h-11")}>
             Stop
           </button>
         ) : (
-          <button type="button" onClick={() => void send(input)} disabled={!input.trim()} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-on-accent disabled:opacity-50">
+          <button type="button" onClick={() => void send(input)} disabled={!input.trim()} className={buttonClass("primary", "sm", "max-md:h-11")}>
             Send
           </button>
         )}

@@ -246,7 +246,7 @@ describe("diagram upload route", () => {
     expect((await post(null)).status).toBe(403);
     const ok = await post("http://localhost:3000");
     expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")).toBe("http://localhost:3000/study/sd/sdd-chat#diagrams");
+    expect(ok.headers.get("location")).toBe("http://localhost:3000/study/sd/sdd-chat?tab=turn#diagrams");
     expect(await getDiagrams("sdd-chat")).toHaveLength(1);
   });
 });

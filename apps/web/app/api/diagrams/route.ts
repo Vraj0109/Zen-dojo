@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   const result = await addDiagram({ itemId, title: String(form.get("title") ?? ""), url: String(form.get("url") ?? ""), image });
   const back = new URL(studyHref(exercise.area, itemId), request.url);
   if (!result.ok) back.searchParams.set("diagramError", result.error);
+  back.searchParams.set("tab", "turn"); // the diagrams form lives on the Your turn tab
   back.hash = "diagrams";
   return Response.redirect(back, 303);
 }

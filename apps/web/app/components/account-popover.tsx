@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { flushSyncQueue, getSyncInfo, subscribeSyncInfo, type SyncStatusInfo } from "@/lib/sync-manager";
 import { applyTheme, readStoredAppearance, type ThemeMode } from "@/lib/theme";
 import { openShortcutsSheet } from "./shortcuts-sheet";
+import { SlidingPill } from "../sliding-pill";
 
 export interface AccountUser {
   id: string;
@@ -390,7 +391,7 @@ export function AccountPopover({
               <Icon d={ICONS.theme} />
             </span>
             <span className="flex-1 text-[15px]">Theme</span>
-            <div role="radiogroup" aria-label="Theme mode" className="flex rounded-full bg-surface-2 p-[3px]">
+            <SlidingPill role="radiogroup" aria-label="Theme mode" className="flex rounded-full bg-surface-2 p-[3px]">
               {(["light", "dark", "system"] as const).map((m) => {
                 const active = currentMode === m;
                 const label = m.charAt(0).toUpperCase() + m.slice(1);
@@ -409,7 +410,7 @@ export function AccountPopover({
                   </button>
                 );
               })}
-            </div>
+            </SlidingPill>
           </div>
 
           {user && (

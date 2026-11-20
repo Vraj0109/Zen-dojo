@@ -1,42 +1,41 @@
-import Link from "next/link";
+"use client";
+
+import { usePathname } from "next/navigation";
+import { Tabs } from "../tabs";
 
 const TABS = [
-  { href: "/profile", label: "Profile", tab: "Stats" },
-  { href: "/profile/badges", label: "Badges", tab: "Badges", gamify: true },
-  { href: "/profile/portfolio", label: "Portfolio", tab: "Portfolio" },
-  { href: "/profile/account", label: "Account", tab: "Account" },
-  { href: "/profile/settings", label: "Settings", tab: "Settings" },
+  { id: "/profile", label: "Stats" },
+  { id: "/profile/badges", label: "Badges" },
+  { id: "/profile/portfolio", label: "Portfolio" },
+  { id: "/profile/account", label: "Account" },
+  { id: "/profile/settings", label: "Settings" },
 ] as const;
 
-export type ProfileTab = (typeof TABS)[number]["href"];
+/** Pages under a tab that show that tab as active with their own heading. */
+const SUB_PAGES: Record<string, { tab: string; title: string }> = {
+  "/profile/settings/tools": { tab: "/profile/settings", title: "Tools for running code" },
+};
 
 /**
- * The visible page heading (h1) for the profile pages, with the Stats / Badges / Portfolio / Account / Settings tabs.
- * Pages that use it pass `hideTitle` to PageMain. The tabs wrap instead of scrolling sideways, so on a phone they are
- * the account menu at the top of the You tab.
+ * The visible page heading (h1) and the Stats / Badges / Portfolio / Account / Settings tabs, rendered once by
+ * profile/layout.tsx. A layout stays mounted while you move between its pages, so the tab pill slides instead of being
+ * re-created. It renders nothing for other pages under /profile (certificates). The tabs wrap instead of scrolling
+ * sideways, so on a phone they are the account menu at the top of the You tab. Pages pass `hideTitle` to PageMain and
+ * `PROFILE_PAGE_CLASS` (profile/shared.ts) so the layout's heading owns the top padding.
  */
-export function ProfileTabs({ active, title }: { active: ProfileTab; title?: string }) {
-  const current = TABS.find((t) => t.href === active);
+export function ProfileHeader() {
+  const raw = usePathname() ?? "";
+  const path = raw.length > 1 ? raw.replace(/\/$/, "") : raw;
+  const sub = SUB_PAGES[path];
+  const active = sub?.tab ?? TABS.find((t) => t.id === path)?.id;
+  if (!active) return null;
+  const title = sub?.title ?? TABS.find((t) => t.id === active)?.label ?? "Profile";
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-      <h1 className="text-[28px] font-semibold tracking-tight sm:text-4xl">{title ?? current?.label ?? "Profile"}</h1>
-      <nav aria-label="Profile" className="flex flex-wrap gap-1.5">
-        {TABS.map((t) => {
-          const isCur = t.href === active;
-          return (
-            <Link
-              key={t.href}
-              href={t.href}
-              aria-current={isCur ? "page" : undefined}
-              className={`${"gamify" in t ? "gamify-only " : ""}inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ${
-                isCur ? "bg-primary-soft text-on-primary-soft" : "text-muted hover:bg-surface-2 hover:text-foreground"
-              }`}
-            >
-              {t.tab}
-            </Link>
-          );
-        })}
-      </nav>
+    <div className="mx-auto w-full max-w-[1360px] px-4 pt-5 sm:px-6 md:px-8 md:pt-7">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <h1 className="text-[28px] font-semibold tracking-tight sm:text-4xl">{title}</h1>
+        <Tabs tabs={TABS} active={active} hrefFor={(id) => id} label="Profile sections" />
+      </div>
     </div>
   );
 }

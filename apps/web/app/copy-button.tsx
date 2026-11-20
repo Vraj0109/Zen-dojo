@@ -17,10 +17,14 @@ export function CopyButton({ text }: { text: string }) {
         }
         setTimeout(() => setState("idle"), 1500);
       }}
-      className="absolute top-2 right-2 rounded-md border border-line bg-surface px-2 py-0.5 text-xs text-muted opacity-0 transition-opacity hover:text-foreground focus:opacity-100 group-hover/code:opacity-100"
+      className={`absolute top-2 right-2 inline-flex min-h-8 min-w-10 items-center justify-center rounded-md border bg-surface px-2.5 text-xs transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/code:opacity-100 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 ${
+        state === "failed" ? "border-danger text-danger" : "border-line text-muted"
+      }`}
       aria-label="Copy code"
     >
-      {state === "done" ? "Copied" : state === "failed" ? "Failed" : "Copy"}
+      <span role="status" aria-live="polite">
+        {state === "done" ? "Copied" : state === "failed" ? "Copy failed" : "Copy"}
+      </span>
     </button>
   );
 }

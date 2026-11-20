@@ -2,6 +2,7 @@
 // Every piece uses the theme tokens (bg-surface, border-line, text-muted, bg-primary...) so themes repaint them.
 // /dev/components shows all of them in light and dark.
 import Link from "next/link";
+import { cloneElement, isValidElement } from "react";
 
 // ---- buttons
 
@@ -21,8 +22,11 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   danger: "border border-danger text-danger hover:bg-danger-soft/30",
   reward: "bg-reward-soft text-on-reward-soft hover:bg-reward-soft/80",
 };
+// 44px touch target without growing desktop pills: the compact height stays for a mouse and steps up to 44px on
+// phones and touch screens (an extra 4px; a ::after hit area would need `relative`, which breaks callers that pass
+// absolute/fixed, so the real height is used instead).
 const BUTTON_SIZE: Record<ButtonSize, string> = {
-  sm: "h-10 px-4 text-sm",
+  sm: "h-10 px-4 text-sm max-md:h-11 [@media(pointer:coarse)]:h-11",
   md: "h-12 px-6 text-sm max-md:h-12",
 };
 
@@ -67,8 +71,11 @@ export function ButtonLink({
 
 export const INPUT_CLASS =
   "h-12 w-full rounded-full border border-line-strong bg-surface-2 px-5 text-sm text-foreground placeholder:text-muted " +
-  "transition-colors duration-120 focus:border-primary focus:outline-2 focus:outline-offset-0 focus:outline-primary/30 " +
+  "transition-colors duration-120 focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
   "disabled:opacity-45 aria-invalid:border-danger";
+
+/** The same field as a multi-line textarea: rounded rectangle instead of a pill, grows with its content. */
+export const TEXTAREA_CLASS = `${INPUT_CLASS.replace("h-12 ", "").replace("rounded-full", "rounded-2xl")} h-auto min-h-24 py-3 px-4`;
 
 /** A labelled form field: visible label above, help or error text below. `children` is the input, select or textarea. */
 export function Field({
@@ -86,14 +93,20 @@ export function Field({
   children: React.ReactNode;
   className?: string;
 }) {
+  // Wire the help or error text to a plain input, select or textarea that has not set aria-describedby itself.
+  const describedBy = error ? `${htmlFor}-error` : help ? `${htmlFor}-help` : undefined;
+  const control =
+    describedBy && isValidElement<{ "aria-describedby"?: string; "aria-invalid"?: boolean }>(children) && typeof children.type === "string" && !children.props["aria-describedby"]
+      ? cloneElement(children, { "aria-describedby": describedBy, ...(error ? { "aria-invalid": true } : {}) })
+      : children;
   return (
     <div className={`space-y-1.5 ${className}`}>
       <label htmlFor={htmlFor} className="block text-sm font-medium text-foreground">
         {label}
       </label>
-      {children}
+      {control}
       {error ? (
-        <p id={`${htmlFor}-error`} className="text-xs text-danger">
+        <p id={`${htmlFor}-error`} role="alert" className="text-xs text-danger">
           {error}
         </p>
       ) : help ? (
@@ -218,7 +231,7 @@ export function HeroCard({
   );
 }
 
-/** Filter chip: 36px tall, rounded-sm (10px), outlined; primary-soft when selected. */
+/** Filter chip: 36px tall (44px on phones and touch screens), rounded-sm (10px), outlined; primary-soft when selected. */
 export function FilterChip({
   label,
   selected = false,
@@ -235,7 +248,7 @@ export function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`inline-flex h-9 items-center justify-center rounded-sm px-3.5 text-sm font-medium transition-colors ${
+      className={`inline-flex h-9 items-center justify-center rounded-sm px-3.5 max-md:h-11 [@media(pointer:coarse)]:h-11 text-sm font-medium transition-colors ${
         selected
           ? "bg-primary-soft text-on-primary-soft border border-transparent font-semibold"
           : "border border-line-strong bg-transparent text-foreground hover:bg-surface-2"
@@ -487,7 +500,34 @@ export function ProgressBar({
   );
 }
 
-/** WavyProgress variant for XP: an SVG wave for the done part and a straight line for the rest. */
+// WavyProgress geometry, in viewBox units (the SVG is 300 x 18 and stretches to the card's width).
+const WAVE_W = 300;
+const WAVE_H = 18;
+const WAVE_MID = WAVE_H / 2;
+const WAVE_HALF = 14; // one bump, as on the XToday board (T every 14); a full wavelength is 28
+const WAVE_LEN = WAVE_HALF * 2;
+const WAVE_CTRL = 9; // quadratic control offset: the curve peaks at half of it, 4.5 above or below the middle
+const WAVE_STROKE = 5;
+const WAVE_CAP = WAVE_STROKE / 2;
+
+/** The wave from one wavelength left of 0 to `end`, so sliding it right by one wavelength loops without a seam. */
+function wavePath(end: number): string {
+  let d = `M${-WAVE_LEN} ${WAVE_MID} Q${-WAVE_LEN + WAVE_HALF / 2} ${WAVE_MID - WAVE_CTRL} ${-WAVE_HALF} ${WAVE_MID}`;
+  for (let x = 0; x <= end + WAVE_LEN; x += WAVE_HALF) d += ` T${x} ${WAVE_MID}`;
+  return d;
+}
+const WAVE_D = wavePath(WAVE_W);
+
+// Slow continuous motion for the done part. Under data-motion="off" the global rule removes it (animation: none).
+const WAVE_CSS = `
+@keyframes zd-wave-flow { to { translate: ${WAVE_LEN}px 0; } }
+.zd-wave-flow { animation: zd-wave-flow 2.8s linear infinite; }
+`;
+
+/**
+ * XP bar as on the Today board: the done part is a real sine wave (14-unit bumps, about 4.5 high, round ends) that
+ * drifts slowly to the right when motion is allowed; the rest is a straight track in primary-soft.
+ */
 export function WavyProgress({
   value,
   max,
@@ -500,47 +540,42 @@ export function WavyProgress({
   className?: string;
 }) {
   const pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
-  const split = Math.round(2 + pct * 296);
-
-  let waveD = "M2 8";
-  for (let x = 16; x <= split; x += 14) {
-    waveD += ` T${x} 8`;
-  }
-  if (split > 2 && !waveD.includes("T")) {
-    waveD = `M2 8 Q${(2 + split) / 2} 2 ${split} 8`;
-  }
-  const lineD = `M${Math.min(split + 4, 298)} 8 H298`;
-
+  const split = Math.round(WAVE_CAP + pct * (WAVE_W - 2 * WAVE_CAP));
+  const clipId = `zd-wave-clip-${split}`;
+  const trackFrom = Math.min(WAVE_W - WAVE_CAP, split + WAVE_CAP + 4);
+  const percent = Math.round(pct * 100);
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <svg
-        role="img"
-        aria-label={label}
-        width="100%"
-        height="16"
-        viewBox="0 0 300 16"
-        preserveAspectRatio="none"
-        className="overflow-visible"
-      >
-        <title>{label}</title>
+    <div className={className}>
+      <style href="zd-wave" precedence="default">
+        {WAVE_CSS}
+      </style>
+      <svg role="img" aria-label={`${label}: ${percent} percent`} width="100%" height={WAVE_H} viewBox={`0 0 ${WAVE_W} ${WAVE_H}`} preserveAspectRatio="none" className="block">
         {pct > 0 && (
-          <path
-            d={waveD}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-            className="text-primary transition-all duration-300"
-          />
+          <>
+            <clipPath id={clipId}>
+              <rect x="0" y="0" width={split} height={WAVE_H} rx={Math.min(WAVE_H / 2, split / 2)} />
+            </clipPath>
+            <g clipPath={`url(#${clipId})`}>
+              <path
+                d={WAVE_D}
+                fill="none"
+                stroke="var(--primary)"
+                strokeWidth={WAVE_STROKE}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                className="zd-wave-flow"
+              />
+            </g>
+          </>
         )}
         {pct < 1 && (
           <path
-            d={lineD}
+            d={`M${trackFrom} ${WAVE_MID} H${WAVE_W - WAVE_CAP}`}
             fill="none"
-            stroke="currentColor"
-            strokeWidth="4"
+            stroke="var(--primary-soft)"
+            strokeWidth={WAVE_STROKE}
             strokeLinecap="round"
-            className="text-primary-soft opacity-60"
+            vectorEffect="non-scaling-stroke"
           />
         )}
       </svg>
@@ -597,17 +632,38 @@ export function XpChip({ xp, className = "" }: { xp: number; className?: string 
 
 // ---- empty and loading
 
-/** One line of plain text, one primary action, a small line icon. */
-export function EmptyState({ icon, message, action }: { icon?: React.ReactNode; message: string; action?: { label: string; href: string } }) {
+/**
+ * What is empty and the next step: an optional short `title`, a sentence of `message`, one action (a link, or an
+ * `onClick` button when used from a client component) and an optional small line icon.
+ */
+export function EmptyState({
+  icon,
+  title,
+  message,
+  action,
+}: {
+  icon?: React.ReactNode;
+  title?: string;
+  message: string;
+  action?: { label: string; href?: string; onClick?: () => void };
+}) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line px-6 py-10 text-center">
       {icon && <span className="text-muted [&_svg]:size-5">{icon}</span>}
-      <p className="text-sm text-muted">{message}</p>
-      {action && (
-        <ButtonLink href={action.href} size="sm">
-          {action.label}
-        </ButtonLink>
-      )}
+      <div className="space-y-1">
+        {title && <p className="text-base font-medium text-foreground">{title}</p>}
+        <p className="text-sm text-muted">{message}</p>
+      </div>
+      {action &&
+        (action.href ? (
+          <ButtonLink href={action.href} size="sm">
+            {action.label}
+          </ButtonLink>
+        ) : (
+          <Button size="sm" onClick={action.onClick}>
+            {action.label}
+          </Button>
+        ))}
     </div>
   );
 }

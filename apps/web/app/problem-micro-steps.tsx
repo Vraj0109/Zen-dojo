@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { PROBLEM_MICRO_STEPS, type MicroStep } from "@habit/shared";
+import { useConfirm } from "./components/confirm-dialog";
 
 interface MicroStepsState {
   checked: Record<number, boolean>;
@@ -42,6 +43,7 @@ export function ProblemMicroSteps({ problemId }: { problemId: string }) {
   });
   const [openStep, setOpenStep] = useState<number | null>(1);
   const [currentId, setCurrentId] = useState(problemId);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   if (currentId !== problemId) {
     setCurrentId(problemId);
@@ -69,8 +71,14 @@ export function ProblemMicroSteps({ problemId }: { problemId: string }) {
     });
   };
 
-  const resetAll = () => {
-    if (!window.confirm("Clear all micro-steps notes for this problem?")) return;
+  const resetAll = async () => {
+    const ok = await confirm({
+      title: "Clear all micro-step notes?",
+      body: "Every step is unchecked and your notes for this problem are removed.",
+      confirmLabel: "Clear notes",
+      danger: true,
+    });
+    if (!ok) return;
     const next = { checked: {}, notes: {} };
     setState(next);
     saveState(problemId, next);
@@ -178,6 +186,7 @@ export function ProblemMicroSteps({ problemId }: { problemId: string }) {
           );
         })}
       </div>
+      {confirmDialog}
     </div>
   );
 }

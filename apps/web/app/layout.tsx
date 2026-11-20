@@ -10,7 +10,7 @@ import { CustomFontLoader } from "./custom-font-loader";
 import { FocusReading } from "./focus-reading";
 import { NavRail } from "./nav";
 import { SidebarAccount } from "./components/sidebar-account";
-import { HeaderStreak, ReviewCount } from "./components/sidebar-progress";
+import { ReviewCount } from "./components/sidebar-progress";
 import { Shell } from "./shell";
 import { RegisterSw } from "./register-sw";
 import { HostedSyncOnRequest } from "./components/hosted-sync";
@@ -46,7 +46,13 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Zen Dojo", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = { themeColor: "#1c1715", viewportFit: "cover" };
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6fbf5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1512" },
+  ],
+  viewportFit: "cover",
+};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -58,8 +64,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <Shell
           aside={asideNode}
-          account={<Suspense fallback={null}><SidebarAccount compact /></Suspense>}
-          streak={<Suspense fallback={null}><HeaderStreak /></Suspense>}
           notice={<Suspense fallback={null}><GuestNotice /></Suspense>}
         >
           {children}

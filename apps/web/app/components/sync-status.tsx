@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import {
   flushSyncQueue,
@@ -10,6 +10,7 @@ import {
   type SyncStatusInfo,
 } from "@/lib/sync-manager";
 import type { CurrentUser } from "@/lib/sync-queue";
+import { buttonClass } from "../ui";
 
 const emptySubscribe = () => () => {};
 
@@ -37,6 +38,8 @@ export function SyncStatus({
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [dismissed, setDismissed] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadFailed, setUploadFailed] = useState(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return subscribeSyncInfo((newInfo) => {
@@ -80,25 +83,26 @@ export function SyncStatus({
 
   const handleUpload = async () => {
     setIsUploading(true);
+    setUploadFailed(false);
     try {
       const res = await fetch("/api/sync/link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error("Failed to link account:", err);
-      } else {
-        await flushSyncQueue();
+        // Keep the prompt open so the person can try again; nothing was linked.
+        setUploadFailed(true);
+        return;
       }
+      await flushSyncQueue();
       try {
         localStorage.setItem("zen-dojo:adopt-dismissed", "1");
       } catch {
         // Ignore storage errors
       }
       setDismissed(true);
-    } catch (err) {
-      console.error("Failed to link account:", err);
+    } catch {
+      setUploadFailed(true);
     } finally {
       setIsUploading(false);
     }
@@ -113,6 +117,34 @@ export function SyncStatus({
     setDismissed(true);
   };
 
+  // First-link dialog keyboard: focus moves in when it appears, Tab stays inside it, Escape is "Not now".
+  useEffect(() => {
+    if (!showFirstLinkPrompt) return;
+    const root = dialogRef.current;
+    root?.querySelector<HTMLElement>("button:not([disabled])")?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleDismissFirstLink();
+        return;
+      }
+      if (e.key !== "Tab" || !root) return;
+      const items = [...root.querySelectorAll<HTMLElement>("button:not([disabled])")];
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // handleDismissFirstLink only touches storage and state setters.
+  }, [showFirstLinkPrompt]);
+
   if (!mounted) {
     return (
       <div
@@ -120,7 +152,7 @@ export function SyncStatus({
         aria-hidden="true"
       >
         <span className="inline-block size-2 rounded-full bg-line" />
-        <span className="text-[11px]">Sync</span>
+        <span className="text-xs">Sync</span>
       </div>
     );
   }
@@ -154,7 +186,7 @@ export function SyncStatus({
             {!compact ? (
               <Link
                 href="/login"
-                className="text-[11px] hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                className="inline-flex min-h-8 items-center text-xs hover:text-foreground transition-colors underline-offset-2 hover:underline [@media(pointer:coarse)]:min-h-11"
               >
                 Sign in to sync
               </Link>
@@ -163,7 +195,7 @@ export function SyncStatus({
                 href="/login"
                 title="Sign in to sync"
                 aria-label="Sign in to sync"
-                className="hover:text-foreground transition-colors"
+                className="grid size-8 place-items-center rounded-full hover:text-foreground transition-colors [@media(pointer:coarse)]:size-11"
               >
                 <span className="sr-only">Sign in to sync</span>
               </Link>
@@ -188,7 +220,7 @@ export function SyncStatus({
               <path d="M8 5v4M8 12h.01" />
             </svg>
             {!compact && (
-              <span className="text-[11px] font-medium">
+              <span className="text-xs font-medium">
                 This device is linked to another account.
               </span>
             )}
@@ -197,7 +229,7 @@ export function SyncStatus({
 
         {/* Throttled state */}
         {shown === "throttled" && (
-          <div className="flex items-center gap-1.5 text-amber-500">
+          <div className="flex items-center gap-1.5 text-warning">
             <svg
               className="size-3.5 shrink-0"
               viewBox="0 0 16 16"
@@ -212,7 +244,7 @@ export function SyncStatus({
               <path d="M8 4v4l2.5 2.5" />
             </svg>
             {!compact && (
-              <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              <span className="text-xs font-medium text-warning">
                 Sync paused, retrying...
               </span>
             )}
@@ -235,13 +267,13 @@ export function SyncStatus({
               <path d="M13.5 10.5A3.5 3.5 0 0 0 12 4.2 5 5 0 0 0 3 6.5a3 3 0 0 0 .5 5.9h9.5" />
               <path d="m5.5 9 2 2 4-4" />
             </svg>
-            {!compact && <span className="text-[11px] font-medium">Synced</span>}
+            {!compact && <span className="text-xs font-medium">Synced</span>}
           </div>
         )}
 
         {/* Syncing in progress */}
         {shown === "syncing" && (
-          <div className="flex items-center gap-1.5 text-amber-500">
+          <div className="flex items-center gap-1.5 text-warning">
             <svg
               className="size-3.5 shrink-0 animate-spin"
               viewBox="0 0 24 24"
@@ -256,7 +288,7 @@ export function SyncStatus({
               <path d="M12 2a10 10 0 0 1 10 10" />
             </svg>
             {!compact && (
-              <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              <span className="text-xs font-medium text-warning">
                 Syncing...
               </span>
             )}
@@ -281,7 +313,7 @@ export function SyncStatus({
             >
               <path d="M2 2l20 20M8.5 8.5A4.5 4.5 0 0 0 5 13a4.5 4.5 0 0 0 4.5 4.5h9a4.5 4.5 0 0 0 2.5-.76M19.5 14a4.5 4.5 0 0 0-4-6.32 7 7 0 0 0-10.3 3.68" />
             </svg>
-            {!compact && <span className="text-[11px]">Offline (local only)</span>}
+            {!compact && <span className="text-xs">Offline (local only)</span>}
           </div>
         )}
 
@@ -301,11 +333,11 @@ export function SyncStatus({
               <circle cx="8" cy="8" r="7" />
               <path d="M8 5v4M8 12h.01" />
             </svg>
-            {!compact && <span className="text-[11px] font-medium">Sync error</span>}
+            {!compact && <span className="text-xs font-medium">Sync error</span>}
             <button
               type="button"
               onClick={handleSyncNow}
-              className="ml-1 underline text-[11px] font-semibold hover:text-foreground cursor-pointer"
+              className="ml-1 inline-flex min-h-8 items-center underline text-xs font-semibold hover:text-foreground cursor-pointer [@media(pointer:coarse)]:min-h-11"
               title="Retry synchronization"
             >
               Retry
@@ -328,7 +360,7 @@ export function SyncStatus({
             >
               <path d="M13.5 10.5A3.5 3.5 0 0 0 12 4.2 5 5 0 0 0 3 6.5a3 3 0 0 0 .5 5.9h9.5" />
             </svg>
-            {!compact && <span className="text-[11px]">Ready</span>}
+            {!compact && <span className="text-xs">Ready</span>}
           </div>
         )}
 
@@ -341,8 +373,8 @@ export function SyncStatus({
               type="button"
               onClick={handleSyncNow}
               disabled={isSyncing || shown === "offline"}
-              className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer ${
-                compact ? "size-5 justify-center p-0" : ""
+              className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-muted transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer ${
+                compact ? "size-8 justify-center p-0 [@media(pointer:coarse)]:size-11" : "min-h-8 [@media(pointer:coarse)]:min-h-11"
               }`}
               title={
                 isSyncing ? "Syncing..." : shown === "offline" ? "Cannot sync while offline" : "Sync now with cloud"
@@ -374,23 +406,28 @@ export function SyncStatus({
           aria-modal="true"
           aria-labelledby="first-link-heading"
           aria-describedby="first-link-desc"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
         >
-          <div className="w-full max-w-sm rounded-xl border border-line bg-surface p-5 shadow-lg space-y-4">
+          <div ref={dialogRef} className="w-full max-w-sm rounded-lg border border-line bg-surface p-5 shadow-menu space-y-4 dark:border-0">
             <div className="space-y-1">
-              <h3 id="first-link-heading" className="text-sm font-semibold text-foreground">
+              <h3 id="first-link-heading" className="text-base font-medium text-foreground">
                 Upload this device&apos;s progress to your account?
               </h3>
-              <p id="first-link-desc" className="text-xs text-muted leading-relaxed">
+              <p id="first-link-desc" className="text-sm text-muted leading-relaxed">
                 Connect your local progress and habits to your account so you can sync across devices.
               </p>
             </div>
+            {uploadFailed && (
+              <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-on-danger-soft">
+                We couldn&apos;t upload your progress. Check your connection and try again.
+              </p>
+            )}
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={handleDismissFirstLink}
                 disabled={isUploading}
-                className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:bg-background hover:text-foreground transition-colors cursor-pointer"
+                className={buttonClass("quiet", "sm")}
               >
                 Not now
               </button>
@@ -398,9 +435,10 @@ export function SyncStatus({
                 type="button"
                 onClick={handleUpload}
                 disabled={isUploading}
-                className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                aria-busy={isUploading}
+                className={buttonClass("primary", "sm")}
               >
-                {isUploading ? "Uploading..." : "Upload"}
+                {isUploading ? "Uploading..." : uploadFailed ? "Try again" : "Upload"}
               </button>
             </div>
           </div>

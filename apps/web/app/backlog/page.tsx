@@ -191,17 +191,15 @@ async function Backlog() {
         <section className="mt-8 rounded-[24px] border border-line bg-surface p-6 dark:border-0">
           <h2 className="text-lg font-semibold">Skip the rest of this week</h2>
           <p className="mt-1 text-sm text-muted">
-            This deletes every uncompleted task of week {v.position.cursor} and advances to week{" "}
-            {v.position.cursor < TOTAL_WEEKS ? v.position.cursor + 1 : "complete"}. Completed tasks stay.
+            This permanently deletes every task you have not finished in week {v.position.cursor}, then moves you to week{" "}
+            {v.position.cursor < TOTAL_WEEKS ? v.position.cursor + 1 : "complete"}. Finished tasks stay. You cannot undo this.
           </p>
           <form action={skipPlanWeekAction} className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" name="confirm" className="size-4 accent-primary" />
-              <span>I understand, skip this week</span>
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" name="confirm" required className="size-5 accent-primary" />
+              <span>Yes, delete my unfinished week {v.position.cursor} tasks</span>
             </label>
-            <SubmitButton className={buttonClass("outline", "sm")}>
-              Skip week
-            </SubmitButton>
+            <SubmitButton className={buttonClass("danger", "sm", "max-md:h-11")}>Delete unfinished tasks</SubmitButton>
           </form>
         </section>
       )}

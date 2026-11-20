@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { certificateId, cleanPortfolioName, courseState, coursePercent, longDate, profileCourses, type PortfolioData } from "@habit/shared";
 import { PortfolioSummary } from "./portfolio-summary";
+import { buttonClass } from "../ui";
 
-const HEAT = ["bg-line", "bg-accent/35", "bg-accent/55", "bg-accent/80", "bg-accent"] as const;
+const HEAT = ["bg-line", "bg-primary/35", "bg-primary/55", "bg-primary/80", "bg-primary"] as const;
 const monthOf = (ymd: string) => new Date(`${ymd}T12:00:00`).toLocaleDateString("en-US", { month: "short" });
 const dayOf = (ymd: string) => new Date(`${ymd}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
@@ -13,9 +14,9 @@ function SolvedRing({ solved, total, easy, medium, hard }: { solved: number; tot
   const whole = Math.max(total, solved, 1);
   const seg = (n: number) => (n / whole) * c;
   const arcs = [
-    { n: easy, cls: "stroke-emerald-500" },
-    { n: medium, cls: "stroke-amber-500" },
-    { n: hard, cls: "stroke-rose-500" },
+    { n: easy, cls: "stroke-success" },
+    { n: medium, cls: "stroke-warning" },
+    { n: hard, cls: "stroke-danger" },
   ];
   let offset = 0;
   return (
@@ -30,7 +31,7 @@ function SolvedRing({ solved, total, easy, medium, hard }: { solved: number; tot
       <text x="60" y="58" textAnchor="middle" className="fill-foreground text-[22px] font-semibold">
         {solved}
       </text>
-      <text x="60" y="76" textAnchor="middle" className="fill-muted text-[9px]">
+      <text x="60" y="76" textAnchor="middle" className="fill-muted text-[11px]">
         {total > 0 ? `of ${whole} solved` : "solved"}
       </text>
     </svg>
@@ -39,7 +40,7 @@ function SolvedRing({ solved, total, easy, medium, hard }: { solved: number; tot
 
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-3">
+    <div className="rounded-[20px] border border-line bg-surface p-3 dark:border-0">
       <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
@@ -63,8 +64,8 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
   const activeCells = heat.flat().filter((c) => c.xp > 0).length;
   return (
     <div className="space-y-6">
-      <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-5">
-        <div aria-hidden className="grid size-16 shrink-0 place-items-center rounded-full bg-accent text-2xl font-semibold text-on-accent">
+      <section className="flex flex-wrap items-center gap-4 rounded-[24px] border border-line bg-surface p-5 dark:border-0">
+        <div aria-hidden className="grid size-16 shrink-0 place-items-center rounded-full bg-primary text-2xl font-semibold text-on-primary">
           {name.slice(0, 1).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
@@ -79,19 +80,19 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-line bg-surface p-5">
+          <section className="rounded-[24px] border border-line bg-surface p-5 dark:border-0">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Solved</h3>
             <div className="flex items-center gap-5">
               <SolvedRing solved={data.totalSolved} total={0} easy={s.easy} medium={s.medium} hard={s.hard} />
               <ul className="min-w-0 flex-1 space-y-2 text-sm">
                 {(
                   [
-                    ["Easy", s.easy, "text-emerald-600 dark:text-emerald-400"],
-                    ["Medium", s.medium, "text-amber-600 dark:text-amber-400"],
-                    ["Hard", s.hard, "text-rose-600 dark:text-rose-400"],
+                    ["Easy", s.easy, "text-success"],
+                    ["Medium", s.medium, "text-warning"],
+                    ["Hard", s.hard, "text-danger"],
                   ] as const
                 ).map(([label, n, cls]) => (
-                  <li key={label} className="flex items-center justify-between rounded-lg bg-background px-3 py-1.5">
+                  <li key={label} className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-1.5">
                     <span className={`font-medium ${cls}`}>{label}</span>
                     <span className="font-semibold">{n}</span>
                   </li>
@@ -110,7 +111,7 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
 
         <div className="space-y-6">
           {heat.length > 0 && (
-            <section className="rounded-2xl border border-line bg-surface p-5">
+            <section className="rounded-[24px] border border-line bg-surface p-5 dark:border-0">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Activity, last 16 weeks</h3>
                 <p className="text-xs text-muted">{activeCells} active day{activeCells === 1 ? "" : "s"}</p>
@@ -122,8 +123,8 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
                     const showMonth = w === 0 || m !== monthOf(heat[w - 1][0].date);
                     return (
                       <div key={col[0].date} className="flex flex-col gap-[3px]">
-                        <span className="h-4 text-[10px] leading-4 text-muted" aria-hidden>
-                          {showMonth ? m : ""}
+                        <span className="relative h-4 w-3.5 text-xs leading-4 text-muted" aria-hidden>
+                          {showMonth && <span className="absolute left-0 whitespace-nowrap">{m}</span>}
                         </span>
                         {col.map((c) => (
                           <span key={c.date} title={c.future ? undefined : `${dayOf(c.date)}: ${c.xp} XP`} className={`size-3.5 rounded-[3px] ${c.future ? "bg-transparent" : HEAT[c.level]}`} />
@@ -133,7 +134,7 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
                   })}
                 </div>
               </div>
-              <div className="mt-3 flex items-center justify-end gap-1 text-[11px] text-muted" aria-hidden>
+              <div className="mt-3 flex items-center justify-end gap-1 text-xs text-muted" aria-hidden>
                 Less
                 {HEAT.map((cls) => (
                   <span key={cls} className={`size-3 rounded-[3px] ${cls}`} />
@@ -144,7 +145,7 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
           )}
 
           {badges.length > 0 && (
-            <section className="rounded-2xl border border-line bg-surface p-5">
+            <section className="rounded-[24px] border border-line bg-surface p-5 dark:border-0">
               <div className="mb-3 flex items-baseline justify-between gap-2">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Badges</h3>
                 <p className="text-xs text-muted">
@@ -153,9 +154,9 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
               </div>
               <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {badges.map((b) => (
-                  <li key={b.id} title={b.description} className={`rounded-xl border p-3 text-sm ${b.earned ? "border-accent bg-accent/10" : "border-line opacity-70"}`}>
+                  <li key={b.id} title={b.description} className={`rounded-[20px] border p-3 text-sm ${b.earned ? "border-primary bg-primary-soft text-on-primary-soft" : "border-line bg-surface-2 dark:border-0"}`}>
                     <p className="font-medium leading-snug">{b.title}</p>
-                    <p className="mt-0.5 text-xs text-muted">{b.earned ? "Earned" : `${b.value} / ${b.target}`}</p>
+                    <p className={`mt-0.5 text-xs ${b.earned ? "text-on-primary-soft" : "text-muted"}`}>{b.earned ? "Earned" : `${b.value} / ${b.target}`}</p>
                   </li>
                 ))}
               </ul>
@@ -164,7 +165,7 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
         </div>
       </div>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="rounded-[24px] border border-line bg-surface p-5 dark:border-0">
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Certifications and courses</h3>
           <p className="text-xs text-muted">
@@ -179,23 +180,23 @@ export function PortfolioView({ data, certificateHref, aiEnabled = false }: { da
               const done = courseState(c) === "completed";
               const pct = coursePercent(c);
               return (
-                <li key={c.id} className={`space-y-2 rounded-xl border p-4 ${done ? "border-accent bg-accent/5" : "border-line"}`}>
+                <li key={c.id} className={`space-y-2 rounded-[20px] border p-4 ${done ? "border-primary bg-primary-soft text-on-primary-soft" : "border-line bg-surface-2 dark:border-0"}`}>
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium leading-snug">{c.title}</p>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${done ? "bg-accent text-on-accent" : "border border-line text-muted"}`}>{done ? "Certified" : `${pct}%`}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${done ? "bg-primary text-on-primary" : "border border-line text-muted"}`}>{done ? "Certified" : `${pct}%`}</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-label={`${c.title} progress`} aria-valuenow={c.done} aria-valuemin={0} aria-valuemax={c.total}>
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
-                  <p className="text-xs text-muted">
+                  <p className={`text-xs ${done ? "text-on-primary-soft" : "text-muted"}`}>
                     {c.done} of {c.total} done
                     {done && c.completedOn ? ` · completed ${longDate(c.completedOn)}` : " · in progress"}
                   </p>
                   {done && c.completedOn && (
-                    <p className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                    <p className={`flex flex-wrap items-center justify-between gap-2 text-xs ${done ? "text-on-primary-soft" : "text-muted"}`}>
                       <span>Certificate {certificateId(name, c.id, c.completedOn)}</span>
                       {certificateHref && (
-                        <Link href={certificateHref(c.id)} className="rounded-lg border border-line px-2.5 py-1 font-medium text-foreground hover:bg-background">
+                        <Link href={certificateHref(c.id)} className={buttonClass("outline", "sm", "max-md:h-11")}>
                           View certificate
                         </Link>
                       )}

@@ -1,0 +1,159 @@
+"use client";
+
+import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "react";
+
+/*
+ * SlidingPill: one selection pill that glides to the chosen item of a tab strip or segmented control.
+ *
+ * Usage: wrap the items in <SlidingPill className="...the track classes..." pillClassName="rounded-full bg-primary-soft">.
+ * The wrapper looks for the active item itself (aria-current, aria-selected, aria-checked or aria-pressed = true, or
+ * data-sp-active="true"), so links and buttons both work and the items stay plain server-rendered markup.
+ *
+ * - Without JS (and before hydration) the active item keeps its own background; once the pill has been placed, the
+ *   wrapper gets data-sp-ready and CSS (globals.css) makes the active item's background transparent. The first
+ *   placement is instant, so nothing flashes and nothing shifts: the pill is absolutely positioned.
+ * - It is positioned from offsetLeft/offsetTop, so a pressed (scaled) item does not skew the measurement.
+ * - Movement uses transform + a spring (--ease-spring). Under data-motion="off" the global rule removes the
+ *   transition, so the pill jumps.
+ * - `target`: a selector, relative to the active item, for the part that carries the highlight (the rail and phone
+ *   bar highlight the icon pill inside each link). `line`: a 2px underline instead of a filled pill.
+ * - `persistKey`: remembers the last position for 2 s, so a strip that is re-created by a route change (each profile
+ *   page renders its own strip) still slides from where the previous page left it.
+ */
+
+const ACTIVE =
+  '[aria-current="page"], [aria-current="true"], [aria-selected="true"], [aria-checked="true"], [aria-pressed="true"], [data-sp-active="true"]';
+const WATCHED = ["aria-current", "aria-selected", "aria-checked", "aria-pressed", "data-sp-active"];
+const REMEMBER_MS = 2000;
+
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const memory = new Map<string, Box & { at: number }>();
+
+/** Position and size of `el` inside `box` (both measured without transforms). Null when `box` is not its offset ancestor. */
+function within(box: HTMLElement, el: HTMLElement): Box | null {
+  let x = 0;
+  let y = 0;
+  let n: HTMLElement | null = el;
+  while (n && n !== box) {
+    x += n.offsetLeft;
+    y += n.offsetTop;
+    n = n.offsetParent as HTMLElement | null;
+  }
+  if (n !== box || el.offsetWidth === 0) return null;
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+}
+
+type SlidingPillProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
+  as?: "div" | "nav" | "span";
+  /** Classes for the pill: its colour and shape. They should match the active item's own classes. */
+  pillClassName?: string;
+  target?: string;
+  line?: boolean;
+  persistKey?: string;
+  children?: ReactNode;
+};
+
+export function SlidingPill({
+  as = "div",
+  pillClassName = "rounded-full bg-primary-soft",
+  target,
+  line = false,
+  persistKey,
+  className = "",
+  children,
+  ...rest
+}: SlidingPillProps) {
+  const boxRef = useRef<HTMLDivElement & HTMLElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const pill = pillRef.current;
+    if (!box || !pill) return;
+    let marked: HTMLElement | null = null;
+    let shown = false;
+    let raf = 0;
+    // jsdom and very old browsers lack the observers: then it measures on mount and on window resize only.
+    const resizer = typeof ResizeObserver === "function" ? new ResizeObserver(() => measure()) : null;
+    let watched: HTMLElement | null = null;
+
+    const place = (b: Box) => {
+      const h = line ? 2 : b.h;
+      const y = line ? b.y + b.h - 2 : b.y;
+      pill.style.width = `${b.w}px`;
+      pill.style.height = `${h}px`;
+      pill.style.transform = `translate3d(${b.x}px, ${y}px, 0)`;
+    };
+
+    function measure() {
+      const item = box!.querySelector<HTMLElement>(ACTIVE);
+      const el = item && target ? item.querySelector<HTMLElement>(target) : item;
+      if (marked && marked !== el) marked.removeAttribute("data-sp-on");
+      marked = el;
+      const b = el ? within(box!, el) : null;
+      if (!el || !b) {
+        shown = false;
+        box!.removeAttribute("data-sp-ready");
+        return;
+      }
+      el.setAttribute("data-sp-on", "");
+      if (watched !== el) {
+        if (watched) resizer?.unobserve(watched);
+        resizer?.observe(el);
+        watched = el;
+      }
+      if (!shown) {
+        // First placement: no transition. With a fresh memory, start where the previous strip left the pill, then slide.
+        const from = persistKey ? memory.get(persistKey) : undefined;
+        const fresh = from !== undefined && performance.now() - from.at < REMEMBER_MS;
+        box!.setAttribute("data-sp-still", "");
+        place(fresh ? from : b);
+        box!.setAttribute("data-sp-ready", "");
+        shown = true;
+        if (fresh) {
+          void pill!.offsetWidth; // commit the start position
+          box!.removeAttribute("data-sp-still");
+          place(b);
+        } else {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => box!.removeAttribute("data-sp-still"));
+        }
+      } else {
+        place(b);
+      }
+      if (persistKey) memory.set(persistKey, { ...b, at: performance.now() });
+    }
+
+    measure();
+    resizer?.observe(box);
+    if (!resizer) window.addEventListener("resize", measure);
+    const mutations = typeof MutationObserver === "function" ? new MutationObserver(measure) : null;
+    mutations?.observe(box, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: WATCHED });
+    void document.fonts?.ready.then(measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      resizer?.disconnect();
+      window.removeEventListener("resize", measure);
+      mutations?.disconnect();
+      marked?.removeAttribute("data-sp-on");
+      box.removeAttribute("data-sp-ready");
+    };
+  }, [target, line, persistKey]);
+
+  const props = { ...rest, className: `sp ${className}`, ...(line ? { "data-sp-line": "" } : {}) };
+  const body = (
+    <>
+      <span ref={pillRef} aria-hidden="true" className={`sp-pill ${pillClassName}`} />
+      {children}
+    </>
+  );
+  if (as === "nav") return <nav ref={boxRef} {...props}>{body}</nav>;
+  if (as === "span") return <span ref={boxRef} {...props}>{body}</span>;
+  return <div ref={boxRef} {...props}>{body}</div>;
+}

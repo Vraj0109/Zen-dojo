@@ -10,14 +10,13 @@ import type { PublicProfileResult } from "./public-actions";
 import { PublicProfileCard } from "./public-profile-card";
 import { PageMain, Skeleton, buttonClass } from "../../ui";
 import { PortfolioView } from "../../u/portfolio-view";
-import { ProfileTabs } from "../profile-ui";
+import { PROFILE_PAGE_CLASS } from "../shared";
 
 export const metadata: Metadata = { title: "Portfolio" };
 
 export default function PortfolioPage() {
   return (
-    <PageMain title="Portfolio" hideTitle>
-      <ProfileTabs active="/profile/portfolio" />
+    <PageMain title="Portfolio" hideTitle className={PROFILE_PAGE_CLASS}>
       <Suspense fallback={<div className="space-y-3"><Skeleton className="h-24 w-full rounded-[24px]" /><Skeleton className="h-64 w-full rounded-[24px]" /></div>}>
         <Portfolio />
       </Suspense>

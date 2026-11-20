@@ -24,6 +24,7 @@ import {
   type StyleId,
   type ThemeMode,
 } from "@/lib/theme";
+import { SlidingPill } from "./sliding-pill";
 
 const MODE_LABEL: Record<ThemeMode, string> = { system: "System", light: "Light", dark: "Dark" };
 
@@ -77,7 +78,7 @@ export function ThemePicker() {
         <p id="theme-mode-label" className="mb-2 text-sm font-medium">
           Light or dark
         </p>
-        <div
+        <SlidingPill
           role="radiogroup"
           aria-labelledby="theme-mode-label"
           className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface-2 p-1"
@@ -94,7 +95,7 @@ export function ThemePicker() {
               {MODE_LABEL[m]}
             </button>
           ))}
-        </div>
+        </SlidingPill>
       </div>
 
       {/* Preset Swatches (min 104px auto-fill grid) */}
@@ -202,7 +203,7 @@ export function ThemePicker() {
         <p id="theme-bionic-label" className="mb-2 text-sm font-medium">
           Focus reading
         </p>
-        <div
+        <SlidingPill
           role="radiogroup"
           aria-labelledby="theme-bionic-label"
           className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface-2 p-1"
@@ -219,7 +220,7 @@ export function ThemePicker() {
               {level === "off" ? "Off" : level === "subtle" ? "Subtle" : "Strong"}
             </button>
           ))}
-        </div>
+        </SlidingPill>
       </div>
 
       {/* Play: game features and motion */}
@@ -236,7 +237,7 @@ export function ThemePicker() {
           Animations
         </p>
         <p className="mb-2 text-sm text-muted">Auto follows your system&apos;s reduce-motion setting.</p>
-        <div
+        <SlidingPill
           role="radiogroup"
           aria-labelledby="theme-motion-label"
           className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface-2 p-1"
@@ -253,7 +254,7 @@ export function ThemePicker() {
               {m === "auto" ? "Auto" : m === "on" ? "On" : "Off"}
             </button>
           ))}
-        </div>
+        </SlidingPill>
       </div>
       </div>
     </div>

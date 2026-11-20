@@ -77,3 +77,21 @@ export function parseTimer(raw: string | null): TimerState | null {
 }
 
 export const serializeTimer = (s: TimerState) => JSON.stringify(s);
+
+/** Item id of the quick focus session started from Today and the rail (no problem or concept attached). */
+export const FOCUS_SESSION_ID = "focus-session";
+
+/** A session that ended more than this long ago is stale (the app was closed): it ends quietly, no "Session done". */
+export const FRESH_END_MS = 90_000;
+
+/**
+ * What to do with a stored timer at `now`. `ended`: the countdown reached 0, so the session is over (running or
+ * not). `fresh`: it just ended, so say "Session done"; a stale one is cleared without announcing. `minutes`: whole
+ * minutes to log, capped at the target so a timer left open overnight does not log hours.
+ */
+export function sessionOutcome(s: TimerState, now: number): { ended: boolean; fresh: boolean; minutes: number } {
+  const target = s.targetMinutes * 60_000;
+  const elapsed = elapsedAt(s, now);
+  if (elapsed < target) return { ended: false, fresh: false, minutes: 0 };
+  return { ended: true, fresh: elapsed - target < FRESH_END_MS, minutes: s.targetMinutes };
+}

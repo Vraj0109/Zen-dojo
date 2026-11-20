@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { logFocusAction } from "./actions";
 import { TIMER_PRESETS, clock, elapsedAt, isRunning, minutesToLog, reachedTarget } from "./timer-math";
 import { timer, useNow, useTimer } from "./timer-store";
+import { SlidingPill } from "./sliding-pill";
 
 function beep() {
   try {
@@ -132,7 +133,7 @@ export function GlobalTimer() {
         </button>
       </div>
       {!running && elapsed === 0 && (
-        <div className="flex gap-1" role="group" aria-label="Target minutes">
+        <SlidingPill className="flex gap-1" role="group" aria-label="Target minutes" pillClassName="rounded-md bg-primary">
           {TIMER_PRESETS.map((p) => (
             <button
               key={p}
@@ -144,7 +145,7 @@ export function GlobalTimer() {
               {p}
             </button>
           ))}
-        </div>
+        </SlidingPill>
       )}
     </section>
   );

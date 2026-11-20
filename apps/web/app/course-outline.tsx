@@ -71,7 +71,7 @@ export async function CourseOutline({
                       prefetch={false}
                       aria-current={l.current ? "page" : undefined}
                       className={`flex items-center gap-2 rounded-sm px-2 py-1 text-xs ${
-                        l.current ? "bg-primary-soft font-medium text-foreground" : "text-muted hover:text-foreground"
+                        l.current ? "bg-primary-soft font-medium text-on-primary-soft" : "text-muted hover:text-foreground"
                       }`}
                     >
                       {l.covered ? <CoveredDot /> : <span className="size-2 shrink-0 rounded-full border border-line" />}
@@ -98,7 +98,7 @@ export async function CourseOutline({
                         prefetch={false}
                         aria-current={isCurrent ? "page" : undefined}
                         className={`flex items-center gap-2 rounded-sm px-2 py-1 text-xs ${
-                          isCurrent ? "bg-primary-soft font-medium text-foreground" : "text-muted hover:text-foreground"
+                          isCurrent ? "bg-primary-soft font-medium text-on-primary-soft" : "text-muted hover:text-foreground"
                         }`}
                       >
                         {isCovered ? <CoveredDot /> : <span className="size-2 shrink-0 rounded-full border border-line" />}

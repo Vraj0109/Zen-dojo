@@ -41,11 +41,11 @@ export function ListMemory({ url, grouped }: { url: string; grouped: boolean }) 
 
     const save = () => {
       if (restoring) return;
+      const openGroups = groupEls(frame)
+        .filter((d) => d.open)
+        .map((d) => d.dataset.group ?? "");
       const state: Saved = {
-        open: groupEls(frame)
-          .filter((d) => d.open)
-          .map((d) => d.dataset.group ?? ""),
-        frame: frame.scrollTop,
+        open: openGroups,
         main: main?.scrollTop ?? 0,
         win: window.scrollY,
       };
@@ -63,20 +63,20 @@ export function ListMemory({ url, grouped }: { url: string; grouped: boolean }) 
     if (saved) {
       const s = saved;
       restoring = true;
-      if (Array.isArray(s.open)) {
-        const open = new Set(s.open);
-        for (const d of groupEls(frame)) d.open = open.has(d.dataset.group ?? "");
-      }
+      // Always default to keeping all groups open so all problems are immediately visible and scrollable
+      for (const d of groupEls(frame)) d.open = true;
       const apply = () => {
-        frame.scrollTop = s.frame ?? 0;
-        if (main) main.scrollTop = s.main ?? 0;
-        window.scrollTo(0, s.win ?? 0);
+        if (main && typeof s.main === "number" && s.main > 0) main.scrollTop = s.main;
+        if (typeof s.win === "number" && s.win > 0) window.scrollTo(0, s.win);
       };
       apply();
       requestAnimationFrame(() => requestAnimationFrame(apply));
       clearTimer = setTimeout(() => {
         restoring = false;
       }, 300);
+    } else {
+      // No saved state: ensure all groups are open
+      for (const d of groupEls(frame)) d.open = true;
     }
 
     let scrollTimer: ReturnType<typeof setTimeout> | undefined;

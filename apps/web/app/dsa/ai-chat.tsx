@@ -6,6 +6,7 @@ import { AiKeySetup } from "@/app/ai-key-setup";
 import { BYOK_ERROR_TEXT, type ByokErrorCode } from "@/lib/ai/byok";
 import { BYOK_PROVIDERS, currentByokHeaders } from "@/lib/ai-key-store";
 import { useByok } from "@/lib/use-byok";
+import { buttonClass } from "@/app/ui";
 
 export type ChatIntent = "question" | "hint" | "review" | "solution" | "free" | "explain" | "quiz" | "example" | "interview";
 export interface ChatMsg {
@@ -190,6 +191,7 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
   const [input, setInput] = useState("");
   const [includeCode, setIncludeCode] = useState(!cloud);
   const [reveal, setReveal] = useState(false);
+  const [confirmSolution, setConfirmSolution] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const ac = useRef<AbortController | null>(null);
   const list = useRef<HTMLDivElement | null>(null);
@@ -318,7 +320,12 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
 
   function starter(intent: ChatIntent, hintIndex?: number) {
     if (intent === "solution") {
-      if (!window.confirm("This will show the full solution idea and code in the chat.")) return;
+      // Two-step inline confirm: the first press arms the chip, the second one asks for the solution.
+      if (!confirmSolution) {
+        setConfirmSolution(true);
+        return;
+      }
+      setConfirmSolution(false);
       setReveal(true);
       post(starterText("solution"), { intent }, true);
       return;
@@ -450,9 +457,22 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
         </button>
         )}
         {!lesson && (
-          <button type="button" disabled={pending} onClick={() => starter("solution")} title="Shows the full solution idea and code" className={chip}>
-            Explain the solution
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => starter("solution")}
+              title="Shows the full solution idea and code"
+              className={confirmSolution ? `${chip} border-danger text-danger` : chip}
+            >
+              {confirmSolution ? "Yes, show the full solution" : "Explain the solution"}
+            </button>
+            {confirmSolution && (
+              <button type="button" onClick={() => setConfirmSolution(false)} className={chip}>
+                Cancel
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -473,11 +493,11 @@ function ChatBody({ problemId: pid, lessonId, hints = [], providers, provider, h
           className="min-w-0 flex-1 resize-y rounded-lg border border-line bg-background px-3 py-2 text-sm max-md:resize-none max-md:text-base"
         />
         {pending ? (
-          <button type="button" onClick={() => ac.current?.abort()} className="rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-background max-md:min-h-11">
+          <button type="button" onClick={() => ac.current?.abort()} className={buttonClass("outline", "sm", "max-md:h-11")}>
             Stop
           </button>
         ) : (
-          <button type="button" onClick={sendTyped} disabled={!input.trim()} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50 max-md:min-h-11">
+          <button type="button" onClick={sendTyped} disabled={!input.trim()} className={buttonClass("primary", "sm", "max-md:h-11")}>
             Send
           </button>
         )}

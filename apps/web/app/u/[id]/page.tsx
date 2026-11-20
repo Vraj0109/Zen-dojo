@@ -16,7 +16,7 @@ function PublicPortfolio({ data, preview = false, aiEnabled = false }: { data: P
   return (
     <PageMain title={`${data.name} portfolio`} full>
       {preview && (
-        <p className="mb-6 rounded-xl border border-line bg-surface p-3 text-sm text-muted">
+        <p className="mb-6 rounded-[20px] border border-line bg-surface p-3 text-sm text-muted dark:border-0">
           Preview of your public page. Only your name, stats, course titles and dates are shown.
         </p>
       )}

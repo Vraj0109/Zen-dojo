@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { SyncStatus } from "@/app/components/sync-status";
+import { useConfirm } from "@/app/components/confirm-dialog";
 import {
   flushSyncQueue,
   getSyncInfo,
@@ -63,6 +64,7 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
   const [info, setInfo] = useState<SyncStatusInfo>(() => getSyncInfo());
   const [busy, setBusy] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   useEffect(() => {
     return subscribeSyncInfo(setInfo);
@@ -109,9 +111,11 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
 
   async function stopSyncing() {
     if (unlinking) return;
-    const confirmed = window.confirm(
-      "Stop syncing this device? Your local progress will stay on this device, but it will no longer sync with your account."
-    );
+    const confirmed = await confirm({
+      title: "Stop syncing this device?",
+      body: "Your local progress will stay on this device, but it will no longer sync with your account.",
+      confirmLabel: "Stop syncing",
+    });
     if (!confirmed) return;
 
     setUnlinking(true);
@@ -205,6 +209,7 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
           </div>
         )}
       </div>
+      {confirmDialog}
     </section>
   );
 }

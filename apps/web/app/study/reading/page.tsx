@@ -10,6 +10,7 @@ import { SubmitButton } from "../../submit-button";
 import { LearnBack } from "../../section-tabs";
 import { buttonClass, PageMain, ProgressBar } from "../../ui";
 import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
+import { SlidingPill } from "../../sliding-pill";
 
 export const metadata: Metadata = { title: "Reading list" };
 
@@ -89,7 +90,7 @@ async function Reading({ searchParams }: { searchParams: Promise<{ filter?: stri
         </div>
       </header>
 
-      <nav aria-label="Filter readings">
+      <SlidingPill as="nav" aria-label="Filter readings" persistKey="reading-filter" pillClassName="rounded-[10px] bg-primary-soft">
         <ul className="flex flex-wrap items-center gap-2">
           {FILTERS.map((f) => {
             const active = currentFilter === f.id;
@@ -109,7 +110,7 @@ async function Reading({ searchParams }: { searchParams: Promise<{ filter?: stri
             );
           })}
         </ul>
-      </nav>
+      </SlidingPill>
 
       {filtered.length === 0 ? (
         <p className="rounded-[24px] border border-line bg-surface p-5 text-sm text-muted dark:border-0">

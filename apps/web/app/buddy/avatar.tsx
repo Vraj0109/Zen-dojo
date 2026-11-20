@@ -14,7 +14,7 @@ export const BUILTIN_AVATARS: { id: Exclude<AvatarId, "custom" | "pet">; label: 
   { id: "blob", label: "Blob" },
 ];
 
-// All animation is CSS. Under prefers-reduced-motion every animation is off and each mood keeps a static pose.
+// All animation is CSS. Under prefers-reduced-motion or data-motion="off" every animation is off and each mood keeps a static pose.
 const AVATAR_CSS = `
 .bav{display:inline-block;line-height:0;position:relative}
 .bav svg,.bav img{overflow:visible}
@@ -51,6 +51,10 @@ const AVATAR_CSS = `
 .bav-dots circle{opacity:1}
 .bav-z text{opacity:1}
 }
+:root[data-motion="off"] .bav *,:root[data-motion="off"] .bav{animation:none!important}
+:root[data-motion="off"] .bav[data-mood="thinking"] .bav-body,:root[data-motion="off"] .bav[data-mood="thinking"] img{transform:rotate(-4deg)}
+:root[data-motion="off"] .bav[data-mood="excited"] .bav-body,:root[data-motion="off"] .bav[data-mood="excited"] img{transform:translateY(-4px)}
+:root[data-motion="off"] .bav-dots circle,:root[data-motion="off"] .bav-z text{opacity:1}
 `;
 
 const INK = "#2b2b36";

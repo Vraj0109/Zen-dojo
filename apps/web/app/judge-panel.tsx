@@ -168,7 +168,7 @@ export function CasesView({ result }: { result: RunResult }) {
                         aria-current={on ? "true" : undefined}
                         onClick={() => setPicked(keyOf(r))}
                         className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors duration-120 ${
-                          on ? "bg-primary-soft text-foreground" : "hover:bg-surface-2"
+                          on ? "bg-primary-soft text-on-primary-soft" : "hover:bg-surface-2"
                         } ${isNotRun(r) ? "opacity-70" : ""}`}
                       >
                         <CaseIcon pass={r.pass} tle={isTle(r)} notRun={isNotRun(r)} />

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
-import { clock, elapsedAt, isRunning } from "./timer-math";
-import { timer, useNow, useTimer } from "./timer-store";
+import { FOCUS_SESSION_ID, clock, elapsedAt } from "./timer-math";
+import { SlidingPill } from "./sliding-pill";
+import { timer, useFocusTimer } from "./timer-store";
 
 // Icons from Material 3 Expressive spec (XRail.dc.html & XNavBar.dc.html)
 export const ICONS = {
@@ -75,20 +76,16 @@ export function Icon({ name, active = false, className = "size-6" }: { name: key
   );
 }
 
-/** Focus FAB: 56px, rounded-[18px], reward-soft, play icon or countdown. */
+/**
+ * Focus FAB: 56px, rounded-[18px], reward-soft. Play icon when no session runs, the countdown while one does (tap to
+ * pause), a check for a few seconds after a session ends by itself. The state clears at 0 (see finishSession).
+ */
 export function FocusFab() {
-  const state = useTimer();
-  const running = state !== null && isRunning(state);
-  const now = useNow(running);
+  const { state, running, now, done } = useFocusTimer();
 
   const startSession = () => {
     if (!state) {
-      timer.start({
-        itemId: "focus-session",
-        label: "Focus session",
-        href: "/",
-        targetMinutes: 25,
-      });
+      timer.start({ itemId: FOCUS_SESSION_ID, label: "Focus session", href: "/", targetMinutes: 25 });
     } else if (!running) {
       timer.resume();
     } else {
@@ -96,27 +93,35 @@ export function FocusFab() {
     }
   };
 
-  const elapsed = state ? elapsedAt(state, now) : 0;
-  const targetMs = (state?.targetMinutes ?? 25) * 60_000;
-  const remaining = Math.max(0, targetMs - elapsed);
+  const remaining = state ? Math.max(0, state.targetMinutes * 60_000 - elapsedAt(state, now)) : 0;
+  const label = state
+    ? `Focus timer: ${clock(remaining)}${running ? ", running. Tap to pause." : ", paused. Tap to resume."}`
+    : done
+      ? "Focus session done. Start another."
+      : "Start a focus session";
 
   return (
     <button
       type="button"
       onClick={startSession}
-      aria-label={state ? `Focus timer: ${clock(remaining)}` : "Start a focus session"}
-      title={state ? `Focus timer: ${clock(remaining)}` : "Start a focus session (25 min)"}
+      aria-label={label}
+      title={state ? `Focus timer: ${clock(remaining)}` : done ? "Session done" : "Start a focus session (25 min)"}
       className="grid size-14 place-items-center rounded-[18px] bg-reward-soft text-on-reward-soft shadow-xs transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-primary"
     >
       {state ? (
-        <span className="font-mono text-xs font-semibold tabular-nums">
-          {clock(remaining)}
-        </span>
+        <span className="font-mono text-xs font-semibold tabular-nums">{clock(remaining)}</span>
+      ) : done ? (
+        <svg viewBox="0 0 24 24" className="size-6 animate-[zd-pop-in_0.32s_var(--ease-spring)_both]" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m5 12.5 4.5 4.5L19 7.5" />
+        </svg>
       ) : (
         <svg viewBox="0 0 24 24" className="size-6 fill-current" aria-hidden="true">
           <path d="M8 5v14l11-7z" />
         </svg>
       )}
+      <span role="status" className="sr-only">
+        {done && !state ? "Focus session done" : ""}
+      </span>
     </button>
   );
 }
@@ -141,7 +146,7 @@ function NavRailInner({ counts, account, pathname }: { counts?: NavCounts; accou
       <FocusFab />
 
       {/* Five items: Today, Practice, Learn, Review, Roadmap */}
-      <div className="mt-2 flex flex-col items-center gap-3">
+      <SlidingPill className="mt-2 flex flex-col items-center gap-3" target=":scope > span:first-child" pillClassName="h-8 w-14 rounded-full bg-primary-soft">
         {SIDEBAR.map((item) => {
           const active = isActive(item, pathname);
           const count = counts?.[item.href];
@@ -161,7 +166,8 @@ function NavRailInner({ counts, account, pathname }: { counts?: NavCounts; accou
               >
                 <Icon name={item.icon} active={active} className="size-6" />
                 {item.href === "/review" && count && (
-                  <span className="absolute -top-0.5 right-2 min-w-4 h-4 px-1 rounded-full bg-danger text-[12px] font-semibold text-white leading-4 text-center">
+                  // `count` is a streamed node that renders nothing when no review is due: :empty hides the badge then.
+                  <span className="absolute -top-0.5 right-2 h-4 min-w-4 rounded-full bg-danger-soft px-1 text-center text-[12px] leading-4 font-semibold text-on-danger-soft empty:hidden [&>span]:ml-0 [&>span]:text-on-danger-soft!">
                     {count}
                   </span>
                 )}
@@ -172,7 +178,7 @@ function NavRailInner({ counts, account, pathname }: { counts?: NavCounts; accou
             </Link>
           );
         })}
-      </div>
+      </SlidingPill>
 
       {/* Bottom avatar trigger (Account menu) */}
       <div className="mt-auto">
@@ -205,7 +211,7 @@ export function PhoneNavBar({ pathname }: { pathname: string | null }) {
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line dark:border-0 bg-surface-2 px-1 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:hidden print:hidden"
     >
-      <div className="grid grid-cols-5">
+      <SlidingPill className="grid grid-cols-5" target=":scope > span:first-child" pillClassName="rounded-full bg-primary-soft">
         {TABS.map((item) => {
           const active = isActive(item, pathname);
           return (
@@ -230,7 +236,7 @@ export function PhoneNavBar({ pathname }: { pathname: string | null }) {
             </Link>
           );
         })}
-      </div>
+      </SlidingPill>
     </nav>
   );
 }

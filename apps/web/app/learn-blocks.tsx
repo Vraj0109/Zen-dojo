@@ -46,7 +46,7 @@ export function ArticleSection({
   className?: string;
 }) {
   return (
-    <section id={id} className={`scroll-mt-20 border-t border-line pt-8 first:border-t-0 first:pt-0 ${className}`}>
+    <section id={id} className={`scroll-mt-24 border-t border-line pt-8 first:border-t-0 first:pt-0 ${className}`}>
       <h2 className="mb-4 text-xl font-semibold tracking-tight">{title}</h2>
       {children}
     </section>
@@ -81,9 +81,12 @@ export function ArticleLayout({
   rail,
   lessonNav,
   askAi,
+  tabs,
   children,
 }: {
   toc: TocItem[];
+  /** A tab strip above the article (LLD and design pages). Sticks to the top of the reading column while you read. */
+  tabs?: React.ReactNode;
   /** The "Ask AI about this lesson" button, when AI is on. */
   askAi?: React.ReactNode;
   rail?: React.ReactNode;
@@ -97,19 +100,25 @@ export function ArticleLayout({
   // the lesson list shows from 780px, the outline from 1040px, so the article never drops under about 60ch. On wide
   // screens the article grows to 1040px (prose lines stay under 80ch; code, diagrams and tables use the full width).
   // When the outline is hidden, an "Outline" button above the article opens the same list.
+  //
+  // The two side columns stick at top-16 (below the sticky breadcrumb / tab strip) and may be at most the page height
+  // minus that top offset minus 3.5rem. The 3.5rem is the page's bottom padding (pb-10 = 2.5rem) plus a 1rem gap: a
+  // sticky box can never leave its row, so when you scroll to the very end it is pushed up by however much it overlaps
+  // that padding. Reserving the padding keeps it in place, so its first line is never hidden behind the breadcrumb.
   return (
     <div className="@container w-full">
-      <div className="relative flex w-full items-start justify-center gap-6">
+      <div className="relative flex w-full items-start justify-start gap-5">
         {lessonNav && (
           <nav
             aria-label="Lessons in this course"
-            className="zd-list sticky top-6 hidden max-h-[calc(100dvh-3rem)] w-[240px] @min-[1500px]:w-[260px] shrink-0 flex-col gap-2 overflow-y-auto [scrollbar-width:thin] @min-[780px]:flex"
+            className="zd-list hidden w-[240px] @min-[1500px]:w-[260px] shrink-0 flex-col gap-2 overflow-y-auto [scrollbar-width:thin] @min-[780px]:flex sticky top-16 self-start max-h-[calc(100dvh-7.5rem)] overscroll-contain py-1"
           >
             {lessonNav}
           </nav>
         )}
 
-        <div className="min-w-0 max-w-[1040px] flex-1 space-y-3">
+        <div className={`min-w-0 flex-1 space-y-3 ${lessonNav ? "max-w-[1040px]" : ""}`}>
+          {tabs && <div className="sticky top-0 z-20 -mx-1 bg-background/95 px-1 py-2 backdrop-blur-md print:hidden">{tabs}</div>}
           {(hasToc || rail) && (
             <details className="group rounded-[24px] border border-line bg-surface @min-[1040px]:hidden dark:border-0">
               <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-5 text-sm font-medium">
@@ -138,7 +147,7 @@ export function ArticleLayout({
         {(hasToc || rail) && (
           <aside
             aria-label="On this page"
-            className="zd-toc sticky top-6 hidden max-h-[calc(100dvh-3rem)] w-[220px] @min-[1500px]:w-[240px] shrink-0 flex-col gap-4 overflow-y-auto text-sm [scrollbar-width:thin] @min-[1040px]:flex"
+            className="zd-toc hidden w-[280px] @min-[1500px]:w-[300px] shrink-0 flex-col gap-4 overflow-y-auto text-sm [scrollbar-width:thin] @min-[1040px]:flex sticky top-16 self-start max-h-[calc(100dvh-7.5rem)] overscroll-contain py-1"
           >
             {hasToc && (
               <div className="space-y-3">

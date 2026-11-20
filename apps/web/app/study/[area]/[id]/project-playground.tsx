@@ -9,9 +9,9 @@ export function ProjectPlayground({ projectId, files, readOnly = false, noRun = 
   return (
     <section aria-labelledby="playground-heading" className="space-y-3">
       <div>
-        <h2 id="playground-heading" className="text-lg font-semibold">
+        <h3 id="playground-heading" className="sr-only">
           Playground
-        </h2>
+        </h3>
         <p className="text-sm text-muted">
           {readOnly ? "The reference classes, read-only in reader mode." : "Edit the classes, add your own files, and run the whole project. Your changes are saved in this browser."}
         </p>

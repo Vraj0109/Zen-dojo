@@ -26,9 +26,11 @@ import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
 import { ProblemTable } from "./problem-ui";
+import { Tabs } from "../tabs";
 import { ListMemory } from "./list-memory";
 import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
+import { TabPanel } from "../tab-panel";
 import { buttonClass, EmptyState, StatusMark } from "../ui";
 import { DsaRoadmapSkeleton } from "@/app/components/roadmap-skeleton";
 
@@ -141,7 +143,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
   };
 
   return (
-    <div className="anim-fade flex min-h-0 flex-1 flex-col gap-4 px-4 pt-5 pb-6 sm:px-6 md:h-full md:overflow-hidden md:pt-7 md:pb-0">
+    <div className="anim-fade w-full max-w-[1680px] mx-auto px-4 pt-5 pb-10 sm:px-6 md:pt-7 space-y-4">
       {/* Non-scrolling header */}
       <div className="shrink-0 space-y-3">
         <header className="flex items-end justify-between gap-3 flex-wrap">
@@ -170,33 +172,10 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
           {tab !== "patterns" && <input type="hidden" name="tab" value={tab} />}
           <div className="flex gap-2.5 flex-wrap items-center">
             {/* Segmented pill */}
-            <nav aria-label="View" className="inline-flex max-w-full gap-1 rounded-full bg-surface-2 p-1 select-none">
-              {tabs.map((t) => {
-                const isActive = t.id === tab;
-                return (
-                  <Link
-                    key={t.id}
-                    href={dsaTabHref(t.id, params)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`flex h-10 items-center rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors sm:px-[18px] ${
-                      isActive ? "bg-primary-soft text-on-primary-soft" : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    {t.short ? (
-                      <>
-                        <span className="sm:hidden">{t.short}</span>
-                        <span className="max-sm:hidden">{t.label}</span>
-                      </>
-                    ) : (
-                      t.label
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
+            <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="View" />
 
             {/* Search input */}
-            <label className="flex h-12 min-w-0 flex-[1_1_240px] items-center gap-2.5 rounded-full bg-surface-2 px-[18px] text-muted">
+            <label className="flex h-12 min-w-0 flex-[1_1_240px] items-center gap-2.5 rounded-full bg-surface-2 px-[18px] text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
               <svg className="size-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
@@ -249,75 +228,78 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
       </div>
 
       {/* Main Content Area */}
-      {tab === "patterns" && (
-        <PatternsView
-          groups={groups}
-          initialGroup={openGroup}
-          searchQuery={filters.q}
-          aside={
-            <ProgressAside
-              totalProblems={totals.problems}
-              solvedCount={shown.solved}
-              easyCount={easySolved}
-              medCount={medSolved}
-              hardCount={hardSolved}
-              simple={simple}
-              extrasCount={extras.length}
-            />
-          }
-        />
-      )}
-
-      {tab === "all" && (
-        <div className="flex min-h-0 flex-1 flex-col pb-6 md:overflow-hidden">
-          <ProblemTable
-            rows={tableRows}
-            nextProblemId={nextProblem?.id}
-            showGroupDividers={sort === "roadmap"}
-            problemGroupMap={problemGroupMap}
-            openGroups={filtering ? "all" : "next"}
+      {/* The All problems list is long: it swaps without a slide. */}
+      <TabPanel tab={tab} order={tabs.map((t) => t.id)} still={tab === "all"} className="w-full">
+        {tab === "patterns" && (
+          <PatternsView
+            groups={groups}
+            initialGroup={openGroup}
+            searchQuery={filters.q}
+            aside={
+              <ProgressAside
+                totalProblems={totals.problems}
+                solvedCount={shown.solved}
+                easyCount={easySolved}
+                medCount={medSolved}
+                hardCount={hardSolved}
+                simple={simple}
+                extrasCount={extras.length}
+              />
+            }
           />
-        </div>
-      )}
+        )}
 
-      {tab === "resolve" && (
-        <div className="flex min-h-0 flex-1 flex-col pb-6 md:overflow-hidden">
-          {due.length === 0 ? (
-            <div className="rounded-lg border border-line bg-surface p-10 text-center text-sm text-muted dark:border-0">
-              Nothing due for re-solve right now.
-            </div>
-          ) : (
-            <ProblemTable rows={dueRows} nextProblemId={nextProblem?.id} />
-          )}
-        </div>
-      )}
+        {tab === "all" && (
+          <div className="pb-10">
+            <ProblemTable
+              rows={tableRows}
+              nextProblemId={nextProblem?.id}
+              showGroupDividers={sort === "roadmap"}
+              problemGroupMap={problemGroupMap}
+              openGroups="all"
+            />
+          </div>
+        )}
 
-      {tab === "other" && (
-        <div className="min-h-0 flex-1 space-y-4 pb-6 md:overflow-y-auto">
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Other LeetCode solves</h2>
-            <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward the 150+ goal.</p>
-            {extras.length === 0 ? (
-              <EmptyState message="No synced solves outside the roadmap yet." />
+        {tab === "resolve" && (
+          <div className="pb-10">
+            {due.length === 0 ? (
+              <div className="rounded-lg border border-line bg-surface p-10 text-center text-sm text-muted dark:border-0">
+                Nothing due for re-solve right now.
+              </div>
             ) : (
-              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line dark:border-0 bg-surface">
-                {extras.map((e) => (
-                  <li key={e.problemId} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors duration-120 hover:bg-surface-2">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <StatusMark state="solved" />
-                      <span className="truncate font-medium">{e.number ? `${e.number}. ` : ""}{e.title}</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3 text-xs text-muted">
-                      {e.difficulty && <span className="capitalize">{e.difficulty}</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <ProblemTable rows={dueRows} nextProblemId={nextProblem?.id} />
             )}
-            <AddedProblems />
-          </section>
-        </div>
-      )}
+          </div>
+        )}
+
+        {tab === "other" && (
+          <div className="min-h-0 flex-1 space-y-4 pb-6 md:overflow-y-auto">
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Other LeetCode solves</h2>
+              <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward the 150+ goal.</p>
+              {extras.length === 0 ? (
+                <EmptyState message="No synced solves outside the roadmap yet." />
+              ) : (
+                <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line dark:border-0 bg-surface">
+                  {extras.map((e) => (
+                    <li key={e.problemId} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors duration-120 hover:bg-surface-2">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <StatusMark state="solved" />
+                        <span className="truncate font-medium">{e.number ? `${e.number}. ` : ""}{e.title}</span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3 text-xs text-muted">
+                        {e.difficulty && <span className="capitalize">{e.difficulty}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <AddedProblems />
+            </section>
+          </div>
+        )}
+      </TabPanel>
     </div>
   );
 }

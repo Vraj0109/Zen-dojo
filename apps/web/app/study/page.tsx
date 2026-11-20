@@ -46,14 +46,14 @@ async function Hub() {
       {again && (
         <Link
           href={again.href}
-          className="flex items-center gap-4 p-5 sm:p-6 sm:px-7 rounded-[32px] bg-primary text-on-primary hover:bg-primary-hover transition-colors shadow-sm"
+          className="group flex items-center gap-4 p-5 sm:p-6 sm:px-7 rounded-[32px] bg-primary text-on-primary hover:bg-primary-hover transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg hover:brightness-105 active:scale-[0.99] active:translate-y-0 shadow-sm"
         >
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium opacity-80">Pick up where you left off</p>
             <p className="mt-1 text-xl sm:text-2xl font-medium truncate">{again.title}</p>
             <p className="mt-0.5 text-sm opacity-80">{again.course}</p>
           </div>
-          <span className="size-16 shrink-0 rounded-[22px] bg-primary-container text-on-primary-container flex items-center justify-center">
+          <span className="size-16 shrink-0 rounded-[22px] bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-110 group-active:scale-95 transition-transform duration-200 ease-out">
             <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -162,7 +162,7 @@ async function CourseLibrarySection() {
 function LibraryCard({ course: c }: { course: LibraryCourse }) {
   const facts = [c.items !== undefined ? `${c.items} item${c.items === 1 ? "" : "s"}` : null, formatSize(c.bytes)].filter(Boolean).join(" · ");
   return (
-    <article className="flex-none w-[260px] sm:w-[300px] snap-start flex flex-col gap-2 p-[18px] rounded-[28px] bg-surface border border-line dark:border-0">
+    <article className="group flex-none w-[260px] sm:w-[300px] snap-start flex flex-col gap-2 p-[18px] rounded-[28px] bg-surface border border-line dark:border-0 transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-md hover:border-line-strong active:scale-[0.99] active:translate-y-0">
       <h3 className="text-[17px] font-medium leading-snug break-words text-foreground">{c.title}</h3>
       <p className="text-sm text-muted break-words line-clamp-2">{c.description || facts}</p>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-sm">
@@ -259,9 +259,9 @@ function CourseCard({ course: c }: { course: CourseView }) {
   const pct = c.total > 0 ? Math.min(100, Math.round((c.done / c.total) * 100)) : 0;
 
   return (
-    <article className={`relative flex flex-col gap-2.5 p-5 sm:p-[22px] rounded-[32px] ${tone.bg} transition-shadow hover:shadow-md`}>
+    <article className={`group relative flex flex-col gap-2.5 p-5 sm:p-[22px] rounded-[32px] ${tone.bg} cursor-pointer select-none transition-all duration-200 ease-out hover:-translate-y-1.5 hover:shadow-xl hover:brightness-105 active:scale-[0.985] active:translate-y-0`}>
       <div className="flex items-start justify-between gap-3">
-        <span className={`size-14 flex items-center justify-center shrink-0 ${tone.shape}`}>{tone.icon}</span>
+        <span className={`size-14 flex items-center justify-center shrink-0 ${tone.shape} group-hover:scale-110 group-active:scale-95 transition-transform duration-200 ease-out`}>{tone.icon}</span>
         {/* Above the whole-card link so the star stays clickable. */}
         <form action={toggleFavouriteCourseAction} className="relative z-10">
           <input type="hidden" name="course" value={c.id} />

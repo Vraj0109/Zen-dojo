@@ -129,7 +129,8 @@ export function FilterChipMenu({ name, label, selected, options, groups, searcha
   const q = search.trim().toLowerCase();
   const matches = (o: FilterOption) => !q || o.label.toLowerCase().includes(q);
   const anyMatch = all.some(matches);
-  const clearClass = "mr-0.5 flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-on-primary-soft/10";
+  const clearClass =
+    "relative mr-0.5 flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-on-primary-soft/10 focus-visible:outline-2 focus-visible:outline-primary before:absolute before:-inset-1.5 before:content-['']";
 
   return (
     <div
@@ -161,7 +162,7 @@ export function FilterChipMenu({ name, label, selected, options, groups, searcha
           }`}
         >
           {searchable && (
-            <label className="mb-1 flex h-10 shrink-0 items-center gap-2 rounded-full bg-surface-2 px-3 text-muted">
+            <label className="mb-1 flex h-10 shrink-0 items-center gap-2 rounded-full bg-surface-2 px-3 text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
               <svg className="size-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
@@ -269,7 +270,7 @@ export function SortSelect({ value, options }: { value: string; options: readonl
           defaultValue={value}
           onChange={onChange}
           aria-label="Sort problems"
-          className="h-9 rounded-[10px] border border-line-strong bg-surface px-2.5 text-sm font-medium text-foreground hover:bg-surface-2 focus:border-primary focus:outline-none max-md:h-10"
+          className="h-9 rounded-[10px] border border-line-strong bg-surface px-2.5 text-sm font-medium text-foreground hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary max-md:h-10"
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>

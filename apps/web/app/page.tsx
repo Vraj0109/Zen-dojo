@@ -12,7 +12,7 @@ import { getCountdown } from "@/lib/revise";
 import { ToolsNotice } from "./tools-notice";
 import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
-import { CatchUpDrawer, StartFocusButton } from "./today/today-ui";
+import { CatchUpDrawer, HeroRing, StartFocusButton } from "./today/today-ui";
 import { xpEvents } from "@/lib/progress";
 import { todayView, reviewSplit, weekFocus } from "./today/data";
 import {
@@ -116,10 +116,6 @@ async function TodayTop() {
     heroMessage = `Nice start. ${undoneCount} left, about ${undoneMinutes} minutes.`;
   }
 
-  // Scalloped ring calculations (circumference for r=30 is 188.5)
-  const frac = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
-  const ringDash = Math.round(frac * 188.5);
-
   // "This week": XP earned on each day Monday to Sunday, from the XP rows (progress.ts), scaled to the best day.
   const daysShort = ["M", "T", "W", "T", "F", "S", "S"];
   const monday = startOfWeek(v.today);
@@ -138,7 +134,7 @@ async function TodayTop() {
           </p>
           <h1 className="mt-0.5 text-[28px] leading-[34px] font-semibold tracking-[-0.01em] text-foreground md:text-4xl md:leading-[44px]">{titleText}</h1>
         </div>
-        <form action="/dsa" method="get" role="search" className="flex h-14 min-w-0 flex-[0_1_380px] items-center gap-3 rounded-full bg-surface-2 px-5 text-muted max-md:hidden">
+        <form action="/dsa" method="get" role="search" className="flex h-14 min-w-0 flex-[0_1_380px] items-center gap-3 rounded-full bg-surface-2 px-5 text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary max-md:hidden">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
@@ -156,29 +152,7 @@ async function TodayTop() {
 
       {/* Hero card on primary-container */}
       <section aria-label="Today's plan" className="flex flex-wrap items-center gap-6 rounded-[32px] bg-primary-container p-5 text-on-primary-container md:px-8 md:py-7">
-        <div className="relative size-[112px] shrink-0 md:size-[132px]">
-          <svg role="img" aria-label={`${done} of ${total} done`} viewBox="0 0 100 100" className="size-full">
-            <path
-              d="M50 3 58 9 68 7 73 16 83 19 84 29 92 36 89 46 94 55 87 62 88 72 79 77 76 87 66 87 58 94 50 89 42 94 34 87 24 87 21 77 12 72 13 62 6 55 11 46 8 36 16 29 17 19 27 16 32 7 42 9z"
-              className="fill-primary/35 dark:fill-background/45"
-            />
-            <circle cx="50" cy="50" r="30" fill="none" className="stroke-primary-container dark:stroke-primary/40" strokeWidth="8" />
-            <circle
-              cx="50"
-              cy="50"
-              r="30"
-              fill="none"
-              className="stroke-on-primary-container"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={`${ringDash} 188.5`}
-              transform="rotate(-90 50 50)"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[26px] font-semibold tabular-nums text-on-primary-container">
-            {done}/{total}
-          </span>
-        </div>
+        <HeroRing done={done} total={total} />
 
         <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-2">
           <p className="text-sm font-medium opacity-80">Today&apos;s plan</p>
@@ -196,14 +170,21 @@ async function TodayTop() {
 
         {/* Desktop streak in Scallop on reward-soft */}
         <div className="gamify-only flex shrink-0 flex-col items-center gap-1 max-md:hidden">
+          {/* Pale reward-soft shape with its own on-reward-soft number, plus a reward outline so the shape stays visible
+              on themes whose hero container is close to reward-soft (Paper, Ember). */}
           <div className="relative size-24 grid place-items-center">
-            <svg viewBox="0 0 100 100" className="size-full absolute inset-0" aria-hidden="true">
+            <svg viewBox="0 0 100 100" className="size-full absolute inset-0 overflow-visible" aria-hidden="true">
               <path
                 d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z"
                 fill="var(--reward-soft)"
+                stroke="var(--reward)"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
             </svg>
-            <span className="relative z-10 text-3xl font-semibold text-on-reward-soft tabular-nums">{v.streak}</span>
+            <span className="relative z-10 text-3xl font-semibold tabular-nums" style={{ color: "var(--on-reward-soft)" }}>
+              {v.streak}
+            </span>
           </div>
           <span className="text-xs font-medium text-on-primary-container opacity-80">day streak</span>
         </div>
@@ -228,21 +209,33 @@ async function TodayTop() {
         {/* This week mini bar chart */}
         <section className="flex flex-col justify-between gap-3 p-5 rounded-[28px] bg-surface border border-line dark:border-0">
           <span className="text-[15px] font-medium text-foreground">This week</span>
-          <div className="flex h-14 items-end gap-2" role="img" aria-label={`XP this week: ${weekXp.reduce((a, b) => a + b, 0)}`}>
-            {daysShort.map((dayLabel, idx) => {
-              const isToday = weekDates[idx] === v.today;
-              const xp = weekXp[idx];
-              const pct = xp > 0 ? Math.max(12, Math.round((xp / bestDay) * 100)) : 10;
-              return (
-                <div key={weekDates[idx]} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5" title={`${formatLong(weekDates[idx])}: ${xp} XP`}>
-                  <span
-                    className={`w-full rounded-full ${isToday ? "bg-primary" : xp > 0 ? "bg-primary-container" : "bg-surface-2"}`}
-                    style={{ height: `${pct}%` }}
-                  />
-                  <span className={`text-xs ${isToday ? "font-semibold text-foreground" : "text-muted"}`}>{dayLabel}</span>
-                </div>
-              );
-            })}
+          {/* Bars live in a fixed 56px area (their height is a share of the best day); labels sit below it,
+              so the labels never eat into the measured height. */}
+          <style>{`@keyframes zd-week-bar { from { scale: 1 0; } to { scale: 1 1; } }
+.zd-week-bar { transform-origin: bottom; animation: zd-week-bar 0.36s var(--ease-spring) backwards; }`}</style>
+          <div className="flex flex-col gap-1.5" role="img" aria-label={`XP this week: ${weekXp.reduce((a, b) => a + b, 0)}`}>
+            <div className="flex h-14 items-end gap-2">
+              {weekDates.map((date, idx) => {
+                const isToday = date === v.today;
+                const xp = weekXp[idx];
+                const share = Math.round((xp / bestDay) * 100);
+                return (
+                  <div key={date} className="flex h-full flex-1 items-end" title={`${formatLong(date)}: ${xp} XP`}>
+                    <span
+                      className={`zd-week-bar block w-full rounded-full ${isToday ? "bg-primary" : xp > 0 ? "bg-primary-container" : "bg-surface-2"}`}
+                      style={{ height: xp > 0 ? `max(10px, ${share}%)` : "6px", animationDelay: `${idx * 35}ms` }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2" aria-hidden="true">
+              {daysShort.map((dayLabel, idx) => (
+                <span key={weekDates[idx]} className={`flex-1 text-center text-xs ${weekDates[idx] === v.today ? "font-semibold text-foreground" : "text-muted"}`}>
+                  {dayLabel}
+                </span>
+              ))}
+            </div>
           </div>
         </section>
 

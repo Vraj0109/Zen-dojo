@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { tick } from "@/lib/haptics";
+import { motionOff } from "@/lib/motion";
 
 type Item = { el: HTMLElement; title: string; level: 1 | 2 };
 
@@ -18,14 +19,14 @@ let scrollAnim = 0;
 /**
  * Scroll to a heading with a short ease-out animation. Each frame is a plain instant scroll (the browser's own smooth
  * scrolling fights a finger that keeps dragging), and a new target replaces the one still animating, so fast dragging
- * stays smooth instead of piling up. Instant when the phone asks for reduced motion.
+ * stays smooth instead of piling up. Instant when motion is off (the system asks for reduced motion or Animations is off in Settings).
  */
 function jump(el: HTMLElement) {
   const target = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 72);
   cancelAnimationFrame(scrollAnim);
   const from = window.scrollY;
   const dist = target - from;
-  if (Math.abs(dist) < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (Math.abs(dist) < 2 || motionOff()) {
     window.scrollTo({ top: target, behavior: "instant" });
     return;
   }
@@ -160,7 +161,7 @@ export function SectionScrubber() {
       >
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-y-0 right-1 w-5 rounded-full bg-surface/80 backdrop-blur transition-opacity duration-150 ${focus === null ? "opacity-0" : "opacity-100"}`}
+          className={`pointer-events-none absolute inset-y-0 right-1 w-5 rounded-full bg-surface/80 backdrop-blur ${motionOff() ? "" : "transition-opacity duration-150"} ${focus === null ? "opacity-0" : "opacity-100"}`}
         />
         {focus !== null && (
           <div
@@ -184,7 +185,7 @@ export function SectionScrubber() {
                   width: base,
                   height: base,
                   transform: `translateX(${-m * 10}px) scale(${1 + m * 1.9})`,
-                  transition: focus === null ? "transform 160ms ease-out" : "none",
+                  transition: focus === null && !motionOff() ? "transform 160ms var(--ease-spring-soft)" : "none",
                 }}
               />
             </div>

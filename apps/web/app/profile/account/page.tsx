@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
 import { DeviceList, SignOutButton, SyncPanel } from "@/app/components/account-menu";
 import { DeleteCloudData, DeleteLocalData } from "./delete-data";
-import { ProfileTabs } from "../profile-ui";
+import { PROFILE_PAGE_CLASS } from "../shared";
 import { PageMain, buttonClass } from "../../ui";
 
 export const metadata: Metadata = { title: "Account" };
@@ -75,8 +75,7 @@ async function AccountBody() {
 
 export default function AccountPage() {
   return (
-    <PageMain title="Account" hideTitle>
-      <ProfileTabs active="/profile/account" />
+    <PageMain title="Account" hideTitle className={PROFILE_PAGE_CLASS}>
       <Suspense fallback={<div className="h-40 max-w-2xl rounded-[28px] border border-line bg-surface dark:border-0" />}>
         <AccountBody />
       </Suspense>

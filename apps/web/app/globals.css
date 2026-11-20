@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* The theme is <html data-theme="dark"> (set by the boot script, System mode included), not the OS setting: dark: follows it. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ---- Expressive design tokens (Material 3 Expressive, plan 0085) ----
    Colour: every colour has one role; pages use the Tailwind names (bg-surface, bg-surface-2, border-line,
    border-line-strong, border-outline, text-muted, bg-primary, hover:bg-primary-hover, bg-primary-container,
@@ -63,6 +66,18 @@
   --r-md: 16px;
   --r-lg: 24px;
   --r-xl: 32px;
+  --radius-xs: 4px;
+  --radius-xs: 4px;
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-lg);
+  --radius-3xl: var(--r-xl);
+  --radius-full: 9999px;
+  --radius-2xl: var(--r-lg);
+  --radius-3xl: var(--r-xl);
+  --radius-full: 9999px;
 
   --elev-sm: 0 1px 2px rgba(31, 26, 20, 0.06);
   --elev-lg: 0 8px 24px rgba(31, 26, 20, 0.12);
@@ -112,7 +127,7 @@
   --on-cat-beh: #ffddb2;
   --cat-mock: #8fd8b0;
   --on-cat-mock: #003822;
-  --cat-other: #6b7280;
+  --cat-other: #4b5563;
   --on-cat-other: #dee4de;
 
   --elev-sm: 0 0 #0000;
@@ -205,10 +220,14 @@
   --text-2xl--line-height: 2.25rem;
   --text-3xl: 2.25rem;
   --text-3xl--line-height: 2.75rem;
+  --radius-xs: 4px;
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-lg);
+  --radius-3xl: var(--r-xl);
+  --radius-full: 9999px;
   --shadow-sm: var(--elev-sm);
   --shadow-lg: var(--elev-lg);
   --shadow-menu: var(--elev-menu);
@@ -273,7 +292,7 @@ body {
 
 /* Focus reading: the first letters of each word in reading areas are bold (done by app/focus-reading.tsx). */
 :root[data-bionic="subtle"] .bionic-lead { font-weight: 600; }
-:root[data-bionic="strong"] .bionic-lead { font-weight: 700; }
+:root[data-bionic="strong"] .bionic-lead { font-weight: 600; }
 
 /* Code colours: used by Shiki (read-only code) and the CodeMirror editor, in light and dark. Checked against the code
    backgrounds (#ffffff light, #0d0e0d dark): comments are 4.5:1 or more in both (design-tokens.test.ts). */
@@ -320,7 +339,7 @@ body {
 .cp-prose table { display: block; overflow-x: auto; border-collapse: collapse; }
 .cp-prose th, .cp-prose td { border: 1px solid var(--line); padding: 0.35rem 0.6rem; text-align: left; }
 .cp-prose blockquote { border-left: 3px solid var(--line); padding-left: 1rem; color: var(--muted); }
-.cp-prose img { max-width: 100%; height: auto; background: #fff; border-radius: 0.5rem; }
+.cp-prose img { max-width: 100%; height: auto; background: var(--surface); border-radius: 0.5rem; }
 .cp-prose details { border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.5rem 0.9rem; background: var(--surface); }
 .cp-prose summary { cursor: pointer; font-weight: 500; }
 .cp-prose .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.25rem 0; }
@@ -377,6 +396,17 @@ html { scroll-behavior: smooth; scroll-padding-top: 1.25rem; }
   scroll-behavior: auto !important;
 }
 :root[data-motion="off"] { scroll-behavior: auto; }
+/* Before the boot script runs (or with scripts blocked) the OS setting decides. The script always sets data-theme; after
+   that data-motion is the truth (an explicit "On" removes the attribute while the OS says reduce). */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-theme]) *,
+  :root:not([data-theme]) *::before,
+  :root:not([data-theme]) *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* Problem pages: the sidebar is a slide-out, so the problem and the editor get the room. */
 .shell-compact { --pane-h: calc(100dvh - 8.5rem); height: 100dvh; overflow: hidden; }
@@ -427,7 +457,6 @@ html.zen-mode .zen-dim:hover { opacity: 1; }
    Uses the independent `scale` / `translate` properties so Tailwind's transform utilities keep working. Everything here
    is switched off by the data-motion="off" rule above (Settings > Animations, or reduced motion while that is Auto). */
 @keyframes zd-rise { from { translate: 0 10px; } to { translate: 0 0; } }
-@keyframes zd-pill-in { from { scale: 0.55 1; opacity: 0.4; } to { scale: 1 1; opacity: 1; } }
 @keyframes zd-pop-in { 0% { scale: 0.6; opacity: 0; } 100% { scale: 1; opacity: 1; } }
 
 /* Colour transitions keep their quick ease; scale and translate get a spring. Applies to Tailwind's transition-colors
@@ -444,12 +473,24 @@ html.zen-mode .zen-dim:hover { opacity: 1; }
 }
 
 /* Press: small things squish, big cards barely dip. Released, they spring back past 1 and settle. */
-:where(button, summary, [role="tab"], [role="menuitem"], [role="radio"], [role="switch"], a[class*="rounded-full"], a[class*="rounded-["], label[class*="rounded-full"]):not(:disabled, [aria-disabled="true"]):active {
+:where(button, [role="tab"], [role="menuitem"], [role="radio"], [role="switch"], a[class*="rounded-full"], label[class*="rounded-full"]):not(:disabled, [aria-disabled="true"], summary):active {
   scale: 0.94;
   transition-duration: 150ms, 150ms, 150ms, 150ms, 200ms, 150ms, 90ms, 90ms;
 }
 :where(.hit, a[class*="rounded-lg"], a[class*="rounded-[24px]"], a[class*="rounded-[28px]"], a[class*="rounded-[32px]"]):active {
   scale: 0.985;
+}
+/* Table rows, problem list items, and summaries: pure background-color feedback, no jumpy scales or translations */
+[data-practice-list],
+[data-practice-list] *,
+summary,
+table tr,
+li.group {
+  translate: none !important;
+}
+:where([data-practice-list] li, [data-practice-list] summary, [data-practice-list] a, summary, details > summary, table tr):active {
+  scale: 1 !important;
+  translate: none !important;
 }
 
 /* Hover (mouse only): pills grow a touch, cards lift. */
@@ -466,9 +507,27 @@ html.zen-mode .zen-dim:hover { opacity: 1; }
   }
 }
 
-/* The selected nav pill (rail, phone bar) and selected segmented tabs pop in when they change. */
-nav a[aria-current="page"] > span:first-child { animation: zd-pill-in 0.42s var(--ease-spring) both; }
-[role="tab"][aria-selected="true"], nav[aria-label="View"] a[aria-current="page"] { animation: zd-pill-in 0.38s var(--ease-spring) both; }
+/* Selected pills (nav rail, phone bar, tabs, segmented controls) slide between items: see app/sliding-pill.tsx.
+   Until the script has placed the pill, the active item keeps its own background (no-JS, first paint). */
+@layer components {
+  .sp { position: relative; isolation: isolate; }
+  .sp-pill {
+    position: absolute; top: 0; left: 0; z-index: -1; pointer-events: none; opacity: 0; will-change: transform;
+    transition: transform 380ms var(--ease-spring), width 300ms var(--ease-spring-soft), height 300ms var(--ease-spring-soft), opacity 150ms ease;
+  }
+  .sp[data-sp-ready] > .sp-pill { opacity: 1; }
+  .sp[data-sp-still] > .sp-pill { transition: none; }
+}
+.sp[data-sp-ready] [data-sp-on] { background-color: transparent !important; box-shadow: none !important; }
+.sp[data-sp-ready][data-sp-line] [data-sp-on] { border-color: transparent !important; }
+
+/* Tab content fades in (opacity only, 150ms, ease-out; no movement, so only the tab pill moves). Only for switches the
+   user just made: TabPanel (tab-panel.tsx) sets data-switched on a panel that replaces another; markTabSwitch() sets
+   html[data-tab-switch] for a moment around a tab click so in-page panes (judge workspace) fade too. Route tabs rely on
+   the page's own entry fade. Never on first load, and the global data-motion="off" rule switches all of it off. */
+@keyframes zd-tab-in { from { opacity: 0; } to { opacity: 1; } }
+.zd-tab-panel[data-switched] { animation: zd-tab-in 150ms ease-out backwards; }
+html[data-tab-switch] .zd-pane-panel { animation: zd-tab-in 150ms ease-out backwards; }
 /* Count badges and scallops pop. */
 nav a .absolute.rounded-full { animation: zd-pop-in 0.45s var(--ease-spring) 0.1s both; }
 
@@ -479,9 +538,11 @@ details::details-content {
   overflow-y: clip;
   transition: block-size 0.32s var(--ease-dojo), content-visibility 0.32s allow-discrete;
 }
-details[open]::details-content { block-size: auto; }
+details[open]::details-content { block-size: auto; overflow-y: visible; }
 details > summary [aria-hidden].transition-transform { transition: rotate 0.3s var(--ease-spring), transform 0.3s var(--ease-spring); }
 
+
+
 /* The page scroller scrolls smoothly to anchors, like the window used to. */
-#main { scroll-behavior: smooth; }
+#main { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 :root[data-motion="off"] #main { scroll-behavior: auto; }

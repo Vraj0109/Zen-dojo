@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorField } from "../code-editor";
 import { Diagram } from "../diagram";
 import { CopyButton } from "../copy-button";
+import { useConfirm } from "./confirm-dialog";
 import {
   addMainMethod,
   classNameOf,
@@ -16,6 +17,7 @@ import {
   type EntryClass,
   type EntryMode,
 } from "@/lib/judge/project-entry";
+import { SlidingPill } from "../sliding-pill";
 
 export type ProjectFile = { name: string; content: string };
 
@@ -178,6 +180,7 @@ export function ProjectEditor({
   const [notice, setNotice] = useState<RunNotice | null>(null);
   const [lastEntry, setLastEntry] = useState<EntryClass | null>(null);
   const runningRef = useRef(false);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   // Full-screen and side-drawer state
   const [fullscreen, setFullscreen] = useState(false);
@@ -412,6 +415,8 @@ export function ProjectEditor({
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") {
+        // Esc inside the confirm dialog only cancels the dialog.
+        if (e.target instanceof Element && e.target.closest("dialog[open]")) return;
         if (actionType) {
           e.preventDefault();
           setActionType(null);
@@ -567,10 +572,17 @@ export function ProjectEditor({
     }
   };
 
-  const deleteFile = () => {
+  const deleteFile = async () => {
+    if (flush().length <= 1) return;
+    const ok = await confirm({
+      title: `Delete ${active}?`,
+      body: "This file is removed from the project and cannot be restored.",
+      confirmLabel: "Delete file",
+      danger: true,
+    });
+    if (!ok) return;
     const current = flush();
     if (current.length <= 1) return;
-    if (!window.confirm(`Delete ${active}? This cannot be undone.`)) return;
     const index = current.findIndex((f) => f.name === active);
     const next = current.filter((f) => f.name !== active);
     filesRef.current = next;
@@ -580,8 +592,14 @@ export function ProjectEditor({
     focusEditor();
   };
 
-  const resetCode = () => {
-    if (!window.confirm("Reset every file to the starting code? Your changes will be lost.")) return;
+  const resetCode = async () => {
+    const ok = await confirm({
+      title: "Reset every file to the starting code?",
+      body: "Your changes to all files in this project will be lost.",
+      confirmLabel: "Reset code",
+      danger: true,
+    });
+    if (!ok) return;
     clearStored(resolvedKey);
     const target = initialFiles && initialFiles.length > 0 ? initialFiles : initialFilesRef.current;
     filesRef.current = target;
@@ -679,6 +697,7 @@ export function ProjectEditor({
           : "@container relative overflow-hidden rounded-[24px] border border-line bg-surface dark:border-0"
       }
     >
+      {confirmDialog}
       {noRun && (
         <div className="border-b border-line p-3">
           <HostedProjectNotice />
@@ -965,7 +984,7 @@ export function ProjectEditor({
         {/* Center: Tabs + CodeMirror Editor + Console */}
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden rounded-[24px] bg-surface">
           {/* File tabs */}
-          <div role="tablist" aria-label="Project files" className="flex max-md:hidden gap-1.5 p-2 overflow-x-auto shrink-0">
+          <SlidingPill role="tablist" aria-label="Project files" className="flex max-md:hidden gap-1.5 p-2 overflow-x-auto shrink-0">
             {files.map((f) => {
               const selected = f.name === activeFile?.name;
               const errors = diagnostics.filter((d) => d.file === f.name && d.severity === "error").length;
@@ -985,7 +1004,7 @@ export function ProjectEditor({
                 </button>
               );
             })}
-          </div>
+          </SlidingPill>
 
           {/* Phones: read-only fallback list */}
           <div className="space-y-2 p-3 md:hidden overflow-y-auto">

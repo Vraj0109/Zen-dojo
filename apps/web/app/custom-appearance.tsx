@@ -28,6 +28,7 @@ import {
 import { deleteFontFile, registerFont, saveFontFile } from "@/lib/font-store";
 import { STYLES, isNearDanger, type Palette as ThemePalette } from "@/lib/theme";
 import { Button, INPUT_CLASS, buttonClass } from "./ui";
+import { SlidingPill } from "./sliding-pill";
 
 // ---- storage (this browser or app window only) -------------------------------------------------------------------
 
@@ -111,7 +112,7 @@ function complete(p: Palette | undefined, base: ThemePalette, accent: string | u
 
 function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap rounded-full border border-line bg-surface-2 p-1">
+    <SlidingPill role="radiogroup" aria-label={label} className="inline-flex flex-wrap rounded-full border border-line bg-surface-2 p-1">
       {options.map(([v, text]) => (
         <button
           key={v}
@@ -126,7 +127,7 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
           {text}
         </button>
       ))}
-    </div>
+    </SlidingPill>
   );
 }
 

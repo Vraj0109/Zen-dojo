@@ -8,8 +8,10 @@ import { getAddedItems, type AddedGroup } from "@/lib/packs";
 import { getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
 import { Badge, PageMain, ProgressBar, StatusMark } from "../../ui";
 import { LearnBack } from "../../section-tabs";
+import { Tabs } from "../../tabs";
 import { deeperIds } from "../../toc-items";
 import { Confidence, fmtDate } from "../study-ui";
+import { TabPanel } from "../../tab-panel";
 import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 /** The study areas are fixed, so their pages are known at build time. */
@@ -128,24 +130,14 @@ async function Area({
         )}
       </section>
 
-      <nav aria-label="Course sections" className="max-w-full overflow-x-auto [scrollbar-width:none]">
-        <ul className="inline-flex gap-1 rounded-full bg-surface-2 p-1">
-          {tabs.map((t) => (
-            <li key={t.id}>
-              <Link
-                href={t.href}
-                scroll={false}
-                aria-current={t.id === tab ? "page" : undefined}
-                className={`inline-flex h-10 items-center whitespace-nowrap rounded-full px-[18px] text-sm font-medium transition-colors ${
-                  t.id === tab ? tone.bg : "text-muted hover:bg-surface hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <Tabs
+        tabs={tabs}
+        active={tab}
+        hrefFor={(id) => tabs.find((t) => t.id === id)?.href ?? base}
+        label="Course sections"
+      />
+
+      <TabPanel tab={tab} order={tabs.map((t) => t.id)} className="w-full space-y-8">
 
       {tab === "learn" && (
         <>
@@ -306,6 +298,7 @@ async function Area({
           <ScoringNote steps={area.exercises.steps} />
         </section>
       )}
+      </TabPanel>
     </div>
   );
 }

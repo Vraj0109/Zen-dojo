@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, elapsedAt, minutesToLog, newTimer, parseTimer, pauseTimer, reachedTarget, resumeTimer, serializeTimer, withTarget } from "./timer-math";
+import { clock, elapsedAt, minutesToLog, newTimer, parseTimer, pauseTimer, reachedTarget, resumeTimer, serializeTimer, sessionOutcome, withTarget } from "./timer-math";
 
 const item = { itemId: "lc-1", label: "1. Two Sum", href: "/dsa/lc-1", targetMinutes: 25 };
 const MIN = 60_000;
@@ -60,5 +60,21 @@ describe("timer math", () => {
     expect(parseTimer(JSON.stringify({ ...newTimer(item, 0), href: "https://evil.example" }))).toBeNull();
     expect(parseTimer(JSON.stringify({ ...newTimer(item, 0), elapsedMs: -5 }))).toBeNull();
     expect(parseTimer(serializeTimer(newTimer(item, 0)))).not.toBeNull();
+  });
+});
+
+describe("session outcome", () => {
+  it("keeps a session open until the countdown reaches 0", () => {
+    const t = newTimer(item, 0);
+    expect(sessionOutcome(t, 24 * MIN).ended).toBe(false);
+    expect(sessionOutcome(t, 25 * MIN)).toEqual({ ended: true, fresh: true, minutes: 25 });
+  });
+
+  it("ends a stale session quietly and caps the minutes at the target", () => {
+    const t = newTimer(item, 0);
+    expect(sessionOutcome(t, 5 * 60 * MIN)).toEqual({ ended: true, fresh: false, minutes: 25 });
+    // paused with the target already lowered below the elapsed time
+    const paused = pauseTimer(newTimer({ ...item, targetMinutes: 45 }, 0), 30 * MIN);
+    expect(sessionOutcome(withTarget(paused, 20), 99 * MIN).ended).toBe(true);
   });
 });

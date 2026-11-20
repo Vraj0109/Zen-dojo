@@ -133,7 +133,7 @@ async function Gallery() {
           {all.map((d) => {
             const ex = ALL_EXERCISES[d.itemId];
             const tone = getTone(ex?.area);
-            const href = ex ? `${studyHref(ex.area, ex.id)}#diagrams` : null;
+            const href = ex ? `${studyHref(ex.area, ex.id)}?tab=turn#diagrams` : null;
             const open = d.hasImage ? `/api/diagrams/${d.id}` : d.url;
 
             return (

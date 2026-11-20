@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { matchSettings, type SettingsCategory, type SettingsEntry } from "./settings-search";
+import { SlidingPill } from "../../sliding-pill";
 
 const ICONS: Record<string, string> = {
   appearance: "M12 3a9 9 0 100 18 4 4 0 004-4c0-1.5-1-2-2-2h-1a2 2 0 01-2-2c0-1 1-2 1-3 0-3-2-7-5-7z",
@@ -97,7 +98,7 @@ export function SettingsShell({
     const el = document.getElementById(id);
     if (!el) return;
     e.preventDefault();
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduce = document.documentElement.dataset.motion === "off" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     history.replaceState(null, "", `#${id}`);
     setActive(id);
@@ -138,8 +139,10 @@ export function SettingsShell({
 
       {/* The section list: sticky on the left from 980px of content width, a wrapping row of pills below that. */}
       <div className="flex flex-col items-start gap-5 @min-[980px]:flex-row @min-[980px]:gap-8">
-        <nav
+        <SlidingPill
+          as="nav"
           aria-label="Settings sections"
+          pillClassName="rounded-full bg-primary-soft"
           className="w-full shrink-0 @min-[980px]:sticky @min-[980px]:top-6 @min-[980px]:w-56 @min-[980px]:self-start"
         >
           <ul className="flex flex-wrap gap-1.5 @min-[980px]:flex-col @min-[980px]:gap-1">
@@ -161,7 +164,7 @@ export function SettingsShell({
               </li>
             ))}
           </ul>
-        </nav>
+        </SlidingPill>
 
         <div className="flex-1 min-w-0 w-full">
           {searching && matched.size === 0 && (

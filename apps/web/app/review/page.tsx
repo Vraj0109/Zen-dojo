@@ -67,6 +67,8 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
   const { dueToday, backlog } = splitReviewQueue(queue);
   const items = applySkips(dueToday, skipped);
   const [next, ...rest] = items;
+  const showAnswer = (Array.isArray(params.show) ? params.show[0] : params.show) === "1";
+  const showHref = `/review?${skipped.length > 0 ? `skip=${encodeURIComponent(skipped.join(","))}&` : ""}show=1`;
   const skipHref = (i: ReviewItem) => `/review?skip=${encodeURIComponent([...skipped.filter((s) => s !== keyOf(i)), keyOf(i)].join(","))}`;
 
   const today = toLocalDate();
@@ -118,10 +120,13 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
             {/* The main card with stack behind */}
             <div className="min-w-0 flex-[999_1_420px]">
               <ReviewCard
+                key={keyOf(next)}
                 item={next}
                 index={1}
                 total={items.length}
                 skipHref={skipHref(next)}
+                showHref={showHref}
+                initialFlipped={showAnswer}
                 itemHref={itemHref(next)}
                 subjectLabel={SUBJECT_LABEL[currentSubject]}
                 subjectClass={SUBJECT_TONE[currentSubject]}
@@ -132,7 +137,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
 
             {/* Aside: Up next & streak card */}
             <aside aria-label="Next in the queue" className="flex min-w-0 flex-[1_1_260px] flex-col gap-2">
-              <span className="text-base font-medium">Up next</span>
+              <h2 className="text-base font-medium">Up next</h2>
               {rest.length === 0 ? (
                 <div className="rounded-[20px] border border-line bg-surface p-4 text-sm text-muted dark:border-0">
                   No other cards due today. Finish this one to clear the queue.

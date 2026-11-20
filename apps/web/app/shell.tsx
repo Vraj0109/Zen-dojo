@@ -2,15 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { APPEARANCE_AT_KEY, THEME_EVENT, appearanceDecision, applyTheme, readStoredAppearance, sameAppearance, type Appearance } from "@/lib/theme";
 import { CUSTOM_EVENT } from "@/lib/custom";
 import { SYNC_PULLED_EVENT } from "@/lib/sync-manager";
 import { setAppearanceSyncPaused } from "@/lib/appearance-sync-state";
 import { getZenMode, initZenMode, setZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
 import { getAppearanceAction, getSyncAccountStateAction, setAppearanceAction } from "./actions";
-import { HistoryButtons } from "./history-buttons";
-import { SyncStatusPill } from "./components/sync-status";
 import { PhoneNavBar } from "./nav";
 import { ShortcutsSheet } from "./components/shortcuts-sheet";
 import { StudyModeSuggestion } from "./components/phone-study";
@@ -25,9 +23,6 @@ export function isFocusPage(pathname: string | null): boolean {
 type ShellProps = {
   aside: ReactNode;
   children: ReactNode;
-  account?: ReactNode;
-  /** Streak chip for the phone header (server-rendered, streams in). */
-  streak?: ReactNode;
   /** Slim notice bar at the top of the content area (the guest notice). */
   notice?: ReactNode;
 };
@@ -40,6 +35,18 @@ export function Shell(props: ShellProps) {
   );
 }
 
+/** First thing in the tab order: lets keyboard users jump past the rail to the page. Visible only while focused. */
+function SkipLink() {
+  return (
+    <a
+      href="#main"
+      className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-[100] focus-visible:inline-flex focus-visible:h-11 focus-visible:items-center focus-visible:rounded-full focus-visible:bg-primary focus-visible:px-5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-on-primary focus-visible:shadow-menu focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary print:hidden"
+    >
+      Skip to main content
+    </a>
+  );
+}
+
 const BAR_PAD = "max-md:pb-[calc(5rem+env(safe-area-inset-bottom))]";
 
 /** FullShell: the fixed frame. From md up the 96px rail never scrolls and <main> is the only scroll area (an
@@ -47,6 +54,7 @@ const BAR_PAD = "max-md:pb-[calc(5rem+env(safe-area-inset-bottom))]";
 function FullShell({ aside, children, pathname = null, notice }: ShellProps & { pathname?: string | null }) {
   return (
     <div className={`md:flex md:h-dvh md:overflow-clip print:block print:h-auto print:overflow-visible ${BAR_PAD}`}>
+      <SkipLink />
       {aside}
       <main
         id="main"
@@ -62,12 +70,25 @@ function FullShell({ aside, children, pathname = null, notice }: ShellProps & { 
   );
 }
 
-function ShellInner({ aside, children, account, notice }: ShellProps) {
+function ShellInner({ aside, children, notice }: ShellProps) {
   const pathname = usePathname();
   const compact = isFocusPage(pathname);
   const [openFor, setOpenFor] = useState<string | null>(null);
   const open = openFor === pathname;
   const zen = useSyncExternalStore(subscribeZen, getZenMode, () => false);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+
+  // Drawer focus: move into it when it opens, give focus back to whatever opened it when it closes.
+  useEffect(() => {
+    if (open) {
+      returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      drawerRef.current?.querySelector<HTMLElement>("a[href], button:not([disabled])")?.focus();
+    } else if (returnFocus.current) {
+      returnFocus.current.focus();
+      returnFocus.current = null;
+    }
+  }, [open]);
 
   useEffect(() => {
     initZenMode();
@@ -195,6 +216,7 @@ function ShellInner({ aside, children, account, notice }: ShellProps) {
   if (pathname === "/login") {
     return (
       <div className="min-h-dvh md:h-dvh md:overflow-y-auto">
+        <SkipLink />
         <main id="main" className="min-h-dvh">
           {children}
         </main>
@@ -211,69 +233,43 @@ function ShellInner({ aside, children, account, notice }: ShellProps) {
     );
   }
 
+  // Focus pages (a problem and its editor): the workspace has its own header with a back button, so from md up there is
+  // no bar here and the nav drawer opens with Ctrl+B. Phones get a slim bar with just the way back.
+  const backToLearn = pathname?.startsWith("/study/");
   return (
     <div className={`shell-compact flex min-h-full flex-col md:h-dvh md:overflow-hidden [--pane-h:calc(100dvh-7.75rem)] max-md:[--pane-h:calc(100dvh-11.25rem)] ${BAR_PAD}`}>
-      <div className="sticky top-0 z-30 flex h-9 items-center gap-1 max-md:h-12 border-b border-line dark:border-0 bg-surface px-3 print:hidden md:hidden">
-        <button
-          type="button"
-          onClick={() => setOpenFor(open ? null : pathname)}
-          aria-expanded={open}
-          aria-controls="shell-drawer"
-          aria-label="Menu"
-          title="Menu (Ctrl+B)"
-          className="grid size-8 place-items-center rounded-full text-muted hover:bg-background hover:text-foreground max-md:hidden"
-        >
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <div className="[&_button]:size-8 [&_button]:rounded-full [&_button]:border-0 max-md:hidden">
-          <HistoryButtons />
-        </div>
+      <SkipLink />
+      <div
+        inert={open}
+        className="sticky top-0 z-30 flex h-12 items-center gap-1 border-b border-line dark:border-0 bg-surface px-3 print:hidden md:hidden"
+      >
         <Link
-          href={pathname?.startsWith("/study/") ? "/study" : "/dsa"}
-          aria-label={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
-          title={pathname?.startsWith("/study/") ? "Back to Learn" : "Back to Practice"}
-          className="grid size-8 place-items-center rounded-full text-sm text-muted hover:bg-background hover:text-foreground max-md:flex max-md:h-10 max-md:w-auto max-md:items-center max-md:gap-2 max-md:px-2"
+          href={backToLearn ? "/study" : "/dsa"}
+          aria-label={backToLearn ? "Back to Learn" : "Back to Practice"}
+          className="flex h-11 items-center gap-2 rounded-full px-3 text-sm text-muted hover:bg-background hover:text-foreground"
         >
           <span aria-hidden>↩</span>
-          <span className="hidden text-sm font-medium max-md:inline">{pathname?.startsWith("/study/") ? "Learn" : "Practice"}</span>
+          <span className="text-sm font-medium">{backToLearn ? "Learn" : "Practice"}</span>
         </Link>
-        <button
-          type="button"
-          onClick={toggleZenMode}
-          aria-pressed={zen}
-          aria-label="Zen mode"
-          title="Zen mode: focus purely on problem and code (Ctrl+Shift+Z)"
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors max-md:hidden ${
-            zen ? "bg-accent text-on-accent" : "text-muted hover:bg-background hover:text-foreground"
-          }`}
-        >
-          <span aria-hidden className="inline-block size-1.5 rounded-full bg-current" />
-          <span>Zen</span>
-        </button>
-        {zen && <span className="text-[11px] text-muted italic ml-1 max-md:hidden">focus mode (Esc to exit)</span>}
-        <div className="ml-auto flex items-center gap-1.5 max-md:hidden">
-          <SyncStatusPill compact />
-          {account}
-        </div>
+        {zen && <span className="ml-auto text-xs text-muted italic">Focus mode (Esc to exit)</span>}
       </div>
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fixed inset-0 z-40 bg-foreground/40 transition-opacity duration-200 ease-[var(--ease-spring-soft)] ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={() => setOpenFor(null)}
         aria-hidden
       />
       <div
         id="shell-drawer"
+        ref={drawerRef}
         inert={!open}
-        className={`drawer-panel fixed inset-y-0 left-0 z-50 w-24 overflow-y-auto border-r border-line bg-surface shadow-menu transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`drawer-panel fixed inset-y-0 left-0 z-50 w-24 overflow-y-auto border-r border-line bg-surface shadow-menu transition-transform duration-200 ease-[var(--ease-spring-soft)] ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         {aside}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto @container">
+      <main id="main" inert={open} className="flex min-w-0 flex-1 flex-col overflow-y-auto @container">
         <StudyModeSuggestion />
         {children}
-      </div>
+      </main>
       {!zen && <PhoneNavBar pathname={pathname} />}
       <ShortcutsSheet />
     </div>

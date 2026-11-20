@@ -166,7 +166,7 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
                 <h3 className="font-semibold">{c.label}</h3>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                    c.found ? "border-green-600/40 text-green-600 dark:text-green-400" : "border-transparent bg-danger-soft text-on-danger-soft"
+                    c.found ? "border-success/40 text-success" : "border-transparent bg-danger-soft text-on-danger-soft"
                   }`}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

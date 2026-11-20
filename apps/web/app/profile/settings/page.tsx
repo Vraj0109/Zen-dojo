@@ -17,7 +17,7 @@ import { ThemePicker } from "../../theme-picker";
 import { AppearanceSyncNote } from "@/app/components/appearance-sync-note";
 import { PageMain, buttonClass } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
-import { ProfileTabs } from "../profile-ui";
+import { PROFILE_PAGE_CLASS } from "../shared";
 import { FeedUpdater } from "./feed-updater";
 import { AiSettings } from "./ai-settings";
 import { BuddyAppearance } from "./buddy-appearance";
@@ -80,8 +80,7 @@ const ENTRIES: SettingsEntry[] = [
 
 export default function SettingsPage({ searchParams }: PageProps<"/profile/settings">) {
   return (
-    <PageMain title="Settings" hideTitle>
-      <ProfileTabs active="/profile/settings" />
+    <PageMain title="Settings" hideTitle className={PROFILE_PAGE_CLASS}>
       <SettingsShell categories={CATEGORIES} entries={ENTRIES}>
         <SettingsBlock id="appearance" title="Appearance and reading">
           <SettingsSection id="theme" scope="sync">

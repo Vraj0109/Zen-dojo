@@ -16,9 +16,12 @@ import { CaseIcon, ToolSetupHint, caseLabel } from "./judge-panel";
 import { isSetupProblem } from "@/lib/judge/setup-hint";
 import { LayoutSwitcher, PaneLayout, type PaneId } from "./pane-layout";
 import { buttonClass } from "./ui";
+import { SlidingPill } from "./sliding-pill";
+import { markTabSwitch } from "./tab-panel";
 import Link from "next/link";
 import { ProblemMicroSteps } from "./problem-micro-steps";
 import { openShortcutsSheet } from "./components/shortcuts-sheet";
+import { useConfirm } from "./components/confirm-dialog";
 import {
   consoleText,
   formatInputs,
@@ -214,9 +217,10 @@ function PaneTabs<T extends string>({
   onPick: (id: T) => void;
 }) {
   return (
-    <div
+    <SlidingPill
       role="tablist"
       aria-label={label}
+      pillClassName="rounded-full bg-primary-soft"
       className="flex h-full touch-pan-x items-center gap-1.5 overflow-x-auto overflow-y-hidden py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((t) => (
@@ -225,7 +229,10 @@ function PaneTabs<T extends string>({
           type="button"
           role="tab"
           aria-selected={t.id === active}
-          onClick={() => onPick(t.id)}
+          onClick={() => {
+            if (t.id !== active) markTabSwitch();
+            onPick(t.id);
+          }}
           className={`inline-flex h-8 shrink-0 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors duration-120 ${
             t.id === active
               ? "bg-primary-soft text-on-primary-soft font-semibold"
@@ -238,7 +245,7 @@ function PaneTabs<T extends string>({
           )}
         </button>
       ))}
-    </div>
+    </SlidingPill>
   );
 }
 
@@ -414,6 +421,7 @@ export function JudgeWorkspace({
   const router = useRouter();
   const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE_QUERY).matches, () => false);
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const zen = useSyncExternalStore(subscribeZen, getZenMode, () => false);
 
 
@@ -721,6 +729,8 @@ export function JudgeWorkspace({
     if (readOnly || phone) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return;
+      // A confirm dialog is open: the page behind it is inert, so its shortcuts stay quiet too.
+      if (e.target instanceof Element && e.target.closest("dialog[open]")) return;
       const action = shortcutFor(e, isMac);
       if (!action) return;
       if (action === "shortcuts") {
@@ -821,7 +831,14 @@ export function JudgeWorkspace({
     setEditingCase(null);
   };
 
-  const deleteEditingCase = (myCaseIdx: number) => {
+  const deleteEditingCase = async (myCaseIdx: number) => {
+    const ok = await confirm({
+      title: `Delete My case ${myCaseIdx + 1}?`,
+      body: "The saved case and its result are removed. Your other cases keep their inputs.",
+      confirmLabel: "Delete case",
+      danger: true,
+    });
+    if (!ok) return;
     const next = myCases.filter((_, i) => i !== myCaseIdx);
     saveMyCasesToStorage(next);
     // The cases after it move up one place, so their old results would land on the wrong tab.
@@ -862,8 +879,14 @@ export function JudgeWorkspace({
     setResult(null);
   }
 
-  function reset() {
-    if (!window.confirm("Replace your code with the starter code?")) return;
+  async function reset() {
+    const ok = await confirm({
+      title: "Replace your code with the starter code?",
+      body: "Your current code in this language is discarded. Saved solutions and last runs are kept.",
+      confirmLabel: "Reset code",
+      danger: true,
+    });
+    if (!ok) return;
     store.remove(codeKey(id, lang));
     setResetCount((n) => n + 1);
     setResult(null);
@@ -889,7 +912,7 @@ export function JudgeWorkspace({
   const problemPane = (
     <div className="p-4">
       {effectiveTabs.map((t) => (
-        <div key={t.id} role="tabpanel" aria-label={t.label} hidden={t.id !== active.id} className="anim-fade-up">
+        <div key={t.id} role="tabpanel" aria-label={t.label} hidden={t.id !== active.id} className="zd-pane-panel">
           {t.id === "notes" ? (
             <LastRuns runs={runs} saved={savedSolutions} onLoad={loadSaved} readOnly={readOnly}>
               {t.node}
@@ -996,13 +1019,13 @@ export function JudgeWorkspace({
   const codePane = (
     <div className="flex h-full min-h-0 flex-col">
       {blockedBanner && (
-        <div role="alert" className="flex shrink-0 items-start justify-between gap-2 border-b border-line bg-warning/10 p-2.5 text-xs text-foreground">
-          <p>{blockedBanner}</p>
+        <div role="alert" className="flex shrink-0 items-start justify-between gap-2 border-b border-line bg-warning/10 py-1 pr-1 pl-2.5 text-xs text-foreground">
+          <p className="py-2.5">{blockedBanner}</p>
           <button
             type="button"
             onClick={() => setBlockedBanner(null)}
             aria-label="Dismiss banner"
-            className="rounded-sm px-1.5 py-0.5 text-muted hover:bg-surface-2 hover:text-foreground"
+            className="grid size-10 shrink-0 place-items-center rounded-full text-base text-muted hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             ×
           </button>
@@ -1066,8 +1089,8 @@ export function JudgeWorkspace({
               {!isNew && (
                 <button
                   type="button"
-                  onClick={() => deleteEditingCase(editingCase.index)}
-                  className="inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-danger hover:bg-danger-soft"
+                  onClick={() => void deleteEditingCase(editingCase.index)}
+                  className={buttonClass("danger", "sm")}
                 >
                   Delete case
                 </button>
@@ -1075,7 +1098,7 @@ export function JudgeWorkspace({
               <button
                 type="button"
                 onClick={() => setEditingCase(null)}
-                className={buttonClass("quiet", "sm", "h-8 px-3")}
+                className={buttonClass("quiet", "sm")}
               >
                 Cancel
               </button>
@@ -1150,13 +1173,13 @@ export function JudgeWorkspace({
           actions={
             isMine && !readOnly ? (
               <span className="flex items-center gap-1">
-                <button type="button" onClick={() => startEditCase(myCaseIdx)} className={buttonClass("quiet", "sm", "h-8 px-3")}>
+                <button type="button" onClick={() => startEditCase(myCaseIdx)} className={buttonClass("quiet", "sm")}>
                   Edit
                 </button>
                 <button
                   type="button"
-                  onClick={() => deleteEditingCase(myCaseIdx)}
-                  className="inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-danger hover:bg-danger-soft"
+                  onClick={() => void deleteEditingCase(myCaseIdx)}
+                  className={buttonClass("danger", "sm")}
                 >
                   Delete
                 </button>
@@ -1257,7 +1280,27 @@ export function JudgeWorkspace({
       )}
 
       {/* Case tabs */}
-      <div role="tablist" aria-label="Cases" className="flex flex-wrap items-center gap-1.5">
+      <div
+        role="tablist"
+        aria-label="Cases"
+        className="flex flex-wrap items-center gap-1.5"
+        onKeyDown={(e) => {
+          // Roving tabindex: arrows, Home and End move between the case tabs (the Add case button is not a tab).
+          if (e.altKey || e.ctrlKey || e.metaKey) return;
+          const delta = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+          if (!delta && e.key !== "Home" && e.key !== "End") return;
+          const tabs = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'));
+          const at = tabs.indexOf(document.activeElement as HTMLElement);
+          if (at < 0 || tabs.length === 0) return;
+          e.preventDefault();
+          const to = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : (at + delta + tabs.length) % tabs.length;
+          const target = displayCases[to];
+          if (!target) return;
+          setEditingCase(null);
+          setSelectedKey(caseKey(target));
+          tabs[to].focus();
+        }}
+      >
         {/* Alt+arrows and Alt+1-9 move between these tabs (see the ? sheet). */}
         {displayCases.map((c, i) => {
           const isSelected = i === activeCaseIndex && !editingCase;
@@ -1267,12 +1310,13 @@ export function JudgeWorkspace({
               type="button"
               role="tab"
               aria-selected={isSelected}
+              tabIndex={isSelected || (!!editingCase && i === 0) ? 0 : -1}
               onClick={() => {
                 setEditingCase(null);
                 setSelectedKey(caseKey(c));
               }}
               title={c.label}
-              className={`inline-flex h-[34px] max-w-full items-center gap-2 rounded-[12px] px-3 text-[13px] font-medium transition-colors duration-120 ${
+              className={`inline-flex h-10 max-w-full items-center gap-2 rounded-[12px] px-3 text-[13px] font-medium transition-colors duration-120 [@media(pointer:coarse)]:h-11 ${
                 isSelected
                   ? "bg-primary-soft text-on-primary-soft"
                   : "bg-surface-2 text-muted hover:text-foreground"
@@ -1293,7 +1337,7 @@ export function JudgeWorkspace({
           <button
             type="button"
             onClick={startAddCase}
-            className={`inline-flex h-[34px] items-center rounded-[12px] border border-dashed border-line-strong px-3 text-[13px] font-medium text-muted transition-colors hover:text-foreground ${
+            className={`inline-flex h-10 items-center rounded-[12px] border border-dashed [@media(pointer:coarse)]:h-11 border-line-strong px-3 text-[13px] font-medium text-muted transition-colors hover:text-foreground ${
               editingCase && editingCase.index === -1 ? "border-primary text-primary" : ""
             }`}
           >
@@ -1309,10 +1353,10 @@ export function JudgeWorkspace({
 
   const resultsPane = (
     <div className="px-4 pt-1 pb-4">
-      <div role="tabpanel" aria-label="Cases" hidden={resultsTab !== "cases"}>
+      <div role="tabpanel" aria-label="Cases" hidden={resultsTab !== "cases"} className="zd-pane-panel">
         {casesPanel}
       </div>
-      <div role="tabpanel" aria-label="Last runs" hidden={resultsTab !== "runs"}>
+      <div role="tabpanel" aria-label="Last runs" hidden={resultsTab !== "runs"} className="zd-pane-panel">
         {runsPanel}
       </div>
     </div>
@@ -1370,7 +1414,7 @@ export function JudgeWorkspace({
               type="button"
               onClick={() => void runCodeAction("run")}
               disabled={running !== null || !hydrated}
-              title="Run the examples and your own cases"
+              title={hydrated ? "Run the examples and your own cases" : "Starting the editor. Run is ready in a moment."}
               aria-keyshortcuts={isMac ? "Meta+'" : "Control+'"}
               className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-primary-soft px-4.5 text-[15px] font-medium text-on-primary-soft transition-transform hover:bg-primary-soft/80 active:scale-95 disabled:opacity-50"
             >
@@ -1394,7 +1438,7 @@ export function JudgeWorkspace({
               type="button"
               onClick={() => void runCodeAction("submit")}
               disabled={running !== null || !hydrated}
-              title="Run every case, including the extra tests and large inputs, and save when all pass"
+              title={hydrated ? "Run every case, including the extra tests and large inputs, and save when all pass" : "Starting the editor. Submit is ready in a moment."}
               aria-keyshortcuts={isMac ? "Meta+Enter" : "Control+Enter"}
               className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-medium text-on-primary transition-transform hover:bg-primary-hover active:scale-95 disabled:opacity-50"
             >
@@ -1435,7 +1479,7 @@ export function JudgeWorkspace({
           >
             <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${pass === undefined ? "bg-line-strong" : pass ? "bg-success" : "bg-danger"}`} />
             <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
-            <span className="sr-only">{pass ? "passed" : "failed"}</span>
+            <span className="sr-only">{pass === undefined ? "not run" : pass ? "passed" : "failed"}</span>
             {meta && <span className="shrink-0 text-[13px] text-muted tabular-nums">{meta}</span>}
           </button>
           {open && <div className="border-t border-line px-4 py-3">{detail}</div>}
@@ -1464,7 +1508,7 @@ export function JudgeWorkspace({
               </div>
             )}
             {readTabs.map((t) => (
-              <div key={t.id} role="tabpanel" aria-label={t.label} hidden={t.id !== readActive.id} className="min-w-0">
+              <div key={t.id} role="tabpanel" aria-label={t.label} hidden={t.id !== readActive.id} className="zd-pane-panel min-w-0">
                 {t.node}
               </div>
             ))}
@@ -1547,6 +1591,7 @@ export function JudgeWorkspace({
   // The workspace is its own size container: key hints and the layout switcher follow its width, not the window's.
   return (
     <div className="@container flex flex-1 flex-col gap-2">
+      {confirmDialog}
       {bar}
       <PaneLayout
         maximised={maximised}

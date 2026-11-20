@@ -199,7 +199,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
                   {Object.entries(BOSS_RESULTS).map(([k, label]) => (
                     <label
                       key={k}
-                      className="flex min-h-10 cursor-pointer items-center rounded-full border border-line-strong px-3.5 text-sm transition-colors duration-120 hover:bg-surface-2 has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:checked]:font-medium has-[:checked]:text-primary"
+                      className="flex min-h-10 cursor-pointer items-center rounded-full border border-line-strong px-3.5 text-sm transition-colors duration-120 hover:bg-surface-2 has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:checked]:font-medium has-[:checked]:text-on-primary-soft has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary"
                     >
                       <input type="radio" name={`result:${p.id}`} value={k} required className="sr-only" />
                       {label}

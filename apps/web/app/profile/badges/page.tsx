@@ -3,14 +3,13 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getStats } from "@/lib/stats";
 import { PageMain, ProgressBar, Scallop, Skeleton, StatusMark } from "../../ui";
-import { ProfileTabs } from "../profile-ui";
+import { PROFILE_PAGE_CLASS } from "../shared";
 
 export const metadata: Metadata = { title: "Badges" };
 
 export default function BadgesPage() {
   return (
-    <PageMain title="Badges" hideTitle>
-      <ProfileTabs active="/profile/badges" />
+    <PageMain title="Badges" hideTitle className={PROFILE_PAGE_CLASS}>
       <p className="mb-4 text-sm text-muted [[data-gamify=on]_&]:hidden">Badges are part of the game features. Turn them on in Settings to see them.</p>
       <div className="gamify-only">
         <Suspense

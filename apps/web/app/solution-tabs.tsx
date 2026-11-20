@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useSyncExternalStore, type ReactNode } from "react";
+import { SlidingPill } from "./sliding-pill";
 
 // Language tabs for the reference solution (plan 0063). The code of every language is highlighted on the server and
 // passed in as ready nodes; this component only decides which one to show and remembers the last choice.
@@ -46,7 +47,7 @@ export function SolutionTabs({ tabs }: { tabs: SolutionTab[] }) {
   return (
     <div>
       {tabs.length > 1 && (
-        <div role="tablist" aria-label="Solution language" className="mb-2 flex gap-5 border-b border-line">
+        <SlidingPill line pillClassName="bg-accent" role="tablist" aria-label="Solution language" className="mb-2 flex gap-5 border-b border-line">
           {tabs.map((t) => {
             const on = t.id === active.id;
             return (
@@ -64,7 +65,7 @@ export function SolutionTabs({ tabs }: { tabs: SolutionTab[] }) {
               </button>
             );
           })}
-        </div>
+        </SlidingPill>
       )}
       <div role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${active.id}`}>
         {active.node}

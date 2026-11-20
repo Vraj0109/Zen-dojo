@@ -422,6 +422,8 @@ custom();
 var CV=${JSON.stringify(CUSTOM_THEME_VARS)};
 function hex(v){return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)}
 function lum(h){var c=[1,3,5].map(function(i){var x=parseInt(h.substr(i,2),16)/255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4)});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]}
+function mixh(a,b,w){var r="#";for(var i=1;i<7;i+=2){var x=Math.round(parseInt(a.substr(i,2),16)*(1-w)+parseInt(b.substr(i,2),16)*w);r+=(x<16?"0":"")+x.toString(16)}return r}
+function ink(bg){return lum(bg)>0.179?"#000000":"#ffffff"}
 function custom(){
 if(!d.style)return;
 for(var i=0;i<CV.length;i++)d.style.removeProperty(CV[i]);
@@ -429,6 +431,7 @@ var t=null;try{var raw=read("habit-custom-theme");t=raw?JSON.parse(raw):null}cat
 var dk=d.getAttribute("data-theme")==="dark";
 var p=t&&t[dk?"dark":"light"];if(!p||typeof p!=="object")p=null;
 var dg=p&&hex(p.danger)?p.danger:null;
+var sf=p&&hex(p.surface)?p.surface:(dk?"#1b211e":"#ffffff"),bgc=p&&hex(p.background)?p.background:(dk?"#0f1512":"#f6fbf5");
 var pr=p&&hex(p.primary)?p.primary:t&&hex(t.accent)?t.accent:null;
 if(pr&&pr!==dg){
   d.style.setProperty("--primary",pr);
@@ -436,16 +439,18 @@ if(pr&&pr!==dg){
   d.style.setProperty("--primary-hover","color-mix(in oklab, "+pr+" 92%, "+(dk?"white":"black")+")");
   d.style.setProperty("--primary-soft","color-mix(in oklab, "+pr+" 14%, var(--surface))");
   d.style.setProperty("--primary-container","color-mix(in oklab, "+pr+" 25%, var(--background))");
-  d.style.setProperty("--on-primary-soft",dk?"#ffffff":"#000000");
-  d.style.setProperty("--on-primary-container",dk?"#ffffff":"#000000");
+  d.style.setProperty("--on-primary-soft",ink(mixh(pr,sf,0.86)));
+  d.style.setProperty("--on-primary-container",ink(mixh(pr,bgc,0.75)));
 }
 if(p){
   tokens.forEach(function(k){if(k!=="primary"&&hex(p[k]))d.style.setProperty("--"+k,p[k])});
   if(hex(p["surface-2"])&&hex(p.line)&&!hex(p["line-strong"]))d.style.setProperty("--line-strong","color-mix(in oklab, "+p.line+" 80%, "+p.foreground+")");
   if(hex(p.reward)&&!hex(p["reward-soft"]))d.style.setProperty("--reward-soft","color-mix(in oklab, "+p.reward+" 16%, var(--surface))");
-  if(!hex(p["on-reward-soft"]))d.style.setProperty("--on-reward-soft",hex(p["reward-soft"])&&lum(p["reward-soft"])>0.179?"#000000":"#ffffff");
+  var rs=hex(p["reward-soft"])?p["reward-soft"]:hex(p.reward)?mixh(p.reward,sf,0.84):null;
+  if(rs&&!hex(p["on-reward-soft"]))d.style.setProperty("--on-reward-soft",ink(rs));
   if(!hex(p["danger-soft"])&&hex(p.danger))d.style.setProperty("--danger-soft","color-mix(in oklab, "+p.danger+" 15%, var(--background))");
-  if(!hex(p["on-danger-soft"]))d.style.setProperty("--on-danger-soft",dk?"#ffffff":"#000000");
+  var ds=hex(p["danger-soft"])?p["danger-soft"]:hex(p.danger)?mixh(p.danger,bgc,0.85):null;
+  if(ds&&!hex(p["on-danger-soft"]))d.style.setProperty("--on-danger-soft",ink(ds));
   if(!hex(p.outline))d.style.setProperty("--outline","color-mix(in oklab, var(--foreground) 50%, var(--background))");
 }
 var FC=${JSON.stringify(CUSTOM_FONT_CSS)},fo=t&&t.fonts&&typeof t.fonts==="object"?t.fonts:{};

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { detectTools } from "@/lib/judge/tools";
 import { realDeps, toolCards } from "@/lib/tools/handlers";
 import { PageMain } from "../../../ui";
-import { ProfileTabs } from "../../profile-ui";
+import { PROFILE_PAGE_CLASS } from "../../shared";
 import { CopyCommand } from "./copy-command";
 import { ToolManager } from "./tool-manager";
 
@@ -13,8 +13,7 @@ export const metadata: Metadata = { title: "Tools for running code" };
 
 export default function ToolsPage() {
   return (
-    <PageMain title="Tools for running code" hideTitle>
-      <ProfileTabs active="/profile/settings" title="Tools for running code" />
+    <PageMain title="Tools for running code" hideTitle className={PROFILE_PAGE_CLASS}>
       <Link href="/profile/settings" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
         &larr; Settings
       </Link>
@@ -48,7 +47,7 @@ async function Tools() {
               <h3 className="font-semibold">{t.label}</h3>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                  t.found ? "border-green-600/40 text-green-600 dark:text-green-400" : "border-amber-600/50 text-amber-700 dark:text-amber-400"
+                  t.found ? "border-success/40 text-success" : "border-warning/50 text-warning"
                 }`}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
