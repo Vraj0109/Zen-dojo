@@ -3,6 +3,31 @@
 Offline, open-source engineering course and practice tool: DSA with a built-in judge, system design, low-level design and core CS.
 Data is stored locally in `data/habit.db` (SQLite).
 
+**Try it online:** [zen-dojo-lovat.vercel.app](https://zen-dojo-lovat.vercel.app). You can browse as a guest (nothing is saved), or sign in with GitHub to keep your progress. The desktop app below works offline and can run code.
+
+## Screenshots
+
+| Today | Practice |
+|---|---|
+| ![Today: the day's plan, XP and up next](docs/screenshots/today.png) | ![Practice: every pattern grouped by topic](docs/screenshots/practice.png) |
+| **Problem workspace** | **All problems** |
+| ![Problem workspace with per-case results](docs/screenshots/workspace.png) | ![All problems grouped by topic, collapsible](docs/screenshots/all-problems.png) |
+| **Pattern guide** | **Learn** |
+| ![Pattern guide](docs/screenshots/pattern.png) | ![Learn: courses](docs/screenshots/learn.png) |
+| **Lesson** | **Low-level design project** |
+| ![Lesson with lesson list and outline](docs/screenshots/lesson.png) | ![LLD project with tabs](docs/screenshots/lld-project.png) |
+| **Roadmap** | **Settings and themes** |
+| ![16-week roadmap](docs/screenshots/roadmap.png) | ![Settings](docs/screenshots/settings.png) |
+
+<p>
+  <img src="docs/screenshots/today-dark.png" alt="Today in dark mode" width="58%">
+  <img src="docs/screenshots/phone-today.png" alt="Today on a phone" width="19%">
+  <img src="docs/screenshots/phone-practice.png" alt="Practice on a phone" width="19%">
+</p>
+
+Design: the app follows a Material 3 Expressive system described in [DESIGN.md](DESIGN.md). The approved mockup boards
+for each screen are in [docs/mockups/expressive](docs/mockups/expressive) (see its README for how to read them).
+
 ## Install
 
 Download the installer for your system from the newest [GitHub release](../../releases/latest). The installers are not signed with a paid certificate yet, so your computer warns once on first install:

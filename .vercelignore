@@ -10,3 +10,5 @@ apps/desktop
 apps/extension
 apps/web/.open-next
 *.pdf
+.claude
+.next-claude
