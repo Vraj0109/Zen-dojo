@@ -101,7 +101,7 @@ export function RecallView({ cards }: { cards: RecallCard[] }) {
                   const c = byId.get(id);
                   return c ? (
                     <li key={id}>
-                      <Link href={nodeHref({ pattern: c.node.split("/")[0], variation: c.node.split("/")[1] })} className="inline-flex min-h-10 items-center rounded-full bg-reward-soft px-3.5 text-sm font-medium text-on-reward-soft">
+                      <Link href={nodeHref({ pattern: c.node.split("/")[0], variation: c.node.split("/")[1] })} className="inline-flex min-h-10 items-center rounded-sm bg-reward-soft px-3.5 py-1.5 leading-snug text-sm font-medium text-on-reward-soft">
                         {c.answer}
                       </Link>
                     </li>

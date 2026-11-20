@@ -8,6 +8,8 @@
   const sync = await import(chrome.runtime.getURL("lib/sync.js"));
   /** @type {typeof import("./lib/leetcode.js")} */
   const lc = await import(chrome.runtime.getURL("lib/leetcode.js"));
+  /** @type {typeof import("./lib/export.js")} */
+  const exporter = await import(chrome.runtime.getURL("lib/export.js"));
 
   const RECENT_EVERY_MS = 10 * 60 * 1000;
 
@@ -147,9 +149,46 @@
     }
   }
 
+  // --- Export to a file, started from the popup. Nothing is sent to the app; the JSON is saved from this tab. ---
+  /** Save text as a download, from the page (no extra permission needed). @param {string} name @param {string} text */
+  function saveFile(name, text) {
+    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  async function runExport() {
+    if (backfilling) return;
+    backfilling = true;
+    const startedAt = Date.now();
+    const setJob = (/** @type {Record<string, unknown>} */ job) => setStatus({ exportJob: { startedAt, ...job } });
+    await setJob({ running: true, phase: "Starting", done: 0, total: 0, stored: 0 });
+    try {
+      const collector = exporter.createCollector();
+      const onProgress = (/** @type {{ phase: string, done: number, total: number, stored: number }} */ p) => setJob({ running: true, ...p });
+      const totals = await sync.backfill({ ...deps, app: collector.app, onProgress }, { all: true });
+      if (collector.count === 0) throw new Error("No accepted submissions with code were found on this LeetCode account.");
+      const fileName = exporter.exportFileName(new Date());
+      saveFile(fileName, JSON.stringify(collector.build(new Date())));
+      await setJob({ running: false, finishedAt: Date.now(), fileName, questions: totals.questions, submissions: collector.count });
+    } catch (e) {
+      await setJob({ running: false, error: String(/** @type {any} */ (e)?.message ?? e) });
+    } finally {
+      backfilling = false;
+    }
+  }
+
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === "backfill") {
       runBackfill(Boolean(msg.full));
+      sendResponse({ ok: true });
+    } else if (msg?.type === "export") {
+      runExport();
       sendResponse({ ok: true });
     }
   });

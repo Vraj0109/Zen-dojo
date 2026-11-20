@@ -170,6 +170,11 @@ export async function importFromExtension(raw: unknown[], rawTopics: unknown[] =
   return result;
 }
 
+/** Remember the latest import (shown in Profile → Settings). */
+export async function saveLastImport(result: ExtImportResult): Promise<void> {
+  await putSetting(KEY_LAST, JSON.stringify(result));
+}
+
 /** Submission ids already stored, so the extension can skip fetching them again. */
 export async function getKnownSubmissionIds(): Promise<string[]> {
   const db = await getDb();

@@ -6,6 +6,8 @@ const appUrl = /** @type {HTMLInputElement} */ ($("appUrl"));
 const token = /** @type {HTMLInputElement} */ ($("token"));
 const backfillBtn = /** @type {HTMLButtonElement} */ ($("backfill"));
 const fullBtn = /** @type {HTMLButtonElement} */ ($("full"));
+const exportBtn = /** @type {HTMLButtonElement} */ ($("export"));
+const allButtons = [backfillBtn, fullBtn, exportBtn];
 
 const ago = (/** @type {number} */ ms) => {
   const mins = Math.round((Date.now() - ms) / 60000);
@@ -38,23 +40,34 @@ $("settings").addEventListener("submit", async (e) => {
   await test();
 });
 
-async function start(/** @type {boolean} */ full) {
-  backfillBtn.disabled = fullBtn.disabled = true;
-  show($("progress"), "Opening leetcode.com…");
-  const r = await chrome.runtime.sendMessage({ type: "start-backfill", full });
+/** @param {"start-backfill" | "start-export"} type @param {string} progressId @param {Record<string, unknown>} [extra] */
+async function start(type, progressId, extra = {}) {
+  for (const b of allButtons) b.disabled = true;
+  show($(progressId), "Opening leetcode.com…");
+  const r = await chrome.runtime.sendMessage({ type, ...extra });
   if (!r?.ok) {
-    show($("progress"), r?.error ?? "Could not start", "err");
-    backfillBtn.disabled = fullBtn.disabled = false;
+    show($(progressId), r?.error ?? "Could not start", "err");
+    for (const b of allButtons) b.disabled = false;
   }
 }
-backfillBtn.addEventListener("click", () => start(false));
-fullBtn.addEventListener("click", () => start(true));
+backfillBtn.addEventListener("click", () => start("start-backfill", "progress", { full: false }));
+fullBtn.addEventListener("click", () => start("start-backfill", "progress", { full: true }));
+exportBtn.addEventListener("click", () => start("start-export", "exportProgress"));
+
+/** @param {{ running?: boolean, startedAt?: number } | undefined} job */
+const isRunning = (job) => Boolean(job?.running) && Date.now() - (job?.startedAt ?? 0) < 6 * 60 * 60 * 1000;
 
 /** @param {Record<string, any>} s */
 function render(s) {
   const b = s.backfill;
-  const running = Boolean(b?.running) && Date.now() - b.startedAt < 6 * 60 * 60 * 1000;
-  backfillBtn.disabled = fullBtn.disabled = running;
+  const running = isRunning(b);
+  const x = s.exportJob;
+  for (const btn of allButtons) btn.disabled = running || isRunning(x);
+  if (!x) show($("exportProgress"), "");
+  else if (isRunning(x)) show($("exportProgress"), `${x.phase}… ${x.total ? `${x.done}/${x.total} problems, ` : ""}${x.stored} submissions read`);
+  else if (x.error) show($("exportProgress"), `Stopped: ${x.error}`, "err");
+  else if (x.finishedAt)
+    show($("exportProgress"), `✓ Saved ${x.fileName} ${ago(x.finishedAt)} (${x.submissions} submissions, ${x.questions} problems). Upload it in Zen Dojo → Profile → Settings.`, "ok");
   if (!b) show($("progress"), s.lastBackfillAt ? "" : "Not imported yet.");
   else if (running) show($("progress"), `${b.phase}… ${b.total ? `${b.done}/${b.total} problems, ` : ""}${b.stored} submissions saved`);
   else if (b.error) show($("progress"), `Stopped: ${b.error}`, "err");
@@ -75,6 +88,7 @@ trackTime.addEventListener("change", () => chrome.storage.local.set({ trackTime:
   trackTime.checked = s.trackTime !== false;
   appUrl.value = String(s.appUrl ?? DEFAULT_APP_URL);
   token.value = String(s.token ?? "");
+  /** @type {HTMLDetailsElement} */ (document.getElementById("paired")).open = Boolean(s.token); // already paired: keep it in view
   render(s);
   if (s.token) test();
   chrome.storage.onChanged.addListener(async () => render(await chrome.storage.local.get(null)));

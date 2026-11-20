@@ -9,6 +9,8 @@ import { toggleFavouriteCourse } from "@/lib/courses";
 import { getPackProblemSpec, fetchPackText, installPack, removePack, setPackItemDone } from "@/lib/packs";
 import { saveReflection, weekOf } from "@/lib/weekly";
 import { regenerateExtensionToken } from "@/lib/leetcode/extension";
+import { FILE_MAX_BYTES, importLeetCodeFile, LeetCodeFileError } from "@/lib/leetcode/file-import";
+import { isHosted } from "@/lib/hosted";
 import { connectLeetCode, disconnectLeetCode, syncLeetCode } from "@/lib/leetcode/sync";
 import { addCustomTask, deleteCustomTask, setPlanStart, skipPlanWeek, toggleTask } from "@/lib/tasks";
 import { deletePractice, logPractice, rateConcept, saveConcept } from "@/lib/study";
@@ -102,6 +104,31 @@ export async function disconnectLeetCodeAction() {
 export async function regenerateExtensionKeyAction() {
   await regenerateExtensionToken();
   refresh();
+}
+
+export interface LeetCodeFileState {
+  ok: boolean;
+  message: string;
+}
+
+/** Profile → Settings: import the JSON file saved by the browser extension's "Export to file". */
+export async function importLeetCodeFileAction(_prev: LeetCodeFileState | null, formData: FormData): Promise<LeetCodeFileState> {
+  const fail = (message: string): LeetCodeFileState => ({ ok: false, message });
+  if (isHosted()) return fail("Importing a LeetCode file is available in the desktop app and when you run Zen Dojo yourself.");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return fail("Choose the file the extension saved (zen-dojo-leetcode-….json) first.");
+  if (file.size > FILE_MAX_BYTES) return fail(`That file is over ${FILE_MAX_BYTES / 1_000_000} MB, which is more than a LeetCode history should be. Is it the right file?`);
+  try {
+    const r = await importLeetCodeFile(await file.text());
+    refresh();
+    const n = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+    const extra = [r.resolved ? `${n(r.resolved, "re-solve")}` : "", r.skipped ? `${r.skipped} skipped (not usable)` : ""].filter(Boolean);
+    return { ok: true, message: `Imported ${n(r.stored, "submission")}, ${r.added} new ${r.added === 1 ? "solve" : "solves"}${extra.length ? `, ${extra.join(", ")}` : ""}.` };
+  } catch (e) {
+    if (e instanceof LeetCodeFileError) return fail(e.message);
+    console.error("LeetCode file import failed", e);
+    return fail("Something went wrong while importing. Nothing was lost: you can run the same file again.");
+  }
 }
 
 export async function setPlanStartAction(formData: FormData) {

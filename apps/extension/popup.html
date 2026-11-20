@@ -8,39 +8,53 @@
   <body>
     <h1>Zen Dojo · LeetCode</h1>
 
-    <form id="settings">
-      <label>App URL <input id="appUrl" placeholder="http://localhost:3000" /></label>
-      <label>Pairing key <input id="token" type="password" placeholder="From Profile → Settings in the app" autocomplete="off" /></label>
-      <button type="submit">Save &amp; test</button>
-      <p id="conn" class="muted" role="status"></p>
-    </form>
-
     <section>
-      <h2>Import your history</h2>
+      <h2>Save your history to a file</h2>
       <p class="muted">
-        For the problems on Zen Dojo that you've solved (roadmap + other synced ones), saves every accepted submission (code, language, runtime, memory, time, notes)
-        from leetcode.com while you're logged in. Keep the leetcode.com tab open until it finishes.
-        Running it again only fetches what's new.
+        Reads every problem you've solved on leetcode.com while you're logged in and saves every accepted submission (code, language, runtime,
+        memory, time, notes) as <code>zen-dojo-leetcode-&lt;date&gt;.json</code>. Then open Zen Dojo → Profile → Settings and upload the file.
+        Nothing is sent to the app from here. Keep the leetcode.com tab open until it finishes.
       </p>
-      <button id="backfill">Import history</button>
-      <button id="full" class="link" title="Every problem you've ever solved, not just the ones on Zen Dojo (slower)">Everything I've solved</button>
-      <p id="progress" role="status"></p>
+      <button id="export">Export to file</button>
+      <p id="exportProgress" role="status"></p>
     </section>
 
-    <section>
-      <h2>Live capture</h2>
-      <p class="muted">While a leetcode.com tab is open, each Accepted submission is sent to the app automatically.</p>
-      <p id="last" class="muted"></p>
-    </section>
+    <details id="paired">
+      <summary>Send to the app directly (optional)</summary>
 
-    <section>
-      <h2>Time on problems</h2>
-      <p class="muted">
-        Counts the minutes you spend on a LeetCode problem page (tab in front, you are moving the mouse or typing). Only the problem name and a number of
-        seconds are sent to your app, never page content.
-      </p>
-      <label><input id="trackTime" type="checkbox" checked /> Track time on problem pages</label>
-    </section>
+      <form id="settings">
+        <label>App URL <input id="appUrl" placeholder="http://localhost:3000" /></label>
+        <label>Pairing key <input id="token" type="password" placeholder="From Profile → Settings in the app" autocomplete="off" /></label>
+        <button type="submit">Save &amp; test</button>
+        <p id="conn" class="muted" role="status"></p>
+      </form>
+
+      <section>
+        <h2>Import your history</h2>
+        <p class="muted">
+          For the problems on Zen Dojo that you've solved (roadmap + other synced ones), sends every accepted submission straight to the app.
+          Running it again only fetches what's new.
+        </p>
+        <button id="backfill">Import history</button>
+        <button id="full" class="link" title="Every problem you've ever solved, not just the ones on Zen Dojo (slower)">Everything I've solved</button>
+        <p id="progress" role="status"></p>
+      </section>
+
+      <section>
+        <h2>Live capture</h2>
+        <p class="muted">While a leetcode.com tab is open, each Accepted submission is sent to the app automatically.</p>
+        <p id="last" class="muted"></p>
+      </section>
+
+      <section>
+        <h2>Time on problems</h2>
+        <p class="muted">
+          Counts the minutes you spend on a LeetCode problem page (tab in front, you are moving the mouse or typing). Only the problem name and a number of
+          seconds are sent to your app, never page content.
+        </p>
+        <label><input id="trackTime" type="checkbox" checked /> Track time on problem pages</label>
+      </section>
+    </details>
 
     <script type="module" src="popup.js"></script>
   </body>

@@ -134,7 +134,7 @@ async function TodayTop() {
           </p>
           <h1 className="mt-0.5 text-[28px] leading-[34px] font-semibold tracking-[-0.01em] text-foreground md:text-4xl md:leading-[44px]">{titleText}</h1>
         </div>
-        <form action="/dsa" method="get" role="search" className="flex h-14 min-w-0 flex-[0_1_380px] items-center gap-3 rounded-full bg-surface-2 px-5 text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary max-md:hidden">
+        <form action="/dsa" method="get" role="search" className="field-ring flex h-14 min-w-0 flex-[0_1_380px] items-center gap-3 rounded-full bg-surface-2 px-5 text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary max-md:hidden">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />

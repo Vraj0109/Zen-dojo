@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>LLD and behavioural mocks</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+  --primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+  --reward:#8B5000;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;
+  --t1:#D6E3FF;--o1:#001B3E;--t2:#F0DBFF;--o2:#2A0E45;--t3:#BCEBEE;--o3:#002022;--t4:#FFDDB2;--o4:#2C1600;
+  --font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;
+  --t1:#284777;--o1:#D6E3FF;--t2:#56397A;--o2:#F0DBFF;--t3:#1D4E51;--o3:#BCEBEE;--t4:#6A3C00;--o4:#FFDDB2;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{position:sticky;top:0;align-self:flex-start;height:100vh;width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--reward-soft);color:var(--on-reward-soft);display:grid;place-items:center}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri .p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on .p{background:var(--ps);color:var(--primary)}
+.bar{display:none}
+main{flex:1;min-width:0;padding:28px max(16px,env(safe-area-inset-right)) 56px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font-size:20px;font-weight:500}h3,h2.t3{margin:0;font-size:16px;font-weight:500}
+p{margin:0}.sub{margin-top:4px;color:var(--muted);font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:12px}
+.mockflag{font-size:12px;color:var(--on-reward-soft);background:var(--reward-soft);border-radius:10px;padding:4px 10px}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.hero{background:var(--pc);color:var(--on-pc);border-radius:32px;padding:22px}
+.kicker{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.btn{height:40px;padding:0 18px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;transition:scale .3s var(--spring)}
+.btn:active{scale:.95}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}
+.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.off{opacity:.5;cursor:not-allowed}
+.btn.big{height:48px;padding:0 24px;font-size:15px}
+.chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.tag.c1{background:var(--t1);color:var(--o1)}.tag.c2{background:var(--t2);color:var(--o2)}.tag.c3{background:var(--t3);color:var(--o3)}.tag.c4{background:var(--t4);color:var(--o4)}
+.tag.warn{background:var(--reward-soft);color:var(--on-reward-soft)}.tag.ok{background:var(--pc);color:var(--on-pc)}.tag.bad{background:var(--danger-soft);color:var(--on-danger-soft)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.kind{display:flex;flex-direction:column;gap:8px;padding:18px;border-radius:24px;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--fg)}
+.kind .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center}
+.kind.soon{opacity:.62}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px}.field>span{font-weight:500}
+input,select,textarea{font:400 14px var(--font);color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;padding:10px 14px;min-height:44px}
+textarea{resize:vertical;min-height:88px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:20px;background:var(--surface-2)}
+.item b{font-weight:500}.item small{display:block;color:var(--muted);font-size:13px}
+.num{font:500 14px var(--mono)}
+.prog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1}.prog i{display:block;height:100%;background:var(--primary);border-radius:99px}
+.phases{display:flex;gap:4px;width:100%}
+.ph{height:10px;border-radius:99px;background:var(--surface-2);position:relative;overflow:hidden}
+.ph i{position:absolute;inset:0 auto 0 0;background:var(--primary);border-radius:99px}
+.ph.cur{outline:2px solid var(--primary);outline-offset:2px}.ph.over i{background:var(--warning)}
+.phlabels{display:flex;gap:4px;font-size:12px;color:var(--muted)}.phlabels span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.phlabels .cur{color:var(--fg);font-weight:600}
+.clock{font:500 28px var(--mono);letter-spacing:-.02em}
+.rub{display:grid;gap:10px}
+.crit{padding:14px 16px;border-radius:20px;background:var(--surface-2)}
+.crit .anch{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.anch label{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:14px;border:1px solid var(--line-strong);font-size:12px;color:var(--muted);cursor:pointer;background:var(--surface);position:relative}
+.anch input{position:absolute;opacity:0;pointer-events:none}
+.anch label:has(input:checked){background:var(--ps);color:var(--on-ps);border-color:transparent}
+.anch label b{font-size:13px;color:var(--fg);font-weight:600}
+@media (max-width:700px){.crit .anch{grid-template-columns:1fr 1fr}}
+pre{margin:0;padding:12px 14px;border-radius:16px;background:var(--surface-2);font:400 12.5px/1.55 var(--mono);overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted);font-size:12px}
+.empty{text-align:center;padding:36px 16px;color:var(--muted)}
+.panel[hidden]{display:none}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:767px){
+  .rail{display:none}h1{font-size:26px}main{padding-bottom:96px}
+  .bar{display:flex;position:fixed;inset:auto 0 0 0;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:5}
+  .bar a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);text-decoration:none;min-width:56px;min-height:44px}
+  .bar a.on{color:var(--fg);font-weight:600}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Main (mockup)">
+    <div class="logo">ZD</div>
+    <div class="fab" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>Today</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></span>Practice</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg></span>Learn</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg></span>Review</a>
+    <a class="ri on" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Interview</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg></span>Roadmap</a>
+  </nav>
+  <main><div class="wrap">
+    <div class="row">
+      <div>
+        <h1>LLD and behavioural mocks</h1>
+        <p class="sub">Machine coding with a change request, and a three-question behavioural round with your own stories.</p>
+      </div>
+      <span class="mockflag">Mockup, sample data, plan 0098</span>
+    </div>
+    <div class="seg" data-tabs="s" role="tablist" aria-label="Screens in this mockup">
+      <button role="tab" data-t="lld-live">LLD: live</button>
+      <button role="tab" data-t="lld-result">LLD: result</button>
+      <button role="tab" data-t="b-new">Behavioural: setup</button>
+      <button role="tab" data-t="b-live">Behavioural: live</button>
+      <button role="tab" data-t="b-result">Behavioural: result</button>
+    </div>
+    <style>
+      .req{counter-reset:r;margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+      .req li{counter-increment:r;display:flex;gap:10px;font-size:14px}
+      .req li::before{content:counter(r);flex:none;width:24px;height:24px;border-radius:99px;background:var(--ps);color:var(--on-ps);display:grid;place-items:center;font:500 12px var(--font)}
+      .files{display:flex;gap:6px;flex-wrap:wrap}
+      .file{height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--line-strong);font:500 12px var(--mono);display:inline-flex;align-items:center;color:var(--fg);background:transparent}
+      .file.on{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+      .twist{padding:14px;border-radius:20px;background:var(--reward-soft);color:var(--on-reward-soft)}
+      .big-q{font-size:22px;font-weight:500;line-height:1.3;text-wrap:balance}
+      .speak{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+      .pace{height:10px;border-radius:99px;background:var(--surface-2);position:relative;flex:1;min-width:160px;overflow:hidden}
+      .pace i{position:absolute;top:0;bottom:0;background:var(--pc)}
+      .pace b{position:absolute;top:0;bottom:0;width:3px;background:var(--primary)}
+    </style>
+
+    <!-- LLD live -->
+    <section class="panel stack" data-for="s" id="lld-live">
+      <div class="card stack">
+        <div class="row"><div><p class="kicker">LLD machine coding, Java</p><h2 class="t3">Parking lot</h2></div>
+          <div style="display:flex;gap:14px;align-items:center"><span class="clock">19:12</span><button class="btn tonal">Next phase</button><button class="btn outline">End mock</button></div></div>
+        <div class="phases"><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:10"><i style="width:100%"></i></div><div class="ph cur" style="flex:20"><i style="width:70%"></i></div><div class="ph" style="flex:10"></div></div>
+        <div class="phlabels"><span style="flex:5">Clarify</span><span style="flex:10">Model</span><span class="cur" style="flex:20">Code</span><span style="flex:10">Extend</span></div>
+      </div>
+      <div class="two" style="grid-template-columns:340px minmax(0,1fr)">
+        <aside class="stack">
+          <div class="card stack"><p class="kicker">Requirements</p>
+            <ol class="req"><li>A lot has several floors; each floor has spots of three sizes.</li><li>Park a vehicle (bike, car, truck) in the nearest free spot that fits.</li><li>Issue a ticket with the entry time; free the spot on exit.</li><li>Fee is per started hour, with a different rate per vehicle type.</li><li>Reject entry when no spot fits, with a clear message.</li></ol>
+            <p class="sub">Run time target: Main parks 3 vehicles, exits one and prints the fee.</p></div>
+          <div class="twist" hidden><b>Change request</b></div>
+          <div class="card stack"><div class="row"><p class="kicker">Change request</p><span class="tag">Appears at Extend</span></div><p class="sub">Held back until the last phase, as in a real round.</p></div>
+        </aside>
+        <div class="card stack">
+          <div class="row"><div class="files"><span class="file on">ParkingLot.java</span><span class="file">Spot.java</span><span class="file">Ticket.java</span><span class="file">FeePolicy.java</span><span class="file">Main.java</span><span class="file">+</span></div><div style="display:flex;gap:8px"><button class="btn tonal">Run</button></div></div>
+<pre>import java.util.*;
+
+class ParkingLot {
+    private final List&lt;Floor&gt; floors;
+    private final FeePolicy fees;
+    private final Map&lt;String, Ticket&gt; open = new HashMap&lt;&gt;();
+
+    ParkingLot(List&lt;Floor&gt; floors, FeePolicy fees) {
+        this.floors = floors;
+        this.fees = fees;
+    }
+
+    Ticket park(Vehicle v, long nowMillis) {
+        for (Floor f : floors) {
+            Optional&lt;Spot&gt; spot = f.nearestFree(v.type());
+            if (spot.isPresent()) {
+                spot.get().occupy(v);
+                Ticket t = new Ticket(v.plate(), spot.get(), nowMillis);
+                open.put(t.id(), t);
+                return t;
+            }
+        }
+        throw new IllegalStateException("No spot for " + v.type());
+    }
+}</pre>
+          <div class="item"><span class="sub">Run: ok</span><span class="num">Parked 3, exit KA-01 paid 60</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LLD result -->
+    <section class="panel stack" data-for="s" id="lld-result">
+      <div class="two">
+        <div class="stack">
+          <div class="card stack">
+            <div class="row"><h2>Your project and the change request</h2><span class="tag ok">Ended at 44:30 of 45:00</span></div>
+            <div class="twist"><b>Change request you got</b><p style="font-size:14px;margin-top:4px">"Add an electric vehicle that needs a charging spot, and bill charging time separately."</p><p style="font-size:13px;margin-top:6px">Should touch: Spot, FeePolicy, Vehicle.</p></div>
+            <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr))">
+              <div class="item"><div><small>Your files</small><b>5 files, 6,420 characters</b></div></div>
+              <div class="item"><div><small>Runs</small><b>4 runs, last one ok</b></div></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn tonal">Show reference project</button><a class="btn outline" href="#">Compare with the reference design</a></div>
+          </div>
+          <div class="card stack"><h2>What a strong answer has</h2><ul style="margin:0;padding-left:20px;font-size:14px;display:grid;gap:4px"><li>Spot size and vehicle type are separate concepts, so a larger spot can take a smaller vehicle.</li><li>Fee rules sit in a policy object, not inside the lot class.</li><li>Entry and exit are one place that updates spots and tickets together.</li></ul><p class="kicker" style="margin-top:6px">Edge cases</p><ul style="margin:0;padding-left:20px;font-size:14px;display:grid;gap:4px"><li>A ticket used twice on exit.</li><li>Lot full on the nearest floor but free above.</li></ul></div>
+          <form class="card stack" onsubmit="return false"><div class="row"><h2>Score yourself</h2><span class="sub">Six criteria</span></div>
+            <div class="rub"><div class="crit"><b>Entities and public API</b><p class="sub">Are the entities, relationships and public API sensible? (critical)</p><div class="anch"><label><input type="radio" name="m"><b>1</b>One big class.</label><label><input type="radio" name="m"><b>2</b>Several classes, unclear jobs.</label><label><input type="radio" name="m" checked><b>3</b>One job per class, clear API.</label><label><input type="radio" name="m"><b>4</b>Also enums for states, tidy API.</label></div></div><p class="sub">Five more: clarify, code, extend, quality, communication.</p></div>
+            <div><button class="btn primary">Save score</button></div></form>
+        </div>
+        <aside class="stack">
+          <div class="hero stack"><p class="kicker" style="color:inherit;opacity:.8">Weighted score</p><div style="font:600 40px var(--font)">2.9 <span style="font-size:18px;font-weight:500">of 4</span></div><span class="tag" style="align-self:flex-start;background:var(--surface);color:var(--fg)">Lean hire</span></div>
+          <div class="card stack"><h3>Saved to the exercise</h3><p class="sub">Parking lot gets a practice entry with scores for clarify, model, code and extend. It returns in Review in 3 days.</p></div>
+          <div class="card stack"><h3>Pattern lessons to read</h3><div class="list"><a class="item" href="#" style="text-decoration:none;color:inherit"><b>Strategy</b><span class="tag">Fee rules</span></a><a class="item" href="#" style="text-decoration:none;color:inherit"><b>Factory method</b><span class="tag">Vehicles</span></a></div></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Behavioural setup -->
+    <section class="panel stack" data-for="s" id="b-new">
+      <div class="two">
+        <form class="card stack" onsubmit="return false">
+          <h2>Behavioural mock</h2>
+          <label class="field"><span>Question set</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="chip" aria-pressed="true">Amazon principles</button><button type="button" class="chip" aria-pressed="false">Google attributes</button><button type="button" class="chip" aria-pressed="false">Core competencies</button><button type="button" class="chip" aria-pressed="false">Mixed</button></div></label>
+          <label class="field"><span>Questions</span><div style="display:flex;gap:8px"><button type="button" class="chip" aria-pressed="true">3 (15 min)</button><button type="button" class="chip" aria-pressed="false">4 (20 min)</button><button type="button" class="chip" aria-pressed="false">5 (25 min)</button></div></label>
+          <label class="field"><span>Level</span><select><option>Senior (SDE2 and up)</option><option>All</option></select></label>
+          <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" checked style="min-height:0;width:20px;height:20px"><span>Cover my gaps first (principles with no story yet)</span></label>
+          <div><a class="btn primary big" href="#">Start the mock</a></div>
+        </form>
+        <aside class="card stack">
+          <p class="kicker">Your questions</p>
+          <div class="list"><div class="item"><div><b>Tell me about a time you disagreed with your manager and what happened next.</b><small>Have Backbone; Disagree and Commit . No story yet</small></div><button class="btn outline">Swap</button></div>
+          <div class="item"><div><b>Describe a project where the requirements kept changing.</b><small>Bias for Action . 1 story</small></div><button class="btn outline">Swap</button></div>
+          <div class="item"><div><b>Walk me through a decision you made with incomplete data.</b><small>Are Right, A Lot . 2 stories</small></div><button class="btn outline">Swap</button></div></div>
+          <p class="sub">Principle names are public. Confirm the current list on the company's own site. Last checked 21 Nov 2026.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Behavioural live -->
+    <section class="panel stack" data-for="s" id="b-live">
+      <div class="card stack">
+        <div class="row"><div><p class="kicker">Behavioural mock, question 2 of 3</p></div>
+          <div style="display:flex;gap:14px;align-items:center"><span class="clock">08:41</span><button class="btn outline">End mock</button></div></div>
+        <div class="phases"><div class="ph" style="flex:3"><i style="width:100%"></i></div><div class="ph" style="flex:2"><i style="width:100%"></i></div><div class="ph cur" style="flex:3"><i style="width:60%"></i></div><div class="ph" style="flex:2"></div><div class="ph" style="flex:3"></div><div class="ph" style="flex:2"></div></div>
+        <div class="phlabels"><span style="flex:3">Q1 answer</span><span style="flex:2">Q1 probe</span><span class="cur" style="flex:3">Q2 answer</span><span style="flex:2">Q2 probe</span><span style="flex:3">Q3 answer</span><span style="flex:2">Q3 probe</span></div>
+      </div>
+      <div class="two">
+        <div class="card stack">
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="tag c4">Bias for Action</span><span class="tag">Senior</span></div>
+          <p class="big-q">Describe a project where the requirements kept changing.</p>
+          <div class="speak"><span class="clock" style="font-size:24px">1:48</span><div class="pace" aria-label="Speaking pace"><i style="left:41.6%;right:0%"></i><b style="left:60%"></b></div><span class="tag ok">Good pace</span></div>
+          <p class="sub">Aim for about two minutes. Situation in two sentences, then your actions, then the result.</p>
+          <label class="field"><span>Your bullet notes</span><textarea>Checkout rewrite, 3 scope changes in 6 weeks. I froze a v1 list with the PM. Cut the weekly regression time from 2 days to 3 hours.</textarea></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary">Done answering</button><button class="btn outline">Show the follow-up</button></div>
+        </div>
+        <aside class="stack">
+          <div class="card stack"><p class="kicker">Story to use</p>
+            <label class="field"><span class="sub" style="font-weight:400">Matching stories first</span><select><option>Checkout rewrite scope freeze (Bias for Action, Ownership)</option><option>Payment retries incident (Dive Deep)</option><option>No story for this</option></select></label>
+            <div class="item" style="align-items:flex-start"><div><b>Checkout rewrite scope freeze</b><small>Metric saved: 2 days to 3 hours</small></div><span class="tag ok">Has metric</span></div></div>
+          <div class="card stack"><p class="kicker">Follow-up</p><p class="sub">Hidden until you finish answering.</p></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Behavioural result -->
+    <section class="panel stack" data-for="s" id="b-result">
+      <div class="two">
+        <div class="stack">
+          <div class="card stack"><h2>Question by question</h2>
+            <div class="list">
+              <div class="item" style="align-items:flex-start"><div><b>1. Disagreed with your manager</b><small>Story: none in my bank . Spoke 2:50 (good)</small><small>Weak signal to avoid: a conflict story where the result is missing.</small></div><div style="display:flex;gap:6px"><button class="chip" aria-pressed="false">Solid</button><button class="chip" aria-pressed="true">Shaky</button></div></div>
+              <div class="item" style="align-items:flex-start"><div><b>2. Requirements kept changing</b><small>Story: Checkout rewrite scope freeze . Spoke 2:05 (good)</small></div><div style="display:flex;gap:6px"><button class="chip" aria-pressed="true">Solid</button><button class="chip" aria-pressed="false">Shaky</button></div></div>
+              <div class="item" style="align-items:flex-start"><div><b>3. Decision with incomplete data</b><small>Story: Payment retries incident . Spoke 3:40 (long)</small></div><div style="display:flex;gap:6px"><button class="chip" aria-pressed="false">Solid</button><button class="chip" aria-pressed="true">Shaky</button></div></div>
+            </div></div>
+          <form class="card stack" onsubmit="return false"><div class="row"><h2>Score yourself</h2><span class="sub">Six criteria for the whole round</span></div>
+            <div class="rub"><div class="crit"><b>Who did what</b><p class="sub">Is it clear what you did? (critical)</p><div class="anch"><label><input type="radio" name="o"><b>1</b>Mostly "we".</label><label><input type="radio" name="o" checked><b>2</b>Your part is thin.</label><label><input type="radio" name="o"><b>3</b>Specific, in the first person.</label><label><input type="radio" name="o"><b>4</b>Also named the trade-off you owned.</label></div></div><p class="sub">Five more: structure, impact, depth, relevance, concise.</p></div>
+            <div><button class="btn primary">Save score</button></div></form>
+        </div>
+        <aside class="stack">
+          <div class="hero stack"><p class="kicker" style="color:inherit;opacity:.8">Weighted score</p><div style="font:600 40px var(--font)">2.4 <span style="font-size:18px;font-weight:500">of 4</span></div><span class="tag" style="align-self:flex-start;background:var(--surface);color:var(--fg)">Lean no hire</span></div>
+          <div class="card stack"><h3>What changes in your practice</h3><div class="list"><div class="item"><div><b>2 questions marked shaky</b><small>They come back in 3 days.</small></div></div><div class="item"><div><b>1 gap in your story bank</b><small>Conflict with a manager has no story.</small></div><a class="btn tonal" href="#">Write it</a></div></div></div>
+        </aside>
+      </div>
+    </section>
+  </div></main>
+</div>
+<nav class="bar" aria-label="Phone (mockup)"><a href="#">Today</a><a href="#">Practice</a><a href="#">Learn</a><a href="#">Review</a><a class="on" href="#">You</a></nav>
+<script>
+document.querySelectorAll('[data-tabs]').forEach(function(box){
+  var btns=box.querySelectorAll('button[data-t]');
+  function show(id){btns.forEach(function(b){b.setAttribute('aria-selected',b.dataset.t===id)});
+    document.querySelectorAll('[data-for="'+box.dataset.tabs+'"]').forEach(function(p){p.hidden=p.id!==id})}
+  btns.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.t)})});
+  show(btns[0].dataset.t);
+});
+document.querySelectorAll('.chip[aria-pressed]').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!=='true')})});
+</script>
+</body>
+</html>

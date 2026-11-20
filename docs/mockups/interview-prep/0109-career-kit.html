@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Career kit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0109. Standalone: tokens copied from DESIGN.md, 96px rail on desktop, tab bar on phones. Sample data only. */
+:root{
+  --bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+  --primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+  --reward:#8B5000;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;
+  --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;position:sticky;top:0;height:100vh}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--reward-soft);color:var(--on-reward-soft);display:grid;place-items:center}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri span.p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on span.p{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:28px 16px 64px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font-size:20px;font-weight:600}h3{margin:0;font-size:16px;font-weight:600}
+p{margin:0}.sub{color:var(--muted);font-size:14px;margin-top:4px}
+.crumb{font-size:13px;color:var(--muted)}.crumb b{color:var(--fg);font-weight:500}
+.kicker{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;transition:background .2s}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
+:root[data-theme="dark"] .card{border-color:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .card{border-color:transparent}}
+.card.hero{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:1100px){.split{grid-template-columns:1fr}}
+.btn{height:40px;padding:0 18px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}
+.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.sm{height:34px;padding:0 14px;font-size:13px}
+.chip{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.tag.pc{background:var(--pc);color:var(--on-pc)}.tag.rw{background:var(--reward-soft);color:var(--on-reward-soft)}.tag.dn{background:var(--danger-soft);color:var(--on-danger-soft)}.tag.ps{background:var(--ps);color:var(--on-ps)}
+.prog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;border-radius:99px;background:var(--primary)}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+input,textarea,select{width:100%;padding:10px 14px;border-radius:14px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);font:400 14px var(--font)}
+textarea{min-height:84px;resize:vertical;line-height:1.5}
+.field{margin-bottom:12px}.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.two{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:12px;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}.tw{overflow-x:auto}
+.list{display:grid;gap:8px}.item{padding:12px 14px;border-radius:18px;background:var(--surface-2)}
+.item b{font-weight:500}.mut{color:var(--muted);font-size:13px}.mono{font-family:var(--mono);font-size:13px}
+.note{padding:12px 14px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.ok{color:var(--primary)}.bad{color:var(--danger)}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tabbar{display:none}
+.fadein{animation:fi .3s ease-out}@keyframes fi{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:700px){
+  .rail{display:none}h1{font-size:26px}main{padding-bottom:96px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;padding:8px 4px 12px;z-index:5}
+  .tabbar .ri{width:auto;flex:1}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="rail" aria-label="Main (mockup)">
+  <div class="logo">ZD</div>
+  <div class="fab" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>Today</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></span>Practice</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg></span>Learn</a>
+  <a class="ri on"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v10H9l-5 4z"/></svg></span>Interview</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg></span>Review</a>
+  <a class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg></span>Roadmap</a>
+</nav>
+<main><div class="wrap">
+<div>
+  <p class="crumb">Interview / <b>Career kit</b></p>
+  <h1>Career kit</h1>
+  <p class="sub">Your resume, project stories, applications and offers in one private place.</p>
+</div>
+
+<div class="seg" role="tablist" aria-label="Career kit">
+  <button role="tab" aria-selected="true" data-p="k-resume">Resume</button>
+  <button role="tab" aria-selected="false" data-p="k-projects">Projects</button>
+  <button role="tab" aria-selected="false" data-p="k-apps">Applications <span class="tag" style="margin-left:6px">6</span></button>
+  <button role="tab" aria-selected="false" data-p="k-offers">Offers</button>
+</div>
+
+<section id="k-resume" class="split">
+  <div class="card">
+    <div class="row sp"><h2>Resume check</h2><div class="row"><select style="width:auto" aria-label="Version"><option>Backend v3 (current)</option><option>General v2</option></select><button class="btn sm outline">New version</button></div></div>
+    <div class="field" style="margin-top:12px"><label for="rb">Paste your resume as plain text</label>
+<textarea id="rb" style="min-height:260px" class="mono">EXPERIENCE
+Software Engineer II, Northwind Pay  (2023 - now)
+- Responsible for the checkout service
+- Built a retry layer that cut failed payments from 2.4% to 0.9%
+- Worked on improving the dashboards
+- Led migration of 14 services to a shared queue, zero downtime
+
+PROJECTS
+Habit tracker (open source, 420 stars)</textarea><p class="hint">Stored on this device only. Not sent anywhere unless you press "Review with AI" and have an AI provider turned on.</p></div>
+    <div class="row"><button class="btn primary">Run check</button><button class="btn tonal">Review with AI</button></div>
+  </div>
+  <aside style="display:grid;gap:14px">
+    <div class="card hero"><p class="kicker" style="color:inherit;opacity:.8">Instant check · 5 findings</p><h3>2 of 4 bullets have a number</h3><p style="font-size:14px;margin-top:4px">1 page, 112 words. Good length for 3 to 6 years.</p></div>
+    <div class="card"><h3>Fix these</h3><div class="list" style="margin-top:10px">
+      <div class="item"><b>"Responsible for the checkout service"</b><p class="mut">Describes a duty, not a result. Start with what changed and by how much.</p></div>
+      <div class="item"><b>"Worked on improving the dashboards"</b><p class="mut">Weak verb and no number. Which dashboards, what got better for whom?</p></div>
+      <div class="item"><b>Dates missing for Projects</b><p class="mut">Add a year or a range.</p></div>
+    </div></div>
+    <div class="card"><h3>AI notes</h3><p class="mut" style="margin-top:6px">Your strongest bullet is the retry layer. Lead the section with it. The queue migration reads like a team effort: say what you owned.</p></div>
+  </aside>
+</section>
+
+<section id="k-projects" hidden>
+  <div class="split">
+    <div class="card"><div class="row sp"><h2>Project: Payment retry layer</h2><span class="tag pc">9 of 12 prompts answered</span></div>
+      <div class="two" style="margin-top:12px"><div class="field"><label>Your role</label><input value="Designed and built it with one other engineer"></div><div class="field"><label>Scale</label><input value="30k payments per minute at peak"></div></div>
+      <div class="field"><label>Why this design (and what else you considered)</label><textarea>Exponential backoff with jitter in a queue consumer. Considered inline retries (blocks the request thread) and a cron sweep (too slow for card timeouts).</textarea></div>
+      <div class="field"><label>What went wrong</label><textarea>Retry storm during a provider outage doubled the load. Added a circuit breaker and a retry budget per merchant.</textarea></div>
+      <button class="btn primary">Save</button></div>
+    <aside class="card"><h3>Drill: questions an interviewer asks about this</h3><div class="list" style="margin-top:10px">
+      <div class="item">What would you change if traffic grew ten times?</div><div class="item">How did you know the retries were helping?</div><div class="item">What is the worst failure you can still imagine?</div></div><button class="btn tonal" style="margin-top:12px">Start 5-minute drill</button></aside>
+  </div>
+</section>
+
+<section id="k-apps" hidden>
+  <div class="row sp"><div class="row"><button class="chip" aria-pressed="true">Active 4</button><button class="chip" aria-pressed="false">Closed 2</button></div><button class="btn primary">Add application</button></div>
+  <div class="grid" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr))">
+    <div class="card"><p class="kicker">Applied</p><div class="list" style="margin-top:8px"><div class="item"><b>Contoso</b><p class="mut">SDE II · referral<br>Applied 12 Nov</p></div></div></div>
+    <div class="card"><p class="kicker">Online assessment</p><div class="list" style="margin-top:8px"><div class="item"><b>Fabrikam</b><p class="mut">Backend · portal<br>OA due 24 Nov</p><span class="tag rw">Due in 3 days</span></div></div></div>
+    <div class="card"><p class="kicker">Interviewing</p><div class="list" style="margin-top:8px"><div class="item"><b>Adventure Works</b><p class="mut">SWE III · recruiter<br>Loop on 2 Dec</p><span class="tag pc">Prep: design mock</span></div></div></div>
+    <div class="card"><p class="kicker">Offer</p><div class="list" style="margin-top:8px"><div class="item"><b>Tailspin</b><p class="mut">SDE II · referral<br>Offer received 18 Nov</p><span class="tag rw">Reply by 28 Nov</span></div></div></div>
+  </div>
+</section>
+
+<section id="k-offers" hidden>
+  <div class="card"><div class="row sp"><h2>Compare offers</h2><button class="btn sm outline">Add offer</button></div>
+    <div class="tw" style="margin-top:12px"><table><thead><tr><th></th><th>Tailspin</th><th>Contoso (draft)</th></tr></thead><tbody>
+      <tr><td>Base</td><td>INR 38,00,000</td><td>INR 34,00,000</td></tr>
+      <tr><td>Bonus (target)</td><td>10%</td><td>15%</td></tr>
+      <tr><td>Equity grant</td><td>INR 40,00,000 over 4 years, 25% a year</td><td>INR 60,00,000 over 4 years, 10 / 20 / 30 / 40</td></tr>
+      <tr><td>Sign-on</td><td>INR 5,00,000</td><td>0</td></tr>
+      <tr style="background:var(--pc);color:var(--on-pc)"><td><b>Year 1 total</b></td><td><b>INR 56,80,000</b></td><td><b>INR 45,10,000</b></td></tr>
+      <tr><td><b>Year 3 total</b></td><td><b>INR 51,80,000</b></td><td><b>INR 57,10,000</b></td></tr>
+      <tr><td><b>4-year average</b></td><td><b>INR 53,05,000</b></td><td><b>INR 54,10,000</b></td></tr>
+    </tbody></table></div>
+    <p class="mut" style="margin-top:10px">Arithmetic from the numbers you typed. Equity value depends on the share price and vesting rules in your offer letter. This is not financial advice.</p></div>
+  <div class="card" style="margin-top:14px"><h3>Negotiation guide</h3><p class="mut" style="margin-top:6px">Five short pages: before you answer, asking for time, what to ask for besides base, a script for the call, and what to do with a competing offer.</p></div>
+</section>
+</div></main>
+</div>
+<nav class="tabbar" aria-label="Tabs (mockup)">
+  <a class="ri "><span class="p">T</span>Today</a><a class="ri "><span class="p">P</span>Practice</a><a class="ri "><span class="p">L</span>Learn</a><a class="ri on"><span class="p">I</span>Interview</a><a class="ri"><span class="p">Y</span>You</a>
+</nav>
+<script>
+document.querySelectorAll('[role=tablist]').forEach(function(list){
+  var tabs=[].slice.call(list.querySelectorAll('[role=tab]'));
+  tabs.forEach(function(t){t.addEventListener('click',function(){
+    tabs.forEach(function(x){var on=x===t;x.setAttribute('aria-selected',on);var p=document.getElementById(x.dataset.p);if(p){p.hidden=!on;if(on)p.classList.add('fadein')}});
+  })});
+});
+document.querySelectorAll('.chip[aria-pressed]').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!=='true')})});
+
+</script>
+</body>
+</html>

@@ -292,11 +292,11 @@ function ExampleLinks({ items }: { items: ProblemLink[] }) {
         {items.map((e) => (
           <li key={e.href}>
             {e.external ? (
-              <a href={e.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-sm bg-surface-2 px-2.5 text-sm text-muted hover:text-foreground">
+              <a href={e.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-sm py-1.5 leading-snug bg-surface-2 px-2.5 text-sm text-muted hover:text-foreground">
                 {e.label} ↗
               </a>
             ) : (
-              <Link href={e.href} className="inline-flex min-h-9 items-center rounded-sm bg-surface-2 px-2.5 text-sm text-muted hover:text-foreground">
+              <Link href={e.href} className="inline-flex min-h-9 items-center rounded-sm py-1.5 leading-snug bg-surface-2 px-2.5 text-sm text-muted hover:text-foreground">
                 {e.label}
               </Link>
             )}

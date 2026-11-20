@@ -7,7 +7,7 @@ section: Topics
 
 ## Overview
 
-Patterns are named solutions to recurring design problems. Use them when the problem calls for them, name them as you use them, and know the one-line intent of each common one.
+Patterns are named solutions to recurring design problems. Use them when the problem calls for them, name them as you use them, and know the one-line intent of each common one. Every pattern has its own full lesson, with a class diagram and Java code, in the Pattern catalogue section of this course.
 
 ## What to know
 

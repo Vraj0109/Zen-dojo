@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Readiness (mockup 0110)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0110: readiness page (full, partial and empty data) and the Today card. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;--font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px}
+.ri i{width:56px;height:32px;border-radius:99px;display:grid;place-items:center;font-style:normal}
+.ri.on{color:var(--fg);font-weight:600}.ri.on i{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:24px 16px 96px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:30px;line-height:1.2;font-weight:600}h2{margin:0;font-size:18px;font-weight:600}h3{margin:0;font-size:15px;font-weight:600}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer;white-space:nowrap}
+.seg button[aria-selected=true]{background:var(--ps);color:var(--on-ps)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.chip{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:10px;background:var(--surface-2);font-size:12px;font-weight:500}
+.chip.warn{background:var(--reward-soft);color:var(--on-reward-soft)}.chip.ok{background:var(--pc);color:var(--on-pc)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;background:var(--primary);color:var(--on-primary)}
+.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.out{background:transparent;border:1px solid var(--line-strong);color:var(--fg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.state{display:none}.state.on{display:block}
+.session{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1040px){.session{grid-template-columns:1fr}}
+.phases{display:flex;gap:6px;flex-wrap:wrap}
+.ph{height:32px;padding:0 14px;border-radius:99px;background:var(--surface-2);font-size:12px;display:inline-flex;align-items:center;color:var(--muted)}
+.ph.cur{background:var(--primary);color:var(--on-primary);font-weight:500}.ph.done{background:var(--ps);color:var(--on-ps)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 13px/1.55 var(--mono);overflow:auto}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:2px}
+.msg{max-width:92%;padding:10px 14px;border-radius:18px;font-size:14px}
+.msg.i{background:var(--ps);color:var(--on-ps);border-bottom-left-radius:6px;align-self:flex-start}
+.msg.c{background:var(--pc);color:var(--on-pc);border-bottom-right-radius:6px;align-self:flex-end}
+.msg small{display:block;color:inherit;opacity:.7;font-size:11px;margin-bottom:2px}
+.input{display:flex;gap:8px;margin-top:12px}
+.input input{flex:1;height:44px;border-radius:99px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);padding:0 16px;font:400 14px var(--font)}
+.toggle{display:inline-flex;align-items:center;gap:10px;font-size:14px}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--line-strong);position:relative;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .3s var(--spring)}
+.sw.on{background:var(--primary)}.sw.on::after{transform:translateX(18px)}
+.crit{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:14px;padding:14px 0;border-top:1px solid var(--line);align-items:start}
+@media (max-width:760px){.crit{grid-template-columns:1fr}}
+.quote{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--primary);background:var(--surface-2);border-radius:0 12px 12px 0;font-size:13px;color:var(--muted)}
+.scale{display:inline-flex;gap:4px;padding:3px;border-radius:99px;background:var(--surface-2)}
+.scale button{width:44px;height:36px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer}
+.scale button.s{background:var(--primary);color:var(--on-primary)}
+.note{padding:12px 16px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.tabbar{display:none}
+.dial{width:168px;height:168px;border-radius:50%;display:grid;place-items:center;flex:none;background:conic-gradient(var(--primary) calc(var(--p)*1%),var(--surface-2) 0)}
+.dial div{width:136px;height:136px;border-radius:50%;background:var(--surface);display:grid;place-items:center;text-align:center;line-height:1.1}
+.dial b{font-size:44px;font-weight:600;display:block}.dial span{font-size:12px;color:var(--muted)}
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px}
+.lv{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;font-size:12px;font-weight:500;background:var(--surface-2)}
+.lv.s{background:var(--ps);color:var(--on-ps)}.lv.r{background:var(--pc);color:var(--on-pc)}.lv.b{background:var(--reward-soft);color:var(--on-reward-soft)}
+.sg{display:grid;grid-template-columns:110px minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:13px;margin-top:8px}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}.bar i{display:block;height:100%;background:var(--primary);border-radius:99px}
+.bar.low i{background:var(--warning)}.sg .n{text-align:right;color:var(--muted)}.sg.nd{color:var(--muted)}
+.up{color:var(--primary);font-weight:500;font-size:13px}.dn{color:var(--danger);font-weight:500;font-size:13px}
+.wk{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--line)}
+.wk .ck{width:22px;height:22px;border-radius:7px;border:2px solid var(--line-strong);margin-top:2px}.wk .ck.d{background:var(--primary);border-color:var(--primary)}
+.wk p{margin:2px 0 0;font-size:13px;color:var(--muted)}.wk .m{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.lay{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;align-items:start}
+@media (max-width:1100px){.lay{grid-template-columns:1fr}}
+.tdy{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:24px;background:var(--pc);color:var(--on-pc)}
+.empty{text-align:center;padding:40px 16px;display:flex;flex-direction:column;align-items:center;gap:10px}
+@media (max-width:760px){.rail{display:none}h1{font-size:26px}.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;align-items:center;font-size:11px;color:var(--muted)}.tabbar b{font-weight:600;color:var(--primary)}.dial{width:132px;height:132px}.dial div{width:106px;height:106px}.dial b{font-size:34px}.sg{grid-template-columns:90px minmax(0,1fr) 40px}}
+</style></head>
+<body><div class="app">
+<nav class="rail" aria-label="Primary"><div class="logo">ZD</div>
+<div class="ri"><i>T</i>Today</div><div class="ri"><i>P</i>Practice</div><div class="ri"><i>L</i>Learn</div><div class="ri"><i>R</i>Review</div><div class="ri on"><i>Y</i>You</div></nav>
+<main><div class="wrap">
+<div class="row sp"><div><p class="sub">Profile / Readiness</p><h1>Readiness</h1></div>
+<div class="seg" role="tablist" aria-label="Mockup state">
+<button role="tab" aria-selected="true" data-s="full">Full data</button><button role="tab" aria-selected="false" data-s="part">Partial data</button><button role="tab" aria-selected="false" data-s="none">Empty</button><button role="tab" aria-selected="false" data-s="today">Today card</button></div></div>
+
+<section class="state on" id="full"><div class="lay"><div style="display:flex;flex-direction:column;gap:14px">
+<div class="card row" style="gap:22px;flex-wrap:nowrap"><div class="dial" style="--p:61"><div><p style="margin:0"><b>61</b><span>of 100, Solid</span></p></div></div>
+<div><h2>Overall readiness</h2><p class="sub" style="max-width:52ch;margin:4px 0 8px">Up 7 in the last 4 weeks. Interview on 2026-12-12 (21 days). You need about 5 points a week to reach Interview-ready; you are gaining about 2.</p><span class="chip warn">Behind pace</span>
+<p class="cap" style="margin-top:8px">An estimate from your own data, not a prediction of any company's decision.</p></div></div>
+<div class="ag">
+<div class="card"><div class="row sp"><h3>DSA</h3><span class="lv s">Solid 68</span></div><span class="up">+5 in 4 weeks</span>
+<div class="sg"><span>Coverage</span><div class="bar"><i style="width:72%"></i></div><span class="n">72%</span></div>
+<div class="sg"><span>Retention</span><div class="bar"><i style="width:80%"></i></div><span class="n">80%</span></div>
+<div class="sg"><span>Depth</span><div class="bar low"><i style="width:41%"></i></div><span class="n">41%</span></div>
+<div class="sg"><span>Speed</span><div class="bar"><i style="width:60%"></i></div><span class="n">60%</span></div>
+<div class="sg"><span>Recency</span><div class="bar"><i style="width:100%"></i></div><span class="n">100%</span></div></div>
+<div class="card"><div class="row sp"><h3>System design</h3><span class="lv b">Building 47</span></div><span class="up">+9 in 4 weeks</span>
+<div class="sg"><span>Concepts</span><div class="bar"><i style="width:58%"></i></div><span class="n">58%</span></div>
+<div class="sg"><span>Designs</span><div class="bar low"><i style="width:33%"></i></div><span class="n">4 of 12</span></div>
+<div class="sg"><span>Mocks</span><div class="bar low"><i style="width:36%"></i></div><span class="n">36%</span></div>
+<div class="sg"><span>Recency</span><div class="bar"><i style="width:86%"></i></div><span class="n">86%</span></div></div>
+<div class="card"><div class="row sp"><h3>LLD</h3><span class="lv s">Solid 55</span></div><span class="up">+3 in 4 weeks</span>
+<div class="sg"><span>Concepts</span><div class="bar"><i style="width:64%"></i></div><span class="n">64%</span></div>
+<div class="sg"><span>Designs</span><div class="bar"><i style="width:50%"></i></div><span class="n">5 of 10</span></div>
+<div class="sg nd"><span>Mocks</span><div class="bar"></div><span class="n">No data</span></div></div>
+<div class="card"><div class="row sp"><h3>Core CS</h3><span class="lv r">Interview-ready 78</span></div><span class="up">+1 in 4 weeks</span>
+<div class="sg"><span>Concepts</span><div class="bar"><i style="width:84%"></i></div><span class="n">84%</span></div>
+<div class="sg"><span>Confidence</span><div class="bar"><i style="width:76%"></i></div><span class="n">76%</span></div></div>
+<div class="card"><div class="row sp"><h3>Behavioural</h3><span class="lv b">Building 38</span></div><span class="cap">No change in 4 weeks</span>
+<div class="sg"><span>Stories</span><div class="bar low"><i style="width:50%"></i></div><span class="n">4 of 8</span></div>
+<div class="sg"><span>Principles</span><div class="bar low"><i style="width:31%"></i></div><span class="n">5 of 16</span></div>
+<div class="sg nd"><span>Mocks</span><div class="bar"></div><span class="n">No data</span></div></div>
+<div class="card"><div class="row sp"><h3>Mocks</h3><span class="lv s">Solid 52</span></div><span class="up">+14 in 4 weeks</span>
+<div class="sg"><span>Volume</span><div class="bar"><i style="width:75%"></i></div><span class="n">3 of 4</span></div>
+<div class="sg"><span>Quality</span><div class="bar"><i style="width:55%"></i></div><span class="n">55%</span></div>
+<div class="sg"><span>Variety</span><div class="bar low"><i style="width:50%"></i></div><span class="n">2 of 4</span></div></div></div>
+<p class="cap">Method: signals are 0 to 100%, weighted inside each area, areas weighted DSA 38, system design 30, LLD 8, behavioural 8, core 6, mocks 10. Missing data is left out, not counted as zero. Levels: 0-24 Getting started, 25-49 Building, 50-74 Solid, 75 and up Interview-ready. The trend counts solves, practice and mocks.</p></div>
+<aside class="card" style="position:sticky;top:16px"><div class="row sp"><h2>This week</h2><span class="chip">10 h a week</span></div><p class="sub">6 actions, 8 h 40 min. Ranked by points gained per minute.</p>
+<div class="wk"><span class="ck"></span><div><b>Practise "Design a news feed" and score yourself</b><p>Your design exercises: 4 of 12 scored 4 or more.</p></div><span class="m">60 min<br><span class="up">+2</span></span></div>
+<div class="wk"><span class="ck d"></span><div><b>Do a design mock</b><p>No design mock in 14 days; mocks volume is 3 of 4.</p></div><span class="m">60 min<br><span class="up">+2</span></span></div>
+<div class="wk"><span class="ck"></span><div><b>Write 2 stories for Ownership and Dive deep</b><p>Stories cover 5 of 16 principles.</p></div><span class="m">40 min<br><span class="up">+2</span></span></div>
+<div class="wk"><span class="ck"></span><div><b>Clear 3 items from your stuck list</b><p>7 open items; retention is 80%.</p></div><span class="m">45 min<br><span class="up">+1</span></span></div>
+<div class="wk"><span class="ck"></span><div><b>Solve 3 problems in Sliding window</b><p>2 of 5 solved in this pattern.</p></div><span class="m">90 min<br><span class="up">+1</span></span></div>
+<div class="wk"><span class="ck"></span><div><b>Finish Amazon's classic problems</b><p>9 classics left on the list.</p></div><span class="m">90 min<br><span class="up">+1</span></span></div>
+<div class="row" style="margin-top:12px"><button class="btn">Add ticked to Today</button><button class="btn out">Weekly hours</button></div></aside></div></section>
+
+<section class="state" id="part"><div class="lay"><div class="card row" style="gap:22px;flex-wrap:nowrap"><div class="dial" style="--p:34"><div><p style="margin:0"><b>34</b><span>of 100, Building</span></p></div></div>
+<div><h2>Overall readiness</h2><p class="sub" style="max-width:52ch;margin:4px 0 8px">Based on 3 of 6 areas. Behavioural, LLD and mocks have no data yet, so they are not counted as zero. No interview date set.</p><button class="btn tonal">Set interview date</button></div></div>
+<aside class="card"><h2>This week</h2><p class="sub">3 actions from your data.</p>
+<div class="wk"><span class="ck"></span><div><b>Solve 3 problems in Hash map</b><p>1 of 5 solved in this pattern.</p></div><span class="m">90 min<br><span class="up">+2</span></span></div>
+<div class="wk"><span class="ck"></span><div><b>Review 4 shaky concepts in Core CS</b><p>6 of 18 concepts at confidence 4 or more.</p></div><span class="m">40 min<br><span class="up">+1</span></span></div>
+<div class="wk"><span class="ck"></span><div><b>Do a coding mock</b><p>No mocks yet; they count for 10% of readiness.</p></div><span class="m">45 min<br><span class="up">+3</span></span></div></aside></div></section>
+
+<section class="state" id="none"><div class="card empty"><h2>Nothing to score yet</h2><p class="sub" style="max-width:48ch">Do a few things and come back. Your score uses solves, practice, concept ratings and mocks you save.</p>
+<div class="row" style="justify-content:center"><button class="btn">Solve a problem</button><button class="btn tonal">Rate a concept</button><button class="btn out">Start a mock</button></div></div></section>
+
+<section class="state" id="today"><div style="max-width:560px;display:flex;flex-direction:column;gap:12px"><p class="sub">Card on the Today page</p>
+<div class="tdy"><div class="dial" style="--p:61;width:64px;height:64px"><div style="width:50px;height:50px"><p style="margin:0"><b style="font-size:18px">61</b></p></div></div><div style="flex:1"><h3>Readiness 61, Solid</h3><p style="margin:0;font-size:13px">This week: 5 of 6 actions left. Next: Practise "Design a news feed".</p></div><button class="btn" style="height:40px">Open</button></div></div></section>
+</div></main></div>
+<div class="tabbar"><span>Today</span><span>Practice</span><span>Learn</span><span>Review</span><b>You</b></div>
+<script>
+document.querySelectorAll('.seg[role=tablist] button').forEach(function(b){b.addEventListener('click',function(){
+document.querySelectorAll('.seg[role=tablist] button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+document.querySelectorAll('.state').forEach(function(s){s.classList.toggle('on',s.id===b.dataset.s)});});});
+</script></body></html>

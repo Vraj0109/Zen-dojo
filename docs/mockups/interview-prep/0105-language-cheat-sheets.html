@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Language cheat sheets (mockup 0105)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup only: static sample data. Tokens follow DESIGN.md (names and values). Light and dark follow the system setting. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+--reward:#8B5000;--rs:#FFDDB2;--on-rs:#2C1600;--success:#1E6B4A;--warning:#9A5B00;--danger:#BA1A1A;--ds:#FFDAD6;--on-ds:#410002;
+--c1:#D6E3FF;--o1:#001B3E;--c2:#F0DBFF;--o2:#2A0E45;--c3:#BCEBEE;--o3:#002022;
+--font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward:#FFB95C;--rs:#6A3C00;--on-rs:#FFDDB2;
+--success:#8FD8B0;--warning:#FFB95C;--danger:#FFB4AB;--ds:#93000A;--on-ds:#FFDAD6;--c1:#284777;--o1:#D6E3FF;--c2:#56397A;--o2:#F0DBFF;--c3:#1D4E51;--o3:#BCEBEE;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.5 var(--font)}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;position:sticky;top:0;height:100vh}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--rs);color:var(--on-rs);display:grid;place-items:center;margin-bottom:4px}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri .p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on .p{background:var(--ps);color:var(--primary)}
+.ri svg,.tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.av{margin-top:auto;width:40px;height:40px;border-radius:99px;background:var(--c1);color:var(--o1);display:grid;place-items:center;font-weight:500;font-size:14px}
+main{flex:1;min-width:0;padding:28px 16px 56px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}h2{margin:0;font-size:20px;font-weight:500}h3{margin:0;font-size:16px;font-weight:500}
+p{margin:0}.sub{color:var(--muted);font-size:14px}.kick{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.seg{position:relative;display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;transition:background .25s,color .25s}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.sm{height:36px;padding:0 14px}
+.tag{font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted);display:inline-block}
+.tag.e{background:var(--c3);color:var(--o3)}.tag.m{background:var(--rs);color:var(--on-rs)}.tag.h{background:var(--ds);color:var(--on-ds)}.tag.ok{background:var(--pc);color:var(--on-pc)}.tag.d{background:var(--c1);color:var(--o1)}.tag.s{background:var(--c2);color:var(--o2)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 12.5px/1.6 var(--mono);overflow-x:auto;color:var(--fg)}
+code{font-family:var(--mono);font-size:.92em}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.mono{font-family:var(--mono)}.ok{color:var(--success)}.bad{color:var(--danger)}
+.note{padding:12px 14px;border-radius:16px;background:var(--pc);color:var(--on-pc);font-size:14px}
+.warn{padding:12px 14px;border-radius:16px;background:var(--rs);color:var(--on-rs);font-size:14px}
+.err{padding:12px 14px;border-radius:16px;background:var(--ds);color:var(--on-ds);font-size:14px}
+.prog{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;background:var(--primary);border-radius:99px}
+input,textarea,select{font:400 15px var(--font);color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;padding:10px 14px;min-height:44px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+[hidden]{display:none!important}
+.tabbar{display:none}
+@media (max-width:767px){.rail{display:none}main{padding:16px 16px 96px}h1{font-size:26px}
+.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));justify-content:space-around;z-index:5}
+.tb{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);min-width:56px;min-height:44px;text-decoration:none}.tb.on{color:var(--primary);font-weight:600}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.groups{display:flex;flex-direction:column;gap:4px;position:sticky;top:16px}
+@media (max-width:900px){.groups{flex-direction:row;overflow-x:auto;position:static}}
+.groups button{height:40px;border-radius:99px;border:0;background:transparent;color:var(--muted);font:500 14px var(--font);text-align:left;padding:0 16px;cursor:pointer;white-space:nowrap;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.groups button[aria-pressed="true"]{background:var(--ps);color:var(--on-ps)}
+.search{display:flex;align-items:center;gap:10px;height:48px;border-radius:99px;background:var(--surface-2);padding:0 18px;flex:1;min-width:220px;border:0}
+.search input{border:0;background:transparent;flex:1;padding:0;min-height:0;outline:none}
+.ent{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px;display:grid;gap:10px}
+@media (prefers-color-scheme:dark){.ent{border-color:transparent}}
+.ent+.ent{margin-top:12px}
+.eh{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.eh h3,.eh h2{flex:1;min-width:200px;font-size:17px}
+.cp{position:relative}.cp .btn{position:absolute;top:8px;right:8px;height:32px;padding:0 12px;font-size:12px}
+.pit{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:14px;background:var(--rs);color:var(--on-rs);font-size:13.5px}
+.nt{font-size:13.5px;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:1000px){.cols{grid-template-columns:1fr}}
+.cols>div{display:grid;gap:6px;min-width:0}
+.ver{font-size:12.5px;color:var(--muted)}
+.demo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:16px;background:var(--rs);color:var(--on-rs);font-size:13px}
+.tw{overflow-x:auto}
+</style></head><body><div class="app">
+<nav class="rail" aria-label="Main"><div class="logo">ZD</div><div class="fab" title="Start focus"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 3h6"/></svg></div>
+<a class="ri" data-k="today"><span class="p"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>Today</a>
+<a class="ri" data-k="practice"><span class="p"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span>Practice</a>
+<a class="ri" data-k="learn"><span class="p"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 013 3v11a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3"/></svg></span>Learn</a>
+<a class="ri" data-k="review"><span class="p"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg></span>Review</a>
+<a class="ri" data-k="roadmap"><span class="p"><svg viewBox="0 0 24 24"><path d="M5 19V5M5 6h12l-2 3 2 3H5"/></svg></span>Roadmap</a>
+<div class="av">VL</div></nav>
+<main><div class="wrap">
+
+<div class="demo"><b>Mockup screens:</b>
+<div class="seg" data-tabs="scr" style="background:var(--surface)"><button data-t="s" aria-selected="true">One language</button><button data-t="x" aria-selected="false">Side by side</button><button data-t="t" aria-selected="false">Tables</button></div></div>
+<div class="row sp"><div><p class="kick">Learn, reference</p><h1>Language cheat sheets</h1><p class="sub">64 topics in C++, Java and Python. Every sheet compiles and runs.</p></div>
+<div class="seg" aria-label="Language"><button aria-selected="true">C++</button><button aria-selected="false">Java</button><button aria-selected="false">Python</button></div></div>
+<div id="scr">
+
+<section class="panel" data-p="s"><div class="layout">
+<div class="groups" aria-label="Groups"><button aria-pressed="true">All <span class="tag">64</span></button><button aria-pressed="false">Arrays <span class="tag">12</span></button><button aria-pressed="false">Strings <span class="tag">10</span></button><button aria-pressed="false">Maps and sets <span class="tag">10</span></button><button aria-pressed="false">Heaps and queues <span class="tag">10</span></button><button aria-pressed="false">Graph idioms <span class="tag">8</span></button><button aria-pressed="false">Numbers and bits <span class="tag">8</span></button><button aria-pressed="false">Misc <span class="tag">6</span></button></div>
+<div>
+<div class="row" style="margin-bottom:12px"><label class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input aria-label="Search the sheet" value="sort" placeholder="Search topics, for example heap or sort"></label><span class="ver">C++17, g++ 12 or newer. Checked 21 Nov 2026.</span></div>
+<article class="ent"><div class="eh"><h2>Sort pairs by second value, then first</h2><span class="tag m">O(n log n)</span><span class="tag">sort</span><span class="tag">lambda</span></div>
+<div class="cp"><pre>vector&lt;pair&lt;int,int&gt;&gt; v = {{1, 5}, {2, 3}, {0, 3}};
+sort(v.begin(), v.end(), [](auto&amp; a, auto&amp; b) {
+    return tie(a.second, a.first) &lt; tie(b.second, b.first);
+});</pre><button class="btn tonal">Copy</button></div>
+<p class="nt">A comparator must be a strict ordering: use &lt; or &gt;, never &lt;= or &gt;=.</p>
+<div class="pit"><b>Trap</b><span>Comparing with &lt;= can crash std::sort on equal elements.</span></div></article>
+<article class="ent"><div class="eh"><h2>Binary search: first element not less than x</h2><span class="tag m">O(log n)</span><span class="tag">lower_bound</span></div>
+<div class="cp"><pre>auto it = lower_bound(a.begin(), a.end(), x);
+int idx = it - a.begin();          // a.size() when every element is smaller
+bool found = it != a.end() &amp;&amp; *it == x;</pre><button class="btn tonal">Copy</button></div>
+<p class="nt">The vector must already be sorted by the same order.</p></article>
+<article class="ent"><div class="eh"><h2>Sort and keep the original positions</h2><span class="tag m">O(n log n)</span><span class="tag">argsort</span></div>
+<div class="cp"><pre>vector&lt;int&gt; idx(n);
+iota(idx.begin(), idx.end(), 0);
+sort(idx.begin(), idx.end(), [&amp;](int i, int j) { return a[i] &lt; a[j]; });</pre><button class="btn tonal">Copy</button></div></article>
+</div></div></section>
+
+<section class="panel" data-p="x" hidden><div class="card" style="display:grid;gap:14px">
+<div class="row sp"><h2>Min-heap of pairs</h2><div class="row"><button class="btn sm tonal">Previous topic</button><button class="btn sm tonal">Next topic</button></div></div>
+<div class="cols">
+<div><span class="tag d">C++</span><pre>priority_queue&lt;pair&lt;int,int&gt;,
+  vector&lt;pair&lt;int,int&gt;&gt;,
+  greater&lt;&gt;&gt; pq;
+pq.push({3, 7});
+auto [d, v] = pq.top();
+pq.pop();</pre><p class="nt">Default is a max-heap: add greater.</p></div>
+<div><span class="tag s">Java</span><pre>PriorityQueue&lt;int[]&gt; pq =
+  new PriorityQueue&lt;&gt;(
+    (a, b) -&gt; Integer.compare(a[0], b[0]));
+pq.offer(new int[]{3, 7});
+int[] top = pq.poll();</pre><p class="nt">Never subtract in a comparator: it can overflow.</p></div>
+<div><span class="tag e">Python</span><pre>import heapq
+pq = []
+heapq.heappush(pq, (3, 7))
+d, v = heapq.heappop(pq)
+
+# max-heap: push the negative</pre><p class="nt">heapq is a min-heap on a plain list.</p></div></div>
+<div class="row"><span class="tag m">O(log n) push and pop</span><span class="tag">Same idea in all three: the smallest key comes out first.</span></div></div></section>
+
+<section class="panel" data-p="t" hidden style="display:grid;gap:14px">
+<div class="seg"><button aria-selected="true">Complexity</button><button aria-selected="false">Which container</button><button aria-selected="false">Pitfalls</button></div>
+<div class="card tw"><table><tr><th>Operation (C++)</th><th>Cost</th><th>Note</th></tr>
+<tr><td class="mono">vector::push_back</td><td>O(1) amortised</td><td>Reallocation copies everything now and then.</td></tr>
+<tr><td class="mono">map[k], map.find</td><td>O(log n)</td><td>Ordered. Reading map[k] inserts a missing key.</td></tr>
+<tr><td class="mono">unordered_map[k]</td><td>O(1) average, O(n) worst</td><td>Unordered. A bad hash can degrade it.</td></tr>
+<tr><td class="mono">priority_queue push, pop</td><td>O(log n)</td><td>top() is O(1). No decrease-key.</td></tr>
+<tr><td class="mono">vector::erase(begin)</td><td>O(n)</td><td>Shifts every element left.</td></tr>
+<tr><td class="mono">sort</td><td>O(n log n)</td><td>Not stable. Use stable_sort when order of equals matters.</td></tr></table></div>
+<div class="card"><h3 style="margin-bottom:8px">Pitfalls, C++</h3><div style="display:grid;gap:8px">
+<div class="pit"><b>1</b><span><code>v.size() - 1</code> is a huge number when the vector is empty, because size() is unsigned.</span></div>
+<div class="pit"><b>2</b><span>Signed integer overflow is undefined behaviour. Use <code>long long</code> before multiplying.</span></div>
+<div class="pit"><b>3</b><span><code>vector&lt;bool&gt;</code> is packed; taking a reference to an element does not behave like other vectors.</span></div></div></div>
+</section>
+</div>
+</div></main></div>
+<nav class="tabbar" aria-label="Main">
+<a class="tb" data-k="today"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Today</a>
+<a class="tb" data-k="practice"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>Practice</a>
+<a class="tb" data-k="learn"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 013 3v11a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3"/></svg>Learn</a>
+<a class="tb" data-k="review"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg>Review</a>
+<a class="tb" data-k="you"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>You</a></nav>
+<script>
+const ACTIVE="learn";document.querySelectorAll('[data-k="'+ACTIVE+'"]').forEach(e=>e.classList.add('on'));
+/* tabs: <div class="seg" data-tabs="scopeId"> with buttons data-t; panels are direct children .panel[data-p] of #scopeId */
+document.querySelectorAll('[data-tabs]').forEach(seg=>{const scope=document.getElementById(seg.dataset.tabs);
+seg.addEventListener('click',e=>{const b=e.target.closest('button[data-t]');if(!b)return;
+seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
+scope.querySelectorAll(':scope > .panel').forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)})});
+</script></body></html>

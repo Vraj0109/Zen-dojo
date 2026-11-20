@@ -444,6 +444,8 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 
 /* Keyboard focus: one visible ring everywhere (mouse clicks don't show it). */
 :where(a, button, select, summary, input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* A field that draws the ring around itself (search pills): no second ring on the input inside. */
+.field-ring :is(input, textarea):focus-visible { outline: none; }
 
 /* Zen mode: Anti-overwhelm focus mode */
 html.zen-mode .zen-hide { display: none !important; }
@@ -520,6 +522,10 @@ li.group {
 }
 .sp[data-sp-ready] [data-sp-on] { background-color: transparent !important; box-shadow: none !important; }
 .sp[data-sp-ready][data-sp-line] [data-sp-on] { border-color: transparent !important; }
+/* Scrolling strips fade the side that has more items past it (set by SlidingPill), like Material's scrollable tab rows. */
+.sp[data-sp-more-end] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); }
+.sp[data-sp-more-start] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 48px), transparent); }
+.sp[data-sp-more-start][data-sp-more-end] { -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent); }
 
 /* Tab content fades in (opacity only, 150ms, ease-out; no movement, so only the tab pill moves). Only for switches the
    user just made: TabPanel (tab-panel.tsx) sets data-switched on a panel that replaces another; markTabSwitch() sets

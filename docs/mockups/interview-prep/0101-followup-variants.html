@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Follow-up variants (mockup 0101)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup only: static sample data. Tokens follow DESIGN.md (names and values). Light and dark follow the system setting. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+--reward:#8B5000;--rs:#FFDDB2;--on-rs:#2C1600;--success:#1E6B4A;--warning:#9A5B00;--danger:#BA1A1A;--ds:#FFDAD6;--on-ds:#410002;
+--c1:#D6E3FF;--o1:#001B3E;--c2:#F0DBFF;--o2:#2A0E45;--c3:#BCEBEE;--o3:#002022;
+--font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward:#FFB95C;--rs:#6A3C00;--on-rs:#FFDDB2;
+--success:#8FD8B0;--warning:#FFB95C;--danger:#FFB4AB;--ds:#93000A;--on-ds:#FFDAD6;--c1:#284777;--o1:#D6E3FF;--c2:#56397A;--o2:#F0DBFF;--c3:#1D4E51;--o3:#BCEBEE;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.5 var(--font)}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;position:sticky;top:0;height:100vh}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--rs);color:var(--on-rs);display:grid;place-items:center;margin-bottom:4px}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri .p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on .p{background:var(--ps);color:var(--primary)}
+.ri svg,.tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.av{margin-top:auto;width:40px;height:40px;border-radius:99px;background:var(--c1);color:var(--o1);display:grid;place-items:center;font-weight:500;font-size:14px}
+main{flex:1;min-width:0;padding:28px 16px 56px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}h2{margin:0;font-size:20px;font-weight:500}h3{margin:0;font-size:16px;font-weight:500}
+p{margin:0}.sub{color:var(--muted);font-size:14px}.kick{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.seg{position:relative;display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;transition:background .25s,color .25s}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.sm{height:36px;padding:0 14px}
+.tag{font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted);display:inline-block}
+.tag.e{background:var(--c3);color:var(--o3)}.tag.m{background:var(--rs);color:var(--on-rs)}.tag.h{background:var(--ds);color:var(--on-ds)}.tag.ok{background:var(--pc);color:var(--on-pc)}.tag.d{background:var(--c1);color:var(--o1)}.tag.s{background:var(--c2);color:var(--o2)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 12.5px/1.6 var(--mono);overflow-x:auto;color:var(--fg)}
+code{font-family:var(--mono);font-size:.92em}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.mono{font-family:var(--mono)}.ok{color:var(--success)}.bad{color:var(--danger)}
+.note{padding:12px 14px;border-radius:16px;background:var(--pc);color:var(--on-pc);font-size:14px}
+.warn{padding:12px 14px;border-radius:16px;background:var(--rs);color:var(--on-rs);font-size:14px}
+.err{padding:12px 14px;border-radius:16px;background:var(--ds);color:var(--on-ds);font-size:14px}
+.prog{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;background:var(--primary);border-radius:99px}
+input,textarea,select{font:400 15px var(--font);color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;padding:10px 14px;min-height:44px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+[hidden]{display:none!important}
+.tabbar{display:none}
+@media (max-width:767px){.rail{display:none}main{padding:16px 16px 96px}h1{font-size:26px}
+.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));justify-content:space-around;z-index:5}
+.tb{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);min-width:56px;min-height:44px;text-decoration:none}.tb.on{color:var(--primary);font-weight:600}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.back{width:44px;height:44px;border-radius:99px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--fg)}
+.ptabs{display:flex;gap:6px;overflow-x:auto;padding:4px;border-radius:99px;background:var(--surface-2);width:max-content;max-width:100%}
+.ptabs span{height:40px;padding:0 18px;border-radius:99px;display:inline-flex;align-items:center;font-size:14px;font-weight:500;color:var(--muted);white-space:nowrap}
+.ptabs .on{background:var(--ps);color:var(--on-ps)}
+.demo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:16px;background:var(--rs);color:var(--on-rs);font-size:13px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+@media (max-width:1000px){.layout{grid-template-columns:1fr}}
+.v{border:1px solid var(--line);border-radius:20px;background:var(--surface);overflow:hidden}
+.v+.v{margin-top:10px}
+.v>summary,.vh{list-style:none;display:flex;align-items:center;gap:10px;padding:14px 16px;min-height:56px;cursor:pointer}
+.v>summary::-webkit-details-marker{display:none}
+.v .t{font-weight:500;flex:1;min-width:0}
+.vb{padding:4px 18px 18px;display:grid;gap:14px}
+.ask{font-size:22px;line-height:1.35;font-weight:500;max-width:48ch;text-wrap:balance}
+.f{display:grid;grid-template-columns:96px 1fr;gap:6px 14px}
+.f b{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-top:3px}
+@media (max-width:560px){.f{grid-template-columns:1fr}}
+.rate{display:flex;gap:8px;flex-wrap:wrap}
+.rate .btn{height:48px}
+.lv1{background:var(--ds);color:var(--on-ds)}.lv2{background:var(--rs);color:var(--on-rs)}.lv3{background:var(--pc);color:var(--on-pc)}
+.dots{display:flex;gap:6px}.dots i{width:10px;height:10px;border-radius:99px;background:var(--line-strong)}
+.rv{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--line);flex-wrap:wrap}
+.rv .k{font-size:12px;padding:3px 10px;border-radius:10px;background:var(--rs);color:var(--on-rs)}
+</style></head><body><div class="app">
+<nav class="rail" aria-label="Main"><div class="logo">ZD</div><div class="fab" title="Start focus"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 3h6"/></svg></div>
+<a class="ri" data-k="today"><span class="p"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>Today</a>
+<a class="ri" data-k="practice"><span class="p"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span>Practice</a>
+<a class="ri" data-k="learn"><span class="p"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 013 3v11a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3"/></svg></span>Learn</a>
+<a class="ri" data-k="review"><span class="p"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg></span>Review</a>
+<a class="ri" data-k="roadmap"><span class="p"><svg viewBox="0 0 24 24"><path d="M5 19V5M5 6h12l-2 3 2 3H5"/></svg></span>Roadmap</a>
+<div class="av">VL</div></nav>
+<main><div class="wrap">
+
+<div class="demo"><b>Mockup states:</b>
+<div class="seg" data-tabs="states" style="background:var(--surface)"><button data-t="a" aria-selected="true">Before solving</button><button data-t="b" aria-selected="false">Asked</button><button data-t="c" aria-selected="false">Answer and rating</button><button data-t="d" aria-selected="false">In the Review queue</button></div></div>
+<div class="bar"><div class="back" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+<div><p class="kick">Hash map</p><h1>1. Two Sum <span class="tag e" style="vertical-align:middle">Easy</span></h1></div></div>
+<div class="ptabs" role="tablist"><span>Description</span><span>Hints</span><span>Solution</span><span class="on">Follow-ups</span><span>Notes</span><span>Submissions</span></div>
+
+<div id="states">
+<section class="panel" data-p="a"><div class="layout"><div class="card">
+<div class="warn" style="margin-bottom:14px">Solve it first, then ask yourself these. <a href="#" style="color:inherit;font-weight:600">Open the variants anyway</a></div>
+<h2 style="margin-bottom:4px">Four things an interviewer might change</h2><p class="sub" style="margin-bottom:14px">Answer out loud first. The answer stays hidden until you ask for it.</p>
+<details class="v"><summary><span class="tag d">Constraint</span><span class="t">Input is already sorted</span><span class="sub">Not tried</span></summary></details>
+<details class="v"><summary><span class="tag s">Online</span><span class="t">Numbers arrive one at a time</span><span class="sub">Not tried</span></summary></details>
+<details class="v"><summary><span class="tag m">Output</span><span class="t">Return every pair, not just one</span><span class="sub">Not tried</span></summary></details>
+<details class="v"><summary><span class="tag e">Scale</span><span class="t">Too many numbers for memory</span><span class="sub">Not tried</span></summary></details>
+</div>
+<aside class="card"><h3>How this works</h3><p class="sub" style="margin-top:8px">Pick a variant, read only the question, think for a minute, then show the answer and rate yourself. Variants you miss come back in Review after 2 days; partly right ones after 7.</p></aside></div></section>
+
+<section class="panel" data-p="b" hidden><div class="layout"><div class="card">
+<div class="row sp" style="margin-bottom:12px"><span class="tag s">Online</span><span class="sub">Variant 2 of 4</span></div>
+<p class="ask">Now the numbers arrive one at a time, and after each one I want to know whether some pair so far adds up to the target. What do you do?</p>
+<p class="sub" style="margin:14px 0">Say your answer out loud, including the cost per arrival. Then check it.</p>
+<div class="row"><button class="btn primary">Show answer</button><button class="btn outline">Back to the list</button></div>
+</div>
+<aside class="card"><h3>Your answers so far</h3><div style="display:grid;gap:8px;margin-top:10px">
+<div class="row sp"><span>Input is already sorted</span><span class="tag ok">Nailed it</span></div>
+<div class="row sp"><span>Numbers arrive one at a time</span><span class="tag">Now</span></div>
+<div class="row sp"><span>Return every pair</span><span class="tag">Not tried</span></div>
+<div class="row sp"><span>Too many numbers for memory</span><span class="tag">Not tried</span></div></div></aside></div></section>
+
+<section class="panel" data-p="c" hidden><div class="layout"><div class="card">
+<div class="row sp" style="margin-bottom:12px"><span class="tag s">Online</span><span class="sub">Variant 2 of 4</span></div>
+<p class="ask" style="font-size:18px;font-weight:400">Now the numbers arrive one at a time, and after each one I want to know whether some pair so far adds up to the target.</p>
+<div class="f" style="margin-top:18px">
+<b>What changes</b><p>You cannot rescan the whole array after every arrival; that would be quadratic overall.</p>
+<b>Approach</b><p>Keep a hash set of the values seen so far. For each new value <code>x</code>, check whether <code>target - x</code> is in the set, then add <code>x</code>.</p>
+<b>Cost</b><p class="mono">O(1) per arrival, O(n) space</p>
+<b>Trap</b><p>Adding <code>x</code> before the check makes a single value pair with itself.</p></div>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<p class="kick" style="margin-bottom:8px">How did you do?</p>
+<form class="rate"><button type="button" class="btn tonal lv1">Missed it</button><button type="button" class="btn tonal lv2">Got part of it</button><button type="button" class="btn primary">Nailed it</button></form>
+</div>
+<aside class="card"><h3>Come back later</h3><p class="sub" style="margin-top:8px">Missed it returns in Review after 2 days. Got part of it returns after 7. Nailed it does not return.</p>
+<div class="dots" style="margin-top:14px" aria-label="Progress: 1 of 4 nailed"><i style="background:var(--primary)"></i><i style="background:var(--primary)"></i><i></i><i></i></div></aside></div></section>
+
+<section class="panel" data-p="d" hidden><div class="card" style="display:grid;gap:12px">
+<div class="row sp"><h2>Review</h2><span class="sub">6 due today</span></div>
+<div class="rv"><span class="k">Follow-up</span><div style="flex:1;min-width:200px"><b style="font-weight:500">1. Two Sum: numbers arrive one at a time</b><p class="sub">You rated this "Missed it" on 19 Nov</p></div><button class="btn tonal sm">Open</button></div>
+<div class="rv"><span class="k" style="background:var(--c1);color:var(--o1)">Stuck list</span><div style="flex:1;min-width:200px"><b style="font-weight:500">146. LRU Cache</b><p class="sub">Needed a hint, 3 days ago</p></div><button class="btn tonal sm">Open</button></div>
+<div class="rv"><span class="k" style="background:var(--c3);color:var(--o3)">Concept</span><div style="flex:1;min-width:200px"><b style="font-weight:500">Consistent hashing</b><p class="sub">Confidence 2, last checked 7 days ago</p></div><button class="btn tonal sm">Open</button></div>
+</div></section>
+</div>
+</div></main></div>
+<nav class="tabbar" aria-label="Main">
+<a class="tb" data-k="today"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Today</a>
+<a class="tb" data-k="practice"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>Practice</a>
+<a class="tb" data-k="learn"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 013 3v11a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3"/></svg>Learn</a>
+<a class="tb" data-k="review"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg>Review</a>
+<a class="tb" data-k="you"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>You</a></nav>
+<script>
+const ACTIVE="practice";document.querySelectorAll('[data-k="'+ACTIVE+'"]').forEach(e=>e.classList.add('on'));
+/* tabs: <div class="seg" data-tabs="scopeId"> with buttons data-t; panels are direct children .panel[data-p] of #scopeId */
+document.querySelectorAll('[data-tabs]').forEach(seg=>{const scope=document.getElementById(seg.dataset.tabs);
+seg.addEventListener('click',e=>{const b=e.target.closest('button[data-t]');if(!b)return;
+seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
+scope.querySelectorAll(':scope > .panel').forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)})});
+</script></body></html>

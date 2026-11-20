@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Online assessment (mockup 0102)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0102: setup, three parts (coding, debugging, work style) and results. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;--font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px}
+.ri i{width:56px;height:32px;border-radius:99px;display:grid;place-items:center;font-style:normal}
+.ri.on{color:var(--fg);font-weight:600}.ri.on i{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:24px 16px 96px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:30px;line-height:1.2;font-weight:600}h2{margin:0;font-size:18px;font-weight:600}h3{margin:0;font-size:15px;font-weight:600}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer;white-space:nowrap}
+.seg button[aria-selected=true]{background:var(--ps);color:var(--on-ps)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.chip{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:10px;background:var(--surface-2);font-size:12px;font-weight:500}
+.chip.warn{background:var(--reward-soft);color:var(--on-reward-soft)}.chip.ok{background:var(--pc);color:var(--on-pc)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;background:var(--primary);color:var(--on-primary)}
+.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.out{background:transparent;border:1px solid var(--line-strong);color:var(--fg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.state{display:none}.state.on{display:block}
+.session{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1040px){.session{grid-template-columns:1fr}}
+.phases{display:flex;gap:6px;flex-wrap:wrap}
+.ph{height:32px;padding:0 14px;border-radius:99px;background:var(--surface-2);font-size:12px;display:inline-flex;align-items:center;color:var(--muted)}
+.ph.cur{background:var(--primary);color:var(--on-primary);font-weight:500}.ph.done{background:var(--ps);color:var(--on-ps)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 13px/1.55 var(--mono);overflow:auto}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:2px}
+.msg{max-width:92%;padding:10px 14px;border-radius:18px;font-size:14px}
+.msg.i{background:var(--ps);color:var(--on-ps);border-bottom-left-radius:6px;align-self:flex-start}
+.msg.c{background:var(--pc);color:var(--on-pc);border-bottom-right-radius:6px;align-self:flex-end}
+.msg small{display:block;color:inherit;opacity:.7;font-size:11px;margin-bottom:2px}
+.input{display:flex;gap:8px;margin-top:12px}
+.input input{flex:1;height:44px;border-radius:99px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);padding:0 16px;font:400 14px var(--font)}
+.toggle{display:inline-flex;align-items:center;gap:10px;font-size:14px}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--line-strong);position:relative;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .3s var(--spring)}
+.sw.on{background:var(--primary)}.sw.on::after{transform:translateX(18px)}
+.crit{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:14px;padding:14px 0;border-top:1px solid var(--line);align-items:start}
+@media (max-width:760px){.crit{grid-template-columns:1fr}}
+.quote{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--primary);background:var(--surface-2);border-radius:0 12px 12px 0;font-size:13px;color:var(--muted)}
+.scale{display:inline-flex;gap:4px;padding:3px;border-radius:99px;background:var(--surface-2)}
+.scale button{width:44px;height:36px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer}
+.scale button.s{background:var(--primary);color:var(--on-primary)}
+.note{padding:12px 16px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.tabbar{display:none}
+.fmt{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}
+.fc{border:1px solid var(--line-strong);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.fc.sel{border-color:var(--primary);background:var(--ps);color:var(--on-ps)}
+.fc small{color:inherit;opacity:.75;font-size:12px}
+.bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden}.bar i{display:block;height:100%;background:var(--primary);border-radius:99px}
+.opt{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line-strong);border-radius:16px;font-size:14px}
+.opt.sel{border-color:var(--primary);background:var(--ps);color:var(--on-ps)}
+.opt .r{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-strong);flex:none}.opt.sel .r{border-color:var(--primary);background:var(--primary)}
+.mk{margin-left:auto;display:flex;gap:6px}.mk button{height:32px;padding:0 12px;border-radius:99px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 12px var(--font);cursor:pointer}
+.mk button.s{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.timer{font:500 20px var(--mono)}.dots{display:flex;gap:6px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--line-strong)}.dots i.d{background:var(--primary)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+.big{font-size:40px;font-weight:600;line-height:1.1}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px 8px;border-top:1px solid var(--line)}th{font-weight:500;color:var(--muted);border-top:0}
+.mono{font-family:var(--mono)}
+@media (max-width:760px){.rail{display:none}h1{font-size:26px}.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;align-items:center;font-size:11px;color:var(--muted)}.tabbar b{font-weight:600;color:var(--primary)}.mk{margin-left:0}.opt{flex-wrap:wrap}}
+</style></head>
+<body><div class="app">
+<nav class="rail" aria-label="Primary"><div class="logo">ZD</div>
+<div class="ri"><i>T</i>Today</div><div class="ri"><i>P</i>Practice</div><div class="ri"><i>L</i>Learn</div><div class="ri"><i>R</i>Review</div><div class="ri on"><i>I</i>Interview</div></nav>
+<main><div class="wrap">
+<div class="row sp"><div><p class="sub">Interview / Online assessment</p><h1>Online assessment</h1></div>
+<div class="seg" role="tablist" aria-label="Mockup state">
+<button role="tab" aria-selected="true" data-s="setup">Setup</button><button role="tab" aria-selected="false" data-s="code">Coding</button><button role="tab" aria-selected="false" data-s="debug">Debugging</button><button role="tab" aria-selected="false" data-s="style">Work style</button><button role="tab" aria-selected="false" data-s="res">Results</button></div></div>
+
+<section class="state on" id="setup"><div class="card" style="display:flex;flex-direction:column;gap:16px">
+<div><h2>Pick a format</h2><p class="sub">A practice shape for pressure and pacing. Not a copy of any real test. Check your invitation email for your real format.</p></div>
+<div class="fmt">
+<div class="fc sel"><h3>Amazon-style SDE2</h3><span>2 coding (70 min), 6 debugging (30 min), 8 work-style scenarios (20 min)</span><small>Commonly described by candidates. Last checked 2026-11-21.</small></div>
+<div class="fc"><h3>Amazon-style SDE1</h3><span>2 coding (easy, medium), 5 debugging, 8 scenarios</span><small>Last checked 2026-11-21.</small></div>
+<div class="fc"><h3>Two coding problems, one clock</h3><span>Medium and hard, 75 minutes, no other parts</span><small>Generic.</small></div>
+<div class="fc"><h3>Three problems, 90 minutes</h3><span>Easy, medium, medium</span><small>Generic.</small></div></div>
+<div class="row"><div><h3>Language</h3><div class="seg" style="margin-top:6px"><button>C++</button><button style="background:var(--ps);color:var(--on-ps)">Java</button><button>Python</button></div></div>
+<div><h3>Coding clock</h3><div class="seg" style="margin-top:6px"><button>-15</button><button style="background:var(--ps);color:var(--on-ps)">70 min</button><button>+15</button></div></div></div>
+<div class="note"><b>Rules:</b> one sitting, no hints, no AI panel, no notes. The clock keeps running if you reload. Problems are picked from ones you have not solved. A Submit here does not mark a problem solved.</div>
+<div class="row"><button class="btn">Start assessment</button><span class="sub">Needs the desktop app to run code. Debugging and work style also work on the web.</span></div></div></section>
+
+<section class="state" id="code"><div style="display:flex;flex-direction:column;gap:16px">
+<div class="card row sp"><div class="row"><span class="ph done">Coding 1 of 2</span><span class="ph cur">Coding 2 of 2</span><span class="ph">Debugging</span><span class="ph">Work style</span></div><div class="row"><span class="timer">41:12</span><span class="chip">Section</span><span class="timer" style="color:var(--muted)">1:08:40</span><span class="chip">Total</span></div></div>
+<div class="session"><div class="card"><div class="row sp"><h2>Longest run after replacements</h2><span class="chip warn">Medium</span></div><p class="sub" style="margin:8px 0 12px">Given a string and k, return the length of the longest substring you can make of one repeated letter after at most k replacements.</p>
+<pre>class Solution {
+    public int characterReplacement(String s, int k) {
+        int[] cnt = new int[26];
+        int best = 0, lo = 0, maxf = 0;
+        for (int hi = 0; hi &lt; s.length(); hi++) {
+            maxf = Math.max(maxf, ++cnt[s.charAt(hi) - 'A']);
+            while (hi - lo + 1 - maxf &gt; k) cnt[s.charAt(lo++) - 'A']--;
+            best = Math.max(best, hi - lo + 1);
+        }
+        return best;
+    }
+}</pre><div class="row" style="margin-top:12px"><button class="btn tonal">Run examples</button><button class="btn">Submit and continue</button></div></div>
+<aside class="card"><h3>Your results</h3><p class="sub">Examples 2 of 2 passed. Submit runs all tests.</p><div class="bar" style="margin:10px 0"><i style="width:100%"></i></div>
+<table><tr><th>Problem</th><th>Submits</th><th>Tests</th></tr><tr><td>1. Two sum variant</td><td>1</td><td class="mono">14 / 14</td></tr><tr><td>2. This one</td><td>0</td><td class="mono">not yet</td></tr></table>
+<p class="sub" style="margin-top:10px">Description only. Hints, solution and notes are hidden until you finish.</p></aside></div></div></section>
+
+<section class="state" id="debug"><div class="card" style="display:flex;flex-direction:column;gap:14px">
+<div class="row sp"><div class="row"><span class="ph done">Coding</span><span class="ph cur">Debugging 3 of 6</span><span class="ph">Work style</span></div><span class="timer">18:05</span></div>
+<h2>Find the bug</h2><p class="sub">This method should return, for each day, the number of days until a warmer temperature, or 0 if there is none.</p>
+<pre>int[] daysToWarmer(int[] t) {
+    int[] res = new int[t.length];
+    Deque&lt;Integer&gt; st = new ArrayDeque&lt;&gt;();
+    for (int i = 0; i &lt; t.length; i++) {
+        while (!st.isEmpty() &amp;&amp; t[i] &gt;= t[st.peek()]) {
+            int j = st.pop();
+            res[j] = i - j;
+        }
+        st.push(i);
+    }
+    return res;
+}</pre>
+<div class="opt"><span class="r"></span>Line 5 should use <span class="mono">&gt;</span>, not <span class="mono">&gt;=</span></div>
+<div class="opt sel"><span class="r"></span>The stack should hold values, not indices</div>
+<div class="opt"><span class="r"></span>Line 7 should be <span class="mono">j - i</span></div>
+<div class="opt"><span class="r"></span>The array needs filling with -1 first</div>
+<div class="row sp"><div class="dots"><i class="d"></i><i class="d"></i><i></i><i></i><i></i><i></i></div><div class="row"><button class="btn out">Flag for later</button><button class="btn">Next</button></div></div></div></section>
+
+<section class="state" id="style"><div class="card" style="display:flex;flex-direction:column;gap:14px">
+<div class="row sp"><div class="row"><span class="ph done">Coding</span><span class="ph done">Debugging</span><span class="ph cur">Work style 4 of 8</span></div><span class="timer">09:40</span></div>
+<h2>What would you do?</h2><p style="margin:0;font-size:15px;max-width:70ch">A release you own goes out on Friday evening. At 9 pm an alert shows error rates doubling for one region. The on-call engineer is a new joiner and asks you what to do. You were about to leave for a family event.</p>
+<div class="opt"><span>Tell them to roll back, stay on a call until the rate drops, then write the notes on Monday.</span><span class="mk"><button class="s">Most</button><button>Least</button></span></div>
+<div class="opt"><span>Send the runbook link and go offline; they can page you if it gets worse.</span><span class="mk"><button>Most</button><button class="s">Least</button></span></div>
+<div class="opt"><span>Look into the logs for an hour to find the exact cause before touching anything.</span><span class="mk"><button>Most</button><button>Least</button></span></div>
+<div class="opt"><span>Ask the team channel who else can take it, and hand over with a clear summary.</span><span class="mk"><button>Most</button><button>Least</button></span></div>
+<div class="row sp"><div class="dots"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i></i><i></i><i></i><i></i></div><button class="btn">Next</button></div></div></section>
+
+<section class="state" id="res"><div style="display:flex;flex-direction:column;gap:16px">
+<div class="grid3">
+<div class="card"><p class="sub">Total</p><div class="big">71 / 100</div><p class="sub">Finished with 3:20 left on the clock</p></div>
+<div class="card"><p class="sub">Coding</p><div class="big">52 / 60</div><div class="bar" style="margin-top:8px"><i style="width:87%"></i></div></div>
+<div class="card"><p class="sub">Debugging</p><div class="big">4 / 6</div><div class="bar" style="margin-top:8px"><i style="width:67%"></i></div></div>
+<div class="card"><p class="sub">Work style</p><div class="big">15 / 32</div><div class="bar" style="margin-top:8px"><i style="width:47%"></i></div></div></div>
+<div class="card"><div class="row sp"><h2>Coding pace</h2><span class="chip warn">You left this tab 4 times</span></div>
+<table><tr><th>Problem</th><th>First run</th><th>Submitted</th><th>Hidden tests</th><th></th></tr>
+<tr><td>Two sum variant</td><td class="mono">06:10</td><td class="mono">19:40</td><td class="mono">14 / 14</td><td></td></tr>
+<tr><td>Longest run after replacements</td><td class="mono">24:30</td><td class="mono">48:05</td><td class="mono">21 / 27</td><td><button class="btn tonal" style="height:36px">Open walkthrough</button></td></tr></table></div>
+<div class="card"><h2>Work-style items, our reading</h2><p class="sub" style="margin-bottom:8px">Our own reasoning about trade-offs. It is advice, not an official answer key.</p>
+<p style="margin:0;font-size:14px;max-width:70ch"><b>Scenario 4 (Friday release):</b> you ranked "send the runbook and go offline" as most effective. Owning your release usually means staying until it is stable, or handing over to a named person. Principles: ownership, earn trust.</p>
+<div class="row" style="margin-top:14px"><button class="btn">Add 1 missed problem to stuck list</button><button class="btn tonal">Take another format</button></div></div></div></section>
+</div></main></div>
+<div class="tabbar"><span>Today</span><span>Practice</span><span>Learn</span><span>Review</span><b>Interview</b></div>
+<script>
+document.querySelectorAll('.seg[role=tablist] button').forEach(function(b){b.addEventListener('click',function(){
+document.querySelectorAll('.seg[role=tablist] button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+document.querySelectorAll('.state').forEach(function(s){s.classList.toggle('on',s.id===b.dataset.s)});});});
+</script></body></html>

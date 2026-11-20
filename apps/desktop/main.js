@@ -138,6 +138,7 @@ async function start() {
   if (!up) return fail("Zen Dojo couldn't start", `The server didn't respond in time.\n\nLog: ${logFile}`);
 
   openWindow(origin);
+  void warmUp(origin);
   setupUpdates();
   if (fallback) {
     dialog.showMessageBox({
@@ -193,6 +194,9 @@ function showSignInWaiting(target) {
     if (win && !win.isDestroyed()) win.loadURL(waitingUrl).catch(() => undefined);
   });
 }
+
+/** Pages warmed after start, most used first. */
+const WARM_ROUTES = ["/dsa", "/dsa/lc-1", "/study", "/study/lld/lld-patterns", "/review", "/revise", "/roadmap", "/profile"];
 
 /** @param {string} url */
 function openWindow(url) {
@@ -312,6 +316,24 @@ Data: ${dataDir()}`,
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+/**
+ * The server loads each page's code on its first request (the problem page pulls in the judge and the code
+ * highlighter: about 2 s cold, 0.3 s after). Request the main pages once in the background, one at a time and after
+ * the window's own first page, so the first click on each is already fast.
+ * @param {string} origin
+ */
+async function warmUp(origin) {
+  await new Promise((r) => setTimeout(r, 1500));
+  for (const route of WARM_ROUTES) {
+    if (quitting || !server) return;
+    try {
+      await fetch(origin + route, { signal: AbortSignal.timeout(15_000) }).then((res) => res.arrayBuffer());
+    } catch {
+      // Warming is only a speed-up; ignore failures.
+    }
+  }
 }
 
 /** @param {string} origin */

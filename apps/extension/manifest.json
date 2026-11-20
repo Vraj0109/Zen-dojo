@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Zen Dojo LeetCode Sync",
-  "version": "0.2.0",
-  "description": "Imports your own accepted LeetCode submissions (code, runtime, notes) into your local Zen Dojo app.",
+  "version": "0.3.0",
+  "description": "Saves your own accepted LeetCode submissions (code, runtime, notes) to a file for Zen Dojo, or sends them to the app directly.",
   "permissions": [
     "storage"
   ],
@@ -31,6 +31,7 @@
       "resources": [
         "lib/leetcode.js",
         "lib/sync.js",
+        "lib/export.js",
         "lib/time.js"
       ],
       "matches": [

@@ -151,7 +151,7 @@ export function ReadView({
                       </div>
                       <div>
                         <h4 className="mb-1 font-medium">Pattern</h4>
-                        <Link href={nodeHref(ref)} className="inline-flex min-h-9 items-center rounded-sm bg-primary-soft px-3 font-medium text-on-primary-soft hover:bg-primary-soft/70">
+                        <Link href={nodeHref(ref)} className="inline-flex min-h-9 items-center rounded-sm py-1.5 leading-snug bg-primary-soft px-3 font-medium text-on-primary-soft hover:bg-primary-soft/70">
                           {labelFor(ref, patterns)}
                         </Link>
                       </div>
@@ -202,7 +202,7 @@ export function ReadView({
                       <td data-label="If the brute force wastes this">{m.waste}</td>
                       <td data-label="Do this">{m.fix}</td>
                       <td data-label="Pattern">
-                        <Link href={nodeHref(ref)} className="inline-flex min-h-9 items-center rounded-sm bg-primary-soft px-3 font-medium whitespace-nowrap text-on-primary-soft hover:bg-primary-soft/70">
+                        <Link href={nodeHref(ref)} className="inline-flex min-h-9 items-center rounded-sm bg-primary-soft px-3 py-1.5 leading-snug font-medium text-on-primary-soft hover:bg-primary-soft/70">
                           {labelFor(ref, patterns)}
                         </Link>
                       </td>

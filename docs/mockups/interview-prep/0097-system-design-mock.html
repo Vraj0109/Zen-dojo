@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>System design mock</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+  --primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+  --reward:#8B5000;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;
+  --t1:#D6E3FF;--o1:#001B3E;--t2:#F0DBFF;--o2:#2A0E45;--t3:#BCEBEE;--o3:#002022;--t4:#FFDDB2;--o4:#2C1600;
+  --font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;
+  --t1:#284777;--o1:#D6E3FF;--t2:#56397A;--o2:#F0DBFF;--t3:#1D4E51;--o3:#BCEBEE;--t4:#6A3C00;--o4:#FFDDB2;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{position:sticky;top:0;align-self:flex-start;height:100vh;width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--reward-soft);color:var(--on-reward-soft);display:grid;place-items:center}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri .p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on .p{background:var(--ps);color:var(--primary)}
+.bar{display:none}
+main{flex:1;min-width:0;padding:28px max(16px,env(safe-area-inset-right)) 56px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font-size:20px;font-weight:500}h3{margin:0;font-size:16px;font-weight:500}
+p{margin:0}.sub{margin-top:4px;color:var(--muted);font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:12px}
+.mockflag{font-size:12px;color:var(--on-reward-soft);background:var(--reward-soft);border-radius:10px;padding:4px 10px}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.hero{background:var(--pc);color:var(--on-pc);border-radius:32px;padding:22px}
+.kicker{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.btn{height:40px;padding:0 18px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;transition:scale .3s var(--spring)}
+.btn:active{scale:.95}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}
+.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.off{opacity:.5;cursor:not-allowed}
+.btn.big{height:48px;padding:0 24px;font-size:15px}
+.chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.tag.c1{background:var(--t1);color:var(--o1)}.tag.c2{background:var(--t2);color:var(--o2)}.tag.c3{background:var(--t3);color:var(--o3)}.tag.c4{background:var(--t4);color:var(--o4)}
+.tag.warn{background:var(--reward-soft);color:var(--on-reward-soft)}.tag.ok{background:var(--pc);color:var(--on-pc)}.tag.bad{background:var(--danger-soft);color:var(--on-danger-soft)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.kind{display:flex;flex-direction:column;gap:8px;padding:18px;border-radius:24px;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--fg)}
+.kind .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center}
+.kind.soon{opacity:.62}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px}.field>span{font-weight:500}
+input,select,textarea{font:400 14px var(--font);color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;padding:10px 14px;min-height:44px}
+textarea{resize:vertical;min-height:88px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:20px;background:var(--surface-2)}
+.item b{font-weight:500}.item small{display:block;color:var(--muted);font-size:13px}
+.num{font:500 14px var(--mono)}
+.prog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1}.prog i{display:block;height:100%;background:var(--primary);border-radius:99px}
+.phases{display:flex;gap:4px;width:100%}
+.ph{height:10px;border-radius:99px;background:var(--surface-2);position:relative;overflow:hidden}
+.ph i{position:absolute;inset:0 auto 0 0;background:var(--primary);border-radius:99px}
+.ph.cur{outline:2px solid var(--primary);outline-offset:2px}.ph.over i{background:var(--warning)}
+.phlabels{display:flex;gap:4px;font-size:12px;color:var(--muted)}.phlabels span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.phlabels .cur{color:var(--fg);font-weight:600}
+.clock{font:500 28px var(--mono);letter-spacing:-.02em}
+.rub{display:grid;gap:10px}
+.crit{padding:14px 16px;border-radius:20px;background:var(--surface-2)}
+.crit .anch{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.anch label{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:14px;border:1px solid var(--line-strong);font-size:12px;color:var(--muted);cursor:pointer;background:var(--surface);position:relative}
+.anch input{position:absolute;opacity:0;pointer-events:none}
+.anch label:has(input:checked){background:var(--ps);color:var(--on-ps);border-color:transparent}
+.anch label b{font-size:13px;color:var(--fg);font-weight:600}
+@media (max-width:700px){.crit .anch{grid-template-columns:1fr 1fr}}
+pre{margin:0;padding:12px 14px;border-radius:16px;background:var(--surface-2);font:400 12.5px/1.55 var(--mono);overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted);font-size:12px}
+.empty{text-align:center;padding:36px 16px;color:var(--muted)}
+.panel[hidden]{display:none}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:767px){
+  .rail{display:none}h1{font-size:26px}main{padding-bottom:96px}
+  .bar{display:flex;position:fixed;inset:auto 0 0 0;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:5}
+  .bar a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);text-decoration:none;min-width:56px;min-height:44px}
+  .bar a.on{color:var(--fg);font-weight:600}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Main (mockup)">
+    <div class="logo">ZD</div>
+    <div class="fab" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>Today</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></span>Practice</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg></span>Learn</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg></span>Review</a>
+    <a class="ri on" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Interview</a>
+    <a class="ri" href="#"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg></span>Roadmap</a>
+  </nav>
+  <main><div class="wrap">
+    <div class="row">
+      <div>
+        <h1>System design mock</h1>
+        <p class="sub">A vague prompt, seven phases, a whiteboard. You play the candidate; the panel plays the interviewer.</p>
+      </div>
+      <span class="mockflag">Mockup, sample data, plan 0097</span>
+    </div>
+    <div class="seg" data-tabs="s" role="tablist" aria-label="Screens in this mockup">
+      <button role="tab" data-t="new">Pick a design</button>
+      <button role="tab" data-t="live">Live: whiteboard</button>
+      <button role="tab" data-t="phone">Phone layout</button>
+      <button role="tab" data-t="score">Result and score</button>
+    </div>
+    <style>
+      .board{position:relative;border-radius:24px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+      .board svg{display:block;width:100%;height:auto;touch-action:none;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:16px 16px}
+      .board text{font-family:var(--font);font-size:13px;fill:var(--fg)}
+      .tools{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-bottom:1px solid var(--line);align-items:center}
+      .tool{height:40px;min-width:40px;padding:0 12px;border-radius:12px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+      .tool[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+      .sep{width:1px;height:24px;background:var(--line-strong);margin:0 4px}
+      .fact{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:16px;background:var(--surface-2);font-size:14px}
+      .fact.open{background:var(--pc);color:var(--on-pc)}
+      .twist{padding:14px;border-radius:20px;background:var(--reward-soft);color:var(--on-reward-soft)}
+      .sheet{position:relative;max-width:390px;margin:0 auto;border:1px solid var(--line-strong);border-radius:32px;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:10px}
+    </style>
+
+    <!-- New -->
+    <section class="panel stack" data-for="s" id="new">
+      <div class="two">
+        <form class="card stack" onsubmit="return false">
+          <h2>Choose a design</h2>
+          <label class="field"><span>Search</span><input type="search" value="" placeholder="Rate limiter, chat, payments"></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="chip" aria-pressed="true">Least practiced first</button><button type="button" class="chip" aria-pressed="false">Alphabetical</button><button type="button" class="chip" aria-pressed="false">Surprise me</button></div>
+          <div class="list">
+            <div class="item" style="background:var(--ps)"><div><b>News feed</b><small>Never practiced</small></div><span class="tag ok">Selected</span></div>
+            <div class="item"><div><b>Web crawler</b><small>Never practiced</small></div><span class="tag">Select</span></div>
+            <div class="item"><div><b>Top-K and trending</b><small>Practiced once, 18 days ago, score 2 of 5</small></div><span class="tag">Select</span></div>
+            <div class="item"><div><b>URL shortener</b><small>Practiced 3 times, last score 4 of 5</small></div><span class="tag">Select</span></div>
+          </div>
+          <label class="field"><span>Length</span><div style="display:flex;gap:8px"><button type="button" class="chip" aria-pressed="false">35 min</button><button type="button" class="chip" aria-pressed="true">45 min</button><button type="button" class="chip" aria-pressed="false">60 min</button></div></label>
+          <div><a class="btn primary big" href="#">Start the mock</a></div>
+        </form>
+        <aside class="card stack">
+          <p class="kicker">The interviewer says</p>
+          <p style="font-size:18px;font-weight:500">"Design the home feed for a social network. Make it feel fast."</p>
+          <p class="sub">That is all you get. Ask for the rest, then reveal each answer in the panel.</p>
+          <p class="kicker">Phases at 45 minutes</p>
+          <div class="phases"><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:4"><i style="width:100%"></i></div><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:10"><i style="width:100%"></i></div><div class="ph" style="flex:15"><i style="width:100%"></i></div><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:1"><i style="width:100%"></i></div></div>
+          <div class="phlabels"><span style="flex:5">Req</span><span style="flex:4">Est</span><span style="flex:5">API</span><span style="flex:10">High level</span><span style="flex:15">Deep dives</span><span style="flex:5">Failure</span><span style="flex:1"></span></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Live -->
+    <section class="panel stack" data-for="s" id="live">
+      <div class="card stack">
+        <div class="row"><div><p class="kicker">System design mock</p><h3>News feed</h3></div>
+          <div style="display:flex;gap:14px;align-items:center"><span class="clock">22:05</span><button class="btn tonal">Next phase</button><button class="btn outline">End mock</button></div></div>
+        <div class="phases"><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:4"><i style="width:100%"></i></div><div class="ph over" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:10"><i style="width:100%"></i></div><div class="ph cur" style="flex:15"><i style="width:30%"></i></div><div class="ph" style="flex:5"></div><div class="ph" style="flex:1"></div></div>
+        <div class="phlabels"><span style="flex:5">Req</span><span style="flex:4">Est</span><span style="flex:5">API</span><span style="flex:10">High level</span><span class="cur" style="flex:15">Deep dives</span><span style="flex:5">Failure</span><span style="flex:1"></span></div>
+      </div>
+      <div class="two" style="grid-template-columns:minmax(0,1fr) 360px">
+        <div class="board">
+          <div class="tools" role="toolbar" aria-label="Board tools">
+            <button class="tool" aria-pressed="true">Select</button><button class="tool" aria-pressed="false">Connect</button><button class="tool" aria-pressed="false">Pen</button><button class="tool" aria-pressed="false">Text</button><span class="sep"></span>
+            <button class="tool">Box</button><button class="tool">Database</button><button class="tool">Queue</button><button class="tool">Cache</button><button class="tool">Client</button><button class="tool">Load balancer</button><span class="sep"></span>
+            <button class="tool" aria-label="Undo">Undo</button><button class="tool" aria-label="Redo">Redo</button><button class="tool">Export PNG</button>
+          </div>
+          <svg viewBox="0 0 760 420" role="img" aria-label="Whiteboard: client, load balancer, feed service, cache, post store, fan-out queue">
+            <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="currentColor"/></marker></defs>
+            <g stroke="currentColor" fill="none" stroke-width="1.6" color="var(--muted)">
+              <path d="M130 210H190" marker-end="url(#ar)"/><path d="M310 210H370" marker-end="url(#ar)"/>
+              <path d="M490 195L560 120" marker-end="url(#ar)"/><path d="M490 225L560 300" marker-end="url(#ar)"/>
+              <path d="M430 240V330H370" marker-end="url(#ar)" stroke-dasharray="5 4"/><path d="M620 150V270" marker-end="url(#ar)"/>
+            </g>
+            <g stroke="var(--line-strong)" stroke-width="1.5">
+              <rect x="30" y="185" width="100" height="50" rx="14" fill="var(--t1)"/>
+              <rect x="190" y="185" width="120" height="50" rx="14" fill="var(--surface-2)"/>
+              <rect x="370" y="185" width="120" height="50" rx="14" fill="var(--pc)"/>
+              <rect x="560" y="95" width="130" height="55" rx="14" fill="var(--t3)"/>
+              <rect x="560" y="300" width="130" height="55" rx="14" fill="var(--t4)"/>
+              <rect x="240" y="305" width="130" height="50" rx="14" fill="var(--t2)"/>
+            </g>
+            <g text-anchor="middle"><text x="80" y="215">Client</text><text x="250" y="215">Load balancer</text><text x="430" y="215">Feed service</text><text x="625" y="127">Feed cache</text><text x="625" y="332">Post store</text><text x="305" y="335">Fan-out queue</text><text x="530" y="150" style="font-size:11px;fill:var(--muted)">read</text><text x="460" y="295" style="font-size:11px;fill:var(--muted)">async</text></g>
+            <path d="M60 90q40-30 90 0t90-6" stroke="var(--primary)" stroke-width="2" fill="none"/><text x="60" y="70" style="fill:var(--primary)">celebrity posts: pull, not push</text>
+          </svg>
+        </div>
+        <aside class="stack">
+          <div class="card stack">
+            <p class="kicker">Interviewer</p>
+            <p style="font-size:15px">"Design the home feed for a social network. Make it feel fast."</p>
+            <div class="twist"><b>Twist, deep dives</b><p style="font-size:14px;margin-top:4px">"One account just reached 50 million followers. Your fan-out on write now takes minutes. What changes?"</p></div>
+            <p class="sub">Deep dives: take two hard parts and compare options before you choose.</p>
+          </div>
+          <div class="card stack">
+            <div class="row"><p class="kicker">Facts you can ask about</p><span class="num">3 of 6</span></div>
+            <div class="fact open"><b>Scale</b>300 million daily users, each opens the feed 8 times a day (practice numbers).</div>
+            <div class="fact open"><b>Latency</b>First page under 300 ms at the 95th percentile.</div>
+            <div class="fact open"><b>Freshness</b>A new post may take up to 10 seconds to appear.</div>
+            <button class="fact" style="border:0;text-align:left;font:inherit;color:inherit;cursor:pointer"><b>Ranking</b>Tap to reveal after you ask about it.</button>
+            <button class="fact" style="border:0;text-align:left;font:inherit;color:inherit;cursor:pointer"><b>Media</b>Tap to reveal after you ask about it.</button>
+            <button class="fact" style="border:0;text-align:left;font:inherit;color:inherit;cursor:pointer"><b>Out of scope</b>Tap to reveal after you ask about it.</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Phone -->
+    <section class="panel stack" data-for="s" id="phone">
+      <div class="sheet" aria-label="Phone layout at 390 px">
+        <div class="row" style="gap:6px"><b>News feed</b><span class="clock" style="font-size:22px">22:05</span></div>
+        <div class="phases"><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:4"><i style="width:100%"></i></div><div class="ph" style="flex:5"><i style="width:100%"></i></div><div class="ph" style="flex:10"><i style="width:100%"></i></div><div class="ph cur" style="flex:15"><i style="width:30%"></i></div><div class="ph" style="flex:5"></div></div>
+        <p class="sub"><b style="color:var(--fg)">Deep dives</b> · Next phase when ready</p>
+        <div class="board"><div class="tools" style="overflow-x:auto;flex-wrap:nowrap"><button class="tool">Select</button><button class="tool">Connect</button><button class="tool">Pen</button><button class="tool">Box</button><button class="tool">DB</button></div>
+          <svg viewBox="0 0 360 200"><g stroke="var(--line-strong)"><rect x="12" y="80" width="70" height="40" rx="12" fill="var(--t1)"/><rect x="140" y="80" width="90" height="40" rx="12" fill="var(--pc)"/><rect x="270" y="30" width="80" height="40" rx="12" fill="var(--t3)"/><rect x="270" y="130" width="80" height="40" rx="12" fill="var(--t4)"/></g><g stroke="var(--muted)" stroke-width="1.5"><path d="M82 100H140"/><path d="M230 90L270 55"/><path d="M230 110L270 145"/></g><g text-anchor="middle"><text x="47" y="105">Client</text><text x="185" y="105">Feed service</text><text x="310" y="55">Cache</text><text x="310" y="155">Store</text></g></svg></div>
+        <div class="card stack" style="border-radius:24px 24px 0 0;padding:14px"><div style="width:40px;height:4px;border-radius:9px;background:var(--line-strong);margin:0 auto"></div><div class="row"><b>Interviewer</b><span class="tag warn">Twist waiting</span></div><p class="sub">Swipe up for facts and the twist.</p></div>
+      </div>
+    </section>
+
+    <!-- Score -->
+    <section class="panel stack" data-for="s" id="score">
+      <div class="two">
+        <div class="stack">
+          <div class="card stack"><div class="row"><h2>Your board</h2><span class="tag">Read only</span></div>
+            <svg viewBox="0 0 760 200" style="width:100%;height:auto;background:var(--surface-2);border-radius:20px" role="img" aria-label="Final board, small"><g stroke="var(--line-strong)"><rect x="30" y="75" width="100" height="50" rx="14" fill="var(--t1)"/><rect x="190" y="75" width="120" height="50" rx="14" fill="var(--surface)"/><rect x="370" y="75" width="120" height="50" rx="14" fill="var(--pc)"/><rect x="560" y="30" width="130" height="50" rx="14" fill="var(--t3)"/><rect x="560" y="125" width="130" height="50" rx="14" fill="var(--t4)"/></g><g stroke="var(--muted)" stroke-width="1.5"><path d="M130 100H190"/><path d="M310 100H370"/><path d="M490 90L560 55"/><path d="M490 110L560 150"/></g></svg>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn tonal">Save to my diagrams</button><button class="btn outline">Export PNG</button><a class="btn outline" href="#">Compare with the reference design</a></div>
+            <p class="sub">Facts revealed: 5 of 6. Twist answered at 29:40.</p>
+          </div>
+          <form class="card stack" onsubmit="return false">
+            <div class="row"><h2>Score yourself</h2><span class="sub">Seven criteria, one per phase</span></div>
+            <div class="rub">
+              <div class="crit"><b>Requirements</b><p class="sub">Did you pin down what to build before drawing?</p><div class="anch"><label><input type="radio" name="r1"><b>1</b>Drew boxes at once.</label><label><input type="radio" name="r1"><b>2</b>Some questions, no scope.</label><label><input type="radio" name="r1" checked><b>3</b>Goals and scale agreed.</label><label><input type="radio" name="r1"><b>4</b>Also stated out-of-scope.</label></div></div>
+              <div class="crit"><b>Deep dive</b><p class="sub">Did you go deep where it is hard?</p><div class="anch"><label><input type="radio" name="r2"><b>1</b>Stayed at the surface.</label><label><input type="radio" name="r2" checked><b>2</b>One part, no alternatives.</label><label><input type="radio" name="r2"><b>3</b>Two parts, a clear pick.</label><label><input type="radio" name="r2"><b>4</b>Two parts, costs compared.</label></div></div>
+              <p class="sub">Five more: estimation, API and data, architecture, reliability, communication.</p>
+            </div>
+            <div><button class="btn primary">Save score</button></div>
+          </form>
+        </div>
+        <aside class="stack">
+          <div class="hero stack"><p class="kicker" style="color:inherit;opacity:.8">Weighted score</p><div style="font:600 40px var(--font)">2.56 <span style="font-size:18px;font-weight:500">of 4</span></div><span class="tag" style="align-self:flex-start;background:var(--surface);color:var(--fg)">Lean hire</span></div>
+          <div class="card stack"><h3>Saved to the exercise</h3><p class="sub">News feed now has a practice entry with a score per step, and comes back in Review in 3 days.</p><table><tbody><tr><td>Requirements</td><td class="num">4</td></tr><tr><td>Deep dive</td><td class="num">2</td></tr><tr><td>Reliability</td><td class="num">2</td></tr></tbody></table></div>
+          <div class="card stack"><h3>Good answers to the twist</h3><p class="sub">Hidden until the mock ends. Mix push for normal accounts with pull at read time for accounts above a follower threshold.</p></div>
+        </aside>
+      </div>
+    </section>
+  </div></main>
+</div>
+<nav class="bar" aria-label="Phone (mockup)"><a href="#">Today</a><a href="#">Practice</a><a href="#">Learn</a><a href="#">Review</a><a class="on" href="#">You</a></nav>
+<script>
+document.querySelectorAll('[data-tabs]').forEach(function(box){
+  var btns=box.querySelectorAll('button[data-t]');
+  function show(id){btns.forEach(function(b){b.setAttribute('aria-selected',b.dataset.t===id)});
+    document.querySelectorAll('[data-for="'+box.dataset.tabs+'"]').forEach(function(p){p.hidden=p.id!==id})}
+  btns.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.t)})});
+  show(btns[0].dataset.t);
+});
+document.querySelectorAll('.chip[aria-pressed]').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!=='true')})});
+</script>
+</body>
+</html>

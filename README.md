@@ -54,7 +54,7 @@ Reading, plans and notes work right away. The Run button needs a C++ compiler, a
 | **Core CS** (`/study/core`) | Operating systems, databases and networks: 24 lessons with checklists, interview questions, confidence, notes and review reminders |
 | **Roadmap** (`/roadmap`, bottom of the sidebar) | All 16 weeks with focus areas; goals, tasks, problems and XP per week; link to any week's focus |
 | **Profile** (`/profile`) | Level, streak (current and best), 16-week activity heatmap, balance of the last 28 days' XP vs the plan's 40/35/15/10 split, and 19 badges with progress |
-| **Settings** (`/profile/settings`) | Plan start date, LeetCode username sync and extension pairing key, backup: download all data as one JSON file; restore from one (all or nothing, safety copy saved to a `backups` folder next to the database first) |
+| **Settings** (`/profile/settings`) | Plan start date, LeetCode username sync, uploading the extension's history file (and the optional pairing key), backup: download all data as one JSON file; restore from one (all or nothing, safety copy saved to a `backups` folder next to the database first) |
 
 ### Accounts and cloud sync
 
@@ -75,36 +75,46 @@ Each submission is imported once, so undoing an imported solve sticks.
 
 ### Browser extension: your full LeetCode history
 
-`apps/extension` is a Chrome/Edge extension that imports **your own** accepted submissions:
-code, language, runtime and memory (with percentiles), exact time, and the notes you wrote on them.
-It calls LeetCode from inside a leetcode.com tab where you're already logged in, so it never sees your
-password and nothing about your login is stored. It only runs on leetcode.com and only talks to the app on
-`localhost` / `127.0.0.1`.
+`apps/extension` is a Chrome/Edge extension that reads **your own** accepted submissions: code, language,
+runtime and memory (with percentiles), exact time, and the notes you wrote on them. It calls LeetCode from
+inside a leetcode.com tab where you're already logged in, so it never sees your password and nothing about
+your login is stored. It only runs on leetcode.com. The main way to use it is a file: the extension saves your
+history as JSON and you upload that file in the app. Nothing needs to be paired.
 
-**Install (once)**
+**Install the extension (once)**
 
-1. Start the app (`pnpm start`) and open **Profile → Settings**. Under *Browser extension*, click **Show pairing key** and copy it.
-2. In Chrome go to `chrome://extensions` (Edge: `edge://extensions`), turn on **Developer mode**,
+1. In Chrome go to `chrome://extensions` (Edge: `edge://extensions`), turn on **Developer mode**,
    click **Load unpacked** and pick the `apps/extension` folder.
-3. Click the extension's icon (pin it from the puzzle-piece menu), paste the key, and click **Save & test**.
+2. Pin it from the puzzle-piece menu.
 
-**Use**
+**Export, then upload**
 
-- **Import history**: in the popup. It reads your solved list, then only checks problems that are **on
-  Zen Dojo** (the roadmap list plus your other synced problems) and saves every accepted submission of
-  those, three requests at a time. Keep the leetcode.com tab it opens until it finishes. Running it again only
-  fetches new submissions. *Everything I've solved* imports all your solved problems instead (slower).
-- **Live capture**: with a leetcode.com tab open, each Accepted submission is sent to the app within seconds,
-  and your 20 most recent are caught up every 10 minutes.
+1. Log in to leetcode.com in that browser, click the extension's icon and press **Export to file**. It opens a
+   leetcode.com tab, reads every problem you've solved (three requests at a time) and downloads
+   `zen-dojo-leetcode-YYYY-MM-DD.json`. Keep that tab open until the popup says it's saved; a long history takes a few minutes.
+   It always exports everything you've solved, not only the problems on Zen Dojo.
+2. In the app open **Profile → Settings → LeetCode history from the browser extension**, choose the file (up to 20 MB)
+   and press **Import file**. You get a line like "Imported 312 submissions, 140 new solves." Importing the same
+   file again is safe (nothing is counted twice), so you can export again whenever you like.
+   Works in the desktop app and when you run Zen Dojo yourself, not on the hosted website.
+
+**What you get**
+
 - Submissions show up on each problem's page (`/dsa/<id>`) under *Your LeetCode submissions*.
 - On the DSA list each problem shows: ✓ solved, 📝 notes (yours in the app or on LeetCode), 💻 *n* saved
-  solutions, and its LeetCode topics. Topics arrive with *Import history* (no extra requests to LeetCode), so
-  they appear for problems you've solved.
+  solutions, and its LeetCode topics.
 - Solves dated **before your plan start** count as solved (and schedule a re-solve) but give **no XP**,
   so years of history don't inflate your level.
 - After pulling changes to `apps/extension`, click the reload icon on the extension's card in `chrome://extensions`.
 
-**New key**: *New key* in Profile → Settings makes the old key stop working; paste the new one into the extension.
+**Optional: send to the app directly.** Under *Send to the app directly (optional)* in the popup the extension can
+also talk to the app on `localhost` / `127.0.0.1`: *Import history* (only the problems on Zen Dojo, or *Everything
+I've solved*; running it again fetches only what's new), *Live capture* (each Accepted submission is sent within seconds,
+your 20 most recent are caught up every 10 minutes) and time on problem pages. To pair, open Profile → Settings →
+*Send to the app directly (optional)*, copy the pairing key, paste it into the popup next to the app URL and press
+**Save & test**.
+
+**New key** (only for the optional direct link): *New key* in Profile → Settings makes the old key stop working; paste the new one into the extension.
 The key keeps other websites and programs from adding data to the app.
 
 The database schema is versioned (`PRAGMA user_version`, see `MIGRATIONS` in `apps/web/lib/db.ts`);

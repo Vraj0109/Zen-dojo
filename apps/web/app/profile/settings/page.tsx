@@ -67,7 +67,7 @@ const ENTRIES: SettingsEntry[] = [
   { id: "sync", category: "account", title: "Sync across devices", description: "Sign in to keep progress in step across devices.", keywords: ["sync", "sign in", "account", "devices", "log in", "sign out"] },
   { id: "packs", category: "content", title: "Add problems and lessons", description: "Import a content pack: a JSON file of lessons and problems.", keywords: ["packs", "content pack", "import", "json", "lessons", "problems", "course"] },
   { id: "feed", category: "content", title: "Updates and feeds", description: "Check an over-the-air content feed for new and updated packs.", keywords: ["feed", "updates", "ota", "url", "patches"] },
-  { id: "connections", category: "connections", title: HOSTED ? "LeetCode" : "LeetCode and browser extension", description: HOSTED ? "Your LeetCode username." : "LeetCode username, and the browser extension pairing key.", keywords: ["LeetCode", "LeetCode username", "pairing key", "extension", "browser", "sync solves", "chrome"] },
+  { id: "connections", category: "connections", title: HOSTED ? "LeetCode" : "LeetCode and browser extension", description: HOSTED ? "Your LeetCode username." : "LeetCode username, and importing your history from the browser extension (file or pairing key).", keywords: ["LeetCode", "LeetCode username", "import file", "export", "json", "pairing key", "extension", "browser", "sync solves", "chrome"] },
   { id: "profile-editor", category: "profile", title: "Profile", description: "Your display profile.", keywords: ["avatar", "display", "profile"] },
   { id: "portfolio-name", category: "profile", title: "Portfolio name", description: "Shown on your portfolio and certificates.", keywords: ["name", "learner", "certificate", "portfolio"] },
   ...(HOSTED

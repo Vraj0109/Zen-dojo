@@ -95,7 +95,7 @@ export function ClueDictionary({ clues }: { clues: ClueData[] }) {
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs text-muted">Points to</span>
                 {c.points.map((p) => (
-                  <Link key={p.href} href={p.href} className="inline-flex min-h-8 items-center rounded-sm bg-primary-soft px-2.5 text-sm font-medium text-on-primary-soft hover:bg-primary-soft/70">
+                  <Link key={p.href} href={p.href} className="inline-flex min-h-8 items-center rounded-sm py-1.5 leading-snug bg-primary-soft px-2.5 text-sm font-medium text-on-primary-soft hover:bg-primary-soft/70">
                     {p.label}
                   </Link>
                 ))}

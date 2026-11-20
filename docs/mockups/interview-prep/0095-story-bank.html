@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Story bank</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0095. Standalone: tokens copied from DESIGN.md, 96px rail on desktop, tab bar on phones. Sample data only. */
+:root{
+  --bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+  --primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+  --reward:#8B5000;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;
+  --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;position:sticky;top:0;height:100vh}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--reward-soft);color:var(--on-reward-soft);display:grid;place-items:center}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri span.p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on span.p{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:28px 16px 64px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font-size:20px;font-weight:600}h3,h2.t3{margin:0;font-size:16px;font-weight:600}
+p{margin:0}.sub{color:var(--muted);font-size:14px;margin-top:4px}
+.crumb{font-size:13px;color:var(--muted)}.crumb b{color:var(--fg);font-weight:500}
+.kicker{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;transition:background .2s}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
+:root[data-theme="dark"] .card{border-color:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .card{border-color:transparent}}
+.card.hero{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:1100px){.split{grid-template-columns:1fr}}
+.btn{height:40px;padding:0 18px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}
+.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.sm{height:34px;padding:0 14px;font-size:13px}
+.chip{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.tag.pc{background:var(--pc);color:var(--on-pc)}.tag.rw{background:var(--reward-soft);color:var(--on-reward-soft)}.tag.dn{background:var(--danger-soft);color:var(--on-danger-soft)}.tag.ps{background:var(--ps);color:var(--on-ps)}
+.prog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;border-radius:99px;background:var(--primary)}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+input,textarea,select{width:100%;padding:10px 14px;border-radius:14px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);font:400 14px var(--font)}
+textarea{min-height:84px;resize:vertical;line-height:1.5}
+.field{margin-bottom:12px}.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.two{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:12px;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}.tw{overflow-x:auto}
+.list{display:grid;gap:8px}.item{padding:12px 14px;border-radius:18px;background:var(--surface-2)}
+.item b{font-weight:500}.mut{color:var(--muted);font-size:13px}.mono{font-family:var(--mono);font-size:13px}
+.note{padding:12px 14px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.ok{color:var(--primary)}.bad{color:var(--danger)}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tabbar{display:none}
+.fadein{animation:fi .3s ease-out}@keyframes fi{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:700px){
+  .rail{display:none}h1{font-size:26px}main{padding-bottom:96px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;padding:8px 4px 12px;z-index:5}
+  .tabbar .ri{width:auto;flex:1}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="rail" aria-label="Main (mockup)">
+  <div class="logo">ZD</div>
+  <div class="fab" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>Today</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></span>Practice</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg></span>Learn</a>
+  <a class="ri on"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v10H9l-5 4z"/></svg></span>Interview</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg></span>Review</a>
+  <a class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg></span>Roadmap</a>
+</nav>
+<main><div class="wrap">
+<div>
+  <p class="crumb">Interview / <b>Behavioural</b></p>
+  <h1>Story bank</h1>
+  <p class="sub">Write 8 to 10 real stories once. Each one can answer many questions. Everything stays on this device unless you turn on sync.</p>
+</div>
+
+<div class="row sp">
+  <div class="seg" role="tablist" aria-label="Behavioural views">
+    <button role="tab" aria-selected="true" data-p="v-stories">Stories <span class="tag" style="margin-left:6px">7</span></button>
+    <button role="tab" aria-selected="false" data-p="v-questions">Questions <span class="tag" style="margin-left:6px">96</span></button>
+    <button role="tab" aria-selected="false" data-p="v-coverage">Coverage</button>
+    <button role="tab" aria-selected="false" data-p="v-practice">Practise</button>
+  </div>
+  <div class="row"><span class="mut">Principle set</span>
+    <button class="chip" aria-pressed="true">Amazon</button><button class="chip" aria-pressed="true">Google</button><button class="chip" aria-pressed="false">Core</button></div>
+</div>
+
+<section id="v-stories" class="split">
+  <div class="list">
+    <div class="card hero row sp">
+      <div><p class="kicker" style="color:inherit;opacity:.8">Gap</p><h2 class="t3">No story yet for Have backbone, Earn trust or Frugality</h2><p style="font-size:14px">Three of your 16 Amazon principles have no story. Add one, or reuse a story that fits.</p></div>
+      <button class="btn primary">New story</button>
+    </div>
+    <article class="card">
+      <div class="row sp"><h2 class="t3">Cut p99 checkout latency from 2.1 s to 600 ms</h2><span class="tag pc">Strong</span></div>
+      <p class="mut" style="margin-top:4px">Result: 71% faster, cart abandonment down 3.4 points over two months.</p>
+      <div class="row" style="margin-top:10px"><span class="tag ps">Deliver results</span><span class="tag ps">Dive deep</span><span class="tag ps">Ownership</span><span class="tag">Googleyness: user first</span></div>
+    </article>
+    <article class="card">
+      <div class="row sp"><h2 class="t3">Disagreed with my lead on a queue migration</h2><span class="tag rw">Needs a number</span></div>
+      <p class="mut" style="margin-top:4px">Result: we ran a two-week spike, kept the old queue for billing, moved the rest.</p>
+      <div class="row" style="margin-top:10px"><span class="tag ps">Have backbone</span><span class="tag ps">Earn trust</span><span class="tag">Googleyness: challenge the status quo</span></div>
+    </article>
+    <article class="card">
+      <div class="row sp"><h2 class="t3">Onboarded two interns on the billing service</h2><span class="tag">Draft</span></div>
+      <p class="mut" style="margin-top:4px">Result: not written yet.</p>
+      <div class="row" style="margin-top:10px"><span class="tag ps">Hire and develop the best</span></div>
+    </article>
+  </div>
+
+  <aside class="card" aria-label="Story editor">
+    <p class="kicker">Edit story</p>
+    <div class="field" style="margin-top:8px"><label for="t">Title (for you only)</label><input id="t" value="Cut p99 checkout latency from 2.1 s to 600 ms"></div>
+    <div class="field"><label for="s">Situation</label><textarea id="s">Black Friday load tests showed checkout p99 at 2.1 s. Support tickets about timeouts had doubled in a month.</textarea><p class="hint">One or two sentences. Who, where, why it mattered.</p></div>
+    <div class="field"><label for="a">Action (what you did, in the first person)</label><textarea id="a">Profiled the path, found three sequential calls to the pricing service, batched them and added a 5-minute cache for static tax rules. Wrote the load test myself.</textarea></div>
+    <div class="two">
+      <div class="field"><label for="r">Result</label><input id="r" value="p99 600 ms, abandonment down 3.4 points"></div>
+      <div class="field"><label for="m">Numbers</label><input id="m" value="2.1 s to 600 ms; 3.4 points; 2 months"></div>
+    </div>
+    <div class="field"><label>Principles this story shows</label><div class="row"><button class="chip" aria-pressed="true">Deliver results</button><button class="chip" aria-pressed="true">Dive deep</button><button class="chip" aria-pressed="true">Ownership</button><button class="chip" aria-pressed="false">Customer obsession</button><button class="chip" aria-pressed="false">Bias for action</button></div></div>
+    <div class="row"><button class="btn primary">Save story</button><button class="btn tonal">Check with AI</button></div>
+    <div class="note" style="margin-top:12px">AI check: your action says "we" four times. Say what you did. The result has numbers, good. Add what you would change next time.</div>
+  </aside>
+</section>
+
+<section id="v-questions" hidden>
+  <div class="row" style="margin-bottom:12px"><input style="max-width:320px" placeholder="Search 96 questions" aria-label="Search questions"><button class="chip" aria-pressed="false">Not practised</button><button class="chip" aria-pressed="false">No story linked</button><button class="chip" aria-pressed="false">Level: SDE2 and up</button></div>
+  <div class="card tw"><table>
+    <thead><tr><th>Question</th><th>Principle</th><th>Story</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Tell me about a time you made a decision with incomplete data.</td><td><span class="tag ps">Are right a lot</span></td><td>Checkout latency</td><td><span class="tag pc">Solid</span></td></tr>
+      <tr><td>Describe a time you pushed back on a decision you thought was wrong.</td><td><span class="tag ps">Have backbone</span></td><td>Queue migration</td><td><span class="tag rw">Shaky</span></td></tr>
+      <tr><td>Tell me about a time you did more with less.</td><td><span class="tag ps">Frugality</span></td><td class="mut">None</td><td><span class="tag">Not practised</span></td></tr>
+      <tr><td>When did you change your mind after hearing a teammate out?</td><td><span class="tag ps">Earn trust</span></td><td class="mut">None</td><td><span class="tag">Not practised</span></td></tr>
+      <tr><td>Tell me about working in a situation with no clear direction.</td><td><span class="tag">Google: thrive in ambiguity</span></td><td>Onboarded interns</td><td><span class="tag">Not practised</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section id="v-coverage" hidden>
+  <div class="card"><div class="row sp"><h2>Principle coverage</h2><span class="mut">13 of 16 Amazon principles have a story. 5 of 7 Google attributes.</span></div>
+    <div class="grid" style="margin-top:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr))">
+      <div class="item"><b>Customer obsession</b><div class="row" style="margin-top:6px"><div class="prog"><i style="width:100%"></i></div><span class="mut">2 stories</span></div></div>
+      <div class="item"><b>Ownership</b><div class="row" style="margin-top:6px"><div class="prog"><i style="width:100%"></i></div><span class="mut">3 stories</span></div></div>
+      <div class="item"><b>Dive deep</b><div class="row" style="margin-top:6px"><div class="prog"><i style="width:50%"></i></div><span class="mut">1 story</span></div></div>
+      <div class="item"><b>Have backbone</b><div class="row" style="margin-top:6px"><div class="prog"><i style="width:50%"></i></div><span class="mut">1 story</span></div></div>
+      <div class="item" style="background:var(--danger-soft);color:var(--on-danger-soft)"><b>Frugality</b><div class="row" style="margin-top:6px"><span>No story</span></div></div>
+      <div class="item" style="background:var(--danger-soft);color:var(--on-danger-soft)"><b>Earn trust</b><div class="row" style="margin-top:6px"><span>No story</span></div></div>
+    </div>
+    <p class="mut" style="margin-top:12px">Tip: one story can cover several principles, but do not use the same one for more than two answers in a single loop.</p></div>
+</section>
+
+<section id="v-practice" hidden>
+  <div class="split">
+    <div class="card">
+      <p class="kicker">Question 3 of 5 · Have backbone · 2:00 target</p>
+      <h2 style="margin-top:6px;font-size:24px">Describe a time you pushed back on a decision you thought was wrong.</h2>
+      <div class="row" style="margin:14px 0"><span class="mut">Pick a story</span><select style="max-width:340px" aria-label="Story"><option>Disagreed with my lead on a queue migration</option><option>Cut p99 checkout latency</option></select></div>
+      <div class="field"><label for="n">Your notes while you speak (optional)</label><textarea id="n" placeholder="Bullets only. You will speak this, not read it."></textarea></div>
+      <div class="row"><span class="mono" style="font-size:28px">01:34</span><button class="btn primary">Stop</button><button class="btn outline">Skip</button></div>
+    </div>
+    <aside class="card"><h3>Rate your answer</h3>
+      <div class="list" style="margin-top:10px">
+        <div class="item"><b>Was it one real story?</b><div class="mut">Yes</div></div>
+        <div class="item"><b>Did you say what you did, not we?</b><div class="mut">Mostly</div></div>
+        <div class="item"><b>Result with a number?</b><div class="mut">No</div></div>
+        <div class="item"><b>Learned something?</b><div class="mut">Yes</div></div>
+      </div>
+      <p class="mut" style="margin-top:10px">Result: Shaky. Added to your review queue for 3 days from now.</p></aside>
+  </div>
+</section>
+</div></main>
+</div>
+<nav class="tabbar" aria-label="Tabs (mockup)">
+  <a class="ri "><span class="p">T</span>Today</a><a class="ri "><span class="p">P</span>Practice</a><a class="ri "><span class="p">L</span>Learn</a><a class="ri on"><span class="p">I</span>Interview</a><a class="ri"><span class="p">Y</span>You</a>
+</nav>
+<script>
+document.querySelectorAll('[role=tablist]').forEach(function(list){
+  var tabs=[].slice.call(list.querySelectorAll('[role=tab]'));
+  tabs.forEach(function(t){t.addEventListener('click',function(){
+    tabs.forEach(function(x){var on=x===t;x.setAttribute('aria-selected',on);var p=document.getElementById(x.dataset.p);if(p){p.hidden=!on;if(on)p.classList.add('fadein')}});
+  })});
+});
+document.querySelectorAll('.chip[aria-pressed]').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!=='true')})});
+
+</script>
+</body>
+</html>

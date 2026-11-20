@@ -6,9 +6,10 @@ const nextConfig: NextConfig = {
   // The desktop app bundles a self-contained server (apps/desktop: `pnpm desktop:build`).
   // Plain `pnpm build` / `pnpm start` keep the normal output.
   output: desktop ? "standalone" : undefined,
+  // Server actions accept 1 MB by default; the LeetCode file upload (Profile > Settings) takes up to 20 MB.
   // The desktop server runs from the install folder, which is read-only on macOS and in a Linux AppImage,
   // so it keeps Next's page cache in memory instead of writing it to .next/.
-  experimental: desktop ? { isrFlushToDisk: false } : undefined,
+  experimental: { serverActions: { bodySizeLimit: "25mb" }, ...(desktop ? { isrFlushToDisk: false } : {}) },
   // Shared package and the sync Worker ship TypeScript source (the Worker runs inside /hub, plan 0073).
   transpilePackages: ["@habit/shared", "@habit/sync-worker"],
   // The cp-algorithms articles are read from disk at request time; make sure the standalone build ships them.

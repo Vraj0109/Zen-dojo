@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { normalizeAppUrl } from "./config.js";
 import { parseDetail, parseProgress, parseSubmissionPage, submissionIdFromPath, type Submission } from "./leetcode.js";
+import { createCollector, exportFileName, EXPORT_FORMAT } from "./export.js";
 import { backfill, captureSubmission, fetchDetail, pool, syncRecent, type Deps } from "./sync.js";
 
 const detail = (slug: string, ts: number, extra: Record<string, unknown> = {}) => ({
@@ -314,5 +315,52 @@ describe("recent + live capture", () => {
     await fetchDetail(deps, "10");
     // the full query is only tried once
     expect(gql.mock.calls.filter(([q]) => q.includes("runtimeDisplay"))).toHaveLength(1);
+  });
+});
+
+describe("export to a file", () => {
+  it("collects everything you've solved, with no app involved", async () => {
+    const gql = fakeLeetCode({
+      questions: [
+        { slug: "two-sum", ids: ["11", "12"], tags: ["Array", "Hash Table"] },
+        { slug: "not-on-the-roadmap", ids: ["21"], tags: ["Graph"] },
+      ],
+    });
+    const collector = createCollector();
+    const { deps } = makeDeps(gql);
+    const progress = vi.fn();
+    const totals = await backfill({ ...deps, app: collector.app, onProgress: progress }, { all: true });
+
+    expect(totals).toEqual({ questions: 2, stored: 3, added: 0, resolved: 0 });
+    expect(collector.count).toBe(3);
+    expect(progress).toHaveBeenLastCalledWith({ phase: "Importing", done: 2, total: 2, stored: 3 });
+
+    const file = collector.build(new Date("2026-11-21T10:00:00Z"));
+    expect(file).toMatchObject({ format: EXPORT_FORMAT, version: 1, exportedAt: "2026-11-21T10:00:00.000Z" });
+    expect(file.submissions.map((s) => s.id).sort()).toEqual(["11", "12", "21"]);
+    expect(file.submissions[0]).toMatchObject({ lang: "Java", code: expect.any(String), timestamp: 1793500000 });
+    expect(file.topics).toEqual([
+      { slug: "not-on-the-roadmap", tags: ["Graph"] },
+      { slug: "two-sum", tags: ["Array", "Hash Table"] },
+    ]);
+    // plain JSON: survives a round trip unchanged
+    expect(JSON.parse(JSON.stringify(file))).toEqual(file);
+  });
+
+  it("keeps a submission once and the newest first", async () => {
+    const collector = createCollector();
+    const base = { slug: "a", lang: "Java", runtime: null, runtimePct: null, memory: null, memoryPct: null, code: "x", notes: "", number: 1, difficulty: "easy" };
+    expect(await collector.app.send([{ ...base, id: "1", timestamp: 100 }, { ...base, id: "2", timestamp: 300 }], [{ slug: "a", tags: ["Array"] }])).toEqual({ stored: 2, added: 0, resolved: 0 });
+    expect((await collector.app.send([{ ...base, id: "2", timestamp: 300 }, { ...base, id: "3", timestamp: 200 }], [{ slug: "a", tags: ["Tree"] }])).stored).toBe(1);
+    const file = collector.build();
+    expect(file.submissions.map((s) => s.id)).toEqual(["2", "3", "1"]);
+    expect(file.topics).toEqual([{ slug: "a", tags: ["Tree"] }]);
+  });
+
+  it("reports an empty account and names the file with the local date", async () => {
+    const collector = createCollector();
+    await backfill({ ...makeDeps(fakeLeetCode({ questions: [] })).deps, app: collector.app }, { all: true });
+    expect(collector.count).toBe(0);
+    expect(exportFileName(new Date(2026, 10, 3, 23, 30))).toBe("zen-dojo-leetcode-2026-11-03.json");
   });
 });

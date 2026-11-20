@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Optional tracks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0111. Standalone: tokens copied from DESIGN.md, 96px rail on desktop, tab bar on phones. Sample data only. */
+:root{
+  --bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+  --primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+  --reward:#8B5000;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;
+  --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward:#FFB95C;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;position:sticky;top:0;height:100vh}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--reward-soft);color:var(--on-reward-soft);display:grid;place-items:center}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri span.p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on span.p{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:28px 16px 64px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font-size:20px;font-weight:600}h3{margin:0;font-size:16px;font-weight:600}
+p{margin:0}.sub{color:var(--muted);font-size:14px;margin-top:4px}
+.crumb{font-size:13px;color:var(--muted)}.crumb b{color:var(--fg);font-weight:500}
+.kicker{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;transition:background .2s}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
+:root[data-theme="dark"] .card{border-color:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .card{border-color:transparent}}
+.card.hero{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:1100px){.split{grid-template-columns:1fr}}
+.btn{height:40px;padding:0 18px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}
+.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.sm{height:34px;padding:0 14px;font-size:13px}
+.chip{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.tag.pc{background:var(--pc);color:var(--on-pc)}.tag.rw{background:var(--reward-soft);color:var(--on-reward-soft)}.tag.dn{background:var(--danger-soft);color:var(--on-danger-soft)}.tag.ps{background:var(--ps);color:var(--on-ps)}
+.prog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;border-radius:99px;background:var(--primary)}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+input,textarea,select{width:100%;padding:10px 14px;border-radius:14px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);font:400 14px var(--font)}
+textarea{min-height:84px;resize:vertical;line-height:1.5}
+.field{margin-bottom:12px}.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.two{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:12px;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}.tw{overflow-x:auto}
+.list{display:grid;gap:8px}.item{padding:12px 14px;border-radius:18px;background:var(--surface-2)}
+.item b{font-weight:500}.mut{color:var(--muted);font-size:13px}.mono{font-family:var(--mono);font-size:13px}
+.note{padding:12px 14px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.ok{color:var(--primary)}.bad{color:var(--danger)}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tabbar{display:none}
+.fadein{animation:fi .3s ease-out}@keyframes fi{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:700px){
+  .rail{display:none}h1{font-size:26px}main{padding-bottom:96px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;padding:8px 4px 12px;z-index:5}
+  .tabbar .ri{width:auto;flex:1}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="rail" aria-label="Main (mockup)">
+  <div class="logo">ZD</div>
+  <div class="fab" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>Today</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></span>Practice</a>
+  <a class="ri on"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg></span>Learn</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v10H9l-5 4z"/></svg></span>Interview</a>
+  <a class="ri "><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg></span>Review</a>
+  <a class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg></span>Roadmap</a>
+</nav>
+<main><div class="wrap">
+<div>
+  <p class="crumb">Learn / <b>Course library</b></p>
+  <h1>Optional tracks</h1>
+  <p class="sub">Extra interview tracks for specific roles. Download only the ones you need. Each one adds a course to Learn and works offline once downloaded.</p>
+</div>
+
+<div class="row sp">
+  <div class="row" role="group" aria-label="Filter courses">
+    <button class="chip" aria-pressed="false">All</button><button class="chip" aria-pressed="true">Optional tracks</button><button class="chip" aria-pressed="false">Languages</button><button class="chip" aria-pressed="false">Tools</button>
+  </div>
+  <button class="btn tonal sm">Not sure which? Answer 3 questions</button>
+</div>
+
+<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))">
+  <article class="card">
+    <div class="row sp"><span class="tag ps">Optional track</span><span class="tag">Not downloaded</span></div>
+    <h2 style="margin-top:10px">ML system design</h2>
+    <p class="mut" style="margin-top:4px">Frame an ML problem, choose data, features and metrics, then design recommendation, search, ads and LLM features that survive production.</p>
+    <p class="mut" style="margin-top:8px"><b style="color:var(--fg);font-weight:500">Good if:</b> you apply for ML engineer, applied scientist or a backend role on an ML team.</p>
+    <div class="row" style="margin-top:10px"><span class="tag">16 lessons</span><span class="tag">about 5 hours</span><span class="tag">310 KB</span></div>
+    <div class="row" style="margin-top:14px"><button class="btn primary">Download</button><button class="btn outline" aria-expanded="false">See topics</button></div>
+  </article>
+  <article class="card">
+    <div class="row sp"><span class="tag ps">Optional track</span><span class="tag pc">Downloaded · v1.0.0</span></div>
+    <h2 style="margin-top:10px">Frontend interview</h2>
+    <p class="mut" style="margin-top:4px">How the browser renders, the event loop, performance, state, accessibility, and UI designs like autocomplete and infinite feeds.</p>
+    <div class="row" style="margin-top:10px"><div class="prog"><i style="width:31%"></i></div><span class="mut">5 of 16</span></div>
+    <div class="row" style="margin-top:14px"><button class="btn primary">Continue</button><span class="tag rw">Update 1.1.0 available</span></div>
+  </article>
+  <article class="card">
+    <div class="row sp"><span class="tag ps">Optional track</span><span class="tag">Not downloaded</span></div>
+    <h2 style="margin-top:10px">Mobile system design</h2>
+    <p class="mut" style="margin-top:4px">App lifecycle, offline-first sync, battery and network limits, push, image caching, and designs for chat, feeds and uploads.</p>
+    <div class="row" style="margin-top:10px"><span class="tag">14 lessons</span><span class="tag">about 4 hours</span><span class="tag">270 KB</span></div>
+    <div class="row" style="margin-top:14px"><button class="btn primary">Download</button><button class="btn outline" aria-expanded="true">Hide topics</button></div>
+    <ul class="mut" style="margin:12px 0 0;padding-left:18px"><li>The app lifecycle and why your process gets killed</li><li>Offline-first: a local database as the source of truth</li><li>Sync and conflict handling on flaky networks</li><li>Image loading, caches and memory</li><li>Design: chat app, photo upload, feed</li><li>and 9 more</li></ul>
+  </article>
+</div>
+
+<div class="card hero row sp">
+  <div><h3>Which tracks do I need?</h3><p style="font-size:14px;margin-top:2px">Most backend roles need none of them. Take a track only if the job description names that area.</p></div>
+  <div class="row"><span class="tag" style="background:var(--surface);color:var(--fg)">Role: Backend</span><span class="tag" style="background:var(--surface);color:var(--fg)">Suggested: none</span></div>
+</div>
+</div></main>
+</div>
+<nav class="tabbar" aria-label="Tabs (mockup)">
+  <a class="ri "><span class="p">T</span>Today</a><a class="ri "><span class="p">P</span>Practice</a><a class="ri on"><span class="p">L</span>Learn</a><a class="ri "><span class="p">I</span>Interview</a><a class="ri"><span class="p">Y</span>You</a>
+</nav>
+<script>
+document.querySelectorAll('[role=tablist]').forEach(function(list){
+  var tabs=[].slice.call(list.querySelectorAll('[role=tab]'));
+  tabs.forEach(function(t){t.addEventListener('click',function(){
+    tabs.forEach(function(x){var on=x===t;x.setAttribute('aria-selected',on);var p=document.getElementById(x.dataset.p);if(p){p.hidden=!on;if(on)p.classList.add('fadein')}});
+  })});
+});
+document.querySelectorAll('.chip[aria-pressed]').forEach(function(c){c.addEventListener('click',function(){c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!=='true')})});
+
+</script>
+</body>
+</html>

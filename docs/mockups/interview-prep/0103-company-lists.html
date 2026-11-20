@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Company lists (mockup 0103)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0103: company overview, company page with plan panel, chips and tags on problem rows. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;--font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px}
+.ri i{width:56px;height:32px;border-radius:99px;display:grid;place-items:center;font-style:normal}
+.ri.on{color:var(--fg);font-weight:600}.ri.on i{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:24px 16px 96px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:30px;line-height:1.2;font-weight:600}h2{margin:0;font-size:18px;font-weight:600}.card h2{font-size:15px}h3{margin:0;font-size:15px;font-weight:600}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer;white-space:nowrap}
+.seg button[aria-selected=true]{background:var(--ps);color:var(--on-ps)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.chip{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:10px;background:var(--surface-2);font-size:12px;font-weight:500}
+.chip.warn{background:var(--reward-soft);color:var(--on-reward-soft)}.chip.ok{background:var(--pc);color:var(--on-pc)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;background:var(--primary);color:var(--on-primary)}
+.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.out{background:transparent;border:1px solid var(--line-strong);color:var(--fg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.state{display:none}.state.on{display:block}
+.session{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1040px){.session{grid-template-columns:1fr}}
+.phases{display:flex;gap:6px;flex-wrap:wrap}
+.ph{height:32px;padding:0 14px;border-radius:99px;background:var(--surface-2);font-size:12px;display:inline-flex;align-items:center;color:var(--muted)}
+.ph.cur{background:var(--primary);color:var(--on-primary);font-weight:500}.ph.done{background:var(--ps);color:var(--on-ps)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 13px/1.55 var(--mono);overflow:auto}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:2px}
+.msg{max-width:92%;padding:10px 14px;border-radius:18px;font-size:14px}
+.msg.i{background:var(--ps);color:var(--on-ps);border-bottom-left-radius:6px;align-self:flex-start}
+.msg.c{background:var(--pc);color:var(--on-pc);border-bottom-right-radius:6px;align-self:flex-end}
+.msg small{display:block;color:inherit;opacity:.7;font-size:11px;margin-bottom:2px}
+.input{display:flex;gap:8px;margin-top:12px}
+.input input{flex:1;height:44px;border-radius:99px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);padding:0 16px;font:400 14px var(--font)}
+.toggle{display:inline-flex;align-items:center;gap:10px;font-size:14px}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--line-strong);position:relative;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .3s var(--spring)}
+.sw.on{background:var(--primary)}.sw.on::after{transform:translateX(18px)}
+.crit{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:14px;padding:14px 0;border-top:1px solid var(--line);align-items:start}
+@media (max-width:760px){.crit{grid-template-columns:1fr}}
+.quote{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--primary);background:var(--surface-2);border-radius:0 12px 12px 0;font-size:13px;color:var(--muted)}
+.scale{display:inline-flex;gap:4px;padding:3px;border-radius:99px;background:var(--surface-2)}
+.scale button{width:44px;height:36px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer}
+.scale button.s{background:var(--primary);color:var(--on-primary)}
+.note{padding:12px 16px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.tabbar{display:none}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}
+.ring{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:600;font-size:14px;background:conic-gradient(var(--primary) calc(var(--p)*1%),var(--surface-2) 0)}
+.ring span{width:48px;height:48px;border-radius:50%;background:var(--surface);display:grid;place-items:center}
+.tier{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:8px;font-size:11px;font-weight:600}
+.t1{background:var(--pc);color:var(--on-pc)}.t2{background:var(--ps);color:var(--on-ps)}.t3{background:var(--surface-2);color:var(--muted)}
+.d-e{color:var(--primary)}.d-m{color:var(--warning)}.d-h{color:var(--danger)}
+.pr{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:11px 4px;border-top:1px solid var(--line);font-size:14px}
+.pr .ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong)}.pr .ck.d{background:var(--primary);border-color:var(--primary)}
+.pr small{color:var(--muted);font-size:12px}
+.co{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:1040px){.co{grid-template-columns:1fr}}
+.day{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}.day b{width:64px;flex:none;font-weight:600}
+.fchip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer}
+.fchip.s{background:var(--ps);color:var(--on-ps);border-color:transparent}
+.cap{font-size:12px;color:var(--muted)}
+@media (max-width:760px){.rail{display:none}h1{font-size:26px}.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;align-items:center;font-size:11px;color:var(--muted)}.tabbar b{font-weight:600;color:var(--primary)}.pr{grid-template-columns:28px minmax(0,1fr) auto}.pr .hide{display:none}}
+</style></head>
+<body><div class="app">
+<nav class="rail" aria-label="Primary"><div class="logo">ZD</div>
+<div class="ri"><i>T</i>Today</div><div class="ri on"><i>P</i>Practice</div><div class="ri"><i>L</i>Learn</div><div class="ri"><i>R</i>Review</div><div class="ri"><i>I</i>Interview</div></nav>
+<main><div class="wrap">
+<div class="row sp"><div><p class="sub">Practice / Companies</p><h1 id="ttl">Companies</h1></div>
+<div class="seg" role="tablist" aria-label="Mockup state">
+<button role="tab" aria-selected="true" data-s="all" data-t="Companies">Companies</button><button role="tab" aria-selected="false" data-s="one" data-t="Amazon">Company page</button><button role="tab" aria-selected="false" data-s="prob" data-t="Practice">Chips on rows</button></div></div>
+
+<section class="state on" id="all"><div style="display:flex;flex-direction:column;gap:14px">
+<div class="note">Community-reported, approximate. These lists are written for this app from public knowledge. They are not from any company and say nothing about what you will be asked.</div>
+<div class="cg">
+<div class="card row" style="flex-wrap:nowrap"><div class="ring" style="--p:38"><span>38%</span></div><div><h2>Amazon</h2><p class="sub">23 of 61 solved. 9 classics left.</p><p class="cap">Checked 2026-11-21</p></div></div>
+<div class="card row" style="flex-wrap:nowrap"><div class="ring" style="--p:29"><span>29%</span></div><div><h2>Google</h2><p class="sub">15 of 52 solved. 12 classics left.</p><p class="cap">Checked 2026-11-21</p></div></div>
+<div class="card row" style="flex-wrap:nowrap"><div class="ring" style="--p:44"><span>44%</span></div><div><h2>Meta</h2><p class="sub">24 of 55 solved. 7 classics left.</p><p class="cap">Checked 2026-11-21</p></div></div>
+<div class="card row" style="flex-wrap:nowrap"><div class="ring" style="--p:21"><span>21%</span></div><div><h2>Microsoft</h2><p class="sub">11 of 52 solved. 14 classics left.</p><p class="cap">Checked 2026-11-21</p></div></div>
+<div class="card row" style="flex-wrap:nowrap"><div class="ring" style="--p:12"><span>12%</span></div><div><h2>Apple</h2><p class="sub">5 of 41 solved.</p><p class="cap">Checked 2026-11-21</p></div></div>
+<div class="card row" style="flex-wrap:nowrap"><div class="ring" style="--p:33"><span>33%</span></div><div><h2>Uber</h2><p class="sub">10 of 30 solved.</p><p class="cap">Checked 2026-11-21</p></div></div></div></div></section>
+
+<section class="state" id="one"><div class="co"><div style="display:flex;flex-direction:column;gap:14px">
+<div class="card"><div class="row sp"><div><h2>Amazon</h2><p class="sub" style="max-width:62ch">Usually an online assessment, then loops that mix coding, a design round and behavioural questions tied to leadership principles. Confirm the current process with your recruiter.</p></div><span class="chip">Checked 2026-11-21</span></div>
+<div class="row" style="margin-top:10px"><span class="chip">Trees and graphs</span><span class="chip">Heaps and intervals</span><span class="chip">Design a class</span><span class="chip">Behavioural depth</span></div></div>
+<div class="card"><div class="row sp"><div class="row"><button class="fchip s">All</button><button class="fchip">Classic</button><button class="fchip">Common</button><button class="fchip">Occasional</button></div><div class="row"><button class="fchip">Difficulty</button><button class="fchip">Not solved</button></div></div>
+<div style="margin-top:8px">
+<div class="pr"><span class="ck d"></span><div>Two sum<br><small>Hash map</small></div><span class="tier t1">Classic</span><span class="d-e hide">Easy</span></div>
+<div class="pr"><span class="ck d"></span><div>Number of islands<br><small>Graph BFS and DFS</small></div><span class="tier t1">Classic</span><span class="d-m hide">Medium</span></div>
+<div class="pr"><span class="ck"></span><div>Merge k sorted lists<br><small>Heap</small></div><span class="tier t1">Classic</span><span class="d-h hide">Hard</span></div>
+<div class="pr"><span class="ck"></span><div>Rotting oranges<br><small>Multi-source BFS</small></div><span class="tier t1">Classic</span><span class="d-m hide">Medium</span></div>
+<div class="pr"><span class="ck"></span><div>Lowest common ancestor of a binary tree<br><small>Trees</small></div><span class="tier t2">Common</span><span class="d-m hide">Medium</span></div>
+<div class="pr"><span class="ck"></span><div>Task scheduler<br><small>Greedy, heap</small></div><span class="tier t2">Common</span><span class="d-m hide">Medium</span></div>
+<div class="pr"><span class="ck"></span><div>Word ladder<br><small>BFS</small></div><span class="tier t3">Occasional</span><span class="d-h hide">Hard</span></div></div></div>
+<div class="card"><h3>Designs and LLD to practise</h3><div class="row" style="margin-top:8px"><span class="chip">URL shortener</span><span class="chip">Rate limiter</span><span class="chip">Notification service</span><span class="chip">Parking lot</span><span class="chip">Elevator</span></div></div></div>
+<aside class="card" style="display:flex;flex-direction:column;gap:12px"><h2>Plan my days</h2>
+<p class="sub">Interview on 2026-12-12: 21 days left.</p>
+<div class="row"><label class="sub">Problems a day</label><div class="seg"><button>2</button><button style="background:var(--ps);color:var(--on-ps)">3</button><button>4</button></div></div>
+<div><div class="day"><b>Sun 22</b><span>Merge k sorted lists, Rotting oranges, Task scheduler</span></div>
+<div class="day"><b>Mon 23</b><span>Word ladder, LCA of a binary tree, Re-solve: Number of islands</span></div>
+<div class="day"><b>Tue 24</b><span>Top K frequent elements, Meeting rooms II, Course schedule</span></div></div>
+<p class="cap">Classics first, patterns mixed so two days are not the same. 38 problems over 13 days at 3 a day.</p>
+<button class="btn">Add to Today</button><button class="btn out">Show all days</button></aside></div></section>
+
+<section class="state" id="prob"><div style="display:flex;flex-direction:column;gap:14px"><div class="card">
+<div class="row" style="gap:8px"><button class="fchip s">Company: Amazon, Google</button><button class="fchip">Frequency: Classic</button><button class="fchip">Pattern</button><button class="fchip">Difficulty</button></div>
+<div style="margin-top:8px">
+<div class="pr"><span class="ck d"></span><div>Number of islands<br><small>Graph BFS and DFS</small></div><span class="row" style="gap:6px"><span class="tier t1">Classic</span><span class="chip">Amazon</span><span class="chip">Meta</span><span class="chip">+2</span></span><span class="d-m hide">Medium</span></div>
+<div class="pr"><span class="ck"></span><div>Merge k sorted lists<br><small>Heap</small></div><span class="row" style="gap:6px"><span class="tier t1">Classic</span><span class="chip">Amazon</span><span class="chip">Google</span></span><span class="d-h hide">Hard</span></div>
+<div class="pr"><span class="ck"></span><div>Design hit counter<br><small>Design a class</small></div><span class="row" style="gap:6px"><span class="tier t2">Common</span><span class="chip">Google</span><span class="chip" style="background:var(--reward-soft);color:var(--on-reward-soft)">Added by you: Uber</span></span><span class="d-m hide">Medium</span></div></div></div>
+<div class="card" style="max-width:420px"><h3>Seen at</h3><p class="sub" style="margin-bottom:8px">Number of islands. Toggle a company to add or remove your own tag.</p>
+<div class="row" style="gap:8px"><button class="fchip s">Amazon</button><button class="fchip s">Meta</button><button class="fchip">Google</button><button class="fchip">Microsoft</button><button class="fchip s">Uber (you)</button><button class="fchip">Apple</button></div></div></div></section>
+</div></main></div>
+<div class="tabbar"><span>Today</span><b>Practice</b><span>Learn</span><span>Review</span><span>Interview</span></div>
+<script>
+document.querySelectorAll('.seg[role=tablist] button').forEach(function(b){b.addEventListener('click',function(){
+document.querySelectorAll('.seg[role=tablist] button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+document.getElementById('ttl').textContent=b.dataset.t;
+document.querySelectorAll('.state').forEach(function(s){s.classList.toggle('on',s.id===b.dataset.s)});});});
+</script></body></html>

@@ -174,6 +174,46 @@ export function SlidingPill({
     };
   }, [target, line, persistKey]);
 
+  // A strip that scrolls sideways (tab rails on phones): fade the edge that has more items past it, instead of
+  // slicing a label against the rounded end, and bring the active item into view on first paint.
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const edges = () => {
+      const max = box.scrollWidth - box.clientWidth;
+      box.toggleAttribute("data-sp-more-start", max > 1 && box.scrollLeft > 1);
+      box.toggleAttribute("data-sp-more-end", max > 1 && box.scrollLeft < max - 1);
+    };
+    const active = box.querySelector<HTMLElement>(ACTIVE);
+    if (active && box.scrollWidth > box.clientWidth) {
+      const a = active.offsetLeft;
+      const b = a + active.offsetWidth;
+      if (a < box.scrollLeft || b > box.scrollLeft + box.clientWidth) box.scrollLeft = a - (box.clientWidth - active.offsetWidth) / 2;
+    }
+    // A mouse wheel only scrolls up and down; on a strip that overflows sideways, turn it into a sideways scroll so
+    // the hidden items can be reached without a trackpad (it gives the wheel back at either end).
+    const wheel = (e: WheelEvent) => {
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      const max = box.scrollWidth - box.clientWidth;
+      if (max <= 1) return;
+      const atStart = box.scrollLeft <= 0 && e.deltaY < 0;
+      const atEnd = box.scrollLeft >= max - 1 && e.deltaY > 0;
+      if (atStart || atEnd) return;
+      e.preventDefault();
+      box.scrollLeft += e.deltaY;
+    };
+    edges();
+    box.addEventListener("scroll", edges, { passive: true });
+    box.addEventListener("wheel", wheel, { passive: false });
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(edges) : null;
+    ro?.observe(box);
+    return () => {
+      box.removeEventListener("wheel", wheel);
+      box.removeEventListener("scroll", edges);
+      ro?.disconnect();
+    };
+  }, []);
+
   const props = { ...rest, className: `sp ${className}`, ...(line ? { "data-sp-line": "" } : {}) };
   const body = (
     <>

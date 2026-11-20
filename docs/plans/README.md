@@ -177,3 +177,23 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0089 | [Expressive redesign 5: Review, Revise, Backlog, Roadmap, Profile, Settings and theme warning, Sign in, final scan](0089-expressive-review-profile-settings-and-scan.md) | done |
 | 0090 | [Interview approach write-ups for every DSA problem: context script, checker, Interview tab, AI helper](0090-interview-approach-writeups.md) | ready |
 | 0091 | [Pattern thinking map in Quick revise: thinking map, how to read a problem, groups, recall](0091-pattern-thinking-map.md) | done |
+| 0092 | [Brute force and optimal code on every problem, hints that lead to the optimal approach](0092-audit-solutions-and-hints-alignment.md) | ready |
+| 0093 | [Design patterns catalogue in LLD: one lesson per pattern (27, four agents)](0093-design-patterns-catalogue.md) | done |
+| 0094 | [Roadmap: everything a candidate needs to prepare for SWE3 / SDE2 interviews in one app](0094-interview-prep-roadmap.md) | ready |
+| 0095 | [Story bank and behavioural question bank (Amazon principles, Google attributes)](0095-story-bank-and-behavioural-questions.md) | ready |
+| 0096 | [Mock interview framework and the coding mock](0096-mock-interview-framework-coding-mock.md) | ready |
+| 0097 | [System design mock (prompt, phased timer, whiteboard, rubric)](0097-system-design-mock.md) | ready |
+| 0098 | [LLD machine-coding mock and behavioural mock](0098-lld-and-behavioural-mock.md) | ready |
+| 0099 | [AI interviewer (plays the interviewer in any mock and scores with the rubric)](0099-ai-interviewer.md) | ready |
+| 0100 | [Mock with a friend kit (interviewer guide, score sheet, share)](0100-mock-with-a-friend-kit.md) | ready |
+| 0101 | [Follow-up variants on every problem ("what if...")](0101-followup-variants.md) | ready |
+| 0102 | [Amazon-style online assessment simulation](0102-amazon-oa-simulation.md) | ready |
+| 0103 | [Company and frequency lists](0103-company-and-frequency-lists.md) | ready |
+| 0104 | [Drills: concurrency, find-the-bug, predict-the-output and SQL](0104-drills-concurrency-debug-sql.md) | ready |
+| 0105 | [Language cheat sheets (C++ STL, Java collections, Python)](0105-language-cheat-sheets.md) | ready |
+| 0106 | [Estimation drills (capacity math, scored)](0106-estimation-drills.md) | ready |
+| 0107 | [Papers and engineering case studies in the app](0107-papers-and-case-studies.md) | ready |
+| 0108 | [Company process and levels guide (Google, Amazon, Meta, Microsoft, Uber)](0108-company-process-and-levels-guide.md) | ready |
+| 0109 | [Career kit: resume check, project deep-dives, applications tracker, offers and negotiation](0109-career-kit-resume-projects-applications-offers.md) | ready |
+| 0110 | [Readiness score per area and "what to do this week"](0110-readiness-score-and-weekly-plan.md) | ready |
+| 0111 | [Optional tracks through the course library (ML, frontend, mobile system design)](0111-optional-tracks-ml-frontend-mobile.md) | ready |

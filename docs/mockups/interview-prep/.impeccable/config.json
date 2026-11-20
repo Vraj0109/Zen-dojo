@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          "docs/mockups/interview-prep/0097-system-design-mock.html"
+        ],
+        "createdAt": "2026-11-20T20:13:45.353Z",
+        "reason": "Claude: flagged rule is the 34px page title at line-height 1.2, normal for a large heading; body text is 1.5"
+      }
+    ]
+  }
+}

@@ -13,7 +13,7 @@ export function Tabs({
   active,
   hrefFor,
   label,
-  className = "relative inline-flex p-1 rounded-full bg-surface-2 gap-1 overflow-x-auto [scrollbar-width:none] print:hidden select-none",
+  className = "relative inline-flex max-w-full p-1 rounded-full bg-surface-2 gap-1 overflow-x-auto [scrollbar-width:none] print:hidden select-none",
 }: {
   tabs: readonly TabItem[];
   active: string;

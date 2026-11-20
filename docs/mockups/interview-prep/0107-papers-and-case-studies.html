@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Papers and case studies (mockup 0107)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup only: static sample data. Tokens follow DESIGN.md (names and values). Light and dark follow the system setting. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+--reward:#8B5000;--rs:#FFDDB2;--on-rs:#2C1600;--success:#1E6B4A;--warning:#9A5B00;--danger:#BA1A1A;--ds:#FFDAD6;--on-ds:#410002;
+--c1:#D6E3FF;--o1:#001B3E;--c2:#F0DBFF;--o2:#2A0E45;--c3:#BCEBEE;--o3:#002022;
+--font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward:#FFB95C;--rs:#6A3C00;--on-rs:#FFDDB2;
+--success:#8FD8B0;--warning:#FFB95C;--danger:#FFB4AB;--ds:#93000A;--on-ds:#FFDAD6;--c1:#284777;--o1:#D6E3FF;--c2:#56397A;--o2:#F0DBFF;--c3:#1D4E51;--o3:#BCEBEE;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.5 var(--font)}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;position:sticky;top:0;height:100vh}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--rs);color:var(--on-rs);display:grid;place-items:center;margin-bottom:4px}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px;text-decoration:none}
+.ri .p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on .p{background:var(--ps);color:var(--primary)}
+.ri svg,.tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.av{margin-top:auto;width:40px;height:40px;border-radius:99px;background:var(--c1);color:var(--o1);display:grid;place-items:center;font-weight:500;font-size:14px}
+main{flex:1;min-width:0;padding:28px 16px 56px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}h2{margin:0;font-size:20px;font-weight:500}h3{margin:0;font-size:16px;font-weight:500}
+p{margin:0}.sub{color:var(--muted);font-size:14px}.kick{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.seg{position:relative;display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;transition:background .25s,color .25s}
+.seg button[aria-selected="true"]{background:var(--ps);color:var(--on-ps)}
+.chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}.btn.sm{height:36px;padding:0 14px}
+.tag{font-size:12px;padding:3px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted);display:inline-block}
+.tag.e{background:var(--c3);color:var(--o3)}.tag.m{background:var(--rs);color:var(--on-rs)}.tag.h{background:var(--ds);color:var(--on-ds)}.tag.ok{background:var(--pc);color:var(--on-pc)}.tag.d{background:var(--c1);color:var(--o1)}.tag.s{background:var(--c2);color:var(--o2)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 12.5px/1.6 var(--mono);overflow-x:auto;color:var(--fg)}
+code{font-family:var(--mono);font-size:.92em}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.mono{font-family:var(--mono)}.ok{color:var(--success)}.bad{color:var(--danger)}
+.note{padding:12px 14px;border-radius:16px;background:var(--pc);color:var(--on-pc);font-size:14px}
+.warn{padding:12px 14px;border-radius:16px;background:var(--rs);color:var(--on-rs);font-size:14px}
+.err{padding:12px 14px;border-radius:16px;background:var(--ds);color:var(--on-ds);font-size:14px}
+.prog{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;background:var(--primary);border-radius:99px}
+input,textarea,select{font:400 15px var(--font);color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;padding:10px 14px;min-height:44px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+[hidden]{display:none!important}
+.tabbar{display:none}
+@media (max-width:767px){.rail{display:none}main{padding:16px 16px 96px}h1{font-size:26px}
+.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));justify-content:space-around;z-index:5}
+.tb{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);min-width:56px;min-height:44px;text-decoration:none}.tb.on{color:var(--primary);font-weight:600}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.demo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:16px;background:var(--rs);color:var(--on-rs);font-size:13px}
+.pc{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:var(--fg);min-height:200px}
+@media (prefers-color-scheme:dark){.pc{border-color:transparent}}
+.pc h3,.pc h2{font-size:18px;line-height:1.3}.pc p{font-size:14px;color:var(--muted)}
+.pc .ft{margin-top:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.conf{display:flex;gap:4px}.conf i{width:8px;height:8px;border-radius:99px;background:var(--line-strong)}.conf i.d{background:var(--primary)}
+.lesson{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:1000px){.lesson{grid-template-columns:1fr}}
+.prose{max-width:70ch;display:grid;gap:12px}.prose h2{margin-top:10px}
+.orig{display:grid;gap:8px;border-radius:24px;padding:18px;background:var(--pc);color:var(--on-pc)}
+.orig a{color:inherit;font-weight:600}
+.dg{border-radius:16px;background:var(--surface-2);padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;font-size:12.5px}
+.dg div{padding:10px 6px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.pt{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.pt .n{width:26px;height:26px;border-radius:99px;background:var(--ps);color:var(--on-ps);display:grid;place-items:center;font-size:13px;font-weight:500;flex:none}
+</style></head><body><div class="app">
+<nav class="rail" aria-label="Main"><div class="logo">ZD</div><div class="fab" title="Start focus"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 3h6"/></svg></div>
+<a class="ri" data-k="today"><span class="p"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>Today</a>
+<a class="ri" data-k="practice"><span class="p"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span>Practice</a>
+<a class="ri" data-k="learn"><span class="p"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 013 3v11a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3"/></svg></span>Learn</a>
+<a class="ri" data-k="review"><span class="p"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg></span>Review</a>
+<a class="ri" data-k="roadmap"><span class="p"><svg viewBox="0 0 24 24"><path d="M5 19V5M5 6h12l-2 3 2 3H5"/></svg></span>Roadmap</a>
+<div class="av">VL</div></nav>
+<main><div class="wrap">
+
+<div class="demo"><b>Mockup screens:</b>
+<div class="seg" data-tabs="scr" style="background:var(--surface)"><button data-t="idx" aria-selected="true">Index</button><button data-t="les" aria-selected="false">A lesson</button></div></div>
+<div id="scr">
+
+<section class="panel" data-p="idx" style="display:grid;gap:16px">
+<div class="row sp"><div><p class="kick">Learn, system design</p><h1>Papers and case studies</h1><p class="sub">24 papers and 16 engineering write-ups, summarised in our own words. Each links to the original.</p></div><a class="btn tonal">Back to System design</a></div>
+<div class="row"><div class="seg" aria-label="Kind"><button aria-selected="true">All 40</button><button aria-selected="false">Papers 24</button><button aria-selected="false">Case studies 16</button></div></div>
+<div class="row" role="group" aria-label="Topic"><button class="chip" aria-pressed="true">Storage</button><button class="chip" aria-pressed="false">Consensus</button><button class="chip" aria-pressed="false">Caching</button><button class="chip" aria-pressed="false">Messaging</button><button class="chip" aria-pressed="false">Scheduling</button><button class="chip" aria-pressed="false">Observability</button><button class="chip" aria-pressed="false">Outages</button></div>
+<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">
+<a class="pc"><div class="row sp"><span class="tag d">Paper</span><span class="sub">2007</span></div><h2>Dynamo: a highly available key-value store</h2><p>Why a store can accept writes during failures, and how it settles conflicts afterwards.</p><div class="ft"><div class="conf" aria-label="Confidence 4 of 5"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i></i></div><span class="sub">8 min read</span></div></a>
+<a class="pc"><div class="row sp"><span class="tag d">Paper</span><span class="sub">2006</span></div><h2>Bigtable: a distributed table store</h2><p>Sorted tables split into tablets, with an LSM-style write path on top of a distributed file system.</p><div class="ft"><div class="conf"><i class="d"></i><i class="d"></i><i></i><i></i><i></i></div><span class="sub">8 min read</span></div></a>
+<a class="pc"><div class="row sp"><span class="tag d">Paper</span><span class="sub">2012</span></div><h2>Spanner: a globally distributed database</h2><p>Consistent transactions across regions using synchronised clocks with a known error bound.</p><div class="ft"><div class="conf"><i></i><i></i><i></i><i></i><i></i></div><span class="sub">9 min read</span><span class="tag">Not started</span></div></a>
+<a class="pc"><div class="row sp"><span class="tag s">Case study</span><span class="sub">Discord</span></div><h2>Discord: storing billions of messages</h2><p>How a chat service picked partition keys, hit hot partitions, and changed its storage engine.</p><div class="ft"><div class="conf"><i class="d"></i><i></i><i></i><i></i><i></i></div><span class="sub">7 min read</span></div></a>
+<a class="pc"><div class="row sp"><span class="tag m">Outage</span><span class="sub">2018</span></div><h2>A database failover that split the brain</h2><p>A public postmortem: a short network partition, two primaries, and a day of repair. What you would change.</p><div class="ft"><div class="conf"><i></i><i></i><i></i><i></i><i></i></div><span class="sub">7 min read</span><span class="tag">Not started</span></div></a>
+<a class="pc"><div class="row sp"><span class="tag s">Case study</span><span class="sub">Stripe</span></div><h2>Idempotency keys for safe retries</h2><p>Why retries need a key, where to store it, and what to return the second time.</p><div class="ft"><div class="conf"><i class="d"></i><i class="d"></i><i class="d"></i><i></i><i></i></div><span class="sub">6 min read</span></div></a></div>
+<p class="sub">Showing 6 of 40. Links to originals open the authors' own pages; summaries are not copies.</p></section>
+
+<section class="panel" data-p="les" hidden><div class="lesson"><div class="card" style="display:grid;gap:14px">
+<div class="row sp"><div><p class="kick">System design / E. Papers</p><h1 style="font-size:30px">Dynamo: a highly available key-value store</h1></div><span class="tag d">Paper, 2007</span></div>
+<div class="prose">
+<p>Dynamo is the design of a key-value store that stays writable when machines or links fail. It trades strict consistency for availability. Interviewers expect you to name its three main tools: consistent hashing, quorum reads and writes, and version vectors.</p>
+<h2>What to know</h2>
+<div class="pt"><span class="n">1</span><p><b style="font-weight:500">The problem and the setting.</b> A shopping cart must accept adds even if a data center is unreachable.</p></div>
+<div class="pt"><span class="n">2</span><p><b style="font-weight:500">The core idea.</b> Accept writes on any replica, keep several versions, and reconcile on read.</p></div>
+<div class="pt"><span class="n">3</span><p><b style="font-weight:500">How it works.</b> A ring of nodes, N replicas per key, R and W counts for reads and writes.</p></div>
+<div class="pt"><span class="n">4</span><p><b style="font-weight:500">Trade-offs and limits.</b> The client may see conflicting versions and must merge them.</p></div>
+<div class="pt"><span class="n">5</span><p><b style="font-weight:500">In interviews.</b> Use it for a key-value store design and any "available during a partition" answer.</p></div>
+<div class="dg" role="img" aria-label="Diagram: a client sends a write to a coordinator, which copies it to three replicas on the ring"><div>Client</div><div>Coordinator</div><div>Replicas, N = 3</div></div></div></div>
+<aside style="display:grid;gap:12px"><div class="orig"><h3>The original</h3><p>Dynamo: Amazon's Highly Available Key-value Store. DeCandia et al., SOSP 2007.</p><a href="#">Read the paper</a><p style="font-size:13px">Last checked 21 Nov 2026</p></div>
+<div class="card"><h3>Shows up in</h3><div class="row" style="margin-top:8px"><span class="tag">Key-value store</span><span class="tag">Consistent hashing</span><span class="tag">CAP and PACELC</span></div></div>
+<div class="card"><h3>How well do you know it?</h3><div class="row" style="margin-top:8px"><span class="tag ok">Confidence 4 of 5</span></div></div></aside></div></section>
+</div>
+</div></main></div>
+<nav class="tabbar" aria-label="Main">
+<a class="tb" data-k="today"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Today</a>
+<a class="tb" data-k="practice"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>Practice</a>
+<a class="tb" data-k="learn"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 013 3v11a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3"/></svg>Learn</a>
+<a class="tb" data-k="review"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg>Review</a>
+<a class="tb" data-k="you"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>You</a></nav>
+<script>
+const ACTIVE="learn";document.querySelectorAll('[data-k="'+ACTIVE+'"]').forEach(e=>e.classList.add('on'));
+/* tabs: <div class="seg" data-tabs="scopeId"> with buttons data-t; panels are direct children .panel[data-p] of #scopeId */
+document.querySelectorAll('[data-tabs]').forEach(seg=>{const scope=document.getElementById(seg.dataset.tabs);
+seg.addEventListener('click',e=>{const b=e.target.closest('button[data-t]');if(!b)return;
+seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
+scope.querySelectorAll(':scope > .panel').forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)})});
+</script></body></html>

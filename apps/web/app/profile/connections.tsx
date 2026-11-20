@@ -2,6 +2,7 @@ import type { getExtensionStatus } from "@/lib/leetcode/extension";
 import type { getLeetCodeStatus } from "@/lib/leetcode/sync";
 import { connectLeetCodeAction, disconnectLeetCodeAction, regenerateExtensionKeyAction, syncLeetCodeAction } from "../actions";
 import { SubmitButton } from "../submit-button";
+import { LeetCodeFileForm } from "./leetcode-file-form";
 
 // LeetCode connections, shown in Profile → Settings.
 
@@ -65,14 +66,21 @@ export function LeetCodeCard({ username, last }: Awaited<ReturnType<typeof getLe
 export function ExtensionCard({ token, last }: Awaited<ReturnType<typeof getExtensionStatus>>) {
   return (
     <section className="rounded-md border border-line bg-surface p-5">
-      <h4 className="font-semibold">Browser extension</h4>
+      <h4 className="font-semibold">LeetCode history from the browser extension</h4>
       <p className="mt-1 text-sm text-muted">
-        Imports your own accepted LeetCode submissions (code, language, runtime, memory, time, notes) while you&apos;re logged in on
-        leetcode.com, including your full history. Install it from <code className="text-foreground">apps/extension</code> (see README),
-        then paste this pairing key into it.
+        Install the extension from <code className="text-foreground">apps/extension</code> (see README), open its popup on a computer where
+        you&apos;re logged in to leetcode.com and press <strong className="text-foreground">Export to file</strong>. It saves your own accepted
+        submissions (code, language, runtime, memory, time, notes) as a <code className="text-foreground">zen-dojo-leetcode-….json</code>{" "}
+        file. Choose that file here. Importing the same file again is safe.
       </p>
-      <details className="mt-3">
-        <summary className="cursor-pointer text-sm font-medium">Show pairing key</summary>
+      <LeetCodeFileForm />
+      <details className="mt-4 border-t border-line pt-3">
+        <summary className="cursor-pointer text-sm font-medium">Send to the app directly (optional)</summary>
+        <p className="mt-2 text-sm text-muted">
+          Instead of a file, the extension can send submissions straight to this app, and add each new Accepted one while you solve.
+          Paste this pairing key into the extension&apos;s popup under <em>Send to the app directly</em>.
+        </p>
+        <p className="mt-2 text-sm font-medium">Pairing key</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <input
             readOnly

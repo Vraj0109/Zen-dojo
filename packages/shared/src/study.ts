@@ -178,6 +178,10 @@ export const SYSTEM_DESIGN: StudyArea = {
 
 // ---------------------------------------------------------------- Low-level design
 
+/** One checklist for every lesson in the LLD pattern catalogue (plan 0093); the lessons use exactly this text. */
+const DP_POINTS =
+  "Intent and the problem it solves; Structure and participants; A worked example in Java; When to use it and when not to; Related patterns and how it shows up in interviews";
+
 const LLD_STEPS: FrameworkStep[] = [
   { id: "clarify", title: "Clarify requirements", minutes: 5, hint: "What's in and out of scope; the main use cases" },
   { id: "model", title: "Entities and public API", minutes: 10, hint: "Classes, relationships, enums for states, each class's public methods" },
@@ -205,6 +209,40 @@ export const LOW_LEVEL_DESIGN: StudyArea = {
         c("lld-modeling", "Modeling", "Entities and relationships; Enums for states; State machines; Validation and error handling; Extensibility"),
         c("lld-concurrency", "Concurrency in code", "Threads vs processes; Mutex and semaphore; Producer-consumer with a blocking queue; Thread pools; Deadlock conditions; Atomic operations; Thread-safe singleton and LRU cache"),
         c("lld-testing", "Testing mindset", "Unit tests for the class you wrote; Edge cases; Mocks; What you'd test in integration"),
+      ],
+    },
+    {
+      id: "lld-design-patterns",
+      title: "Pattern catalogue",
+      weeks: "8-9",
+      concepts: [
+        c("dp-factory-method", "Factory method", DP_POINTS),
+        c("dp-abstract-factory", "Abstract factory", DP_POINTS),
+        c("dp-builder", "Builder", DP_POINTS),
+        c("dp-prototype", "Prototype", DP_POINTS),
+        c("dp-singleton", "Singleton", DP_POINTS),
+        c("dp-object-pool", "Object pool", DP_POINTS),
+        c("dp-dependency-injection", "Dependency injection", DP_POINTS),
+        c("dp-adapter", "Adapter", DP_POINTS),
+        c("dp-bridge", "Bridge", DP_POINTS),
+        c("dp-composite", "Composite", DP_POINTS),
+        c("dp-decorator", "Decorator", DP_POINTS),
+        c("dp-facade", "Facade", DP_POINTS),
+        c("dp-flyweight", "Flyweight", DP_POINTS),
+        c("dp-proxy", "Proxy", DP_POINTS),
+        c("dp-chain-of-responsibility", "Chain of responsibility", DP_POINTS),
+        c("dp-command", "Command", DP_POINTS),
+        c("dp-iterator", "Iterator", DP_POINTS),
+        c("dp-mediator", "Mediator", DP_POINTS),
+        c("dp-memento", "Memento", DP_POINTS),
+        c("dp-observer", "Observer", DP_POINTS),
+        c("dp-state", "State", DP_POINTS),
+        c("dp-strategy", "Strategy", DP_POINTS),
+        c("dp-template-method", "Template method", DP_POINTS),
+        c("dp-visitor", "Visitor", DP_POINTS),
+        c("dp-interpreter", "Interpreter", DP_POINTS),
+        c("dp-null-object", "Null object", DP_POINTS),
+        c("dp-repository", "Repository", DP_POINTS),
       ],
     },
   ],

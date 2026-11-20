@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI interviewer (mockup 0099)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Mockup for plan 0099. Three states: setup switch, mock in progress with the interviewer panel, score review. */
+:root{--bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;--primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;--reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;--danger-soft:#FFDAD6;--on-danger-soft:#410002;--font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--spring:cubic-bezier(.34,1.56,.64,1)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;--primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;--reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;--danger-soft:#93000A;--on-danger-soft:#FFDAD6;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px}
+.ri i{width:56px;height:32px;border-radius:99px;display:grid;place-items:center;font-style:normal}
+.ri.on{color:var(--fg);font-weight:600}.ri.on i{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding:24px 16px 96px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:30px;line-height:1.2;font-weight:600}h2{margin:0;font-size:18px;font-weight:600}h3{margin:0;font-size:15px;font-weight:600}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button{height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer;white-space:nowrap}
+.seg button[aria-selected=true]{background:var(--ps);color:var(--on-ps)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px}
+@media (prefers-color-scheme:dark){.card{border-color:transparent}}
+.chip{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:10px;background:var(--surface-2);font-size:12px;font-weight:500}
+.chip.warn{background:var(--reward-soft);color:var(--on-reward-soft)}.chip.ok{background:var(--pc);color:var(--on-pc)}
+.btn{height:44px;padding:0 20px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;background:var(--primary);color:var(--on-primary)}
+.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.out{background:transparent;border:1px solid var(--line-strong);color:var(--fg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{justify-content:space-between}
+.state{display:none}.state.on{display:block}
+.session{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1040px){.session{grid-template-columns:1fr}}
+.phases{display:flex;gap:6px;flex-wrap:wrap}
+.ph{height:32px;padding:0 14px;border-radius:99px;background:var(--surface-2);font-size:12px;display:inline-flex;align-items:center;color:var(--muted)}
+.ph.cur{background:var(--primary);color:var(--on-primary);font-weight:500}.ph.done{background:var(--ps);color:var(--on-ps)}
+pre{margin:0;padding:14px 16px;border-radius:16px;background:var(--surface-2);font:400 13px/1.55 var(--mono);overflow:auto}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:2px}
+.msg{max-width:92%;padding:10px 14px;border-radius:18px;font-size:14px}
+.msg.i{background:var(--ps);color:var(--on-ps);border-bottom-left-radius:6px;align-self:flex-start}
+.msg.c{background:var(--pc);color:var(--on-pc);border-bottom-right-radius:6px;align-self:flex-end}
+.msg small{display:block;color:inherit;opacity:.7;font-size:11px;margin-bottom:2px}
+.input{display:flex;gap:8px;margin-top:12px}
+.input input{flex:1;height:44px;border-radius:99px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);padding:0 16px;font:400 14px var(--font)}
+.toggle{display:inline-flex;align-items:center;gap:10px;font-size:14px}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--line-strong);position:relative;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .3s var(--spring)}
+.sw.on{background:var(--primary)}.sw.on::after{transform:translateX(18px)}
+.crit{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:14px;padding:14px 0;border-top:1px solid var(--line);align-items:start}
+@media (max-width:760px){.crit{grid-template-columns:1fr}}
+.quote{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--primary);background:var(--surface-2);border-radius:0 12px 12px 0;font-size:13px;color:var(--muted)}
+.scale{display:inline-flex;gap:4px;padding:3px;border-radius:99px;background:var(--surface-2)}
+.scale button{width:44px;height:36px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);cursor:pointer}
+.scale button.s{background:var(--primary);color:var(--on-primary)}
+.note{padding:12px 16px;border-radius:16px;background:var(--reward-soft);color:var(--on-reward-soft);font-size:13px}
+.tabbar{display:none}
+@media (max-width:760px){.rail{display:none}h1{font-size:26px}.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--surface);border-top:1px solid var(--line);justify-content:space-around;align-items:center;font-size:11px;color:var(--muted)}.tabbar b{font-weight:600;color:var(--primary)}}
+</style></head>
+<body>
+<div class="app">
+<nav class="rail" aria-label="Primary"><div class="logo">ZD</div>
+<div class="ri"><i>T</i>Today</div><div class="ri"><i>P</i>Practice</div><div class="ri"><i>L</i>Learn</div><div class="ri"><i>R</i>Review</div><div class="ri on"><i>I</i>Interview</div></nav>
+<main><div class="wrap">
+<div class="row sp"><div><p class="sub">Interview / Mock / Coding</p><h1>Coding mock: Merge intervals</h1></div>
+<div class="seg" role="tablist" aria-label="Mockup state">
+<button role="tab" aria-selected="true" data-s="setup">1 Setup</button><button role="tab" aria-selected="false" data-s="live">2 In progress</button><button role="tab" aria-selected="false" data-s="score">3 Score review</button></div></div>
+
+<section class="state on" id="setup"><div class="card" style="max-width:760px;display:flex;flex-direction:column;gap:16px">
+<h2>Start a coding mock</h2>
+<div class="row sp"><div><h3>Problem</h3><p class="sub">Merge intervals (medium, Intervals). Picked from problems you have not solved.</p></div><button class="btn out">Different problem</button></div>
+<div class="row sp"><div><h3>Clock</h3><p class="sub">45 minutes: Clarify 5, Plan 5, Code 25, Test 5, Wrap-up 5.</p></div><span class="chip">45 min</span></div>
+<div class="row sp" style="align-items:flex-start"><div style="max-width:480px"><h3>AI interviewer</h3><p class="sub">Asks follow-ups one at a time, gives hints only when you ask, and proposes a score at the end. Uses your model: Ollama, llama3.1 8B.</p></div>
+<span class="toggle"><span class="sw on"></span>On</span></div>
+<div class="note">Without a model the mock still runs as a plain timed mock. Set one up in Settings, AI.</div>
+<div class="row"><button class="btn">Start mock</button><button class="btn tonal">Mock with a friend instead</button></div></div></section>
+
+<section class="state" id="live"><div class="session">
+<div style="display:flex;flex-direction:column;gap:16px">
+<div class="card"><div class="row sp"><div class="phases"><span class="ph done">Clarify</span><span class="ph done">Plan</span><span class="ph cur">Code 14:20 left</span><span class="ph">Test</span><span class="ph">Wrap-up</span></div><span class="chip">Total 31:10 left</span></div></div>
+<div class="card"><h2>Merge intervals</h2><p class="sub" style="margin:8px 0 12px">Given a list of intervals, merge all that overlap and return the merged list sorted by start.</p>
+<pre>def merge(intervals):
+    intervals.sort(key=lambda x: x[0])
+    out = [intervals[0]]
+    for s, e in intervals[1:]:
+        if s &lt;= out[-1][1]:
+            out[-1][1] = max(out[-1][1], e)
+        else:
+            out.append([s, e])
+    return out</pre>
+<div class="row" style="margin-top:12px"><button class="btn tonal">Run examples</button><button class="btn">Submit</button></div></div></div>
+<aside class="card" aria-label="AI interviewer"><div class="row sp"><h2>Interviewer</h2><span class="chip ok">Hints used: 0 of 3</span></div>
+<div class="chat" style="margin-top:12px">
+<div class="msg i"><small>Interviewer, Clarify</small>Here is the problem: merge overlapping intervals. What would you like to ask before you start?</div>
+<div class="msg c"><small>You</small>Can the list be empty? And are touching intervals like [1,2] and [2,3] overlapping?</div>
+<div class="msg i"><small>Interviewer</small>It can be empty, return an empty list. Yes, touching counts as overlapping. How many intervals, roughly?</div>
+<div class="msg c"><small>You</small>Up to 10^5, so sort first, O(n log n).</div>
+<div class="msg i"><small>Interviewer, Code</small>Good. Your loop reads out[-1] on the first pass. What happens for an empty input?</div></div>
+<div class="input"><input aria-label="Your reply" placeholder="Reply to the interviewer"><button class="btn">Send</button></div>
+<div class="row" style="margin-top:12px"><button class="btn out">Ask for a hint</button><label class="toggle"><input type="checkbox" checked> Share my code</label><button class="btn tonal">Wrap up</button></div></aside></div></section>
+
+<section class="state" id="score"><div class="card">
+<div class="row sp"><div><h2>Score review</h2><p class="sub">Proposed by llama3.1 8B from your conversation. You decide the final score.</p></div><span class="chip warn">AI estimate</span></div>
+<div class="note" style="margin:12px 0">AI scores are an estimate from one conversation. A small local model can be generous or wrong. Check each quote.</div>
+<div class="crit"><div><h3>Clarifying questions</h3><p class="sub">Asked about empty input and touching intervals.</p></div>
+<div><p style="margin:0;font-size:14px">Covered the main edge cases before coding.</p><p class="quote">"Can the list be empty? And are touching intervals like [1,2] and [2,3] overlapping?"</p></div>
+<div class="scale" role="group" aria-label="Clarifying questions score"><button>1</button><button>2</button><button>3</button><button class="s">4</button></div></div>
+<div class="crit"><div><h3>Problem solving</h3></div><div><p style="margin:0;font-size:14px">Chose sorting and a single pass without a hint.</p><p class="quote">"Up to 10^5, so sort first, O(n log n)."</p></div>
+<div class="scale" role="group" aria-label="Problem solving score"><button>1</button><button>2</button><button class="s">3</button><button>4</button></div></div>
+<div class="crit"><div><h3>Code correctness</h3></div><div><p style="margin:0;font-size:14px">Missed the empty-input crash until the interviewer asked.</p><p class="quote">(no quote found)</p></div>
+<div class="scale" role="group" aria-label="Code correctness score"><button>1</button><button class="s">2</button><button>3</button><button>4</button></div></div>
+<div class="crit"><div><h3>Testing</h3></div><div><p style="margin:0;font-size:14px">Walked through one example only.</p><p class="quote">"Let me trace [[1,3],[2,6]]."</p></div>
+<div class="scale" role="group" aria-label="Testing score"><button>1</button><button class="s">2</button><button>3</button><button>4</button></div></div>
+<h3 style="margin-top:8px">Next steps</h3><p class="sub">Test empty and single-element input before submitting. Practise one more Intervals problem.</p>
+<div class="row" style="margin-top:14px"><button class="btn">Save scores</button><button class="btn tonal">Score it myself</button><button class="btn out">Add 2 misses to stuck list</button></div></div></section>
+</div></main></div>
+<div class="tabbar"><span>Today</span><span>Practice</span><span>Learn</span><span>Review</span><b>Interview</b></div>
+<script>
+document.querySelectorAll('.seg button').forEach(function(b){b.addEventListener('click',function(){
+document.querySelectorAll('.seg button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+document.querySelectorAll('.state').forEach(function(s){s.classList.toggle('on',s.id===b.dataset.s)});});});
+</script></body></html>

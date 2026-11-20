@@ -617,6 +617,1940 @@ export const GENERATED_LESSONS: Record<string, GeneratedLesson> = {
       }
     ]
   },
+  "dp-abstract-factory": {
+    "id": "dp-abstract-factory",
+    "title": "Abstract factory",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Abstract factory gives one interface for creating a family of related objects, without naming their concrete classes. The client receives one factory and gets products that match, such as a light button with a light text field. An interviewer wants to hear why the family must stay consistent, and how a new theme avoids changes in client code.",
+      "explain": [
+        "Abstract factory provides one interface for building a set of products that belong together. It makes sure a client never mixes a dark button with a light field. The problem it solves is families that drift apart, because each call site picks a class for each part on its own.",
+        "The abstract factory declares one creation method for each product in the family. Concrete factories implement it, and each returns its own set of products. The abstract products are the interfaces that clients use, and each theme has a concrete class for each product. The client receives a factory once and depends only on factory and product interfaces.",
+        "The example builds a payment form in a light or dark theme. The form asks the factory for its widgets and never names a theme class. One function picks the factory from a setting. Adding a theme means one new factory and its products. The form does not change.",
+        "Use it when several products vary together, such as themes, platforms or payment providers, and the parts must match. Do not use it when only one product varies. A factory method or a plain parameter is simpler. Adding a product to the family forces a change in every factory, so keep families small and stable.",
+        "Factory method creates one product through inheritance. Abstract factory groups several creation methods into one object, and often uses factory methods inside. Builder assembles one complex object step by step. In interviews it shows up in theme or widget questions, notification families (SMS and email with matching templates), and payment gateway families (charge, refund and webhook parsing for one provider). Mention the mismatch risk first, then name the pattern."
+      ],
+      "questions": [
+        "Why would you use one factory object instead of several factory methods?",
+        "What happens to client code when you add a new theme, and what happens when you add a new product to every theme?",
+        "How do you make sure a client cannot mix families?"
+      ],
+      "pitfalls": [
+        "Using abstract factory for one product type, which is a factory method with extra steps.",
+        "Letting the client choose each product class, which brings back the mismatch problem.",
+        "Forgetting that adding a product to the family changes every concrete factory.",
+        "Hiding the theme choice in several places instead of one factory selector."
+      ]
+    },
+    "recap": [
+      "Abstract factory: one factory per family, one method per product.",
+      "The client gets matching products and never mixes families.",
+      "A new family is a new factory. Client code stays the same."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A checkout page needs a button and a text field. Without the pattern, each screen calls `new DarkButton()` or `new LightButton()` and chooses the matching text field by hand. A screen that mixes a dark button with a light field looks broken, and nothing in the compiler catches it. Changing the theme means editing every screen.\n\nWith the pattern, the screen asks one factory for both widgets. The factory guarantees they match. The theme choice lives in one function. The before version repeats the choice for each widget. The after version makes one factory decide the whole family.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "`WidgetFactory` is the abstract factory. It declares `createButton()` and `createTextField()`. `LightFactory` and `DarkFactory` are concrete factories. Each returns its own products. `Button` and `TextField` are the abstract products. `LightButton` and `DarkButton` implement `Button`, and the text field classes implement `TextField` in the same way. `PaymentForm` is the client. It receives a factory and depends only on interfaces.",
+        "diagram": "classDiagram\n  class WidgetFactory {\n    +createButton() Button\n    +createTextField() TextField\n  }\n  class LightFactory {\n    +createButton() Button\n    +createTextField() TextField\n  }\n  class DarkFactory {\n    +createButton() Button\n    +createTextField() TextField\n  }\n  class Button {\n    +render(label)\n  }\n  class TextField {\n    +render(hint)\n  }\n  class LightButton {\n    +render(label)\n  }\n  class DarkButton {\n    +render(label)\n  }\n  class LightTextField {\n    +render(hint)\n  }\n  class DarkTextField {\n    +render(hint)\n  }\n  class PaymentForm {\n    +show()\n  }\n  LightFactory ..|> WidgetFactory\n  DarkFactory ..|> WidgetFactory\n  LightButton ..|> Button\n  DarkButton ..|> Button\n  LightTextField ..|> TextField\n  DarkTextField ..|> TextField\n  PaymentForm --> WidgetFactory",
+        "point": 1
+      },
+      {
+        "title": "Example: payment form in a light or dark theme",
+        "body": "`PaymentForm` takes a `WidgetFactory` in its constructor. It creates both widgets from that factory and renders them. `factoryFor` is the only place that chooses a theme. `main` shows the form in both themes, and the output shows that each form uses one family.",
+        "code": "public class Main {\n    interface Button {\n        void render(String label);\n    }\n\n    interface TextField {\n        void render(String hint);\n    }\n\n    // Abstract factory: one creation method per product in the family.\n    interface WidgetFactory {\n        Button createButton();\n        TextField createTextField();\n    }\n\n    static class LightButton implements Button {\n        @Override\n        public void render(String label) {\n            System.out.println(\"[light button] \" + label);\n        }\n    }\n\n    static class LightTextField implements TextField {\n        @Override\n        public void render(String hint) {\n            System.out.println(\"[light field] \" + hint);\n        }\n    }\n\n    static class DarkButton implements Button {\n        @Override\n        public void render(String label) {\n            System.out.println(\"[dark button] \" + label);\n        }\n    }\n\n    static class DarkTextField implements TextField {\n        @Override\n        public void render(String hint) {\n            System.out.println(\"[dark field] \" + hint);\n        }\n    }\n\n    static class LightFactory implements WidgetFactory {\n        @Override\n        public Button createButton() {\n            return new LightButton();\n        }\n\n        @Override\n        public TextField createTextField() {\n            return new LightTextField();\n        }\n    }\n\n    static class DarkFactory implements WidgetFactory {\n        @Override\n        public Button createButton() {\n            return new DarkButton();\n        }\n\n        @Override\n        public TextField createTextField() {\n            return new DarkTextField();\n        }\n    }\n\n    // Client: knows only the factory and the product interfaces.\n    static class PaymentForm {\n        private final TextField cardNumber;\n        private final Button payButton;\n\n        PaymentForm(WidgetFactory factory) {\n            this.cardNumber = factory.createTextField();\n            this.payButton = factory.createButton();\n        }\n\n        void show() {\n            cardNumber.render(\"Card number\");\n            payButton.render(\"Pay now\");\n        }\n    }\n\n    static WidgetFactory factoryFor(String theme) {\n        return switch (theme) {\n            case \"light\" -> new LightFactory();\n            case \"dark\" -> new DarkFactory();\n            default -> throw new IllegalArgumentException(\"Unknown theme: \" + theme);\n        };\n    }\n\n    public static void main(String[] args) {\n        new PaymentForm(factoryFor(\"light\")).show();\n        new PaymentForm(factoryFor(\"dark\")).show();\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when a product family must stay consistent and the family can change as a whole. Typical signs are a theme, a platform (Windows or macOS widgets), or a provider with several related calls. Do not use it for a single product, because the extra interfaces add work with no gain. Do not use it when the family changes often, because every new product needs a method in every factory. A smaller alternative is one factory method that takes a theme and returns one product.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Good candidates in this app's LLD problems are the vending machine (a family of coin and item handling per machine model) and the text editor (a family of renderers per platform). In a payment design, name the family: \"charge, refund and webhook parsing must come from the same provider, so I would use an abstract factory per provider.\"\n\nThe most common confusion is with factory method. Factory method creates one product, usually by subclassing the creator. Abstract factory is an object with several creation methods that are used together. Also compare with builder. A builder assembles one object over many calls. An abstract factory returns several separate products that work as a set.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-adapter": {
+    "id": "dp-adapter",
+    "title": "Adapter",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Adapter converts the interface of one class into the interface that a client expects. It lets your code use a library or legacy API that does not match your design. An interviewer wants you to name the target interface, wrap the foreign class, and keep the translation in one place.",
+      "explain": [
+        "Adapter makes two incompatible interfaces work together without changing either one. Use it when a third-party SDK or an old module has different names, units or return values than the code you are writing. The client keeps calling its own interface, and the translation lives in one class.",
+        "The Target is the interface the client uses. The Adaptee is the existing class with the incompatible API. The Adapter implements the Target, holds an Adaptee, and translates each call. The client only sees the Target.",
+        "A checkout calls a PaymentGateway with a dollar amount and reads a boolean result. A legacy card terminal takes cents as text and returns numeric codes. The adapter does the conversion, so the checkout code does not change.",
+        "Use it at the boundary with code you do not own, such as an SDK, an old module or an external API. Do not use it when you own both sides, because changing one interface is simpler. Many adapters for one API suggest that your target interface is wrong.",
+        "Facade also gives a simpler interface, but it wraps a whole subsystem with a new API. Adapter keeps the shape a client already expects. Decorator keeps the same interface and adds behaviour. In interviews, adapters appear in payment, notification and logging designs where a provider must be swapped later."
+      ],
+      "questions": [
+        "Where would you put the translation code between a vendor SDK and your domain?",
+        "How is an adapter different from a facade?",
+        "How would you test checkout without calling the real gateway?"
+      ],
+      "pitfalls": [
+        "Putting business rules, such as retries or fraud checks, inside the adapter.",
+        "Leaking vendor types or error codes into the client code.",
+        "Writing an adapter for code you own, when changing the interface would be simpler.",
+        "Forgetting units and rounding in the conversion, which causes wrong amounts."
+      ]
+    },
+    "recap": [
+      "Adapter translates a foreign interface into the one your code expects.",
+      "The client never needs to know that the adaptee exists.",
+      "Keep the translation in one class at the boundary."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Without an adapter, the checkout code calls the terminal directly. It converts dollars to cents, builds strings, reads numeric codes and maps them to booleans. This logic spreads into every caller. Switching to another vendor means editing every place that touches the terminal. An adapter moves all of the translation into one class, so the checkout depends only on PaymentGateway.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "The Target is PaymentGateway, the interface that checkout uses. The Adaptee is LegacyCardTerminal, which we cannot change. LegacyGatewayAdapter implements PaymentGateway and holds a terminal. Its charge method converts the units, calls doSale, and maps the result code to a PaymentResult. Checkout holds only a PaymentGateway.",
+        "diagram": "classDiagram\n    class PaymentGateway {\n        +charge()\n    }\n    class LegacyGatewayAdapter {\n        +charge()\n    }\n    class LegacyCardTerminal {\n        +doSale()\n        +lastTxnId()\n    }\n    class Checkout {\n        +pay()\n    }\n    LegacyGatewayAdapter ..|> PaymentGateway\n    LegacyGatewayAdapter --> LegacyCardTerminal\n    Checkout --> PaymentGateway",
+        "point": 1
+      },
+      {
+        "title": "Example: Card payments at checkout",
+        "body": "The checkout accepts any PaymentGateway. The adapter wraps the legacy terminal. The fake terminal approves amounts that have up to six digits in cents, and it declines larger amounts. The demo runs both paths.",
+        "code": "public class Main {\n\n    // Target interface: what the checkout code wants.\n    interface PaymentGateway {\n        PaymentResult charge(String paymentToken, double amountInDollars);\n    }\n\n    record PaymentResult(boolean approved, String reference) {}\n\n    // Legacy SDK we cannot change. Its names, units and return values differ from ours.\n    static class LegacyCardTerminal {\n        private int counter = 1000;\n\n        int doSale(String merchantAccount, String amountCents, String cardToken) {\n            System.out.println(\"Legacy doSale \" + merchantAccount + \" \" + amountCents + \" cents\");\n            return amountCents.length() > 6 ? 51 : 0; // 0 = approved, 51 = declined (fake rule)\n        }\n\n        String lastTxnId() {\n            return \"TXN-\" + (++counter);\n        }\n    }\n\n    // Adapter: implements our interface and translates each call to the legacy API.\n    static class LegacyGatewayAdapter implements PaymentGateway {\n        private final LegacyCardTerminal terminal;\n        private final String merchantAccount;\n\n        LegacyGatewayAdapter(LegacyCardTerminal terminal, String merchantAccount) {\n            this.terminal = terminal;\n            this.merchantAccount = merchantAccount;\n        }\n\n        @Override\n        public PaymentResult charge(String paymentToken, double amountInDollars) {\n            long cents = Math.round(amountInDollars * 100);\n            int code = terminal.doSale(merchantAccount, String.valueOf(cents), paymentToken);\n            boolean approved = code == 0;\n            return new PaymentResult(approved, approved ? terminal.lastTxnId() : \"DECLINED-\" + code);\n        }\n    }\n\n    // Client: knows only the PaymentGateway interface.\n    static class Checkout {\n        private final PaymentGateway gateway;\n\n        Checkout(PaymentGateway gateway) {\n            this.gateway = gateway;\n        }\n\n        String pay(String token, double total) {\n            PaymentResult result = gateway.charge(token, total);\n            return result.approved()\n                    ? \"Paid, ref \" + result.reference()\n                    : \"Declined: \" + result.reference();\n        }\n    }\n\n    public static void main(String[] args) {\n        PaymentGateway gateway = new LegacyGatewayAdapter(new LegacyCardTerminal(), \"MERCH-42\");\n        Checkout checkout = new Checkout(gateway);\n        System.out.println(checkout.pay(\"tok_visa_4242\", 19.99));\n        System.out.println(checkout.pay(\"tok_big_limit\", 1234567.00));\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use an adapter when a dependency's API does not match your design and you want to keep your design unchanged. Typical signals are a vendor SDK, a library upgrade that renamed methods, or two modules written by different teams. Do not add one only to rename methods inside your own code. An adapter adds a class and one more call, so keep it thin. If the adapter starts to hold business rules such as retries or fraud checks, move those rules into the domain.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In a payment or notification design, say that the SDK is outside your control, so you put an adapter behind your own interface. Then say that this makes it easy to add a second provider later. Adapter is often confused with Facade. A facade simplifies a whole subsystem and defines a new API. An adapter makes one existing class match an interface that already exists. Adapter also differs from Decorator, which keeps the interface the same and adds behaviour.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-bridge": {
+    "id": "dp-bridge",
+    "title": "Bridge",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Bridge splits a class that varies along two independent dimensions into two hierarchies. The abstraction says what the object does, and the implementor says how the work is done. The two sides are joined by a reference. An interviewer wants to hear that a new type or a new channel adds one class, not one class per combination.",
+      "explain": [
+        "Bridge lets two kinds of variation change independently. Without it, every combination of message type and delivery channel becomes its own subclass. With it, you need N plus M classes instead of N times M. The abstraction keeps a reference to the implementor and delegates the delivery step.",
+        "The Abstraction holds an Implementor reference and defines high-level operations. Refined abstractions, such as Alert and Digest, add their own behaviour. The Implementor interface defines the low-level operation, and concrete implementors, such as Email and SMS, perform it. The abstraction never needs to know which implementor it has.",
+        "A notification system sends alerts and digests over email and SMS. The notification builds the message, and the channel delivers it. Adding push notifications means one new channel class, and every message type can use it at once.",
+        "Use it when a class has two or more independent reasons to change, such as message type and channel, or shape and renderer. Skip it when only one dimension varies, because a single interface or a strategy is simpler. Bridge adds an indirection, so do not add it to code that has one axis.",
+        "Bridge looks like Strategy, since both hold a delegate object. Strategy swaps one algorithm inside one object. Bridge separates two whole hierarchies that are designed together. Adapter fits existing code, while Bridge is a design choice made up front. In interviews, Bridge appears in device or remote control designs, drawing APIs, and notification or logging designs with sinks and formats."
+      ],
+      "questions": [
+        "How would the design change if you added a third axis, such as priority?",
+        "How is Bridge different from Strategy?",
+        "What belongs in the abstraction, and what belongs in the implementor?"
+      ],
+      "pitfalls": [
+        "Using Bridge when only one dimension varies.",
+        "Letting the abstraction know channel details, such as the SMS length limit.",
+        "Creating a subclass for each combination anyway, which defeats the split.",
+        "Having the abstraction create its own channel, instead of receiving it."
+      ]
+    },
+    "recap": [
+      "Bridge separates what an object does from how it is done.",
+      "N plus M classes instead of N times M.",
+      "The abstraction holds the implementor and never creates it."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Suppose the system needs alerts and digests, sent by email and by SMS. Without Bridge you write AlertEmail, AlertSms, DigestEmail and DigestSms. Adding push notifications adds two more classes (AlertPush and DigestPush), and each one repeats the delivery code. Every new axis multiplies the count. The fix is to separate the message from the channel that sends it.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Notification is the abstraction. It holds a Channel field. AlertNotification and DigestNotification extend it and add their own content rules. Channel is the implementor interface. EmailChannel and SmsChannel implement it. The two hierarchies grow separately, and the only link between them is the Channel reference.",
+        "diagram": "classDiagram\n    class Channel {\n        +deliver()\n    }\n    class EmailChannel {\n        +deliver()\n    }\n    class SmsChannel {\n        +deliver()\n    }\n    class Notification {\n        +send()\n    }\n    class AlertNotification {\n        +send()\n    }\n    class DigestNotification {\n        +send()\n    }\n    EmailChannel ..|> Channel\n    SmsChannel ..|> Channel\n    AlertNotification --|> Notification\n    DigestNotification --|> Notification\n    Notification --> Channel",
+        "point": 1
+      },
+      {
+        "title": "Example: Alerts and digests over email and SMS",
+        "body": "The demo sends an alert over SMS, an alert over email, and a digest over email. The message classes never mention email or SMS. The SMS channel also trims long text to its limit.",
+        "code": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class Main {\n\n    // Implementor: how a message is delivered.\n    interface Channel {\n        void deliver(String recipient, String body);\n    }\n\n    static class EmailChannel implements Channel {\n        @Override\n        public void deliver(String recipient, String body) {\n            System.out.println(\"EMAIL to \" + recipient + \": \" + body);\n        }\n    }\n\n    static class SmsChannel implements Channel {\n        private static final int MAX_LENGTH = 160;\n\n        @Override\n        public void deliver(String recipient, String body) {\n            String text = body.length() > MAX_LENGTH ? body.substring(0, MAX_LENGTH) : body;\n            System.out.println(\"SMS to \" + recipient + \": \" + text);\n        }\n    }\n\n    // Abstraction: what kind of message this is. It holds a Channel but does not know which one.\n    static abstract class Notification {\n        protected final Channel channel;\n\n        protected Notification(Channel channel) {\n            this.channel = channel;\n        }\n\n        abstract void send(String recipient);\n    }\n\n    static class AlertNotification extends Notification {\n        private final String text;\n\n        AlertNotification(Channel channel, String text) {\n            super(channel);\n            this.text = text;\n        }\n\n        @Override\n        void send(String recipient) {\n            channel.deliver(recipient, \"[ALERT] \" + text);\n        }\n    }\n\n    static class DigestNotification extends Notification {\n        private final List<String> items = new ArrayList<>();\n\n        DigestNotification(Channel channel) {\n            super(channel);\n        }\n\n        DigestNotification add(String item) {\n            items.add(item);\n            return this;\n        }\n\n        @Override\n        void send(String recipient) {\n            channel.deliver(recipient, \"Daily digest: \" + String.join(\"; \", items));\n        }\n    }\n\n    public static void main(String[] args) {\n        Channel email = new EmailChannel();\n        Channel sms = new SmsChannel();\n\n        new AlertNotification(sms, \"Parking lot B is full\").send(\"+1-555-0100\");\n        new AlertNotification(email, \"Payment failed for order 881\").send(\"ana@example.com\");\n        new DigestNotification(email)\n                .add(\"3 spots freed\")\n                .add(\"2 new reviews\")\n                .send(\"ana@example.com\");\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Bridge when you can name two axes that change for different reasons, and you expect new members on both. Signs include a class name that combines two nouns, such as AlertEmail, or a growing list of subclasses. Skip it when there is one axis. The costs are an extra interface, an extra object to wire up, and more code to read. For one axis, a single interface with a few implementations is enough.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Bridge appears in designs such as a remote control for many devices, a drawing API that renders shapes on several back ends, or a logger that writes messages to several sinks in several formats. In a vending machine or a parking lot it rarely appears, because those designs have one main axis. Name the two axes first, then draw the two hierarchies. Bridge is often confused with Strategy. Both delegate, but a Strategy is one algorithm chosen per object, while a Bridge connects two designed hierarchies. Adapter also joins two interfaces, but Adapter is for code that already exists.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-builder": {
+    "id": "dp-builder",
+    "title": "Builder",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Builder constructs a complex object step by step and returns it only when it is complete and valid. Callers set the optional parts by name, and `build()` checks the whole object before it exists. An interviewer wants to hear why this beats a constructor with many parameters, and where the validation happens.",
+      "explain": [
+        "Builder separates the steps of constructing an object from the object's final form. Callers set only the fields they need, and each one is named. The problem it solves is the telescoping constructor, with many overloads and parameters that are easy to pass in the wrong order.",
+        "The product is the object being built, usually immutable. The builder is a nested class with one method per optional field, and each method returns the builder. `build()` validates the fields and creates the product through a private constructor. A director, which runs the steps in a fixed order, is optional and rarely needed in interviews.",
+        "The example builds an HTTP request. The URL is required and goes in the first call. Method, headers, body and timeout have defaults. `build()` rejects a URL without https, a GET with a body, and a timeout that is not positive. The request is immutable after `build()`.",
+        "Use it when an object has many optional fields, needs validation across fields, or should be immutable. Do not use it for two or three plain fields. A constructor or a record is simpler. A builder adds a second class to maintain. A forgotten `build()` call is a silent bug that the compiler does not catch.",
+        "A factory chooses which object to create in one call. A builder assembles one object over several calls. A fluent setter on a mutable class looks like a builder but lacks validation and immutability. In interviews it fits search queries, order or cart creation, parking-lot ticket options, and configuration of a form or a document. Mention where the validation lives, in `build()`."
+      ],
+      "questions": [
+        "When would you pick a builder over a constructor, and what is the cost?",
+        "Where do you validate the fields, and why there?",
+        "How do you make the built object immutable?"
+      ],
+      "pitfalls": [
+        "Returning the product from each setter, so the object exists while it is still incomplete.",
+        "Validating in each setter instead of once in `build()`, which misses rules between fields.",
+        "Sharing a mutable map or list between the builder and the product.",
+        "Using a builder for a class with two fields, where a constructor is clearer."
+      ]
+    },
+    "recap": [
+      "Builder: named optional fields, validation in `build()`, immutable result.",
+      "Use it for many optional parameters. Use a constructor or a record for a few fields.",
+      "The product's constructor is private, so only the builder creates it."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A request class with a constructor for each combination looks like this in prose: one constructor with URL, one with URL and method, one with URL, method and body, and so on. Each extra option adds another overload. Two `String` parameters next to each other are easy to swap, and the compiler accepts the swap. A null for an unused option is also easy to pass by mistake.\n\nAfter the change, each option has a name at the call site. Defaults live in the builder. The validation runs once, in `build()`, so an invalid request cannot exist. The before version relies on the order of parameters. The after version relies on names.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "`HttpRequest` is the product. Its constructor is private and reads from a `Builder`. `HttpRequest.builder(url)` starts the build. `Builder` has one method for each optional field, and each method returns `this`. `build()` checks the fields and returns the product.",
+        "diagram": "classDiagram\n  class HttpRequest {\n    +builder(url) Builder\n    +toString() String\n  }\n  class Builder {\n    +method(m) Builder\n    +header(name, value) Builder\n    +body(b) Builder\n    +timeoutMs(t) Builder\n    +build() HttpRequest\n  }\n  Builder --> HttpRequest\n  HttpRequest --> Builder",
+        "point": 1
+      },
+      {
+        "title": "Example: HTTP request for an order API",
+        "body": "The builder keeps the URL required and makes everything else optional. `build()` enforces three rules: https only, no body on a GET, and a positive timeout. The product copies the header map, so callers cannot change a request after it is built.",
+        "code": "import java.util.LinkedHashMap;\nimport java.util.Map;\n\npublic class Main {\n    static final class HttpRequest {\n        private final String method;\n        private final String url;\n        private final Map<String, String> headers;\n        private final String body;\n        private final int timeoutMs;\n\n        private HttpRequest(Builder b) {\n            this.method = b.method;\n            this.url = b.url;\n            this.headers = Map.copyOf(b.headers);\n            this.body = b.body;\n            this.timeoutMs = b.timeoutMs;\n        }\n\n        static Builder builder(String url) {\n            return new Builder(url);\n        }\n\n        @Override\n        public String toString() {\n            return method + \" \" + url + \" timeout=\" + timeoutMs + \"ms headers=\" + headers\n                + \" body=\" + body;\n        }\n\n        static final class Builder {\n            private final String url;\n            private String method = \"GET\";\n            private final Map<String, String> headers = new LinkedHashMap<>();\n            private String body;\n            private int timeoutMs = 5_000;\n\n            private Builder(String url) {\n                this.url = url;\n            }\n\n            Builder method(String method) {\n                this.method = method;\n                return this;\n            }\n\n            Builder header(String name, String value) {\n                headers.put(name, value);\n                return this;\n            }\n\n            Builder body(String body) {\n                this.body = body;\n                return this;\n            }\n\n            Builder timeoutMs(int timeoutMs) {\n                this.timeoutMs = timeoutMs;\n                return this;\n            }\n\n            HttpRequest build() {\n                if (url == null || !url.startsWith(\"https://\")) {\n                    throw new IllegalStateException(\"url must start with https://\");\n                }\n                if (method.equals(\"GET\") && body != null) {\n                    throw new IllegalStateException(\"GET cannot have a body\");\n                }\n                if (timeoutMs <= 0) {\n                    throw new IllegalStateException(\"timeout must be positive\");\n                }\n                return new HttpRequest(this);\n            }\n        }\n    }\n\n    public static void main(String[] args) {\n        HttpRequest post = HttpRequest.builder(\"https://api.example.com/orders\")\n            .method(\"POST\")\n            .header(\"Content-Type\", \"application/json\")\n            .body(\"{\\\"item\\\":\\\"tea\\\"}\")\n            .timeoutMs(2_000)\n            .build();\n        System.out.println(post);\n\n        HttpRequest get = HttpRequest.builder(\"https://api.example.com/orders/7\").build();\n        System.out.println(get);\n\n        try {\n            HttpRequest.builder(\"https://api.example.com/orders\").body(\"oops\").build();\n        } catch (IllegalStateException e) {\n            System.out.println(\"rejected: \" + e.getMessage());\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when the object has more than four or five optional fields, when some combinations are invalid, or when the object must not change after creation. Do not use it when the object has two or three required fields and no rules, because a constructor or a Java record does the same job with less code. Builders also make the object harder to find at the call site, since the type is hidden behind a chain. Keep the chain short and the names clear.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name the object that has many options. In a parking lot, a ticket or a reservation with optional vehicle type, duration and payment plan fits. In a text editor, a document or export with optional fonts, margins and page size fits. Say the force first: \"Many optional fields with rules between them, so a builder that validates in build().\"\n\nBuilder is often confused with factory. A factory returns a product in one call based on a choice. A builder collects the choices over several calls and then creates the product. Builder is also confused with a fluent setter on a mutable class. The setter lets the object be half built and changed later. The builder hides the partial state and validates once.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-chain-of-responsibility": {
+    "id": "dp-chain-of-responsibility",
+    "title": "Chain of responsibility",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Chain of responsibility passes a request along a line of handlers. Each handler either deals with the request or passes it to the next one. The intent is to decouple the sender from the handlers and to let you add, remove or reorder checks without touching the others. An interviewer wants to hear that you can name the handlers, say where the chain stops, and explain what happens when no handler takes the request.",
+      "explain": [
+        "Put a series of checks or steps behind one entry point, where each step decides whether to act or to pass the request on. Without it, one large method grows an if-else for every rule, and every new rule edits that method. The chain keeps each rule in its own class.",
+        "A Handler interface declares the next link and the handle method. A base class stores the next handler and provides a helper to pass the request on. Concrete handlers implement one rule each. The client builds the chain once and sends requests to the first handler.",
+        "A payment service runs checks in order: blacklist, amount limit, supported country, and a per-user velocity limit. The demo shows approved and declined payments, with the reason for each decline.",
+        "Use it when several independent checks or steps apply to the same request, and when their order matters or may change. Do not use it when there is only one rule or the order is fixed and never grows, because a plain method is clearer. A long chain also makes it harder to see the full path, and a request can fall off the end with no handler taking it, so decide what the default outcome is.",
+        "Middleware in web frameworks is the usual real-world form. Compare it with Decorator, which wraps one object to add behaviour, while a chain passes the request between separate handlers that may stop it. Compare it with Command, which turns a request into an object, and with Mediator, which routes messages through a central hub. In LLD rounds it fits parking lot pricing rules, vending machine validation, and approval workflows."
+      ],
+      "questions": [
+        "What happens if no handler in the chain takes the request?",
+        "How would you add a new rule without changing the existing handlers?",
+        "How is a chain of responsibility different from a decorator?",
+        "How would you test one link in the chain on its own?"
+      ],
+      "pitfalls": [
+        "Letting a handler both decide and modify shared state, so the result depends on the order in an unclear way.",
+        "Forgetting to call passOn, which silently ends the chain early.",
+        "Building the chain in several places, so the order is hard to see.",
+        "Leaving the end of the chain undefined, so a request can be dropped without a clear answer.",
+        "Using the pattern for one rule, where a plain method is clearer."
+      ]
+    },
+    "recap": [
+      "Chain of responsibility: each handler either handles the request or passes it on.",
+      "Keep one rule per handler, and build the chain in one place.",
+      "Decide what happens when the end of the chain is reached."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Imagine a payment method that checks a blacklist, then an amount limit, then a country rule, then a velocity rule. Written as one method, it looks like a stack of if statements. Each new rule changes the same method, the rules cannot be tested alone, and the order is buried in the code. A test for the velocity rule has to set up the blacklist and the country data as well.\n\nWith a chain, each rule is a small class with one job. The method that processes a payment only sends it to the first handler. The order is visible where the chain is built, and a rule can be added, removed or moved by changing that one place.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "The Handler interface has two methods: setNext, which links the next handler and returns it so the chain can be built in one line, and handle, which returns the decision for the request. BaseHandler holds the next link and offers passOn, which calls the next handler or returns the final result when there is none. Each concrete handler, such as BlacklistCheck or AmountLimitCheck, extends BaseHandler, checks its own rule, and either returns a decline or calls passOn.",
+        "diagram": "classDiagram\n  class Handler {\n    +setNext()\n    +handle()\n  }\n  class BaseHandler {\n    +passOn()\n  }\n  class BlacklistCheck {\n    +handle()\n  }\n  class AmountLimitCheck {\n    +handle()\n  }\n  class CountryCheck {\n    +handle()\n  }\n  BaseHandler ..|> Handler\n  BaseHandler <|-- BlacklistCheck\n  BaseHandler <|-- AmountLimitCheck\n  BaseHandler <|-- CountryCheck\n  BaseHandler --> Handler",
+        "point": 1
+      },
+      {
+        "title": "Example: payment checks before approval",
+        "body": "The example builds a chain of four checks for a payment service. The chain is built once in main. Each payment goes to the first handler, and the handler returns either APPROVED or the reason for the decline. The VelocityCheck keeps a count per user, so the fourth payment from the same user is declined.",
+        "code": "import java.util.*;\n\npublic class Main {\n    record Payment(String userId, long amountCents, String country) {}\n\n    interface Handler {\n        Handler setNext(Handler next);\n        String handle(Payment p);\n    }\n\n    static abstract class BaseHandler implements Handler {\n        private Handler next;\n\n        public Handler setNext(Handler next) {\n            this.next = next;\n            return next;\n        }\n\n        protected String passOn(Payment p) {\n            return next == null ? \"APPROVED\" : next.handle(p);\n        }\n    }\n\n    static class BlacklistCheck extends BaseHandler {\n        private final Set<String> blocked;\n\n        BlacklistCheck(Set<String> blocked) { this.blocked = blocked; }\n\n        public String handle(Payment p) {\n            return blocked.contains(p.userId()) ? \"DECLINED: user is blocked\" : passOn(p);\n        }\n    }\n\n    static class AmountLimitCheck extends BaseHandler {\n        private final long maxCents;\n\n        AmountLimitCheck(long maxCents) { this.maxCents = maxCents; }\n\n        public String handle(Payment p) {\n            return p.amountCents() > maxCents ? \"DECLINED: above limit\" : passOn(p);\n        }\n    }\n\n    static class CountryCheck extends BaseHandler {\n        private final Set<String> allowed;\n\n        CountryCheck(Set<String> allowed) { this.allowed = allowed; }\n\n        public String handle(Payment p) {\n            return allowed.contains(p.country()) ? passOn(p) : \"DECLINED: country not supported\";\n        }\n    }\n\n    static class VelocityCheck extends BaseHandler {\n        private final int maxPerUser;\n        private final Map<String, Integer> counts = new HashMap<>();\n\n        VelocityCheck(int maxPerUser) { this.maxPerUser = maxPerUser; }\n\n        public String handle(Payment p) {\n            int n = counts.merge(p.userId(), 1, Integer::sum);\n            return n > maxPerUser ? \"DECLINED: too many payments\" : passOn(p);\n        }\n    }\n\n    public static void main(String[] args) {\n        Handler chain = new BlacklistCheck(Set.of(\"u9\"));\n        chain.setNext(new AmountLimitCheck(100_000))\n             .setNext(new CountryCheck(Set.of(\"IN\", \"US\")))\n             .setNext(new VelocityCheck(2));\n\n        List<Payment> payments = List.of(\n            new Payment(\"u1\", 2_500, \"IN\"),\n            new Payment(\"u9\", 2_500, \"IN\"),\n            new Payment(\"u2\", 500_000, \"US\"),\n            new Payment(\"u3\", 1_000, \"FR\"),\n            new Payment(\"u1\", 1_000, \"IN\"),\n            new Payment(\"u1\", 1_000, \"IN\"));\n\n        for (Payment p : payments) {\n            System.out.println(p.userId() + \" \" + p.amountCents() + \" -> \" + chain.handle(p));\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use the pattern when a request must pass several independent checks, the checks may change, and the order matters. It also fits cases where any handler can stop the request early, such as authentication before rate limiting. The cost is indirection: the path a request takes is spread across classes, and a missing link can let a request through or drop it silently. Check the chain in tests that send a request through the whole path.\n\nWhen there is one rule, or when the steps always run in the same fixed order, a plain method with a few named helper calls is simpler. Do not build a chain just to look like a design pattern. If every handler always runs and none stops the request, a list of validators with a loop is often clearer than a linked chain.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In an LLD round, say the force first: \"the checks will grow and the order may change, so each check becomes a handler\". This shows up in parking lot entry checks, vending machine validation (coin, stock, change), and approval workflows in expense systems, where a request goes from manager to director to finance by amount. Name the default outcome when no handler takes the request. Be ready to explain how it differs from Decorator: a decorator always calls the wrapped object and adds behaviour around it, while a chain may stop the request at any link. Compare it with Mediator, where a central object decides who receives a message, and with Command, where the request itself is an object that can be queued or undone.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "A handler can be a lambda when it has one method, for example a functional interface Handler with a single handle method, and each link can be a method reference. Java's servlet filter chain and the Netty pipeline are real examples of this idea. Use a record for the request, as in the example, so the handlers cannot change it."
+      }
+    ]
+  },
+  "dp-command": {
+    "id": "dp-command",
+    "title": "Command",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Command turns a request into an object. The object holds everything needed to carry out the action, so it can be stored, queued, logged, retried or undone. The intent is to separate the code that asks for an action from the code that performs it. An interviewer wants to hear the execute and undo pair, a history stack for undo and redo, and why each action must remember what it changed.",
+      "explain": [
+        "Wrap an action in an object with an execute method, so the caller can treat actions as data. Without it, undo means remembering every change in a separate place, and queues or logs must know the details of each action. A command object carries those details with the action.",
+        "A Command interface declares execute and undo. Concrete commands hold the receiver (the object that does the work) and the arguments. An invoker, such as an editor, runs commands and keeps the history stacks. The client creates the commands and gives them to the invoker.",
+        "A text editor runs insert and delete commands. Each command records what it needs to reverse itself. The demo shows edits, undo, redo, and how a new edit clears the redo history.",
+        "Use it for undo and redo, queued or scheduled work, transaction logs, retries, and macros built from several actions. Do not use it when actions are simple calls that never need undo, queuing or logging, because a method call is enough. Each command is a class, so a large number of small actions makes the code heavier.",
+        "Runnable and Callable in Java are commands with one method. Compare it with Strategy, where the object chooses how to do one job, while a command packages one request to be run later. Compare it with Memento, which saves state, and with Chain of responsibility, which passes a request along handlers. In LLD rounds it fits text editors, elevator requests, smart home actions, and job queues."
+      ],
+      "questions": [
+        "How does undo work for a delete command?",
+        "Why does a new edit clear the redo stack?",
+        "What would you change to support undo for an action that calls an external payment API?",
+        "How is a command different from a strategy?"
+      ],
+      "pitfalls": [
+        "Storing the undo information outside the command, so the command cannot undo itself.",
+        "Forgetting to clear the redo stack after a new edit.",
+        "Making commands that depend on the editor's internal state instead of the receiver.",
+        "Using a command for an action that never needs undo or queuing.",
+        "Assuming every real-world action can be undone exactly, when some need a compensating action."
+      ]
+    },
+    "recap": [
+      "Command: a request as an object with execute and undo.",
+      "The invoker keeps an undo stack and a redo stack.",
+      "A new action clears the redo stack."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A text editor that supports undo could keep a copy of the whole document after every edit. That uses a lot of memory and copies too much. Another option is a method per action with an if chain for undo, for example an undoType method that knows the last typed text and an undoDelete method that knows the removed text. The editor then has to know the details of every action, and adding an action means editing the undo code.\n\nWith commands, each action stores its own undo information when it runs. The editor only keeps a stack of commands and calls execute or undo on the top one. Adding a new action means adding a new command class, and the editor does not change.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "The Command interface has execute and undo. Insert and Delete are concrete commands. Each one holds the Document, which is the receiver, and its arguments. Delete saves the removed text in execute so undo can put it back. Editor is the invoker: it runs a command, pushes it on the undo stack and clears the redo stack. Undo and redo move commands between the two stacks.",
+        "diagram": "classDiagram\n  class Command {\n    +execute()\n    +undo()\n  }\n  class Insert {\n    +execute()\n    +undo()\n  }\n  class Delete {\n    +execute()\n    +undo()\n  }\n  class Editor {\n    +run()\n    +undo()\n    +redo()\n  }\n  class Document {\n    +insert()\n    +delete()\n    +read()\n  }\n  Insert ..|> Command\n  Delete ..|> Command\n  Editor --> Command\n  Insert --> Document\n  Delete --> Document\n  Editor *-- Document",
+        "point": 1
+      },
+      {
+        "title": "Example: text editor with undo and redo",
+        "body": "The example keeps a StringBuilder as the document. Insert adds text, and its undo removes the same number of characters. Delete reads the text it is about to remove, so undo can insert it back at the same position. The editor runs each command, pushes it on the undo stack, and clears the redo stack when a new edit happens.",
+        "code": "import java.util.*;\n\npublic class Main {\n    static class Document {\n        private final StringBuilder text = new StringBuilder();\n\n        void insert(int pos, String s) { text.insert(pos, s); }\n        void delete(int pos, int len) { text.delete(pos, pos + len); }\n        String read(int pos, int len) { return text.substring(pos, pos + len); }\n\n        @Override public String toString() { return text.toString(); }\n    }\n\n    interface Command {\n        void execute();\n        void undo();\n    }\n\n    static class Insert implements Command {\n        private final Document doc;\n        private final int pos;\n        private final String s;\n\n        Insert(Document doc, int pos, String s) { this.doc = doc; this.pos = pos; this.s = s; }\n\n        public void execute() { doc.insert(pos, s); }\n        public void undo() { doc.delete(pos, s.length()); }\n    }\n\n    static class Delete implements Command {\n        private final Document doc;\n        private final int pos;\n        private final int len;\n        private String removed = \"\";\n\n        Delete(Document doc, int pos, int len) { this.doc = doc; this.pos = pos; this.len = len; }\n\n        public void execute() {\n            removed = doc.read(pos, len);\n            doc.delete(pos, len);\n        }\n\n        public void undo() { doc.insert(pos, removed); }\n    }\n\n    static class Editor {\n        private final Document doc = new Document();\n        private final Deque<Command> undoStack = new ArrayDeque<>();\n        private final Deque<Command> redoStack = new ArrayDeque<>();\n\n        void run(Command c) {\n            c.execute();\n            undoStack.push(c);\n            redoStack.clear();\n        }\n\n        void undo() {\n            if (undoStack.isEmpty()) return;\n            Command c = undoStack.pop();\n            c.undo();\n            redoStack.push(c);\n        }\n\n        void redo() {\n            if (redoStack.isEmpty()) return;\n            Command c = redoStack.pop();\n            c.execute();\n            undoStack.push(c);\n        }\n\n        Document doc() { return doc; }\n    }\n\n    public static void main(String[] args) {\n        Editor editor = new Editor();\n        Document doc = editor.doc();\n\n        editor.run(new Insert(doc, 0, \"Hello\"));\n        editor.run(new Insert(doc, 5, \" world\"));\n        editor.run(new Delete(doc, 5, 6));\n        System.out.println(\"after edits: \" + doc);\n\n        editor.undo();\n        System.out.println(\"after undo:  \" + doc);\n        editor.undo();\n        System.out.println(\"after undo:  \" + doc);\n        editor.redo();\n        System.out.println(\"after redo:  \" + doc);\n\n        editor.run(new Insert(doc, 0, \">> \"));\n        editor.redo();\n        System.out.println(\"final:       \" + doc);\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use commands when an action needs undo, when actions must be queued or retried, or when a log of actions is needed for audit or replay. A command also makes it easy to group several actions into one macro. The cost is one class per action and the need to keep each undo correct. Undo is hard when an action depends on outside state that changes later, such as a network call or a payment, so some systems use a compensating action instead of a true undo.\n\nWhen actions are fixed, never queued, and never undone, call the method directly. A command object that only wraps a single call adds files without adding value. In Java, a lambda or Runnable is enough for a queue of simple tasks that need no undo.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In LLD rounds, the text editor is the usual case: say \"undo and redo mean each edit is a command with an undo, and the editor keeps two stacks\". The same design fits elevator requests stored as commands, smart home rules that can be logged, and a job queue where each job is run later. Name what makes undo correct: each command must store what it removed or changed when it ran. Compare it with Memento, which stores a snapshot of the state, while a command stores the change. A snapshot is simpler but costs more memory; a command is smaller but must reverse itself. Compare it with Strategy: a strategy is chosen to do a job in a particular way, while a command is a request that is stored and run later.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Because execute is a single method, a command can be a lambda when no undo is needed, for example a Runnable put in an ExecutorService. For commands with undo, keep the interface and use a record or class for each action. Java's Runnable and Callable are commands with one method."
+      }
+    ]
+  },
+  "dp-composite": {
+    "id": "dp-composite",
+    "title": "Composite",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Composite treats single objects and groups of objects through one interface. A file and a folder both report a size, so the caller does not need to know which one it holds. An interviewer wants to hear the leaf and composite roles, and to see a recursive call over the children.",
+      "explain": [
+        "Composite lets clients use individual objects and compositions in the same way. A tree of nodes can be processed by one recursive call. Without it, callers check types with instanceof and handle each case in a different place.",
+        "The Component is the shared interface, with operations such as size and print. A Leaf implements the operation directly. A Composite holds a list of Components and implements the operation by combining its children. The client uses both kinds the same way.",
+        "A file system has files and directories. Each node reports its size, and a directory adds the sizes of its children, including nested directories. Printing the tree uses the same recursive pattern.",
+        "Use it when the data forms a tree, such as files, menus, UI widgets or an organisation chart, and the same operations apply to leaves and groups. Skip it when the structure is flat, or when leaves and groups need very different operations. Keep the child management out of the leaves if you can, so they do not have to throw errors for add().",
+        "Decorator also wraps objects recursively, but it wraps exactly one object and adds behaviour. Composite holds many children and combines their results. Iterator is often used to walk a composite. Visitor adds new operations to a tree without changing the node classes. In interviews, Composite appears in file system, UI widget, menu and building-level designs."
+      ],
+      "questions": [
+        "How does size() work for a directory that holds nested directories?",
+        "Should add() be on the Component interface or only on the composite? Why?",
+        "How would you stop a cycle in a tree where a node can point to its parent?"
+      ],
+      "pitfalls": [
+        "Using instanceof checks in the client code, which defeats the pattern.",
+        "Letting a directory contain itself or one of its ancestors, which causes endless recursion.",
+        "Forgetting the empty-directory case in size or print logic.",
+        "Forcing add() onto leaves, so they must throw an error when called."
+      ]
+    },
+    "recap": [
+      "Leaves and composites share one interface, so clients need no type checks.",
+      "Operations on a group are written as a loop over children that calls the same method.",
+      "Guard against cycles when a node can point back to a parent."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Without Composite, a size calculation must first check whether each item is a file or a folder. A folder's size code loops over its items and handles each kind itself. Printing the tree repeats the same checks. Adding a new kind of node means editing every method that checks types. The fix is one shared interface that both kinds implement.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "FileSystemNode is the Component. It declares name, size and print. File is the Leaf. Its size is its own byte count. Directory is the Composite. It holds its children as FileSystemNode values, so a child can be a file or another directory. Its size loops over the children and adds their sizes, and each child does its own work in turn.",
+        "diagram": "classDiagram\n    class FileSystemNode {\n        +name()\n        +size()\n        +print()\n    }\n    class File {\n        +size()\n        +print()\n    }\n    class Directory {\n        +add()\n        +size()\n        +print()\n    }\n    File ..|> FileSystemNode\n    Directory ..|> FileSystemNode\n    Directory *-- FileSystemNode",
+        "point": 1
+      },
+      {
+        "title": "Example: Folder sizes and a tree view in a file system",
+        "body": "The demo builds a small home folder with nested directories. It prints the tree with sizes at every level, then prints the total. The same size and print methods work for files and folders.",
+        "code": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class Main {\n\n    // Component: files and directories share this type.\n    interface FileSystemNode {\n        String name();\n        long size();\n        void print(String indent);\n    }\n\n    // Leaf: has no children.\n    static class File implements FileSystemNode {\n        private final String name;\n        private final long bytes;\n\n        File(String name, long bytes) {\n            this.name = name;\n            this.bytes = bytes;\n        }\n\n        @Override\n        public String name() {\n            return name;\n        }\n\n        @Override\n        public long size() {\n            return bytes;\n        }\n\n        @Override\n        public void print(String indent) {\n            System.out.println(indent + name + \" (\" + bytes + \" B)\");\n        }\n    }\n\n    // Composite: holds children, which can be files or other directories.\n    static class Directory implements FileSystemNode {\n        private final String name;\n        private final List<FileSystemNode> children = new ArrayList<>();\n\n        Directory(String name) {\n            this.name = name;\n        }\n\n        Directory add(FileSystemNode node) {\n            children.add(node);\n            return this;\n        }\n\n        @Override\n        public String name() {\n            return name;\n        }\n\n        @Override\n        public long size() {\n            long total = 0;\n            for (FileSystemNode child : children) {\n                total += child.size();\n            }\n            return total;\n        }\n\n        @Override\n        public void print(String indent) {\n            System.out.println(indent + name + \"/ (\" + size() + \" B)\");\n            for (FileSystemNode child : children) {\n                child.print(indent + \"  \");\n            }\n        }\n    }\n\n    public static void main(String[] args) {\n        Directory root = new Directory(\"home\")\n                .add(new File(\"notes.txt\", 1_200))\n                .add(new Directory(\"photos\")\n                        .add(new File(\"beach.jpg\", 4_500_000))\n                        .add(new File(\"cat.png\", 900_000)));\n\n        Directory projects = new Directory(\"projects\");\n        projects.add(new File(\"main.java\", 3_400));\n        root.add(projects);\n\n        root.print(\"\");\n        System.out.println(\"Total: \" + root.size() + \" B\");\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Composite when the data is a tree and each operation can be written once for both leaves and groups. Signals include the words \"contains\" and \"part of\" in the requirements, and operations that must run over the whole subtree. Costs are a wider interface, since leaves may need methods that do not make sense for them, and recursion that must be guarded. If the data is flat, a plain list is simpler and clearer.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "The file system is the classic case. A UI widget tree, where a panel holds buttons and other panels, is another. Menus and nested categories in a shopping catalogue use the same shape. The parking lot design can use it for a building that holds levels, and each level holds spots. Composite is often confused with Decorator, since both use recursion. A Decorator wraps one object and adds behaviour, while a Composite groups many objects and combines their results. Name the Leaf and the Composite before you write any code.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-decorator": {
+    "id": "dp-decorator",
+    "title": "Decorator",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Decorator adds behaviour to an object by wrapping it. The wrapper implements the same interface as the object it wraps, so wrappers can be stacked in any order at run time. An interviewer wants to hear the shared interface, the wrapper that holds the next object, and a reason to prefer wrapping over subclassing.",
+      "explain": [
+        "Decorator attaches extra responsibilities to an object without changing its class. Each optional feature becomes one wrapper class. Stacking wrappers replaces a subclass for every combination of features.",
+        "The Component is the interface. The ConcreteComponent is the base object. The Decorator implements the Component and holds another Component. Concrete decorators add behaviour before or after they delegate to the wrapped object.",
+        "A checkout price starts from a base item price. A percent discount, gift wrap and sales tax each wrap the previous price. The total and the description come out of the whole stack.",
+        "Use it when features are optional, can be combined, and do not depend on each other much, such as logging, caching or retries around a service. Skip it when there are only two or three fixed variants, because a plain field or method is clearer. Too many thin wrappers make debugging hard, since a call passes through many layers.",
+        "Proxy has the same shape but a different purpose. A decorator adds behaviour, while a proxy controls access or creation. Adapter changes the interface. Composite also holds children, but it holds many of them. In interviews, Decorator appears in pricing rules, notification senders with retries and logging, and text styling in a text editor."
+      ],
+      "questions": [
+        "How is a decorator different from a subclass?",
+        "What changes if the discount and the tax are swapped in the stack?",
+        "How would you add logging around every price calculation without editing each decorator?"
+      ],
+      "pitfalls": [
+        "Making a decorator depend on the concrete type of the object it wraps.",
+        "Forgetting to delegate, so the wrapped object's behaviour is lost.",
+        "Writing order-dependent decorators without saying so in the code or the API.",
+        "Using decorators for two options that never change, where a field is clearer."
+      ]
+    },
+    "recap": [
+      "Decorator wraps an object with the same interface and adds behaviour.",
+      "Wrappers stack in any order, so features combine without new subclasses.",
+      "Every wrapper must delegate to the object it holds."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Without Decorator, a price with a discount, gift wrap and tax needs a class for each combination, such as DiscountedGiftWrapped or TaxedDiscounted. Adding one feature doubles the number of classes. The other common approach is one class with flags and many if statements, so every new option edits the same method. Decorator keeps each feature in its own small class.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Priced is the Component. It declares totalCents and describe. BasePrice is the ConcreteComponent. PriceDecorator implements Priced and holds another Priced in a field named inner. PercentDiscount, GiftWrap and Tax extend PriceDecorator. Each one changes the result of the wrapped call and passes the rest through.",
+        "diagram": "classDiagram\n    class Priced {\n        +totalCents()\n        +describe()\n    }\n    class BasePrice {\n        +totalCents()\n        +describe()\n    }\n    class PriceDecorator {\n        +totalCents()\n        +describe()\n    }\n    class PercentDiscount {\n        +totalCents()\n        +describe()\n    }\n    class GiftWrap {\n        +totalCents()\n        +describe()\n    }\n    class Tax {\n        +totalCents()\n        +describe()\n    }\n    BasePrice ..|> Priced\n    PriceDecorator ..|> Priced\n    PriceDecorator --> Priced\n    PercentDiscount --|> PriceDecorator\n    GiftWrap --|> PriceDecorator\n    Tax --|> PriceDecorator",
+        "point": 1
+      },
+      {
+        "title": "Example: Checkout total with stacked price adjustments",
+        "body": "The demo wraps a headphone price with a 10 percent discount, then gift wrap, then 8.25 percent tax. The order of the wrappers matters: the discount applies before the fee and the tax. The describe output shows the stack in the same order.",
+        "code": "public class Main {\n\n    interface Priced {\n        long totalCents();\n        String describe();\n    }\n\n    // Concrete component: the base price of an item.\n    static class BasePrice implements Priced {\n        private final String name;\n        private final long cents;\n\n        BasePrice(String name, long cents) {\n            this.name = name;\n            this.cents = cents;\n        }\n\n        @Override\n        public long totalCents() {\n            return cents;\n        }\n\n        @Override\n        public String describe() {\n            return name;\n        }\n    }\n\n    // Base decorator: same interface, holds the price it wraps.\n    static abstract class PriceDecorator implements Priced {\n        protected final Priced inner;\n\n        PriceDecorator(Priced inner) {\n            this.inner = inner;\n        }\n    }\n\n    static class PercentDiscount extends PriceDecorator {\n        private final int percent;\n\n        PercentDiscount(Priced inner, int percent) {\n            super(inner);\n            this.percent = percent;\n        }\n\n        @Override\n        public long totalCents() {\n            long base = inner.totalCents();\n            return base - base * percent / 100;\n        }\n\n        @Override\n        public String describe() {\n            return inner.describe() + \" - \" + percent + \"% off\";\n        }\n    }\n\n    static class GiftWrap extends PriceDecorator {\n        private static final long FEE_CENTS = 399;\n\n        GiftWrap(Priced inner) {\n            super(inner);\n        }\n\n        @Override\n        public long totalCents() {\n            return inner.totalCents() + FEE_CENTS;\n        }\n\n        @Override\n        public String describe() {\n            return inner.describe() + \" + gift wrap\";\n        }\n    }\n\n    static class Tax extends PriceDecorator {\n        private final int basisPoints; // 825 means 8.25 percent\n\n        Tax(Priced inner, int basisPoints) {\n            super(inner);\n            this.basisPoints = basisPoints;\n        }\n\n        @Override\n        public long totalCents() {\n            return inner.totalCents() * (10_000 + basisPoints) / 10_000;\n        }\n\n        @Override\n        public String describe() {\n            return inner.describe() + \" + tax\";\n        }\n    }\n\n    static String money(long cents) {\n        return String.format(\"$%d.%02d\", cents / 100, cents % 100);\n    }\n\n    public static void main(String[] args) {\n        Priced item = new BasePrice(\"Headphones\", 12_000);\n        item = new PercentDiscount(item, 10);\n        item = new GiftWrap(item);\n        item = new Tax(item, 825);\n\n        System.out.println(item.describe());\n        System.out.println(\"Total: \" + money(item.totalCents()));\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Decorator when the same kinds of behaviour must combine in different ways, and each one can be written without knowing the others. Signals include a growing list of subclasses and flags that change the same method. Costs are many small classes, results that depend on the order of wrapping, and an object whose type no longer matches the class you expected, so instanceof checks fail. For two or three fixed options, a parameter object or plain fields are simpler.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Pricing with coupons and taxes is a common LLD question, and Decorator is the usual answer. Notification senders often gain retries and logging as wrappers around a base sender. The Java I/O streams are the standard example: a buffered stream wraps a file stream. In a text editor, bold and italic styling can wrap a text run. Decorator is often confused with Proxy, which has the same structure but controls access instead of adding behaviour. It is also confused with Composite, which holds many children rather than one wrapped object. Say that the wrapper keeps the interface, so callers do not change.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-dependency-injection": {
+    "id": "dp-dependency-injection",
+    "title": "Dependency injection",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Dependency injection gives a class the collaborators it needs from outside, instead of creating them inside. The class asks for interfaces in its constructor, and one place in the program chooses the concrete classes. An interviewer wants to hear why this makes code testable, and where the wiring happens.",
+      "explain": [
+        "Dependency injection supplies a class with the objects it uses from outside, instead of letting it create them. The problem it solves is hidden coupling. A class that calls `new` on a payment provider cannot be tested without the provider, and cannot switch providers without editing its own code.",
+        "The client declares what it needs as interfaces, such as a payment gateway and a notifier. A composition root, usually `main` or a framework, creates the concrete classes and passes them in. Constructor injection is the default. The fields are final, and the object is complete once the constructor returns.",
+        "The example builds a checkout service. In `main`, one wiring uses a real gateway, and another uses a fake gateway that records its calls. The service does not know which one it got. Only `main` names concrete classes.",
+        "Use it for any class that talks to something outside itself, such as a database, a payment provider, a clock or a queue. It costs a few interfaces and one wiring step. Do not add an interface for every class with one implementation and no reason to swap it. Frameworks such as Spring do the wiring, but the idea works with plain constructors, and interviewers expect the manual version.",
+        "Strategy also passes a behaviour in, but it chooses a rule for each call, while injection supplies collaborators once for each object. Singleton and a service locator hide the same dependency, which makes testing harder. Abstract factory creates a family, and injection decides which family the client receives. In interviews, name the collaborators you inject, such as payment, notifier, clock and storage, and show a fake in a test."
+      ],
+      "questions": [
+        "What is the difference between constructor injection and a service locator?",
+        "Which dependencies would you inject into your design, and why?",
+        "How does injection make the code easier to test?"
+      ],
+      "pitfalls": [
+        "Creating the concrete class inside the constructor, which defeats the injection.",
+        "Injecting an interface for every class, even when nothing will ever replace it.",
+        "Hiding the dependency behind a static lookup, which brings back the coupling.",
+        "Passing a whole container of objects into the class instead of the specific ones it needs."
+      ]
+    },
+    "recap": [
+      "Dependency injection: receive collaborators through the constructor, as interfaces.",
+      "One composition root creates the concrete classes. Nothing else calls `new` on them.",
+      "Tests pass fakes. Production passes real adapters. The client does not change."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A checkout service creates its own payment client inside the constructor, and calls the provider directly. A test of the checkout logic now needs the provider, its keys and the network. A developer who wants to try a different provider must edit the checkout class. The class is hard to reuse, because it carries its own dependencies.\n\nAfter the change, the service receives a payment interface and a notifier interface. Tests pass a fake. Production passes the real provider. The checkout logic is the same in both cases. The before version hides the dependency. The after version shows it in the constructor.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "`CheckoutService` is the client. It depends on `PaymentGateway` and `Notifier`, which are interfaces. `HttpPaymentGateway` implements the real gateway, and `FakePaymentGateway` implements a test double. Both implement the same interface. `main` is the composition root, and it chooses which one to pass in.",
+        "diagram": "classDiagram\n  class CheckoutService {\n    +placeOrder(customer, cents) String\n  }\n  class PaymentGateway {\n    +charge(account, cents) boolean\n  }\n  class Notifier {\n    +send(to, message)\n  }\n  class HttpPaymentGateway {\n    +charge(account, cents) boolean\n  }\n  class FakePaymentGateway {\n    +charge(account, cents) boolean\n  }\n  CheckoutService --> PaymentGateway\n  CheckoutService --> Notifier\n  HttpPaymentGateway ..|> PaymentGateway\n  FakePaymentGateway ..|> PaymentGateway",
+        "point": 1
+      },
+      {
+        "title": "Example: checkout service with a fake and a real gateway",
+        "body": "`main` first builds the service with a fake gateway that declines, and prints the calls the fake recorded. Then it builds the service with the real gateway. The `CheckoutService` class is the same in both runs. Only the wiring differs.",
+        "code": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class Main {\n    interface PaymentGateway {\n        boolean charge(String account, int cents);\n    }\n\n    interface Notifier {\n        void send(String to, String message);\n    }\n\n    // Real adapter: in production this would call a payment provider's API.\n    static class HttpPaymentGateway implements PaymentGateway {\n        @Override\n        public boolean charge(String account, int cents) {\n            System.out.println(\"charging \" + cents + \" to \" + account);\n            return true;\n        }\n    }\n\n    // Test double: records calls and returns a fixed answer.\n    static class FakePaymentGateway implements PaymentGateway {\n        final List<String> calls = new ArrayList<>();\n        private final boolean succeed;\n\n        FakePaymentGateway(boolean succeed) {\n            this.succeed = succeed;\n        }\n\n        @Override\n        public boolean charge(String account, int cents) {\n            calls.add(account + \":\" + cents);\n            return succeed;\n        }\n    }\n\n    static class ConsoleNotifier implements Notifier {\n        @Override\n        public void send(String to, String message) {\n            System.out.println(\"to \" + to + \": \" + message);\n        }\n    }\n\n    // Depends only on interfaces, received through the constructor.\n    static class CheckoutService {\n        private final PaymentGateway payments;\n        private final Notifier notifier;\n\n        CheckoutService(PaymentGateway payments, Notifier notifier) {\n            this.payments = payments;\n            this.notifier = notifier;\n        }\n\n        String placeOrder(String customer, int cents) {\n            if (cents <= 0) {\n                throw new IllegalArgumentException(\"amount must be positive\");\n            }\n            if (!payments.charge(customer, cents)) {\n                notifier.send(customer, \"Payment declined\");\n                return \"FAILED\";\n            }\n            notifier.send(customer, \"Order placed for \" + cents + \" cents\");\n            return \"PLACED\";\n        }\n    }\n\n    public static void main(String[] args) {\n        // Test wiring: a fake gateway that declines.\n        FakePaymentGateway fake = new FakePaymentGateway(false);\n        CheckoutService testService = new CheckoutService(fake, new ConsoleNotifier());\n        System.out.println(testService.placeOrder(\"asha\", 1_200));\n        System.out.println(\"gateway calls: \" + fake.calls);\n\n        // Production wiring: the real gateway. Only main names concrete classes.\n        CheckoutService service = new CheckoutService(new HttpPaymentGateway(), new ConsoleNotifier());\n        System.out.println(service.placeOrder(\"ravi\", 4_500));\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when a class depends on something outside the program or something that may change, such as a provider, a database, a clock or a queue. The extra cost is one interface per seam and one wiring step. Do not add an interface around every class. A class with one implementation and no outside dependency gains nothing from it. Do not use a global lookup, such as a static registry, to get dependencies. That hides them again. Constructor injection keeps each dependency visible in the signature.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name the outside collaborators in the design. In a parking lot, a clock for ticket times and a repository for spot state. In an elevator or vending machine problem, a timer or a payment provider. Say it in order: \"The service talks to payments and notifications, so I would inject both as interfaces. The test passes fakes.\"\n\nDependency injection is confused with a service locator. Both move the choice out of the class. A locator is a global lookup that the class calls, so the dependency stays hidden. Injection passes the object in through the constructor. It is also confused with strategy. Strategy changes a rule for each call, while injection fixes the collaborator for the life of the object.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-facade": {
+    "id": "dp-facade",
+    "title": "Facade",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Facade gives a complex subsystem one simple entry point. The client calls one method, and the facade calls the right parts in the right order. An interviewer wants a small public API, a clear list of the steps that stay hidden, and a note on how the parts remain reachable when needed.",
+      "explain": [
+        "Facade hides the details of several classes that work together. Without it, every client must know the order of steps, the error handling and the setup of each part. A facade keeps that knowledge in one place. Clients depend on one class, and the subsystem can change behind it.",
+        "The Facade holds references to the subsystem classes and exposes a few high-level methods. The subsystem classes do their own work and do not need to know the facade exists. Clients talk only to the facade. The subsystem classes stay public for advanced use.",
+        "Publishing a video means uploading the file, transcoding it, extracting a thumbnail and adding it to a search index. A VideoPublisher exposes one publish method that validates the input and runs these steps in order.",
+        "Use it when a flow touches several components and most clients need the same sequence. Skip it when the facade would only forward each call one to one, because that adds a layer with no value. Avoid turning it into a large class that owns the business rules of everything.",
+        "Adapter changes one interface to match another. Facade creates a new, simpler interface over many classes. Mediator also coordinates classes, but the parts know the mediator and talk through it. In interviews, a facade often appears as the top-level class of the design, such as ParkingLot, VendingMachine or an elevator controller."
+      ],
+      "questions": [
+        "What should the facade hide, and what should stay public?",
+        "What happens if the transcode step fails after the upload succeeded?",
+        "How is a facade different from a service class?"
+      ],
+      "pitfalls": [
+        "Writing a facade that forwards every method, which adds a layer with no benefit.",
+        "Putting domain rules in the facade instead of in the subsystem classes.",
+        "Letting clients skip the facade and call the subsystem for the same task.",
+        "Hiding error details, so callers cannot tell which step failed."
+      ]
+    },
+    "recap": [
+      "Facade gives a complex subsystem one simple method for each common task.",
+      "The facade owns the order of steps and the error handling.",
+      "Subsystem classes stay usable on their own."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A common smell is a controller that calls five services in sequence, handles each error, and repeats the same sequence in several endpoints. If one step changes, every caller changes. Callers also have to learn which steps are needed and in what order. A facade puts the sequence in one method, so the callers stay the same when the steps change.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "VideoPublisher is the facade. It holds a Storage, a Transcoder, a ThumbnailService and a SearchIndex. Its publish method calls them in order and returns a short summary. Each subsystem class has its own job and does not know about the publisher. The client depends only on VideoPublisher.",
+        "diagram": "classDiagram\n    class VideoPublisher {\n        +publish()\n    }\n    class Storage {\n        +upload()\n    }\n    class Transcoder {\n        +encode()\n    }\n    class ThumbnailService {\n        +extractFrame()\n    }\n    class SearchIndex {\n        +index()\n    }\n    VideoPublisher --> Storage\n    VideoPublisher --> Transcoder\n    VideoPublisher --> ThumbnailService\n    VideoPublisher --> SearchIndex",
+        "point": 1
+      },
+      {
+        "title": "Example: Publishing an uploaded video",
+        "body": "The demo publishes one video with a title. The subsystem classes print what they do, so the order of the steps is visible. The client makes one call and gets one summary back.",
+        "code": "import java.util.List;\n\npublic class Main {\n\n    // Subsystem classes. Each one has its own API and rules.\n    static class Storage {\n        String upload(String localPath) {\n            System.out.println(\"Storage: uploaded \" + localPath);\n            return \"s3://videos/\" + localPath;\n        }\n    }\n\n    static class Transcoder {\n        List<String> encode(String url) {\n            System.out.println(\"Transcoder: encoding \" + url);\n            return List.of(url + \"/360p\", url + \"/720p\");\n        }\n    }\n\n    static class ThumbnailService {\n        String extractFrame(String url) {\n            System.out.println(\"Thumbnails: frame taken from \" + url);\n            return url + \"/thumb.jpg\";\n        }\n    }\n\n    static class SearchIndex {\n        void index(String title, String url) {\n            System.out.println(\"Index: added '\" + title + \"' at \" + url);\n        }\n    }\n\n    // Facade: one method hides the order of steps and the input checks.\n    static class VideoPublisher {\n        private final Storage storage = new Storage();\n        private final Transcoder transcoder = new Transcoder();\n        private final ThumbnailService thumbnails = new ThumbnailService();\n        private final SearchIndex index = new SearchIndex();\n\n        String publish(String localPath, String title) {\n            if (title == null || title.isBlank()) {\n                throw new IllegalArgumentException(\"Title is required\");\n            }\n            String url = storage.upload(localPath);\n            List<String> renditions = transcoder.encode(url);\n            String thumb = thumbnails.extractFrame(url);\n            index.index(title, url);\n            return \"Published '\" + title + \"' with \" + renditions.size()\n                    + \" renditions, thumbnail \" + thumb;\n        }\n    }\n\n    public static void main(String[] args) {\n        VideoPublisher publisher = new VideoPublisher();\n        System.out.println(publisher.publish(\"holiday.mp4\", \"Holiday 2026\"));\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use a facade when a task needs several classes, in a fixed order, and many callers need the same task. Signals include the same five calls copied in several places, or a client that must know internal rules to do one thing. Costs are one more class and the risk that the facade grows without limit. If only one class is involved, call that class directly. Keep domain rules in the subsystem classes, and let the facade only coordinate them.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "A parking lot design is a good place to use a facade. ParkingLot can expose park and unpark, and hide the spot search, the ticket creation and the payment. A vending machine or an elevator controller works the same way. Say which methods the facade exposes, and what it hides. Facade is often confused with Adapter. Adapter makes one existing class match an interface, while a facade defines a new interface over many classes. It is also confused with Proxy, which stands in for one object with the same interface, while a facade covers several objects with a new one.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-factory-method": {
+    "id": "dp-factory-method",
+    "title": "Factory method",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Factory method lets a base class define a workflow and defer the choice of the object it creates to one overridable method. The workflow works with the product interface and never calls `new` on a concrete product. An interviewer wants to hear why callers should not know the concrete class, and where that choice lives.",
+      "explain": [
+        "Factory method lets a class defer the choice of the object it creates to a single method that subclasses override. The code that uses the object depends only on an interface. Use it when the steps of a workflow stay the same but the product type varies. The problem it solves is type checks and `new` calls spread across many methods.",
+        "The product is the interface the workflow uses. A concrete product implements it. The creator declares the factory method and holds the workflow that calls it. A concrete creator overrides the factory method to return one concrete product. The creator never names a concrete product class.",
+        "The example sends order shipped alerts. Each customer gets SMS or email. An abstract notifier runs one fixed workflow, and each subclass returns the channel it owns. Adding a push channel means one new channel class and one new notifier subclass. The workflow does not change.",
+        "Use it when a base workflow needs an object whose type varies by subclass or configuration, or when type switches that create objects appear in several methods. Do not use it for one product type that never changes. A plain constructor is simpler. A static method that returns a product covers many cases without subclassing.",
+        "Abstract factory creates a family of related products, and often uses factory methods inside. Factory method is one creation method in one hierarchy. Builder assembles one complex object over several calls, while a factory chooses which object to create in one call. In interviews it fits vehicle creation in a parking lot, item creation in a vending machine, and strategy selection in an elevator. Say what varies, then name the pattern."
+      ],
+      "questions": [
+        "Where does object creation live in your design, and who decides the concrete class?",
+        "How is a factory method different from a static factory method?",
+        "What do you change when you add a new product type?"
+      ],
+      "pitfalls": [
+        "Creating a creator subclass for every class, even when no shared workflow needs it.",
+        "Returning a concrete type from the factory method, which defeats the purpose.",
+        "Calling the factory method from a constructor, where the subclass fields are not set yet.",
+        "Putting a type switch inside the creator, which moves the problem instead of solving it."
+      ]
+    },
+    "recap": [
+      "Factory method: the workflow stays in the base class, and subclasses choose the product.",
+      "Callers depend on the product interface, never on `new ConcreteProduct`.",
+      "Adding a product adds a class. The workflow does not change."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Imagine an order service that sends shipped alerts. The first version checks the customer's channel with `if (channel.equals(\"sms\"))` and creates an SMS sender, else an email sender. The same check then appears in the cancel flow and the refund flow. Each new channel edits three methods, and each method repeats the same steps: find the customer, build the message, send, and log.\n\nAfter the change, the steps live in one workflow method. Each channel is created in one place, the creator's factory method. The rest of the code receives a channel interface and never checks a type. The before version spreads the choice across every method. The after version makes one method own the choice.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "There are four participants. `Channel` is the product interface. `SmsChannel` and `EmailChannel` are concrete products that implement it. `OrderNotifier` is the creator. It holds `orderShipped`, which calls the abstract factory method `createChannel()` and then uses the result. `SmsOrderNotifier` and `EmailOrderNotifier` are concrete creators. Each overrides `createChannel()` to return its own product.",
+        "diagram": "classDiagram\n  class Channel {\n    +deliver(to, text)\n  }\n  class SmsChannel {\n    +deliver(to, text)\n  }\n  class EmailChannel {\n    +deliver(to, text)\n  }\n  class OrderNotifier {\n    +orderShipped(customer, orderId)\n    +createChannel() Channel\n  }\n  class SmsOrderNotifier {\n    +createChannel() Channel\n  }\n  class EmailOrderNotifier {\n    +createChannel() Channel\n  }\n  SmsChannel ..|> Channel\n  EmailChannel ..|> Channel\n  SmsOrderNotifier --|> OrderNotifier\n  EmailOrderNotifier --|> OrderNotifier\n  OrderNotifier --> Channel",
+        "point": 1
+      },
+      {
+        "title": "Example: order shipped alerts per channel",
+        "body": "The workflow in `OrderNotifier.orderShipped` is final, so subclasses cannot change the steps. They only choose the channel. `Main` creates one notifier per channel and runs the same call on each. The channels print instead of calling a real provider.",
+        "code": "import java.util.List;\n\npublic class Main {\n    interface Channel {\n        void deliver(String to, String text);\n    }\n\n    static class SmsChannel implements Channel {\n        @Override\n        public void deliver(String to, String text) {\n            System.out.println(\"SMS to \" + to + \": \" + text);\n        }\n    }\n\n    static class EmailChannel implements Channel {\n        @Override\n        public void deliver(String to, String text) {\n            System.out.println(\"Email to \" + to + \": \" + text);\n        }\n    }\n\n    // Creator: owns the workflow and defers the choice of channel.\n    static abstract class OrderNotifier {\n        protected abstract Channel createChannel(); // the factory method\n\n        public final void orderShipped(String customer, String orderId) {\n            Channel channel = createChannel();\n            channel.deliver(customer, \"Order \" + orderId + \" has shipped\");\n        }\n    }\n\n    static class SmsOrderNotifier extends OrderNotifier {\n        @Override\n        protected Channel createChannel() {\n            return new SmsChannel();\n        }\n    }\n\n    static class EmailOrderNotifier extends OrderNotifier {\n        @Override\n        protected Channel createChannel() {\n            return new EmailChannel();\n        }\n    }\n\n    public static void main(String[] args) {\n        List<OrderNotifier> notifiers = List.of(new SmsOrderNotifier(), new EmailOrderNotifier());\n        for (OrderNotifier notifier : notifiers) {\n            notifier.orderShipped(\"Asha\", \"A-1042\");\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when you see the same steps repeated around a type check, when a framework calls your code and needs to create objects you own, or when the product type is the only thing that varies. The cost is one class per product and one subclass per creator. The hierarchy grows with every option. If the workflow is trivial, a static factory method such as `Channel.of(\"sms\")` gives the same benefit with less code. Do not create a subclass for each value of an enum that never grows.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name the problem where the pattern fits. In a parking lot, a factory method can create the right vehicle or spot type while the entry workflow stays the same. In a vending machine, it can create item types. Say the force first: \"The steps are identical and only the product changes, so I would use a factory method.\"\n\nThe pattern is often confused with two others. Abstract factory creates a family of products through an object, while factory method creates one product through inheritance. Strategy is passed in to change an algorithm. Factory method decides which object is created. Builder constructs one complex object with many optional parts. Factory method chooses a type.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-flyweight": {
+    "id": "dp-flyweight",
+    "title": "Flyweight",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Flyweight shares objects that many places need, so a very large number of similar items uses little memory. It splits state into intrinsic parts, which are stored once and shared, and extrinsic parts, which the caller passes in. An interviewer wants to hear what is shared, what is not, and a factory that keeps the shared pool.",
+      "explain": [
+        "Flyweight reduces memory when a program needs a very large number of objects that differ only in a few values. Storing the same data in every object wastes space. The pattern keeps one shared object per kind, and passes the position or count from outside.",
+        "The Flyweight holds intrinsic state, which is the same for every use. A factory returns an existing flyweight for a key and creates a new one only when none exists. The context holds the extrinsic state, such as coordinates, and a reference to a shared flyweight.",
+        "A tile map where each cell is grass or water. A TileType flyweight stores the sprite and the walkable flag once for each kind. The map keeps only references to the shared tiles, and the position is passed when a tile is drawn.",
+        "Use it when profiling shows many duplicate objects, such as characters in a text editor, tiles in a game, or chess pieces. Skip it when there are few objects, because the factory and the split state add complexity for little gain. A flyweight must be immutable, or a change would show up in every place that uses it.",
+        "Singleton has one instance for the whole program, while a flyweight has one instance per kind. Object Pool reuses objects that are costly to create, and hands them out and takes them back. Prototype copies an object, while a flyweight shares it. In interviews, Flyweight appears in text editors, game maps, chess boards and parking spot types."
+      ],
+      "questions": [
+        "In a text editor, which state is intrinsic and which is extrinsic?",
+        "Why must a flyweight be immutable?",
+        "Would a Java enum be enough for the tile example? When would it not be?"
+      ],
+      "pitfalls": [
+        "Storing the position or other per-cell data inside the flyweight.",
+        "Making the flyweight mutable, so a change affects every cell that uses it.",
+        "Creating new flyweight objects outside the factory, which defeats the sharing.",
+        "Using a plain HashMap cache when several threads create tiles, instead of a thread-safe map."
+      ]
+    },
+    "recap": [
+      "Shared state is intrinsic and immutable. Per-use state is extrinsic and passed in.",
+      "A factory returns one shared instance per key.",
+      "Measure first. Use the pattern when the number of objects is really large."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A map of 1000 by 1000 cells, where each cell stores its own name, sprite and walkable flag, holds a million copies of the same strings and booleans. Memory grows with the number of cells, not with the number of kinds of tile. Comparing tile types is also harder, because every cell has its own copy. Sharing one object per kind fixes both problems.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "TileType is the flyweight. It holds the name, sprite and walkable flag, and it has no position. TileTypeFactory returns one TileType per name, creating it the first time it is needed. World is the context. It stores a grid of references to shared TileType objects, and it passes the x and y coordinates when it draws a tile.",
+        "diagram": "classDiagram\n    class TileType {\n        +draw()\n        +walkable()\n    }\n    class TileTypeFactory {\n        +get()\n    }\n    class World {\n        +set()\n        +draw()\n    }\n    TileTypeFactory --> TileType\n    World --> TileType",
+        "point": 1
+      },
+      {
+        "title": "Example: Game map tiles with shared tile kinds",
+        "body": "The demo fills a 4 by 3 map with water and grass in a pattern. It draws every tile and prints how many distinct TileType objects exist. Twelve cells use only two objects.",
+        "code": "import java.util.HashMap;\nimport java.util.Map;\n\npublic class Main {\n\n    // Flyweight: intrinsic state only. One instance is shared by every tile of this kind.\n    static final class TileType {\n        private final String name;\n        private final String sprite;\n        private final boolean walkable;\n\n        private TileType(String name, String sprite, boolean walkable) {\n            this.name = name;\n            this.sprite = sprite;\n            this.walkable = walkable;\n        }\n\n        void draw(int x, int y) {\n            System.out.println(\"draw \" + sprite + \" \" + name + \" at (\" + x + \",\" + y + \")\");\n        }\n\n        boolean walkable() {\n            return walkable;\n        }\n    }\n\n    // Factory: hands out one shared TileType per kind.\n    static class TileTypeFactory {\n        private static final Map<String, TileType> CACHE = new HashMap<>();\n        static int created = 0;\n\n        static TileType get(String name, String sprite, boolean walkable) {\n            return CACHE.computeIfAbsent(name, key -> {\n                created++;\n                return new TileType(name, sprite, walkable);\n            });\n        }\n    }\n\n    // Context: stores a reference per cell. Positions are passed in, not stored in the flyweight.\n    static class World {\n        private final TileType[][] grid;\n\n        World(int width, int height) {\n            grid = new TileType[height][width];\n        }\n\n        void set(int x, int y, TileType tile) {\n            grid[y][x] = tile;\n        }\n\n        void draw() {\n            for (int y = 0; y < grid.length; y++) {\n                for (int x = 0; x < grid[y].length; x++) {\n                    grid[y][x].draw(x, y);\n                }\n            }\n        }\n    }\n\n    public static void main(String[] args) {\n        World world = new World(4, 3);\n        for (int y = 0; y < 3; y++) {\n            for (int x = 0; x < 4; x++) {\n                TileType tile = (x + y) % 3 == 0\n                        ? TileTypeFactory.get(\"water\", \"~\", false)\n                        : TileTypeFactory.get(\"grass\", \".\", true);\n                world.set(x, y, tile);\n            }\n        }\n        world.draw();\n        System.out.println(\"Cells: 12, distinct TileType objects: \" + TileTypeFactory.created);\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Flyweight when the number of objects is high and most of their data is the same across many of them. Signals include memory profiles dominated by duplicate small objects, or a design where each character, cell or piece repeats the same data. Costs are the factory, the split between shared and per-use state, and the need for immutability. For a small fixed set of kinds, a Java enum with the shared data is simpler and gives the same effect.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Text editors are the usual example. Each character refers to a shared glyph and font, and the position is kept by the document. Chess boards share piece types, such as a white knight, across all squares. Parking lots can share spot type objects, such as compact or large, across thousands of spots. In each case, name the intrinsic state and the extrinsic state before you draw the classes. Flyweight is often confused with Singleton. A singleton is one object for the whole program, while a flyweight is one object per kind. It is also confused with Prototype, which copies objects, while a flyweight shares them.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-interpreter": {
+    "id": "dp-interpreter",
+    "title": "Interpreter",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Interpreter defines a small grammar for a language and represents each rule as a class. A parser builds a tree of these classes from text, and each node knows how to evaluate itself. It is useful for small rule or query languages. An interviewer wants to hear the grammar, the node types, and why a full parser framework is not needed for a small case.",
+      "explain": [
+        "Users or config files need rules such as \"new customer AND (cart over 50 OR VIP)\" that change without a code release. Hard-coding each rule as an if statement does not scale to combinations. Interpreter turns the rule text into a tree of objects that can be evaluated for any input.",
+        "An expression interface declares eval with a context. Terminal expressions hold a variable and look it up in the context. Non-terminal expressions, such as And, Or and Not, hold child expressions. A parser turns the text into the tree following the grammar.",
+        "A discount rule language with AND, OR, NOT and parentheses over named facts. The example parses one rule text into a tree and evaluates it for two customers. It also shows the parser rejecting a broken rule.",
+        "Use it when the grammar is small, stable and written by people who need readable rules, such as filters or eligibility rules. Do not use it for a large language, where a parser generator or an existing library is better. A simple lookup table or a list of predicates is enough for fixed rules.",
+        "The expression tree is often walked by a Visitor, for example to print it or to optimise it. Composite gives the tree shape, since And and Or contain other expressions. It shows up in search filters, rule engines, feature flags and calculator problems."
+      ],
+      "questions": [
+        "What are the terminal and non-terminal expressions in this example?",
+        "Why does OR sit at a lower precedence than AND in the grammar?",
+        "How would you add an XOR operator?",
+        "When would you choose a parser generator over a hand-written parser?"
+      ],
+      "pitfalls": [
+        "Using Interpreter for a rule that is one if statement long.",
+        "Building the tree again for every evaluation instead of once per rule.",
+        "Leaving the parser without an end check, so trailing tokens are ignored silently.",
+        "Making the grammar large before anyone needs the extra operators."
+      ]
+    },
+    "recap": [
+      "Interpreter: a grammar, one class per rule, and a parser that builds the tree.",
+      "Each node evaluates itself against the context.",
+      "Good for small rule languages. Not a reason to write a full compiler."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A promotion team wants to write rules such as \"new customer and cart over 50 or VIP, and not blocked\". With code, each rule becomes a new method with nested if statements. Each change needs a developer and a release. Storing the rule as text and evaluating it at run time solves the release problem, but then the program needs a way to read the text and turn it into checks.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Expr is the expression interface with eval(facts). Var looks up a fact by name. Not, And and Or hold other Expr objects and combine their results. Parser reads the tokens of a rule and builds the tree with recursive descent: one method per grammar rule, with OR at the lowest precedence, then AND, then NOT and parentheses.",
+        "diagram": "classDiagram\n  class Expr {\n    +eval(facts)\n  }\n  class Var {\n    +eval(facts)\n  }\n  class Not {\n    +eval(facts)\n  }\n  class And {\n    +eval(facts)\n  }\n  class Or {\n    +eval(facts)\n  }\n  class Parser {\n    +parse()\n  }\n  Expr <|.. Var\n  Expr <|.. Not\n  Expr <|.. And\n  Expr <|.. Or\n  And *-- Expr\n  Or *-- Expr\n  Not *-- Expr\n  Parser --> Expr",
+        "point": 1
+      },
+      {
+        "title": "Example: Discount eligibility rules",
+        "body": "The example parses a rule text with AND, OR, NOT and parentheses. Facts are a map from a name to true or false. The first customer meets the rule. The second customer is blocked, so the same rule returns false. A broken rule throws an error from the parser. The tree is built once and can be reused for many customers.",
+        "code": "import java.util.List;\nimport java.util.Map;\n\npublic class Main {\n\n    interface Expr {\n        boolean eval(Map<String, Boolean> facts);\n    }\n\n    record Var(String name) implements Expr {\n        public boolean eval(Map<String, Boolean> facts) {\n            return facts.getOrDefault(name, false);\n        }\n    }\n\n    record Not(Expr inner) implements Expr {\n        public boolean eval(Map<String, Boolean> facts) {\n            return !inner.eval(facts);\n        }\n    }\n\n    record And(Expr left, Expr right) implements Expr {\n        public boolean eval(Map<String, Boolean> facts) {\n            return left.eval(facts) && right.eval(facts);\n        }\n    }\n\n    record Or(Expr left, Expr right) implements Expr {\n        public boolean eval(Map<String, Boolean> facts) {\n            return left.eval(facts) || right.eval(facts);\n        }\n    }\n\n    // Grammar:\n    //   expr   := term ( \"OR\" term )*\n    //   term   := factor ( \"AND\" factor )*\n    //   factor := \"NOT\" factor | \"(\" expr \")\" | NAME\n    static class Parser {\n        private final List<String> tokens;\n        private int pos = 0;\n\n        Parser(String text) {\n            String spaced = text.replace(\"(\", \" ( \").replace(\")\", \" ) \").trim();\n            this.tokens = List.of(spaced.split(\"\\\\s+\"));\n        }\n\n        Expr parse() {\n            Expr expr = parseOr();\n            if (pos != tokens.size()) {\n                throw new IllegalArgumentException(\"Unexpected token: \" + tokens.get(pos));\n            }\n            return expr;\n        }\n\n        private String peek() {\n            return pos < tokens.size() ? tokens.get(pos) : \"\";\n        }\n\n        private String next() {\n            return tokens.get(pos++);\n        }\n\n        private Expr parseOr() {\n            Expr left = parseAnd();\n            while (peek().equals(\"OR\")) {\n                next();\n                left = new Or(left, parseAnd());\n            }\n            return left;\n        }\n\n        private Expr parseAnd() {\n            Expr left = parseFactor();\n            while (peek().equals(\"AND\")) {\n                next();\n                left = new And(left, parseFactor());\n            }\n            return left;\n        }\n\n        private Expr parseFactor() {\n            if (peek().equals(\"NOT\")) {\n                next();\n                return new Not(parseFactor());\n            }\n            if (peek().equals(\"(\")) {\n                next();\n                Expr inner = parseOr();\n                if (!peek().equals(\")\")) {\n                    throw new IllegalArgumentException(\"Expected )\");\n                }\n                next();\n                return inner;\n            }\n            if (peek().isEmpty() || peek().equals(\")\")) {\n                throw new IllegalArgumentException(\"Expected a name\");\n            }\n            return new Var(next());\n        }\n    }\n\n    public static void main(String[] args) {\n        String rule = \"new_customer AND (cart_over_50 OR vip) AND NOT blocked\";\n        Expr eligible = new Parser(rule).parse();\n        System.out.println(\"Rule: \" + rule);\n\n        Map<String, Boolean> asha = Map.of(\n            \"new_customer\", true, \"cart_over_50\", false, \"vip\", true, \"blocked\", false);\n        Map<String, Boolean> ben = Map.of(\n            \"new_customer\", true, \"cart_over_50\", false, \"vip\", true, \"blocked\", true);\n\n        System.out.println(\"Asha eligible: \" + eligible.eval(asha));\n        System.out.println(\"Ben eligible: \" + eligible.eval(ben));\n\n        try {\n            new Parser(\"new_customer AND )\").parse();\n        } catch (IllegalArgumentException e) {\n            System.out.println(\"Bad rule: \" + e.getMessage());\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Interpreter when the rules are short, the grammar is small, and the rules are written or changed by people who are not programmers. The tree is easy to test one node at a time. The costs are the parser, error messages and the risk of growing the grammar over time. For a few fixed rules, a list of predicates is clearer. For a real language with many keywords, use a parser generator or an existing library, not a hand-written parser.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name Interpreter when the problem says \"users define their own rules\" or \"filters can be combined\": search filters, feature flags, coupon rules, or alert conditions. Show the grammar first, then the node types, then the parser. Expect the interviewer to ask how you add a new operator. The answer is one new node class and one new branch in the parser. Mention that the tree can be walked by a Visitor when you need to print it or to optimise it. Interpreter is often confused with Command: Command stores an action to run later, while Interpreter stores the meaning of a rule to evaluate now.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Records give each node a small immutable class with its children as fields. A sealed interface can list the node types, and a switch over it can replace the eval method in one place. Use that form when the node set is fixed and you want all the logic in one method."
+      }
+    ]
+  },
+  "dp-iterator": {
+    "id": "dp-iterator",
+    "title": "Iterator",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Iterator gives a way to walk through the items of a collection without exposing how the collection stores them. The intent is to separate traversal from the collection itself, so the same loop works on a list, a tree, or data that arrives in pages. An interviewer wants to hear the hasNext and next pair, lazy loading when the data is large, and what happens when the underlying data changes during a walk.",
+      "explain": [
+        "Provide one way to visit each item, whatever the storage. Without it, callers reach into the internal structure, so a change of storage breaks every loop. An iterator also lets the caller stop early, so work is done only for the items actually needed.",
+        "An Iterable collection returns an Iterator. The Iterator has hasNext and next, and it keeps the position of the walk. A data source supplies the raw items, such as pages from a remote call. The client uses a for-each loop, which calls the iterator for it.",
+        "A search API returns results in pages. A custom iterator fetches the next page only when the current one is used up, and it stops when a page comes back empty. The demo shows that a loop which stops early fetches only the first page.",
+        "Use it when the data is a sequence that callers walk through, when data should load lazily, or when the storage may change later. Do not use it when a caller needs random access by index or a whole list at once, because a list or a stream may be simpler. Iterators are one-way and single-pass, so a second loop needs a new iterator. Modifying the collection during a walk can throw ConcurrentModificationException.",
+        "Java's Iterable and Iterator are the standard form, and the for-each loop uses them. Compare it with Composite, where a tree is walked with an iterator to visit each node. Compare it with Visitor, which adds new operations over a structure, while an iterator only walks it. In LLD rounds it fits playlists, file system walks, paginated search results, and a parking lot that lists free spots by floor."
+      ],
+      "questions": [
+        "Why does the iterator fetch pages lazily?",
+        "What happens if the list changes during a for-each loop?",
+        "How would you add a reverse iterator without changing the collection?",
+        "When would you pick a List over an Iterator?"
+      ],
+      "pitfalls": [
+        "Returning the internal list, so callers can change it while they walk.",
+        "Forgetting to mark the end of the data, so the iterator asks for pages forever.",
+        "Assuming an iterator can be reused for a second walk.",
+        "Calling next without checking hasNext, which throws when the data runs out.",
+        "Fetching every page up front, which loses the benefit of lazy loading."
+      ]
+    },
+    "recap": [
+      "Iterator: visit items one at a time without knowing how they are stored.",
+      "Load pages lazily, and stop as soon as the caller stops.",
+      "Iterators are single-pass; create a new one for each walk."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A search client might fetch every page at once and return a full list. If the caller only needs the first three results, the other pages were fetched for nothing. If the caller changes the code that stores results, from a list to a page cache, every loop over the results must change too.\n\nWith an iterator, the client asks for the next result. The iterator fetches a page only when its buffer is empty and no result is left in it. The caller's loop does not know about pages, and a change in storage does not touch the loops.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "SearchResults is the iterable collection. Its iterator method returns a PagedIterator. PagedIterator holds a buffer of items, the number of the next page to fetch, and a flag that is set when the source is empty. Its hasNext method fetches pages while the buffer is empty and the source is not exhausted. PageSource is the data source, a function that returns one page for a page number.",
+        "diagram": "classDiagram\n  class Iterable {\n    +iterator()\n  }\n  class Iterator {\n    +hasNext()\n    +next()\n  }\n  class SearchResults {\n    +iterator()\n  }\n  class PagedIterator {\n    +hasNext()\n    +next()\n  }\n  class PageSource {\n    +fetch()\n  }\n  SearchResults ..|> Iterable\n  PagedIterator ..|> Iterator\n  SearchResults --> PageSource\n  SearchResults --> PagedIterator",
+        "point": 1
+      },
+      {
+        "title": "Example: paginated search results",
+        "body": "The example uses a fake search API with two pages of results and an empty third page that marks the end. The first loop stops after three results, so only page zero is fetched. The second loop walks everything and fetches all three pages. Each fetch prints a line, so the lazy behaviour is visible.",
+        "code": "import java.util.*;\n\npublic class Main {\n    interface PageSource {\n        List<String> fetch(int page);\n    }\n\n    static class SearchResults implements Iterable<String> {\n        private final PageSource source;\n\n        SearchResults(PageSource source) { this.source = source; }\n\n        public Iterator<String> iterator() { return new PagedIterator(source); }\n    }\n\n    static class PagedIterator implements Iterator<String> {\n        private final PageSource source;\n        private final Deque<String> buffer = new ArrayDeque<>();\n        private int nextPage = 0;\n        private boolean exhausted = false;\n\n        PagedIterator(PageSource source) { this.source = source; }\n\n        public boolean hasNext() {\n            while (buffer.isEmpty() && !exhausted) {\n                List<String> page = source.fetch(nextPage);\n                System.out.println(\"  (fetched page \" + nextPage + \")\");\n                nextPage++;\n                if (page.isEmpty()) exhausted = true;\n                else buffer.addAll(page);\n            }\n            return !buffer.isEmpty();\n        }\n\n        public String next() {\n            if (!hasNext()) throw new NoSuchElementException();\n            return buffer.poll();\n        }\n    }\n\n    public static void main(String[] args) {\n        List<List<String>> data = List.of(\n            List.of(\"shoes-1\", \"shoes-2\", \"shoes-3\"),\n            List.of(\"shoes-4\", \"shoes-5\"),\n            List.of());\n        PageSource fakeApi = page -> page < data.size() ? data.get(page) : List.of();\n        SearchResults results = new SearchResults(fakeApi);\n\n        System.out.println(\"First three only:\");\n        int seen = 0;\n        for (String r : results) {\n            System.out.println(\"  \" + r);\n            if (++seen == 3) break;\n        }\n\n        System.out.println(\"Everything:\");\n        for (String r : results) {\n            System.out.println(\"  \" + r);\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use an iterator when callers walk a sequence once, when the data is large or slow to load, or when the storage may change. Lazy iteration saves work when the caller stops early, and it keeps callers independent of paging or storage details. The cost is that the walk has one direction and one pass, and that the data can change under the iterator. A list that is changed during a for-each loop throws ConcurrentModificationException, so either copy the data first or use an iterator that supports removal through its own remove method.\n\nWhen callers need to jump to an index, count the items, or sort, a List or an array is a better fit. When the work is a transformation of each item, a stream may read more clearly than an explicit iterator.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In LLD rounds, say that the collection should not expose its structure, so an iterator gives the walk. This comes up in playlists with next and previous, a file system walk that visits folders, a parking lot that lists free spots floor by floor, and paginated results from an API. If the walk must go in more than one order, offer one iterator per order, or a method that returns a different iterator. Compare it with Composite: a Composite is a tree of nodes, and an iterator is the tool used to visit every node without the caller writing recursion. Compare it with Visitor: a visitor adds a new operation to each node type, while an iterator only moves through them. Mention that the for-each loop in Java calls iterator for you, so the collection only needs to implement Iterable.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Iterable has a default forEach method that takes a lambda, so a collection that implements iterator gets forEach for free. Iterator also has a default remove method that throws by default; override it only when removal is safe. For paged data, a Stream built with Stream.iterate or a custom Spliterator can also work well, and Stream.iterate is a good choice when the next item depends on the previous one."
+      }
+    ]
+  },
+  "dp-mediator": {
+    "id": "dp-mediator",
+    "title": "Mediator",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Mediator puts the rules for how objects talk to each other in one central object. Each participant knows only the mediator, not the others. The intent is to stop a web of direct references, where every object must know about many others. An interviewer wants to hear that the mediator owns the routing and the rules, that participants stay simple, and that the mediator can grow into a bottleneck if it does too much.",
+      "explain": [
+        "Route communication through one object, so participants do not refer to each other directly. Without it, each user in a chat holds references to every other user, and each new rule, such as blocking, must be added in many places. With a mediator, the rules live in one class.",
+        "A Mediator interface declares how a message is delivered. Colleagues, such as users, hold a reference to the mediator and send their messages through it. The concrete mediator, such as a chat room, keeps the list of colleagues and applies the rules. Colleagues receive messages through a method the mediator calls.",
+        "A chat room delivers messages between users. It supports broadcast and direct messages, and it can block a sender from reaching a recipient. The demo shows a broadcast that skips a blocked user, a direct message that is refused, and an unknown recipient.",
+        "Use it when many objects interact in complex ways and the rules for those interactions change. It also helps when the interaction rules should be tested in one place. Do not use it when two objects talk in a simple, fixed way, because a direct call is clearer. A mediator can grow into a large class that knows everything, so split it when it starts to hold unrelated logic.",
+        "Observer also decouples senders and receivers, but the subject does not choose the rules of delivery, and the observers do not talk to each other through it. Compare it with Facade, which gives a simple front to a subsystem, while a mediator coordinates peers that talk to each other. Compare it with Chain of responsibility, where a request moves along handlers. In LLD rounds it fits chat rooms, air traffic control, a dialog where widgets react to each other, and a smart home hub."
+      ],
+      "questions": [
+        "What would change in the code if you removed the mediator and let users call each other?",
+        "How would you add a rule that limits broadcasts to one per minute?",
+        "How does Mediator differ from Observer?",
+        "When does a mediator become a problem?"
+      ],
+      "pitfalls": [
+        "Letting participants keep direct references to each other, which defeats the purpose.",
+        "Putting business logic in the participants instead of the mediator.",
+        "Building one huge mediator that holds every rule for the whole system.",
+        "Using a mediator where two objects only need a simple call.",
+        "Forgetting to handle unknown recipients or blocked pairs in one place."
+      ]
+    },
+    "recap": [
+      "Mediator: participants talk through one object that owns the rules.",
+      "Participants hold the mediator, not each other.",
+      "Watch for a mediator that grows too large."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "In a chat app written without a mediator, each user object holds a list of every other user. Sending a broadcast means looping over that list. Adding a block rule means checking the block list in every user object, and each user must know how the others are named and stored. A change to one user's behaviour can break the others.\n\nWith a mediator, each user knows only the room. A user sends a message to the room with a recipient name or with no name for a broadcast. The room checks the rules, such as blocks and unknown names, and then delivers the message. The users stay simple, and the rules sit in one class that is easy to test.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "The ChatMediator interface has one method, deliver. User is the colleague: it holds its name and the mediator, and it sends through the mediator. ChatRoom is the concrete mediator: it keeps the users by name, stores the blocks, and delivers messages. A user receives a message through its receive method, which the room calls.",
+        "diagram": "classDiagram\n  class ChatMediator {\n    +deliver()\n  }\n  class ChatRoom {\n    +join()\n    +block()\n    +deliver()\n  }\n  class User {\n    +send()\n    +receive()\n  }\n  ChatRoom ..|> ChatMediator\n  ChatRoom *-- User\n  User --> ChatMediator",
+        "point": 1
+      },
+      {
+        "title": "Example: chat room with blocking",
+        "body": "The example creates three users in one room. The first message is a broadcast. Then ana blocks cy, so a later broadcast from ana skips cy, and a direct message from ana to cy is refused. A message to an unknown user is reported by the room. Users never call each other.",
+        "code": "import java.util.*;\n\npublic class Main {\n    interface ChatMediator {\n        void deliver(User from, String to, String text);\n    }\n\n    static class User {\n        private final String name;\n        private final ChatMediator room;\n\n        User(String name, ChatMediator room) {\n            this.name = name;\n            this.room = room;\n        }\n\n        String name() { return name; }\n\n        void send(String to, String text) { room.deliver(this, to, text); }\n\n        void receive(String from, String text) {\n            System.out.println(name + \" <- \" + from + \": \" + text);\n        }\n    }\n\n    static class ChatRoom implements ChatMediator {\n        private final Map<String, User> users = new LinkedHashMap<>();\n        private final Set<String> blocks = new HashSet<>();\n\n        User join(String name) {\n            User u = new User(name, this);\n            users.put(name, u);\n            return u;\n        }\n\n        void block(String sender, String recipient) {\n            blocks.add(sender + \">\" + recipient);\n        }\n\n        public void deliver(User from, String to, String text) {\n            if (to == null) {\n                for (User u : users.values()) {\n                    if (u != from && !blocked(from, u)) u.receive(from.name(), text);\n                }\n                return;\n            }\n            User target = users.get(to);\n            if (target == null) {\n                System.out.println(\"no such user: \" + to);\n            } else if (blocked(from, target)) {\n                System.out.println(\"not delivered to \" + to);\n            } else {\n                target.receive(from.name(), text);\n            }\n        }\n\n        private boolean blocked(User from, User to) {\n            return blocks.contains(from.name() + \">\" + to.name());\n        }\n    }\n\n    public static void main(String[] args) {\n        ChatRoom room = new ChatRoom();\n        User ana = room.join(\"ana\");\n        User bob = room.join(\"bob\");\n        User cy = room.join(\"cy\");\n\n        ana.send(null, \"hi everyone\");\n        bob.send(\"ana\", \"hey ana\");\n        room.block(\"ana\", \"cy\");\n        ana.send(null, \"cy will not see this\");\n        ana.send(\"cy\", \"direct, blocked too\");\n        cy.send(\"nobody\", \"hello?\");\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use a mediator when many objects must coordinate, when the rules change often, and when you want to test the rules without the participants. It makes each participant reusable, since it only knows the mediator interface. The cost is that the mediator can become a large class that knows about every participant, which is the problem it was meant to solve in a new place. When that happens, split the mediator by topic or move rules into strategy objects.\n\nWhen two objects talk in one fixed way, a direct reference is simpler and easier to read. A mediator for a single pair of objects adds a class without adding clarity. Also avoid it when participants need to talk to each other in many ways that cannot be described in one interface.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In an LLD round, say the rule first: \"the users must not know each other, and the room decides who gets a message, so the room is a mediator\". This fits chat rooms, an air traffic control tower that routes planes, a dialog where a checkbox enables a text box, and a smart home hub that connects devices. Mention the bottleneck risk and say how you would keep the mediator focused. Compare it with Observer: in Observer the subject notifies observers that are registered for events, and the observers do not coordinate through the subject. In Mediator, the mediator decides the routing and the rules for each message. Compare it with Facade: a facade hides a subsystem from its client, while a mediator sits between peers that are equals.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "The mediator interface can be a functional interface when it has one method, so a lambda can serve as a simple mediator in a test. A record can hold a message with its sender, recipient and text, which keeps the message data separate from the routing logic. Java's java.util.concurrent.Executor is not a mediator in this sense, but its design separates the code that submits work from the code that runs it."
+      }
+    ]
+  },
+  "dp-memento": {
+    "id": "dp-memento",
+    "title": "Memento",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Memento captures the state of an object so it can be restored later, without exposing the object's internal fields to the code that stores the snapshot. The intent is to allow save and restore while keeping the state private to its owner. An interviewer wants to hear who creates the snapshot, who keeps it, why the keeper must not read it, and what a snapshot costs in memory.",
+      "explain": [
+        "Save a state so it can be brought back later, such as a game save point or an undo point. Without it, the caller must copy every field of the object, which breaks when a field is added, or the object's fields must be public so others can read and write them. A memento lets the owner create and restore its own state.",
+        "The originator is the object whose state is saved. It creates a memento that holds a copy of its state, and it restores from one. The memento is an opaque snapshot. The caretaker stores mementos by name or in a history, and it never reads what is inside them.",
+        "A game saves a checkpoint with its level, health and inventory. The caretaker keeps named save slots. The demo saves at the start of a level, plays on, dies, and restores the checkpoint.",
+        "Use it for undo points, save and load, rollback after a failed step, and checkpoints. Do not use it when the state is large and changes often, because each snapshot copies it, and the memory cost grows with each save. A command that stores only the change can be smaller. Keep snapshots as immutable copies, so later changes to the originator do not leak into them.",
+        "Command can also support undo, but it stores the change instead of a full state. Compare the two in an interview: Memento is simpler to get right, while Command saves memory. Prototype copies an object to create a new one, while a memento keeps a copy to restore an old one. In LLD rounds it fits game saves, a text editor's undo history, a drawing app, and a booking flow that rolls back a failed step."
+      ],
+      "questions": [
+        "Why does the caretaker not read the memento's fields?",
+        "What happens if the memento holds a mutable list that the game keeps changing?",
+        "How would you keep only the last ten save points?",
+        "When would you choose Command over Memento for undo?"
+      ],
+      "pitfalls": [
+        "Making the game fields public so that a caretaker can copy them, which removes the benefit.",
+        "Storing a shallow copy that still shares a mutable list with the originator.",
+        "Saving very large states on every change without a limit on history.",
+        "Expecting a snapshot to undo side effects such as a sent email or a payment.",
+        "Restoring a memento from a different type of object, which the design should prevent."
+      ]
+    },
+    "recap": [
+      "Memento: save a state snapshot and restore it later.",
+      "The owner makes and reads snapshots, and the keeper only stores them.",
+      "Snapshots cost memory, so keep them small or use commands for undo."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Suppose a game wants a save point. A simple approach copies the health, level and items into a separate object in the controller. The controller now knows every field of the game. When a new field such as mana is added, every place that saves or loads must change, and a missed field is a silent bug. If the fields are made public so the controller can copy them, the game state can be changed from anywhere.\n\nWith a memento, the game makes its own snapshot and restores from it. The controller stores the snapshot without knowing what it holds. A new field is added in the game and in the memento, and the controller code does not change.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Game is the originator. It has a save method that returns a Memento and a restore method that takes one. Memento is a record that holds copies of the level, health and inventory. SaveSlots is the caretaker: it maps names to mementos and returns them when asked. It never calls methods on a memento except to store and fetch it.",
+        "diagram": "classDiagram\n  class Game {\n    +save()\n    +restore()\n  }\n  class Memento {\n    +level()\n    +health()\n    +inventory()\n  }\n  class SaveSlots {\n    +put()\n    +get()\n  }\n  Game --> Memento\n  SaveSlots *-- Memento",
+        "point": 1
+      },
+      {
+        "title": "Example: game save points",
+        "body": "The example plays a short game. It saves a checkpoint named level-1-start, takes damage, picks up a key, and dies. Restoring the checkpoint brings back the level, the health and the inventory from the time of the save. The inventory is copied with List.copyOf so later pickups do not change the saved snapshot.",
+        "code": "import java.util.*;\n\npublic class Main {\n    static class Game {\n        private int level;\n        private int health;\n        private final List<String> inventory = new ArrayList<>();\n\n        Game(int level, int health) {\n            this.level = level;\n            this.health = health;\n        }\n\n        void advanceLevel() { level++; }\n        void takeDamage(int amount) { health = Math.max(0, health - amount); }\n        void pickUp(String item) { inventory.add(item); }\n\n        Memento save() { return new Memento(level, health, List.copyOf(inventory)); }\n\n        void restore(Memento m) {\n            level = m.level();\n            health = m.health();\n            inventory.clear();\n            inventory.addAll(m.inventory());\n        }\n\n        @Override public String toString() {\n            return \"level=\" + level + \" health=\" + health + \" items=\" + inventory;\n        }\n    }\n\n    // Snapshot of the game state. Only Game reads its fields in practice.\n    record Memento(int level, int health, List<String> inventory) {}\n\n    // Caretaker: stores snapshots by name and never looks inside them.\n    static class SaveSlots {\n        private final Map<String, Memento> slots = new LinkedHashMap<>();\n\n        void put(String name, Memento m) { slots.put(name, m); }\n        Memento get(String name) { return slots.get(name); }\n    }\n\n    public static void main(String[] args) {\n        Game game = new Game(1, 100);\n        SaveSlots slots = new SaveSlots();\n\n        game.pickUp(\"sword\");\n        slots.put(\"level-1-start\", game.save());\n        System.out.println(\"saved:    \" + game);\n\n        game.advanceLevel();\n        game.takeDamage(70);\n        game.pickUp(\"key\");\n        System.out.println(\"playing:  \" + game);\n\n        game.takeDamage(40);\n        System.out.println(\"died:     \" + game);\n\n        game.restore(slots.get(\"level-1-start\"));\n        System.out.println(\"restored: \" + game);\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use a memento when a state must be saved and restored, the state is small, and the saves are not frequent. It keeps the originator's fields private and makes the caretaker simple. The cost is memory, since each memento is a full copy, and the time to copy grows with the state. Snapshots also go stale if they hold references to mutable objects, so copy those too or keep them immutable.\n\nWhen the state is large, such as a whole document with many edits, store the changes as commands instead. When the object is only read and never restored, a plain copy is enough. A memento is also the wrong tool when restoring must call an outside system, such as sending a payment again, because a snapshot cannot undo a side effect.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In LLD rounds, name the trade-off: \"a snapshot is simple and correct, but costs memory per save, so for undo I would use commands if the state is big\". This fits game save slots, a drawing app with undo points, and a booking flow that rolls back when a later step fails. Compare it with Command: Command stores the change and undoes it, while Memento stores the whole state and restores it. Compare it with Prototype: a prototype copies an object so that a new one can be made, while a memento copies state so that an old state can come back. In an interview, say what is saved, who holds the snapshot, and how many snapshots are kept. A history limit, such as keeping the last ten, is a good detail to add.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "A record is a natural memento because its fields are final and it has equals and toString for free. Use List.copyOf or Map.copyOf inside the record or its factory, so the snapshot cannot change after it is made. For a state that holds an object with many fields, a record that copies only what it needs keeps the snapshot small."
+      }
+    ]
+  },
+  "dp-null-object": {
+    "id": "dp-null-object",
+    "title": "Null object",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Null object replaces a null reference with an object that has the same interface and does nothing or returns a neutral value. Callers then call methods without checking for null. It removes repeated null checks and the NullPointerException risk that comes with them. An interviewer wants to hear where the null object comes from and why it is not hidden inside an if statement.",
+      "explain": [
+        "A lookup returns null when there is no coupon, no logger or no discount, and every caller must check for null before using it. Missing checks cause crashes in one place and forgotten behaviour in another. A null object gives the missing case a real object with safe behaviour.",
+        "The null object implements the same interface as the real objects. It has no state and returns neutral values, such as zero discount or an empty list. The code that finds or creates the object returns the null object instead of null.",
+        "A checkout that applies a coupon from a store. Unknown codes return a NoCoupon object that gives no discount. The checkout code has no null check, and the same code path works for valid and unknown codes.",
+        "Use it when \"nothing\" has a clear, safe behaviour, such as no discount, no logging or no notification. Do not use it when the absence must stop the flow or be reported to the user, such as a missing user during login. In that case an Optional or an exception is clearer. Do not hide real errors behind a neutral value.",
+        "Null object is a Strategy or State with a do-nothing behaviour. It is often created by a Factory or a Repository lookup. It is related to Proxy, since both implement the real interface, but a proxy forwards calls and a null object does not. It shows up in logging, discount, notification and cache problems."
+      ],
+      "questions": [
+        "When is a null object better than returning null or Optional?",
+        "How does a null object differ from a proxy?",
+        "What can go wrong if a null object hides a real configuration error?",
+        "Where would the code create the null object, and why there?"
+      ],
+      "pitfalls": [
+        "Returning null from the store and adding checks everywhere, instead of returning the null object once.",
+        "Using a null object for an error that the user must see.",
+        "Giving the null object state, so it is no longer a neutral value.",
+        "Returning a null object from a method whose caller also expects Optional, which mixes two styles."
+      ]
+    },
+    "recap": [
+      "Null object: a real object for \"nothing\", with the same interface and safe behaviour.",
+      "The caller does not check for null, so the code path is the same.",
+      "Use it when doing nothing is the correct behaviour, not when the absence is an error."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A checkout asks a store for a coupon by code. The store returns null when the code is unknown. The checkout then needs an if statement to skip the discount. Another method also needs the same if. A developer forgets it in a third method, and the app throws a NullPointerException the first time a customer uses a code that expired. The rule \"no coupon means no discount\" is written in several places.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Coupon is the interface with discountCents() and label(). PercentCoupon is a real coupon. NoCoupon implements the same interface and returns zero discount and a neutral label. CouponStore returns NoCoupon when a code is not found. Checkout only sees the Coupon interface and never checks for null.",
+        "diagram": "classDiagram\n  class Coupon {\n    +discountCents(subtotalCents)\n    +label()\n  }\n  class PercentCoupon {\n    +discountCents(subtotalCents)\n    +label()\n  }\n  class NoCoupon {\n    +discountCents(subtotalCents)\n    +label()\n  }\n  class CouponStore {\n    +find(code)\n  }\n  class Checkout {\n    +total(subtotalCents, coupon)\n  }\n  Coupon <|.. PercentCoupon\n  Coupon <|.. NoCoupon\n  CouponStore --> Coupon\n  Checkout --> Coupon",
+        "point": 1
+      },
+      {
+        "title": "Example: Checkout with optional coupons",
+        "body": "The store knows two codes. SAVE10 gives ten percent off. Any other code returns NoCoupon. The checkout calls the same two methods for every code and prints the label and the total. The output for an unknown code shows the total is the full price, with no special branch in the checkout.",
+        "code": "import java.util.Map;\n\npublic class Main {\n\n    interface Coupon {\n        int discountCents(int subtotalCents);\n        String label();\n    }\n\n    static class PercentCoupon implements Coupon {\n        private final String code;\n        private final int percent;\n\n        PercentCoupon(String code, int percent) {\n            this.code = code;\n            this.percent = percent;\n        }\n\n        public int discountCents(int subtotalCents) {\n            return subtotalCents * percent / 100;\n        }\n\n        public String label() {\n            return code + \" (\" + percent + \"% off)\";\n        }\n    }\n\n    // The null object: same interface, no discount, no special cases for callers.\n    static class NoCoupon implements Coupon {\n        static final NoCoupon INSTANCE = new NoCoupon();\n\n        private NoCoupon() { }\n\n        public int discountCents(int subtotalCents) { return 0; }\n        public String label() { return \"no coupon\"; }\n    }\n\n    static class CouponStore {\n        private final Map<String, Coupon> coupons = Map.of(\n            \"SAVE10\", new PercentCoupon(\"SAVE10\", 10));\n\n        Coupon find(String code) {\n            return coupons.getOrDefault(code, NoCoupon.INSTANCE);\n        }\n    }\n\n    static class Checkout {\n        static int total(int subtotalCents, Coupon coupon) {\n            int discount = coupon.discountCents(subtotalCents);\n            return subtotalCents - discount;\n        }\n    }\n\n    public static void main(String[] args) {\n        CouponStore store = new CouponStore();\n        int subtotal = 5000;\n\n        for (String code : new String[] {\"SAVE10\", \"EXPIRED\"}) {\n            Coupon coupon = store.find(code);\n            System.out.println(\"Code \" + code + \": \" + coupon.label());\n            System.out.printf(\"Total: %.2f%n\", Checkout.total(subtotal, coupon) / 100.0);\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use a null object when the absence has a safe, obvious behaviour and the caller should not care whether it exists. Logging with a no-op logger is the classic case. The cost is one more class to keep in step with the interface. Do not use it when the absence is an error that the user must see, such as an unknown account at login, or when the neutral value would hide a bug. For a lookup that may legitimately find nothing, return Optional when the caller must decide what to do.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name Null object when the question has optional parts with no-op behaviour: a discount that may be absent in a checkout, a logger that can be turned off in a parking lot system, or an empty seat in a vending machine slot. Say the trade-off out loud: fewer null checks, but a silent default that can hide a missing setup. Compare it with Optional. Optional makes the caller handle absence, while a null object makes absence look like a normal value. Also compare with Proxy: a proxy forwards to a real object, while a null object does not forward anything.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Java has Optional for absence that the caller must handle. A null object is a better fit when the behaviour of absence is always the same. An enum with one constant can also serve as a null object when the interface is small. Use the enum form for a fixed set of options, such as a no-op rounding mode."
+      }
+    ]
+  },
+  "dp-object-pool": {
+    "id": "dp-object-pool",
+    "title": "Object pool",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Object pool keeps a set of costly objects alive and lends them out. A caller borrows one, uses it and returns it for the next caller. An interviewer wants to hear what happens when the pool is empty, and how a borrowed object is returned even when something fails.",
+      "explain": [
+        "Object pool keeps a set of expensive objects and hands them out on request. A caller borrows one, uses it and returns it. The problem it solves is repeated creation of objects that are slow to build, such as database connections, worker threads or large buffers, when the number in use must also be capped.",
+        "The pool holds idle objects and counts how many it may create. `acquire()` returns an idle object, creates a new one if the cap allows it, or fails or waits when the pool is empty. `release()` puts the object back. The pooled object is the product. The client pairs every acquire with a release in a try and finally block.",
+        "The example pools database connections with a cap of two. The demo shows that a third request fails while both are in use. Then three queries run in turn, and they reuse the connections that were already opened. A helper releases the connection in a finally block, even when a query fails.",
+        "Use it when creating an object costs much more than using it, and the number of objects must be capped. Do not use it for cheap objects. Pooling adds leaks, stale state and locking, and the JVM creates small objects quickly. A pooled object must be reset before reuse, or one caller's state reaches the next caller.",
+        "Singleton keeps one instance. Object pool keeps several and lends them out. Flyweight shares immutable state between many objects at once, while a pool shares whole objects over time. In interviews it appears in connection pools, thread pools for a job system, and borrow-and-return resources such as hotel rooms or parking spots. Say what happens when the pool is empty: block, fail fast or grow."
+      ],
+      "questions": [
+        "What happens when a caller asks for an object and the pool is empty?",
+        "How do you make sure every acquired object is released, even after an exception?",
+        "What must you reset before you reuse a pooled object?"
+      ],
+      "pitfalls": [
+        "Forgetting to release on the error path, which slowly drains the pool.",
+        "Reusing an object without resetting its state, so one caller sees another caller's data.",
+        "Pooling cheap objects, where the pool costs more than creating new ones.",
+        "Letting the pool grow without a cap, which defeats the reason for pooling."
+      ]
+    },
+    "recap": [
+      "Object pool: borrow, use, always return.",
+      "It pays off only when creation is expensive and the count must be capped.",
+      "Reset pooled objects before reuse, and decide what happens when the pool is empty."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A reporting job opens a new database connection for each query. Opening a connection takes time and uses server resources. Under load, the job opens hundreds of connections, and the database refuses new ones. The code has no limit, so one busy job can take down the others.\n\nAfter the change, the job asks a pool for a connection and returns it when the query ends. The pool opens only as many connections as it may, and reuses them. The before version creates without limit. The after version creates up to a cap and reuses what it has.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "`ConnectionPool` holds idle `Connection` objects in a deque and a cap on how many it may create. `acquire()` takes an idle connection, or creates one if the cap allows it. `release()` returns a connection to the idle deque. `Connection` is the pooled product, and its `query` method does the work.",
+        "diagram": "classDiagram\n  class ConnectionPool {\n    +acquire() Connection\n    +release(connection)\n  }\n  class Connection {\n    +query(sql) String\n  }\n  ConnectionPool *-- Connection",
+        "point": 1
+      },
+      {
+        "title": "Example: database connection pool",
+        "body": "`main` acquires both connections, then shows that a third acquire fails while the pool is busy. It releases them, and runs three queries through `run`. The output shows that only two connections are ever opened, and the later queries reuse them.",
+        "code": "import java.util.ArrayDeque;\nimport java.util.Deque;\n\npublic class Main {\n    // The pooled object. Opening it is slow in real life, so the pool keeps it.\n    static class Connection {\n        private final int id;\n\n        Connection(int id) {\n            this.id = id;\n            System.out.println(\"opened connection \" + id);\n        }\n\n        String query(String sql) {\n            return \"result of [\" + sql + \"] on connection \" + id;\n        }\n    }\n\n    static class ConnectionPool {\n        private final Deque<Connection> idle = new ArrayDeque<>();\n        private final int maxSize;\n        private int created = 0;\n\n        ConnectionPool(int maxSize) {\n            this.maxSize = maxSize;\n        }\n\n        synchronized Connection acquire() {\n            if (!idle.isEmpty()) {\n                return idle.pop();\n            }\n            if (created < maxSize) {\n                return new Connection(++created);\n            }\n            throw new IllegalStateException(\"pool busy, max \" + maxSize);\n        }\n\n        synchronized void release(Connection connection) {\n            idle.push(connection);\n        }\n    }\n\n    // Borrow, use, and always return, even when the query fails.\n    static String run(ConnectionPool pool, String sql) {\n        Connection connection = pool.acquire();\n        try {\n            return connection.query(sql);\n        } finally {\n            pool.release(connection);\n        }\n    }\n\n    public static void main(String[] args) {\n        ConnectionPool pool = new ConnectionPool(2);\n\n        Connection a = pool.acquire();\n        Connection b = pool.acquire();\n        try {\n            pool.acquire();\n        } catch (IllegalStateException e) {\n            System.out.println(\"third request: \" + e.getMessage());\n        }\n        pool.release(a);\n        pool.release(b);\n\n        for (String sql : new String[] {\"select 1\", \"select 2\", \"select 3\"}) {\n            System.out.println(run(pool, sql));\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when the object is costly to create and the system must limit how many exist at once, such as database connections or a fixed set of hardware devices. Do not use it for plain objects such as strings, points or small records. Pooling those adds bugs without a speed gain. Also decide the policy for an empty pool. Blocking with a wait is the usual choice for production. Failing fast is simpler, as in the example, and fine for an interview demo. Growing without a cap defeats the purpose.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name the resource in the problem. In a parking lot, spots are borrowed and returned, but a spot is a domain object rather than an expensive one, so say that pooling is not the point there. In a job system or a rate-limited API client, a pool of workers or connections is a clear fit. Say the force first: \"Opening a connection is slow and the database caps them, so I would pool connections with a fixed size.\"\n\nObject pool is confused with singleton, which keeps one object for the whole program. It is also confused with flyweight. Flyweight shares immutable data among many objects at the same time. A pool gives one mutable object to one borrower at a time.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-observer": {
+    "id": "dp-observer",
+    "title": "Observer",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Observer lets one object announce changes to a list of registered listeners, without knowing what each listener does. The intent is to keep the source of an event separate from the reactions to it. An interviewer wants to hear who subscribes and unsubscribes, how the subject avoids depending on concrete listeners, and what can go wrong, such as a listener that is never removed or one that throws during a notification.",
+      "explain": [
+        "Let many parts of the system react to one event without the source calling each of them by name. Without it, a parking lot must call the display board, the logger and the billing code one by one, and adding a new reaction means editing the lot. With Observer, a new listener is registered and the lot stays the same.",
+        "A subject, such as the parking lot, keeps a list of listeners and offers subscribe and unsubscribe. A listener interface declares the method the subject calls when something changes. Concrete listeners, such as an entrance board, implement that method. The subject notifies each listener when its state changes.",
+        "A parking lot tells its listeners when the free spots on a floor change. An entrance board and a lambda logger subscribe. The demo shows both listeners reacting, then a logger that unsubscribes, and a full floor that rejects a car without notifying anyone.",
+        "Use it when one event must reach several reactions, when the reactions change over time, or when the source should not know them. Do not use it when there is one fixed reaction, because a direct call is clearer. Watch for listeners that are never removed, which keeps objects alive and makes memory grow. Decide the order of notification, and what happens when a listener throws.",
+        "Pub/sub is the same idea across services, with a broker between publisher and subscriber. Compare it with Mediator, where a central object routes messages between peers and decides the rules, while observers only react to events. Compare it with Chain of responsibility, where a request moves along handlers and can be stopped. In LLD rounds it fits parking lot displays, stock tickers, order status updates, and notifications on a ride-hailing app."
+      ],
+      "questions": [
+        "How do you stop a listener from being kept in memory after it is no longer needed?",
+        "What happens if one listener throws an exception during a notification?",
+        "Should notifications run on the thread that made the change, or on another thread?",
+        "How is Observer different from Mediator?"
+      ],
+      "pitfalls": [
+        "Forgetting to unsubscribe, so listeners stay alive and receive events they no longer need.",
+        "Letting one failing listener stop the others from being notified.",
+        "Calling listeners while holding a lock, which can cause a deadlock if a listener calls back into the subject.",
+        "Using Observer for a single fixed reaction that should be a direct call.",
+        "Assuming the listeners run in a fixed order without saying so."
+      ]
+    },
+    "recap": [
+      "Observer: a subject notifies registered listeners when its state changes.",
+      "The subject knows only the listener interface.",
+      "Remove listeners when they are done, and decide what happens if one throws."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A parking lot has to update several things when a spot is taken or freed: the entrance display, a log, and a billing counter. Written directly, the park method calls each of these by name. Adding a mobile app that shows free spots means editing park, and so does removing the logger. The lot must import and know about every screen and service in the system.\n\nWith Observer, the lot keeps a list of listeners and calls each one with the floor and the new count. The lot does not know what the listeners do. The display board and the logger are added at start-up, and a new screen is one more subscribe call.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "ParkingLot is the subject. It keeps the free counts per floor and a list of SpotListener objects. Its subscribe and unsubscribe methods change the list, and its change method updates the count and calls every listener. SpotListener is the observer interface with one method, onSpotsChanged. EntranceBoard implements it. A lambda can also implement it when the reaction is short.",
+        "diagram": "classDiagram\n  class SpotListener {\n    +onSpotsChanged()\n  }\n  class EntranceBoard {\n    +onSpotsChanged()\n  }\n  class ParkingLot {\n    +subscribe()\n    +unsubscribe()\n    +park()\n    +leave()\n  }\n  EntranceBoard ..|> SpotListener\n  ParkingLot --> SpotListener",
+        "point": 1
+      },
+      {
+        "title": "Example: parking lot display and logger",
+        "body": "The example creates a lot with two spots on floor G and one on floor 1. A board and a logger subscribe. Parking and leaving notify both. The logger is then removed, so the next change reaches only the board. A car that tries to park on a full floor is refused before any listener is told. The loop copies the listener list before calling it, so a listener that unsubscribes during a call does not break the loop.",
+        "code": "import java.util.*;\n\npublic class Main {\n    interface SpotListener {\n        void onSpotsChanged(String floor, int freeSpots);\n    }\n\n    static class ParkingLot {\n        private final Map<String, Integer> free;\n        private final List<SpotListener> listeners = new ArrayList<>();\n\n        ParkingLot(Map<String, Integer> capacityByFloor) {\n            this.free = new HashMap<>(capacityByFloor);\n        }\n\n        void subscribe(SpotListener l) { listeners.add(l); }\n        void unsubscribe(SpotListener l) { listeners.remove(l); }\n\n        void park(String floor) {\n            if (free.get(floor) == 0) throw new IllegalStateException(\"floor \" + floor + \" is full\");\n            change(floor, -1);\n        }\n\n        void leave(String floor) { change(floor, +1); }\n\n        private void change(String floor, int delta) {\n            int now = free.get(floor) + delta;\n            free.put(floor, now);\n            for (SpotListener l : List.copyOf(listeners)) {\n                l.onSpotsChanged(floor, now);\n            }\n        }\n    }\n\n    static class EntranceBoard implements SpotListener {\n        public void onSpotsChanged(String floor, int freeSpots) {\n            System.out.println(\"[board] floor \" + floor + \": \" + freeSpots + \" free\");\n        }\n    }\n\n    public static void main(String[] args) {\n        ParkingLot lot = new ParkingLot(Map.of(\"G\", 2, \"1\", 1));\n        SpotListener board = new EntranceBoard();\n        SpotListener logger = (floor, free) -> System.out.println(\"[log] \" + floor + \" -> \" + free);\n\n        lot.subscribe(board);\n        lot.subscribe(logger);\n\n        lot.park(\"G\");\n        lot.park(\"1\");\n        lot.leave(\"1\");\n\n        lot.unsubscribe(logger);\n        lot.park(\"G\");\n        try {\n            lot.park(\"G\");\n        } catch (IllegalStateException e) {\n            System.out.println(\"rejected: \" + e.getMessage());\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use the pattern when one change must reach several reactions, when reactions are added or removed at run time, and when the source should not depend on them. It keeps the subject small and lets new screens or services be added without editing it. The costs are harder reasoning about the flow, since one change can trigger many reactions, and the risk of leaks when listeners are never removed. A listener that throws can stop the others unless the subject catches the error. Decide whether notifications run on the caller's thread, and whether they are ordered.\n\nWhen there is only one reaction, or the reaction is part of the subject's job, call it directly. Do not use Observer to hide a simple call, because the flow then becomes hard to follow.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "In LLD rounds, say the event first: \"when a spot frees up, several screens must update, so the lot publishes an event to listeners\". This fits parking lot displays, stock prices, order status updates, and notifications on a ride-hailing app. Name the trade-offs: listeners need to unsubscribe, and the order and threading of calls must be decided. Compare it with Mediator. In Observer, the subject sends events to listeners and does not decide what they do. In Mediator, one object decides how messages are routed between peers. Compare it with Chain of responsibility, where a request moves along handlers until one stops it, while every observer hears each event. Mention pub/sub as the same idea between services, with a broker in the middle.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Java has a functional interface for a listener with one method, so a lambda is enough for a short reaction, as the example shows. The java.beans PropertyChangeListener is a built-in observer with a property name. For concurrency, a CopyOnWriteArrayList is a common choice for listeners, because it lets a listener change the list during notification without an error."
+      }
+    ]
+  },
+  "dp-prototype": {
+    "id": "dp-prototype",
+    "title": "Prototype",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Prototype creates new objects by copying a configured instance, instead of building each one from scratch. The caller asks a prototype for a copy, and the copy can change without touching the original. An interviewer wants to hear what gets copied, what stays shared, and why Java's `Cloneable` is avoided.",
+      "explain": [
+        "Prototype creates objects by copying an existing, configured instance. The problem it solves is setup that is slow or long to repeat: many fields, loaded data, or a template that must be the same for each new object. The caller gets a working copy in one step.",
+        "The prototype declares a copy method. The concrete prototype implements the copy so that changing the copy does not change the original. A registry keeps named prototypes and returns copies on request. The client knows the registry and the copy method. It does not know how each template was configured.",
+        "The example spawns game units. A goblin template is registered once, with its stats and abilities. Each spawn calls `copy()`, and the copies change on their own. The constructor copies the ability list, so one copy does not change another or the template.",
+        "Use it when creating from scratch is costly or when a set of templates is open and grows over time. Do not use it for simple objects, where a constructor is clearer. The main cost is the deep copy. Shared mutable parts, such as lists or references to a connection, must be copied on purpose. An explicit copy method is safer than `Cloneable`.",
+        "Factory method creates an object by class. Prototype creates an object by copying an instance. Memento also stores state, but for undo, while prototype makes a new working object. In interviews it fits game entities, document or invoice templates, and cart or configuration templates. Say what is copied and what is shared."
+      ],
+      "questions": [
+        "What exactly does your copy method copy, and what does it share?",
+        "Why would you use an explicit copy method instead of `Cloneable`?",
+        "When is prototype better than a factory, and when is it worse?"
+      ],
+      "pitfalls": [
+        "Writing a shallow copy and sharing a mutable list between the template and every copy.",
+        "Forgetting to register a template before spawning from it, which fails only at runtime.",
+        "Using `Object.clone()` without thinking about the cast and the skipped constructor.",
+        "Copying a field that should be fresh for each object, such as an id."
+      ]
+    },
+    "recap": [
+      "Prototype: copy a configured object instead of rebuilding it.",
+      "Copy deeply enough that the copy and the template do not share mutable state.",
+      "Keep templates in a registry, and return copies from it."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A game spawns many goblins. Each spawn would set the health, the attack, the sprite, the starting abilities and the loot table again, by hand. When a designer changes the goblin, every spawn site must change too. Copying the setup code into each site makes the goblin type hard to find and easy to set up wrong.\n\nAfter the change, the goblin is configured once as a template and stored under a name. Each spawn asks for a copy. The designer changes the template in one place. The before version repeats the setup. The after version repeats only the copy.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "`Unit` is the prototype. It has a `copy()` method that returns a new `Unit` with the same values. The copy gets its own ability list. `UnitRegistry` keeps named templates and returns copies from `spawn(key)`. The client calls `spawn` and never sees how the template was built.",
+        "diagram": "classDiagram\n  class Unit {\n    +copy() Unit\n    +addAbility(ability)\n    +takeDamage(amount)\n  }\n  class UnitRegistry {\n    +register(key, prototype)\n    +spawn(key) Unit\n  }\n  UnitRegistry --> Unit",
+        "point": 1
+      },
+      {
+        "title": "Example: spawning game units from templates",
+        "body": "`main` registers one goblin template. It spawns two goblins, gives one a new ability, and damages the other. The output shows that each copy changed on its own, and the template still has its original values.",
+        "code": "import java.util.ArrayList;\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class Main {\n    // Prototype: a configured unit that knows how to copy itself.\n    static class Unit {\n        private final String type;\n        private int hp;\n        private final List<String> abilities;\n\n        Unit(String type, int hp, List<String> abilities) {\n            this.type = type;\n            this.hp = hp;\n            this.abilities = new ArrayList<>(abilities);\n        }\n\n        // The copy gets its own list, so changes do not leak back to the template.\n        Unit copy() {\n            return new Unit(type, hp, abilities);\n        }\n\n        void addAbility(String ability) {\n            abilities.add(ability);\n        }\n\n        void takeDamage(int amount) {\n            hp = Math.max(0, hp - amount);\n        }\n\n        @Override\n        public String toString() {\n            return type + \" hp=\" + hp + \" abilities=\" + abilities;\n        }\n    }\n\n    // Registry: named templates, returns copies on request.\n    static class UnitRegistry {\n        private final Map<String, Unit> prototypes = new HashMap<>();\n\n        void register(String key, Unit prototype) {\n            prototypes.put(key, prototype);\n        }\n\n        Unit spawn(String key) {\n            Unit prototype = prototypes.get(key);\n            if (prototype == null) {\n                throw new IllegalArgumentException(\"no prototype named \" + key);\n            }\n            return prototype.copy();\n        }\n    }\n\n    public static void main(String[] args) {\n        UnitRegistry registry = new UnitRegistry();\n        Unit goblin = new Unit(\"goblin\", 30, List.of(\"claw\"));\n        registry.register(\"goblin\", goblin);\n\n        Unit first = registry.spawn(\"goblin\");\n        Unit second = registry.spawn(\"goblin\");\n        first.addAbility(\"poison\");\n        second.takeDamage(12);\n\n        System.out.println(first);\n        System.out.println(second);\n        System.out.println(\"template: \" + goblin);\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when the template has a lot of setup, when designers or users create new templates at runtime, or when the object is expensive to build from its inputs. Do not use it for objects with three fields and no setup, where `new` is clearer. Be careful with the copy. A shallow copy shares lists, maps and references, so one copy changes all of them. Java's `Cloneable` and `Object.clone()` are easy to get wrong, because they skip the constructor and need a cast, so an explicit copy method is the usual choice in interviews.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Good places are the game entities in a tower defense or card game problem, and document templates in a document editor. In a vending machine or a parking lot, a template for a recurring setup, such as a monthly pass, can be copied for each customer. Say the force first: \"Each spawn needs the same setup, so I would keep one template and copy it.\"\n\nPrototype is confused with factory method. A factory decides the class and builds from input. A prototype builds from an existing object, so the template holds the configuration. It is also confused with memento. Memento saves a state so the object can go back to it. Prototype makes a new object that can then change in its own direction.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-proxy": {
+    "id": "dp-proxy",
+    "title": "Proxy",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Proxy stands in for another object and has the same interface. It can delay creating the real object, check access before a call, cache results, or handle a remote call. An interviewer wants to hear that the proxy and the real object share an interface, and to hear the purpose of the proxy named clearly.",
+      "explain": [
+        "Proxy controls access to an object. The client uses the proxy as if it were the real object. Without one, access checks, lazy loading or caching spread into every caller. A proxy keeps these concerns in one place.",
+        "The Subject is the interface that both sides implement. The RealSubject does the actual work. The Proxy implements the Subject, holds a reference to the RealSubject, creates it when it is first needed, and checks the rules before it delegates.",
+        "A document editor opens a document. The proxy checks the reader and editor lists, and it creates the expensive real document only on first use. A blocked call fails before anything is loaded.",
+        "Use it for lazy loading, access control, caching, or a stand-in for a remote service. Skip it when the real object is cheap and no rules apply, because the proxy only adds an indirection. Avoid proxies that change behaviour quietly, since callers expect the same results and timing.",
+        "Decorator has the same shape but adds behaviour, while a proxy controls access or creation. Adapter changes the interface. In interviews, Proxy appears in document and file access, image galleries that load on demand, rate-limited API clients, and cache layers in front of a repository."
+      ],
+      "questions": [
+        "How is a proxy different from a decorator?",
+        "If the document also has a cache, where should the access check go?",
+        "What would you change so the proxy works across a network?"
+      ],
+      "pitfalls": [
+        "Giving the proxy a different interface, so callers must know it is a proxy.",
+        "Loading the expensive object before the access check runs.",
+        "Forgetting that lazy creation is not thread-safe unless it is guarded.",
+        "Using a proxy where a single method call would do."
+      ]
+    },
+    "recap": [
+      "Proxy has the same interface as the object it stands in for.",
+      "Typical jobs: lazy creation, access checks, caching, remote calls.",
+      "Check access before the expensive work starts."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Code that opens a document has to check permissions, load the file from disk and then read the text. Every caller repeats these steps. Some callers forget the check, and the expensive load happens even when the user is then blocked. Changing the rules means editing every caller. A proxy moves the check and the lazy load into one class that looks like the document itself.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Document is the Subject interface with read and append. RealDocument is the RealSubject. Its constructor loads the content, which is the expensive step. DocumentProxy implements Document. It holds the reader and editor sets and a reference to a RealDocument that starts as null. It checks access, creates the real document when needed, and then delegates.",
+        "diagram": "classDiagram\n    class Document {\n        +read()\n        +append()\n    }\n    class RealDocument {\n        +read()\n        +append()\n    }\n    class DocumentProxy {\n        +read()\n        +append()\n    }\n    RealDocument ..|> Document\n    DocumentProxy ..|> Document\n    DocumentProxy --> RealDocument",
+        "point": 1
+      },
+      {
+        "title": "Example: Lazy, access-checked documents in an editor",
+        "body": "The demo creates a proxy and prints a line before any loading happens. A reader gets the content, which loads the real document. An editor appends text. A user who is only a reader is blocked from editing, and an unknown user is blocked from reading.",
+        "code": "import java.util.Set;\n\npublic class Main {\n\n    // Subject: the real document and the proxy both implement this.\n    interface Document {\n        String read(String user);\n        void append(String user, String text);\n    }\n\n    // Real subject: expensive to create, because it loads the file.\n    static class RealDocument implements Document {\n        private final StringBuilder body = new StringBuilder();\n\n        RealDocument(String id) {\n            System.out.println(\"Loading \" + id + \" from disk (expensive)\");\n            body.append(\"contents of \").append(id);\n        }\n\n        @Override\n        public String read(String user) {\n            return body.toString();\n        }\n\n        @Override\n        public void append(String user, String text) {\n            body.append(' ').append(text);\n        }\n    }\n\n    // Proxy: same interface. Checks access first, then creates the real document on first use.\n    static class DocumentProxy implements Document {\n        private final String id;\n        private final Set<String> readers;\n        private final Set<String> editors;\n        private RealDocument real; // created lazily; this demo is single-threaded\n\n        DocumentProxy(String id, Set<String> readers, Set<String> editors) {\n            this.id = id;\n            this.readers = readers;\n            this.editors = editors;\n        }\n\n        private RealDocument real() {\n            if (real == null) {\n                real = new RealDocument(id);\n            }\n            return real;\n        }\n\n        @Override\n        public String read(String user) {\n            if (!readers.contains(user)) {\n                throw new SecurityException(user + \" cannot read \" + id);\n            }\n            return real().read(user);\n        }\n\n        @Override\n        public void append(String user, String text) {\n            if (!editors.contains(user)) {\n                throw new SecurityException(user + \" cannot edit \" + id);\n            }\n            real().append(user, text);\n        }\n    }\n\n    public static void main(String[] args) {\n        Document doc = new DocumentProxy(\"design-doc\", Set.of(\"ana\", \"ravi\"), Set.of(\"ana\"));\n        System.out.println(\"Proxy created, nothing loaded yet\");\n\n        System.out.println(doc.read(\"ravi\"));\n        doc.append(\"ana\", \"Reviewed on Monday.\");\n        System.out.println(doc.read(\"ana\"));\n\n        try {\n            doc.append(\"ravi\", \"Edit attempt\");\n        } catch (SecurityException e) {\n            System.out.println(\"Blocked: \" + e.getMessage());\n        }\n        try {\n            doc.read(\"mallory\");\n        } catch (SecurityException e) {\n            System.out.println(\"Blocked: \" + e.getMessage());\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use a proxy when a call needs a rule that should not live in the caller, such as an access check, a cache, or a delay before an expensive load. Signals include a slow constructor, a remote service, or a permission model that every caller must follow. Costs are one more class, one more call per use, and surprises when a call that looked cheap is slow. If one caller needs one check, a plain check in a service method is simpler.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Documents and files are a common LLD topic, and a proxy is a natural way to show access control and lazy loading. An image gallery can show a light placeholder until the real image loads. A rate-limited API client can be a proxy that counts calls. A cache in front of a repository is a proxy too. Java has examples in the standard library: Collections.unmodifiableList returns a view that refuses changes, which is a proxy with a restricted interface. Proxy is often confused with Decorator, which has the same structure but adds behaviour. It is also confused with Facade. A proxy stands in for one object with the same interface, while a facade gives a new, simpler interface over several objects.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-repository": {
+    "id": "dp-repository",
+    "title": "Repository",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Repository hides how objects are stored behind a collection-like interface. The service asks for orders by id or by status, and does not know whether the data is in memory, in SQL or in a remote API. It separates the business rules from the storage details. An interviewer wants to hear the interface the service needs, the in-memory version used for tests, and where the boundary sits.",
+      "explain": [
+        "Business code that writes SQL or file access directly mixes rules with storage. Changing the database or testing the rules then means touching many classes. Repository gives the rules one interface for save and find, so storage can change without changing the rules.",
+        "The repository interface lists the queries the domain needs, such as save, findById and findByStatus. A concrete repository implements the interface for one storage choice. The service depends on the interface and receives the repository in its constructor.",
+        "An order service with an in-memory order repository. The service places orders, marks them paid and lists unpaid ones. The example runs without a database, and the same service would work with a SQL repository.",
+        "Use it when the domain logic is more than a few lines and needs tests without a database, or when storage may change. Do not add it to a small script or a single table app where the ORM is already the abstraction. Keep the interface small, shaped by the queries the domain needs, not by every database feature.",
+        "Repository often sits behind a Facade or a service, and it is created with Dependency injection. Compare it with DAO, which is close in purpose but usually lower level and table-shaped. It shows up in parking lot, library, order and inventory problems, where the rules must be tested without a real database."
+      ],
+      "questions": [
+        "What does a Repository hide, and what should it never expose?",
+        "Why is an in-memory repository useful in an interview or in tests?",
+        "How is a Repository different from a DAO?",
+        "Which queries should the interface contain, and how do you decide?"
+      ],
+      "pitfalls": [
+        "Returning database rows or SQL types from the repository instead of domain objects.",
+        "Adding one method for every table column, so the interface becomes the database.",
+        "Putting business rules inside the repository, such as the check that a paid order cannot be paid again.",
+        "Returning null for a missing entity instead of Optional or an exception."
+      ]
+    },
+    "recap": [
+      "Repository: one interface for save and find, hiding the storage choice.",
+      "The service depends on the interface, so tests can use an in-memory version.",
+      "Keep the interface shaped by the queries the domain needs."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "An order service writes SQL in the middle of its rules. \"Mark an order paid\" opens a connection, builds a query, reads a row and checks the status. To test the rule that a paid order cannot be paid again, the test needs a running database. Changing the table layout means changing the rules. Two services that need the same query copy the SQL, and the copies drift apart.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "OrderRepository declares save, findById and findByStatus. InMemoryOrderRepository keeps orders in a map and is used in tests and demos. JdbcOrderRepository would implement the same interface with SQL. OrderService holds an OrderRepository and calls only the interface. The composition root creates the chosen implementation and passes it in.",
+        "diagram": "classDiagram\n  class OrderService {\n    +place(id, customer, totalCents)\n    +markPaid(id)\n    +unpaid()\n  }\n  class OrderRepository {\n    +save(order)\n    +findById(id)\n    +findByStatus(status)\n  }\n  class InMemoryOrderRepository {\n    +save(order)\n    +findById(id)\n    +findByStatus(status)\n  }\n  class JdbcOrderRepository {\n    +save(order)\n    +findById(id)\n    +findByStatus(status)\n  }\n  OrderService --> OrderRepository\n  OrderRepository <|.. InMemoryOrderRepository\n  OrderRepository <|.. JdbcOrderRepository",
+        "point": 1
+      },
+      {
+        "title": "Example: Order service with an in-memory repository",
+        "body": "The service places two orders, marks one as paid, and lists the unpaid orders. It never touches a map or SQL. The in-memory repository keeps orders in insertion order. A missing order id causes the service to throw a clear error, and the repository reports absence with Optional.",
+        "code": "import java.util.ArrayList;\nimport java.util.LinkedHashMap;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.Optional;\n\npublic class Main {\n\n    record Order(String id, String customer, int totalCents, String status) { }\n\n    interface OrderRepository {\n        void save(Order order);\n        Optional<Order> findById(String id);\n        List<Order> findByStatus(String status);\n    }\n\n    static class InMemoryOrderRepository implements OrderRepository {\n        private final Map<String, Order> rows = new LinkedHashMap<>();\n\n        public void save(Order order) {\n            rows.put(order.id(), order);\n        }\n\n        public Optional<Order> findById(String id) {\n            return Optional.ofNullable(rows.get(id));\n        }\n\n        public List<Order> findByStatus(String status) {\n            List<Order> found = new ArrayList<>();\n            for (Order order : rows.values()) {\n                if (order.status().equals(status)) {\n                    found.add(order);\n                }\n            }\n            return found;\n        }\n    }\n\n    static class OrderService {\n        private final OrderRepository orders;\n\n        OrderService(OrderRepository orders) {\n            this.orders = orders;\n        }\n\n        void place(String id, String customer, int totalCents) {\n            orders.save(new Order(id, customer, totalCents, \"PLACED\"));\n        }\n\n        void markPaid(String id) {\n            Order order = orders.findById(id)\n                .orElseThrow(() -> new IllegalArgumentException(\"No order \" + id));\n            orders.save(new Order(order.id(), order.customer(), order.totalCents(), \"PAID\"));\n        }\n\n        List<Order> unpaid() {\n            return orders.findByStatus(\"PLACED\");\n        }\n    }\n\n    public static void main(String[] args) {\n        OrderService service = new OrderService(new InMemoryOrderRepository());\n\n        service.place(\"o-1\", \"Asha\", 4500);\n        service.place(\"o-2\", \"Ben\", 1200);\n        service.markPaid(\"o-1\");\n\n        System.out.println(\"Unpaid: \" + service.unpaid());\n\n        try {\n            service.markPaid(\"o-9\");\n        } catch (IllegalArgumentException e) {\n            System.out.println(\"Error: \" + e.getMessage());\n        }\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Repository when the domain rules need unit tests without a database, when more than one storage option is plausible, or when several services share the same queries. The cost is an extra interface and a mapping layer between rows and domain objects. Do not wrap a database that already is a clean abstraction, such as a framework repository, in a second layer just for show. Also avoid one repository method per SQL statement. Shape the interface around what the domain asks for.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name Repository when the question has entities that must be saved and found: orders in a shop, vehicles and tickets in a parking lot, books and members in a library. Show the interface first, then the in-memory version for the interview code, and say that a database version would implement the same interface. Compare it with DAO. DAO is usually one class per table with low-level methods, while Repository speaks in domain terms and returns domain objects. Mention that the repository is injected through the constructor, which connects it to Dependency injection.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Records make the domain objects immutable and easy to compare. Optional marks absence in the repository return type. Use a record for an entity when its fields do not change, and create a new record for each change, as the example does with markPaid."
+      }
+    ]
+  },
+  "dp-singleton": {
+    "id": "dp-singleton",
+    "title": "Singleton",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Singleton makes sure a class has exactly one instance, and gives one place to reach it. It fits a shared resource that must not be duplicated, such as a feature flag store. An interviewer wants to hear the costs of the pattern, not only its shape, and how the instance would be injected instead.",
+      "explain": [
+        "Singleton ensures one instance of a class exists and gives one access point to it. The problem it solves is a resource that must be shared, such as configuration, a metrics sink or a rate-limiter registry, and that breaks when two copies exist. Interviewers want to hear the costs as well as the shape.",
+        "A classic singleton has a private constructor, a static instance and a static accessor. In Java, an enum with one constant is the safest form. The JVM creates it once, creation is thread-safe, and it resists reflection and serialization tricks. Clients use the constant or the accessor directly.",
+        "The example keeps feature flags in an enum singleton. The checkout service reads a flag from the singleton. The flag map is concurrent, so a flag can change while requests run. The example also checks that the constant is the same object each time.",
+        "Use it for one real shared resource that must be unique in the process, such as one configuration store. Avoid it for state that belongs to a test or a request, and avoid it as a shortcut to avoid passing a dependency. Singletons hide dependencies and are hard to replace in tests. Creating one instance at startup and passing it in is usually better.",
+        "Object pool holds several instances and lends them out, while singleton holds exactly one. Factories often return a shared instance, so a singleton can be one factory. In interviews, mention singleton when a design has one config, one logger or one rate-limiter registry, and then explain how you would inject it. It is often the wrong answer when the interviewer asks about testability."
+      ],
+      "questions": [
+        "Why is an enum a good way to write a singleton in Java?",
+        "What makes a singleton hard to test, and how would you fix that?",
+        "When would you use a singleton, and when would you inject one instance instead?"
+      ],
+      "pitfalls": [
+        "Using a singleton as a global variable, with no thought about who depends on it.",
+        "Writing a lazy singleton with a plain null check, which is not thread-safe.",
+        "Keeping per-request data in a singleton, so requests see each other's data.",
+        "Calling the singleton from inside the class under test, where a fake cannot be placed."
+      ]
+    },
+    "recap": [
+      "Singleton: one instance, one access point, and a cost in hidden global state.",
+      "In Java, an enum with one constant is the safest form.",
+      "Prefer creating one instance at startup and injecting it."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "A checkout service reads feature flags from a global variable that a settings page writes. Two copies of the flag store would give two answers, so a flag turned on in one place is off in another. A developer who needs the flags in a test has no way to replace them, because the code reads the global directly.\n\nWith a singleton, there is one store and one way to reach it. That fixes the two-copies problem. The test problem remains, and the next section shows how injecting the same store avoids it. The before version has many copies or hidden globals. The after version has one instance with a clear access point.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "`FeatureFlags` is the singleton. It is an enum with one constant, `INSTANCE`. It holds a concurrent map of flags. `CheckoutService` is a client. It reads the constant directly. A test could not replace the store without changing the class, which is the cost to mention in an interview.",
+        "diagram": "classDiagram\n  class FeatureFlags {\n    +set(name, on)\n    +isOn(name) boolean\n  }\n  class CheckoutService {\n    +checkout(cents) String\n  }\n  CheckoutService --> FeatureFlags",
+        "point": 1
+      },
+      {
+        "title": "Example: feature flags for checkout",
+        "body": "`main` turns on a coupon flag, runs checkout, turns the flag off, and runs checkout again. The last line checks that the enum constant is the same object when read by name. That is the guarantee the pattern gives.",
+        "code": "import java.util.Map;\nimport java.util.concurrent.ConcurrentHashMap;\n\npublic class Main {\n    // An enum with one constant: created once by the JVM, safe to share between threads.\n    enum FeatureFlags {\n        INSTANCE;\n\n        private final Map<String, Boolean> flags = new ConcurrentHashMap<>();\n\n        void set(String name, boolean on) {\n            flags.put(name, on);\n        }\n\n        boolean isOn(String name) {\n            return flags.getOrDefault(name, false);\n        }\n    }\n\n    static class CheckoutService {\n        String checkout(int cents) {\n            if (FeatureFlags.INSTANCE.isOn(\"coupons\")) {\n                return \"checkout with coupons: \" + cents + \" cents\";\n            }\n            return \"checkout: \" + cents + \" cents\";\n        }\n    }\n\n    public static void main(String[] args) {\n        FeatureFlags.INSTANCE.set(\"coupons\", true);\n        System.out.println(new CheckoutService().checkout(1_250));\n\n        FeatureFlags.INSTANCE.set(\"coupons\", false);\n        System.out.println(new CheckoutService().checkout(1_250));\n\n        System.out.println(\"same instance: \" + (FeatureFlags.INSTANCE == FeatureFlags.valueOf(\"INSTANCE\")));\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use it when the process must have exactly one of a resource, such as one connection pool or one metrics registry, and creating two would be a bug. Do not use it when the object holds per-test or per-request state. Do not use it so that classes can reach a dependency without asking for it. That hides the dependency and makes the code harder to test. The better design creates the instance once in `main` or in a composition root, and passes it to the classes that need it.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name the shared resource in the problem. In a parking lot, a single entry gate controller or a rate-limited ticket counter. In a vending machine, a single inventory store. Say the cost before the pattern: \"I would keep one instance, but I would inject it so tests can replace it.\"\n\nSingleton is confused with a static utility class. A utility class has no state and no instance. A singleton has one instance with state, and the state can be passed around. It is also confused with object pool. A pool holds many objects and lends them out, while a singleton holds one object and always gives the same one.",
+        "point": 4
+      }
+    ]
+  },
+  "dp-state": {
+    "id": "dp-state",
+    "title": "State",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "State lets an object change its behaviour when its internal state changes. Each state is a class that handles the events allowed in that state and moves the object to the next state. It replaces large switch statements on a state enum. An interviewer wants you to name the states, draw the legal transitions, and say where illegal actions are rejected.",
+      "explain": [
+        "An object acts differently depending on its state, such as a document that is a draft, in review, or published. Without State, every method holds a switch on the state, and the rules are spread across the class. State puts the rules for each state into its own class.",
+        "The context keeps a reference to the current state object and forwards each event to it. The state interface declares the events. Each concrete state implements the events it allows and tells the context when to move to the next state.",
+        "A document workflow with the states Draft, In review and Published. A draft can be submitted, a document in review can be approved or sent back, and a published document accepts no changes. The example prints each transition and rejects illegal ones.",
+        "Use it when behaviour depends on the state, each state has its own rules, and transitions matter. Do not use it for two or three flags with trivial rules, because an enum and a small transition table are clearer. Many tiny state classes can also make the flow harder to follow.",
+        "State and Strategy have the same shape, but in State the object changes its own state through transitions, while in Strategy the client picks the algorithm from outside. State shows up in the elevator, vending machine and order lifecycle problems. Say which transitions are legal before you write any classes."
+      ],
+      "questions": [
+        "How is State different from a switch on an enum, and when is each better?",
+        "Who decides the next state, the client or the state object itself?",
+        "How would you test each state on its own?",
+        "What should happen if two events arrive at the same time?"
+      ],
+      "pitfalls": [
+        "Keeping the switch in the context, so the state classes only hold names.",
+        "Letting a state set the context field directly instead of using one transition method.",
+        "Storing shared data inside each state object instead of in the context.",
+        "Creating a new state object on every call when the state holds no data. Use one shared instance."
+      ]
+    },
+    "recap": [
+      "State: behaviour follows the current state object, one class per state.",
+      "Each transition is explicit, so illegal moves are easy to find.",
+      "Prefer a plain enum with a transition table when the rules are short."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Without State, a document class has one method per event, and each method switches on a status field. Adding a new status means editing every method. The rule \"only a reviewed document can be published\" lives in one switch, and the rule \"only a draft can be submitted\" lives in another. A missed case in one switch is a bug that only shows up at runtime.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "The context is the Document. It holds the current DocumentState and forwards submit, approve and reject to it. The DocumentState interface declares those events. Draft, InReview and Published implement the events they allow. A state that does not allow an event throws an IllegalStateException through a default method in the interface. A state changes the document by calling a method on the context, so the context controls the transition.",
+        "diagram": "classDiagram\n  class Document {\n    +submit()\n    +approve()\n    +reject()\n    +setState(next)\n  }\n  class DocumentState {\n    +submit(doc)\n    +approve(doc)\n    +rejectReview(doc)\n  }\n  class Draft {\n    +submit(doc)\n  }\n  class InReview {\n    +approve(doc)\n    +rejectReview(doc)\n  }\n  class Published {\n  }\n  Document --> DocumentState\n  DocumentState <|.. Draft\n  DocumentState <|.. InReview\n  DocumentState <|.. Published",
+        "point": 1
+      },
+      {
+        "title": "Example: Document review workflow",
+        "body": "The example models a document with three states. A Draft can be submitted for review. An InReview document can be approved, which publishes it, or rejected, which returns it to Draft. A Published document accepts no further events. The Document class only forwards calls, so all the rules sit in the state classes.",
+        "code": "public class Main {\n\n    interface DocumentState {\n        String name();\n\n        default void submit(Document doc) { illegal(\"submit\"); }\n        default void approve(Document doc) { illegal(\"approve\"); }\n        default void rejectReview(Document doc) { illegal(\"reject\"); }\n\n        default void illegal(String action) {\n            throw new IllegalStateException(action + \" is not allowed in \" + name());\n        }\n    }\n\n    static class Draft implements DocumentState {\n        public String name() { return \"DRAFT\"; }\n        public void submit(Document doc) { doc.setState(new InReview()); }\n    }\n\n    static class InReview implements DocumentState {\n        public String name() { return \"IN_REVIEW\"; }\n        public void approve(Document doc) { doc.setState(new Published()); }\n        public void rejectReview(Document doc) { doc.setState(new Draft()); }\n    }\n\n    static class Published implements DocumentState {\n        public String name() { return \"PUBLISHED\"; }\n    }\n\n    static class Document {\n        private final String title;\n        private DocumentState state = new Draft();\n\n        Document(String title) { this.title = title; }\n\n        void setState(DocumentState next) {\n            System.out.println(title + \": \" + state.name() + \" -> \" + next.name());\n            state = next;\n        }\n\n        void submit() { state.submit(this); }\n        void approve() { state.approve(this); }\n        void reject() { state.rejectReview(this); }\n        String status() { return state.name(); }\n    }\n\n    public static void main(String[] args) {\n        Document doc = new Document(\"Design notes\");\n\n        try {\n            doc.approve();                       // not allowed in DRAFT\n        } catch (IllegalStateException e) {\n            System.out.println(\"Rejected: \" + e.getMessage());\n        }\n\n        doc.submit();                            // DRAFT -> IN_REVIEW\n        doc.reject();                            // IN_REVIEW -> DRAFT\n        doc.submit();                            // DRAFT -> IN_REVIEW\n        doc.approve();                           // IN_REVIEW -> PUBLISHED\n\n        try {\n            doc.submit();                        // not allowed after publishing\n        } catch (IllegalStateException e) {\n            System.out.println(\"Rejected: \" + e.getMessage());\n        }\n        System.out.println(\"Final status: \" + doc.status());\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use State when an object has several states, each state has different rules for the same events, and the transitions need to be easy to read and test. The cost is one class per state and a few more files. The simpler alternative is an enum with a transition table, for example a Map from current status and event to the next status. That is enough when the only question is whether a move is allowed. Do not add State classes just to avoid one if statement.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name State when the problem has a lifecycle. In a vending machine the states are Idle, HasCredit and Dispensing. In an elevator they are moving, idle, door open and maintenance. In a parking lot a ticket or spot can move through reserved, occupied and free. Interviewers often ask Strategy vs State: in Strategy the client chooses the algorithm and it does not change by itself, while in State the object moves between states as events happen. Mention that a state object may be shared when it holds no data.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "For a small, fixed set of states, an enum with a method per event works well. Each constant can have its own body that overrides the method, which gives the State shape without extra files. Use this form in an interview when the states are simple."
+      }
+    ]
+  },
+  "dp-strategy": {
+    "id": "dp-strategy",
+    "title": "Strategy",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Strategy puts a family of interchangeable algorithms behind one interface. The client picks one algorithm and the context calls it without knowing which one it is. It replaces conditionals on a type or mode flag. An interviewer wants to hear where the algorithm varies, how a new algorithm is added without touching the context, and how the choice is made.",
+      "explain": [
+        "One class has an algorithm that varies by rule, such as a rate limiter that may use a fixed window or a token bucket. Without Strategy, the class grows an if or switch for each rule, and every new rule edits the same class. Strategy moves each rule into its own class behind one interface.",
+        "The strategy interface declares the operation. Concrete strategies implement it with one algorithm each. The context holds a strategy reference, calls it when it needs the result, and can have the strategy replaced at runtime.",
+        "A rate limiter for an API client, with a fixed window strategy and a token bucket strategy. The client makes the same calls, and the example switches strategy in the middle of the run. The output shows which calls are allowed or throttled.",
+        "Use it when the algorithm varies independently of the code that calls it, and when you expect new variants. Do not use it when there is only one algorithm that is not likely to change, because an interface with one implementation adds noise. A plain method or a lambda is often enough.",
+        "Strategy looks like State, but the client chooses the strategy from outside, while State changes itself through transitions. It is related to Template method, which varies steps inside a fixed flow by inheritance instead of composition. It shows up in pricing, matching, rate limiting and elevator scheduling problems."
+      ],
+      "questions": [
+        "How does Strategy remove a switch on a type or mode field?",
+        "What is the difference between Strategy and State?",
+        "Where does the client choose the strategy, and can it change at runtime?",
+        "When would you pass a lambda instead of writing a class?"
+      ],
+      "pitfalls": [
+        "Creating a strategy interface with only one implementation and no plan for another.",
+        "Letting the strategy read or change fields of the context, which couples the two again.",
+        "Making the strategy hold shared state that should belong to the context, such as the request count of a user.",
+        "Choosing the strategy with a switch inside the context, which only moves the conditional."
+      ]
+    },
+    "recap": [
+      "Strategy: one interface, many interchangeable algorithms, chosen by the client.",
+      "Adding a rule means adding a class, not editing the context.",
+      "A lambda works when the algorithm is a single method and has no state."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Suppose an API client needs a rate limit. The first version uses a fixed window with a counter. Then the team wants a token bucket that allows short bursts. Without Strategy, the client gets a field called mode, and every method checks it with an if. The window logic and the bucket logic end up in one class with shared fields that only make sense for one mode. Testing one algorithm means building the whole client.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "RateLimitStrategy declares allow(now). FixedWindow and TokenBucket each implement it and keep their own state. ApiClient is the context. It keeps one RateLimitStrategy, calls allow() for each request, and provides setStrategy() to swap the algorithm. The context never checks which concrete class it has.",
+        "diagram": "classDiagram\n  class ApiClient {\n    +call(endpoint, now)\n    +setStrategy(strategy)\n  }\n  class RateLimitStrategy {\n    +allow(now)\n    +name()\n  }\n  class FixedWindow {\n    +allow(now)\n    +name()\n  }\n  class TokenBucket {\n    +allow(now)\n    +name()\n  }\n  ApiClient --> RateLimitStrategy\n  RateLimitStrategy <|.. FixedWindow\n  RateLimitStrategy <|.. TokenBucket",
+        "point": 1
+      },
+      {
+        "title": "Example: Rate limiter for an API client",
+        "body": "The client sends calls at given times in milliseconds. The first strategy allows two calls per one-second window. Then the client switches to a token bucket that holds two tokens and refills one token per second. Each strategy keeps its own fields, and the client only calls allow(). The output shows the strategy name each time it changes.",
+        "code": "public class Main {\n\n    interface RateLimitStrategy {\n        boolean allow(long nowMillis);\n        String name();\n    }\n\n    static class FixedWindow implements RateLimitStrategy {\n        private final int limit;\n        private final long windowMillis;\n        private long windowStart = -1;\n        private int count;\n\n        FixedWindow(int limit, long windowMillis) {\n            this.limit = limit;\n            this.windowMillis = windowMillis;\n        }\n\n        public boolean allow(long now) {\n            if (windowStart < 0 || now - windowStart >= windowMillis) {\n                windowStart = now;\n                count = 0;\n            }\n            if (count < limit) {\n                count++;\n                return true;\n            }\n            return false;\n        }\n\n        public String name() { return \"fixed window\"; }\n    }\n\n    static class TokenBucket implements RateLimitStrategy {\n        private final double capacity;\n        private final double refillPerMilli;\n        private double tokens;\n        private long last = 0;\n\n        TokenBucket(double capacity, double refillPerSecond) {\n            this.capacity = capacity;\n            this.refillPerMilli = refillPerSecond / 1000.0;\n            this.tokens = capacity;\n        }\n\n        public boolean allow(long now) {\n            tokens = Math.min(capacity, tokens + (now - last) * refillPerMilli);\n            last = now;\n            if (tokens >= 1) {\n                tokens -= 1;\n                return true;\n            }\n            return false;\n        }\n\n        public String name() { return \"token bucket\"; }\n    }\n\n    static class ApiClient {\n        private RateLimitStrategy strategy;\n\n        ApiClient(RateLimitStrategy strategy) {\n            this.strategy = strategy;\n        }\n\n        void setStrategy(RateLimitStrategy next) {\n            this.strategy = next;\n            System.out.println(\"-- switched to \" + next.name());\n        }\n\n        void call(String endpoint, long now) {\n            boolean ok = strategy.allow(now);\n            System.out.printf(\"t=%5d %-10s %s%n\", now, endpoint, ok ? \"allowed\" : \"throttled\");\n        }\n    }\n\n    public static void main(String[] args) {\n        ApiClient client = new ApiClient(new FixedWindow(2, 1000));\n        System.out.println(\"-- using \" + \"fixed window\");\n        client.call(\"/search\", 0);\n        client.call(\"/search\", 100);\n        client.call(\"/search\", 200);      // third call in the same window\n        client.call(\"/search\", 1000);     // a new window starts\n\n        client.setStrategy(new TokenBucket(2, 1));\n        client.call(\"/search\", 1100);\n        client.call(\"/search\", 1101);\n        client.call(\"/search\", 1102);\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Strategy when the same operation has more than one rule and the rules change often or are chosen by configuration. Each strategy can be tested alone with a plain input and output. The cost is one more interface and one class per variant. If the choice is a fixed flag with two branches that never change, a conditional is simpler. A lambda is enough when the variant is a single function with no state of its own, such as a comparator.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name Strategy when the question says the rule will change: pricing by hour or flat rate in the parking lot, a matching rule in a ride-hailing app, a scheduling policy in the elevator, or a rate limit in an API. Say which part is the context and which part is the strategy. Interviewers often compare it with State, because both use an interface and a delegate. The difference is that the client picks a strategy, while a state object moves itself to the next state. Strategy is also the usual answer to \"how do you add a new payment method without editing checkout\".",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "A functional interface with one method can be a strategy. Comparator is a standard example: Collections.sort(list, comparator) takes the algorithm as a parameter. Use a lambda when the strategy has no state, and a class when it keeps counters or windows as the example does."
+      }
+    ]
+  },
+  "dp-template-method": {
+    "id": "dp-template-method",
+    "title": "Template method",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Template method defines the skeleton of an algorithm in a base class and lets subclasses fill in some of the steps. The order of the steps is fixed in one place, and the variable steps are abstract methods. It is the inheritance-based way to reuse a flow. An interviewer wants to hear which steps are fixed, which vary, and why the base method is final.",
+      "explain": [
+        "Several classes run the same sequence of steps, such as open, fetch, format and write, and only a few steps differ. Without the pattern, each class copies the whole sequence and the copies drift apart. Template method keeps the sequence once and makes only the differing steps variable.",
+        "An abstract base class has one template method that calls the steps in order. The steps are abstract or have default hooks. Concrete subclasses implement the varying steps. The template method is final, so a subclass cannot change the order.",
+        "A report exporter that writes a header, one line per row and a footer. CSV and JSON exporters share the same flow and differ only in how each part is written. The example runs both exporters on the same data.",
+        "Use it when the flow is stable and several variants share most of it. Do not use it when the steps differ in order, or when the variation is better expressed by composition. Deep inheritance is the main cost, and a subclass that overrides too many hooks is a sign the pattern is wrong.",
+        "Template method uses inheritance, while Strategy swaps a whole algorithm through composition. Hooks are the optional steps a subclass may override. It shows up in report, import and game turn problems, where every game has the same turn order and only the rules differ."
+      ],
+      "questions": [
+        "What is the difference between Template method and Strategy?",
+        "Why should the template method be final?",
+        "What makes a step a hook rather than an abstract step?",
+        "How would you add a PDF exporter without changing the base class?"
+      ],
+      "pitfalls": [
+        "Leaving the template method non-final, so a subclass can change the order of the steps.",
+        "Adding a hook for every small difference, which turns the base class into a long list of optional methods.",
+        "Putting state that all variants need into the subclass instead of the base class.",
+        "Calling the steps from outside the template method, which bypasses the fixed order."
+      ]
+    },
+    "recap": [
+      "Template method: a fixed flow in a base class, with variable steps in subclasses.",
+      "Make the template method final so the order cannot change.",
+      "Hooks are optional steps with a default body. Use them sparingly."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Suppose the company needs a CSV export and then a JSON export of the same sales report. Each exporter starts by writing a title, loops over the rows and writes a footer. The first copy works. The second copy changes the loop to skip empty rows, but the first copy does not get that fix. After a few months the two exporters behave differently for the same input, and nobody knows which one is right.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "ReportExporter holds the template method export(). It calls header(), row() and footer() in a fixed order. Those three steps are abstract, so each subclass must supply them. CsvExporter and JsonExporter implement the steps for their format. Callers only use export() and never call the steps directly.",
+        "diagram": "classDiagram\n  class ReportExporter {\n    +export(title, rows)\n    +header(title)\n    +row(cells)\n    +footer(count)\n  }\n  class CsvExporter {\n    +header(title)\n    +row(cells)\n    +footer(count)\n  }\n  class JsonExporter {\n    +header(title)\n    +row(cells)\n    +footer(count)\n  }\n  ReportExporter <|-- CsvExporter\n  ReportExporter <|-- JsonExporter",
+        "point": 1
+      },
+      {
+        "title": "Example: Sales report exporter",
+        "body": "The example has one report with two rows of data. The base class writes the title, then each row, then the footer. CsvExporter writes a comment line for the title and comma-separated rows. JsonExporter writes one JSON object with an array of rows and keeps a counter so it does not write a trailing comma. Both exporters run the same export() method.",
+        "code": "public class Main {\n\n    static abstract class ReportExporter {\n\n        // Template method: the order of the steps is fixed here.\n        public final String export(String title, String[][] rows) {\n            StringBuilder out = new StringBuilder();\n            out.append(header(title));\n            for (String[] row : rows) {\n                out.append(row(row));\n            }\n            out.append(footer(rows.length));\n            return out.toString();\n        }\n\n        protected abstract String header(String title);\n        protected abstract String row(String[] cells);\n        protected abstract String footer(int count);\n    }\n\n    static class CsvExporter extends ReportExporter {\n        protected String header(String title) {\n            return \"# \" + title + \"\\n\";\n        }\n\n        protected String row(String[] cells) {\n            return String.join(\",\", cells) + \"\\n\";\n        }\n\n        protected String footer(int count) {\n            return \"# rows: \" + count + \"\\n\";\n        }\n    }\n\n    static class JsonExporter extends ReportExporter {\n        private int written;\n\n        protected String header(String title) {\n            written = 0;\n            return \"{\\\"title\\\":\\\"\" + title + \"\\\",\\\"rows\\\":[\\n\";\n        }\n\n        protected String row(String[] cells) {\n            String separator = written == 0 ? \"\" : \",\\n\";\n            written++;\n            return separator + \"  [\\\"\" + String.join(\"\\\",\\\"\", cells) + \"\\\"]\";\n        }\n\n        protected String footer(int count) {\n            return \"\\n]}\\n\";\n        }\n    }\n\n    public static void main(String[] args) {\n        String[][] rows = {\n            {\"North\", \"1200\"},\n            {\"South\", \"950\"}\n        };\n\n        System.out.print(new CsvExporter().export(\"Sales\", rows));\n        System.out.println(\"---\");\n        System.out.print(new JsonExporter().export(\"Sales\", rows));\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use the pattern when the same flow appears in several classes and only a few steps change. It keeps the order in one place, so a fix in the flow applies to all variants. The costs are inheritance and a fixed order. A subclass cannot change the order, and a base class with many hooks is hard to follow. If the variation is a whole algorithm, use Strategy instead. If the steps are unrelated, a plain method per step is enough.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name Template method for flows that repeat: a game turn where every player draws, plays and ends the turn, a file importer that reads, validates, maps and saves, or a report that always has a header, body and footer. In a game LLD round, the base Game class can own the turn loop and subclasses such as Chess or Tic-tac-toe can provide the rules. Compare it with Strategy: Template method varies steps inside a fixed flow by inheritance, while Strategy replaces the whole algorithm by composition. Mention that a final template method is what keeps the flow safe.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Java lets you pass the varying steps as lambdas or interfaces, which gives the same shape with composition. A method that takes a Function for the row formatter has the same effect as a row() hook, and it avoids a class per format. Use this form when the steps are small and have no state."
+      }
+    ]
+  },
+  "dp-visitor": {
+    "id": "dp-visitor",
+    "title": "Visitor",
+    "area": "lld",
+    "section": "Pattern catalogue",
+    "points": [
+      "Intent and the problem it solves",
+      "Structure and participants",
+      "A worked example in Java",
+      "When to use it and when not to",
+      "Related patterns and how it shows up in interviews"
+    ],
+    "lesson": {
+      "overview": "Visitor lets you add new operations to a set of classes without changing those classes. Each element accepts a visitor, and the visitor has one method per element type. The call goes to the right method through two dispatches, which is called double dispatch. An interviewer wants to hear when the element types are stable and the operations change often.",
+      "explain": [
+        "A cart holds books and food, and the team needs a tax calculation, then an invoice printer, then a shelf report. Adding each operation as a method on every item class spreads unrelated code across all items. Visitor keeps each operation in its own class and leaves the item classes alone.",
+        "The element interface declares accept(visitor). Each concrete element calls the visitor method that matches its own type. The visitor interface declares one visit method per element type. Concrete visitors hold one operation each.",
+        "A shopping cart with books and food. A tax calculator and an invoice printer both visit the same items. The example shows the item classes do not change when the new operation is added.",
+        "Use it when the element types are stable and new operations are added often, such as a syntax tree or a document model. Do not use it when new element types are added often, because each new type changes every visitor. Also avoid it when the operations are few and the element types are simple methods.",
+        "Visitor is the opposite trade-off to adding a method per class: adding operations is easy, adding types is hard. It is related to Interpreter, where the expression tree is often walked by a visitor, and to Iterator, which walks the elements without knowing what they do. It shows up in file system, document export and expression tree problems."
+      ],
+      "questions": [
+        "What does double dispatch mean in this example?",
+        "Why is Visitor a poor fit when new element types arrive often?",
+        "How does Visitor differ from putting each operation on the element class?",
+        "Which pattern would you use to walk the elements, and which to act on them?"
+      ],
+      "pitfalls": [
+        "Using Visitor for a model that changes its element types every week.",
+        "Adding a type check with instanceof in the caller, which defeats the double dispatch.",
+        "Making the visitor hold state that belongs to the element, such as the price of an item.",
+        "Forgetting to add the new visit method to every existing visitor when a new element type is added."
+      ]
+    },
+    "recap": [
+      "Visitor: add operations by adding visitor classes, not by changing element classes.",
+      "Double dispatch picks the visit method from the element type.",
+      "Easy to add operations, hard to add element types."
+    ],
+    "deeper": [
+      {
+        "title": "The problem it solves",
+        "body": "Suppose a cart has Book and Food items. First the team needs a tax total. Then they need an invoice line for each item. Then they need a shelf report for books only. Each new feature becomes a new method in Book and in Food, so the item classes grow with code that has nothing to do with what a book is. Each new feature also needs a type check or an instanceof test in the caller, which is easy to forget.",
+        "point": 0
+      },
+      {
+        "title": "Structure",
+        "body": "Item is the element interface and has accept(visitor). Book and Food call visitor.visit(this), passing themselves. ItemVisitor declares visit(Book) and visit(Food). TaxCalculator and InvoicePrinter implement the visitor interface. The call item.accept(visitor) selects the element method first, and then the visitor method for that element type second. That is the double dispatch.",
+        "diagram": "classDiagram\n  class Item {\n    +accept(visitor)\n  }\n  class Book {\n    +accept(visitor)\n  }\n  class Food {\n    +accept(visitor)\n  }\n  class ItemVisitor {\n    +visitBook(book)\n    +visitFood(food)\n  }\n  class TaxCalculator {\n    +visitBook(book)\n    +visitFood(food)\n  }\n  class InvoicePrinter {\n    +visitBook(book)\n    +visitFood(food)\n  }\n  Item <|.. Book\n  Item <|.. Food\n  ItemVisitor <|.. TaxCalculator\n  ItemVisitor <|.. InvoicePrinter\n  Item --> ItemVisitor",
+        "point": 1
+      },
+      {
+        "title": "Example: Shopping cart tax and invoice",
+        "body": "The cart holds three items. The tax calculator applies five percent to books and twelve percent to food, and adds up the tax. The invoice printer prints one line per item. The item classes only know how to accept a visitor. Adding a new operation means writing one new class.",
+        "code": "public class Main {\n\n    interface ItemVisitor {\n        void visit(Book book);\n        void visit(Food food);\n    }\n\n    interface Item {\n        void accept(ItemVisitor visitor);\n        String name();\n        int priceCents();\n    }\n\n    static class Book implements Item {\n        private final String title;\n        private final int priceCents;\n\n        Book(String title, int priceCents) {\n            this.title = title;\n            this.priceCents = priceCents;\n        }\n\n        public void accept(ItemVisitor visitor) { visitor.visit(this); }\n        public String name() { return title; }\n        public int priceCents() { return priceCents; }\n    }\n\n    static class Food implements Item {\n        private final String label;\n        private final int priceCents;\n\n        Food(String label, int priceCents) {\n            this.label = label;\n            this.priceCents = priceCents;\n        }\n\n        public void accept(ItemVisitor visitor) { visitor.visit(this); }\n        public String name() { return label; }\n        public int priceCents() { return priceCents; }\n    }\n\n    static class TaxCalculator implements ItemVisitor {\n        private int taxCents;\n\n        public void visit(Book book) { taxCents += book.priceCents() * 5 / 100; }\n        public void visit(Food food) { taxCents += food.priceCents() * 12 / 100; }\n\n        int total() { return taxCents; }\n    }\n\n    static class InvoicePrinter implements ItemVisitor {\n        public void visit(Book book) {\n            System.out.printf(\"Book  %-22s %7.2f%n\", book.name(), book.priceCents() / 100.0);\n        }\n\n        public void visit(Food food) {\n            System.out.printf(\"Food  %-22s %7.2f%n\", food.name(), food.priceCents() / 100.0);\n        }\n    }\n\n    public static void main(String[] args) {\n        Item[] cart = {\n            new Book(\"Effective Java\", 3200),\n            new Food(\"Coffee beans\", 1200),\n            new Book(\"Refactoring\", 4500)\n        };\n\n        InvoicePrinter printer = new InvoicePrinter();\n        for (Item item : cart) {\n            item.accept(printer);\n        }\n\n        TaxCalculator tax = new TaxCalculator();\n        for (Item item : cart) {\n            item.accept(tax);\n        }\n        System.out.printf(\"Tax total: %.2f%n\", tax.total() / 100.0);\n    }\n}",
+        "lang": "java",
+        "point": 2
+      },
+      {
+        "title": "When to use it and when not to",
+        "body": "Use Visitor when the set of element types is fixed and the operations on them keep growing. Typical cases are syntax trees, document models and file system nodes. Each operation stays in one class, which makes it easy to test. The cost is that a new element type needs a new method in every visitor. If element types change often, or the operations are only one or two, put the method on the element or use a switch over a sealed set of types instead.",
+        "point": 3
+      },
+      {
+        "title": "In interviews",
+        "body": "Name Visitor when the question asks for many operations on a stable model: export a document to HTML and to plain text, compute size and print a tree in a file system, or evaluate and print an expression. In a text editor LLD round, a document made of paragraphs and images can be exported with one visitor per format. Say the trade-off out loud: adding a type touches every visitor, and adding an operation touches none of the types. Compare it with Iterator, which walks a structure, while Visitor does work on each element.",
+        "point": 4
+      },
+      {
+        "title": "Modern Java",
+        "body": "Java 17 records and sealed interfaces make small element sets easy to write, and a switch over a sealed type can replace a visitor for one operation. Use a visitor when several operations need the same walk over the elements."
+      }
+    ]
+  },
   "lld-concurrency": {
     "id": "lld-concurrency",
     "title": "Concurrency in code",
@@ -861,7 +2795,7 @@ export const GENERATED_LESSONS: Record<string, GeneratedLesson> = {
       "Chain of Responsibility"
     ],
     "lesson": {
-      "overview": "Patterns are named solutions to recurring design problems. Use them when the problem calls for them, name them as you use them, and know the one-line intent of each common one.",
+      "overview": "Patterns are named solutions to recurring design problems. Use them when the problem calls for them, name them as you use them, and know the one-line intent of each common one. Every pattern has its own full lesson, with a class diagram and Java code, in the Pattern catalogue section of this course.",
       "explain": [
         "Define a family of interchangeable algorithms behind one interface and choose at runtime: pricing strategies, payment methods, elevator scheduling, rate-limit algorithms. It replaces conditionals on type.",
         "Subjects notify registered observers when something changes, so publishers don't know the concrete subscribers: notify display boards when a parking spot frees up, or send notifications on order status changes. Watch out for memory leaks from forgotten subscriptions, and for ordering.",

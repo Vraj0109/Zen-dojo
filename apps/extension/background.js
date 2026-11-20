@@ -1,6 +1,6 @@
 // @ts-check
 // Service worker: the only part that talks to your local Zen Dojo app. Content scripts on
-// leetcode.com send it { type: "app" } messages; the popup sends "test" and "start-backfill".
+// leetcode.com send it { type: "app" } messages; the popup sends "test", "start-backfill" and "start-export".
 
 import { DEFAULT_APP_URL, normalizeAppUrl } from "./lib/config.js";
 
@@ -27,15 +27,15 @@ async function callApp({ method, path, body }) {
   }
 }
 
-/** Open (or reuse) a leetcode.com tab and tell its content script to import your history. */
-async function startBackfill(/** @type {boolean} */ full) {
+/** Open (or reuse) a leetcode.com tab and tell its content script to run a job ("backfill" or "export"). */
+async function startJob(/** @type {{ type: "backfill", full: boolean } | { type: "export" }} */ message) {
   let [tab] = await chrome.tabs.query({ url: "https://leetcode.com/*" });
   tab ??= await chrome.tabs.create({ url: "https://leetcode.com/problemset/", active: false });
   if (tab.id === undefined) return { ok: false, error: "Could not open leetcode.com" };
   // The content script needs a moment to load in a new tab.
   for (let i = 0; i < 30; i++) {
     try {
-      await chrome.tabs.sendMessage(tab.id, { type: "backfill", full });
+      await chrome.tabs.sendMessage(tab.id, message);
       return { ok: true };
     } catch {
       await new Promise((r) => setTimeout(r, 1000));
@@ -48,7 +48,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return;
   if (msg?.type === "app") callApp(msg).then(sendResponse);
   else if (msg?.type === "test") callApp({ method: "GET", path: "/api/ext/known" }).then(sendResponse);
-  else if (msg?.type === "start-backfill") startBackfill(Boolean(msg.full)).then(sendResponse);
+  else if (msg?.type === "start-backfill") startJob({ type: "backfill", full: Boolean(msg.full) }).then(sendResponse);
+  else if (msg?.type === "start-export") startJob({ type: "export" }).then(sendResponse);
   else return;
   return true; // respond asynchronously
 });

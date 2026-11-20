@@ -175,7 +175,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
             <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="View" />
 
             {/* Search input */}
-            <label className="flex h-12 min-w-0 flex-[1_1_240px] items-center gap-2.5 rounded-full bg-surface-2 px-[18px] text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
+            <label className="field-ring flex h-12 min-w-0 flex-[1_1_240px] items-center gap-2.5 rounded-full bg-surface-2 px-[18px] text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
               <svg className="size-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
