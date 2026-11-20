@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { Avatar, useProfile } from "./custom-appearance";
-import { SyncStatusPill } from "./components/sync-status";
+import { Suspense, type ReactNode } from "react";
+import { clock, elapsedAt, isRunning } from "./timer-math";
+import { timer, useNow, useTimer } from "./timer-store";
 
-// Icons: 24x24 stroke paths (lucide-style), drawn in currentColor.
+// Icons from Material 3 Expressive spec (XRail.dc.html & XNavBar.dc.html)
 export const ICONS = {
-  today: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 16l2 2 4-4",
-  review: "M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5",
-  dsa: "m16 18 6-6-6-6M8 6l-6 6 6 6",
-  learn: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM6.5 10v4a2 2 0 0 0 2 2H14",
-  roadmap: "M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20zM9 4v13.5M15 6.5V20",
+  today: "M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
+  practice: "m8 6-6 6 6 6M16 6l6 6-6 6",
+  dsa: "m8 6-6 6 6 6M16 6l6 6-6 6",
+  learn: "M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z",
+  review: "M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5",
+  roadmap: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14",
   profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
+  you: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
 } as const;
 
 export type NavLink = {
@@ -24,117 +26,228 @@ export type NavLink = {
   matches: readonly string[];
 };
 
-// The daily list, practice, learning and review: in the sidebar and in the phone tab bar.
 export const MAIN: NavLink[] = [
   { href: "/", label: "Today", icon: "today", matches: ["/backlog"] },
-  { href: "/dsa", label: "Practice", icon: "dsa", matches: ["/dsa"] },
+  { href: "/dsa", label: "Practice", icon: "practice", matches: ["/dsa"] },
   { href: "/study", label: "Learn", icon: "learn", matches: ["/study"] },
   { href: "/review", label: "Review", icon: "review", matches: ["/review", "/revise"] },
 ];
 
-/** Fifth sidebar item on wide screens (DESIGN.md sidebar). On phones Roadmap is inside the You tab. */
 export const ROADMAP: NavLink = { href: "/roadmap", label: "Roadmap", icon: "roadmap", matches: ["/roadmap"] };
 
-/** The sidebar list: Today, Practice, Learn, Review, Roadmap. */
+/** The 5 rail links on desktop: Today, Practice, Learn, Review, Roadmap */
 export const SIDEBAR: NavLink[] = [...MAIN, ROADMAP];
 
-// Profile: the account row at the bottom of the sidebar, the end of the tablet top bar, "You" on phones.
 export const SECONDARY: NavLink[] = [{ href: "/profile", label: "Profile", icon: "profile", matches: ["/profile"] }];
 
-/** Phone tab bar: Today, Practice, Learn, Review, You (You also covers Roadmap). */
-export const TABS: NavLink[] = [...MAIN, { ...SECONDARY[0], label: "You", matches: ["/profile", "/roadmap"] }];
+/** Phone navigation bar (5 items): Today, Practice, Learn, Review, You */
+export const TABS: NavLink[] = [...MAIN, { href: "/profile", label: "You", icon: "you", matches: ["/profile", "/profile/settings", "/profile/account", "/roadmap"] }];
 
-/** Counts shown beside nav items, by href (e.g. reviews due beside Review). Server-rendered nodes. */
 export type NavCounts = Partial<Record<string, ReactNode>>;
 
-/** True when `pathname` is `base` or inside it. */
 const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(base + "/");
 
-/** Which nav item a path belongs to (exported for tests). */
 export function isActive(link: Pick<NavLink, "href" | "matches">, pathname: string | null): boolean {
   if (pathname === null) return false;
   if (link.href === "/" && pathname === "/") return true;
   return link.matches.some((m) => within(pathname, m));
 }
 
-/** The tab a path belongs to, for the phone header title. */
 export function tabTitle(pathname: string | null): string | null {
   return TABS.find((l) => isActive(l, pathname))?.label ?? null;
 }
 
-export function Icon({ name, className = "size-4" }: { name: keyof typeof ICONS; className?: string }) {
+export function Icon({ name, active = false, className = "size-6" }: { name: keyof typeof ICONS; active?: boolean; className?: string }) {
+  const path = ICONS[name] ?? ICONS.today;
   return (
-    <svg viewBox="0 0 24 24" className={`${className} shrink-0`} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d={ICONS[name]} />
+    <svg
+      viewBox="0 0 24 24"
+      className={`${className} shrink-0`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={active ? 2.1 : 1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={path} />
     </svg>
   );
 }
 
-/** Main nav with the current page highlighted. Render inside <Suspense fallback={<NavLinks pathname={null} />}>:
- * on routes with request-time params (e.g. /dsa/[id]) the pathname isn't known while prerendering. */
-export function Nav({ counts }: { counts?: NavCounts }) {
-  return <NavLinks pathname={usePathname()} counts={counts} />;
-}
+/** Focus FAB: 56px, rounded-[18px], reward-soft, play icon or countdown. */
+export function FocusFab() {
+  const state = useTimer();
+  const running = state !== null && isRunning(state);
+  const now = useNow(running);
 
-/** The account row at the bottom of the sidebar (wide screens). */
-export function NavFooter({ account }: { account?: ReactNode }) {
-  return <NavFooterLinks pathname={usePathname()} account={account} />;
-}
+  const startSession = () => {
+    if (!state) {
+      timer.start({
+        itemId: "focus-session",
+        label: "Focus session",
+        href: "/",
+        targetMinutes: 25,
+      });
+    } else if (!running) {
+      timer.resume();
+    } else {
+      timer.pause();
+    }
+  };
 
-function ProfileName({ fallback }: { fallback: string }) {
-  const p = useProfile();
-  return <span className="truncate">{p.name || fallback}</span>;
-}
+  const elapsed = state ? elapsedAt(state, now) : 0;
+  const targetMs = (state?.targetMinutes ?? 25) * 60_000;
+  const remaining = Math.max(0, targetMs - elapsed);
 
-function NavItem({ link, pathname, extra = "", count }: { link: NavLink; pathname: string | null; extra?: string; count?: ReactNode }) {
-  const active = isActive(link, pathname);
   return (
-    <li className={`shrink-0 ${extra}`}>
-      <Link
-        href={link.href}
-        aria-current={active ? "page" : undefined}
-        className={`flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium whitespace-nowrap transition-colors duration-120 ease-dojo ${
-          active ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface hover:text-foreground"
-        }`}
-      >
-        {link.icon === "profile" ? <Avatar className="size-5 text-[10px]" /> : <Icon name={link.icon} />}
-        {link.icon === "profile" ? <ProfileName fallback={link.label} /> : link.label}
-        {count}
-      </Link>
-    </li>
+    <button
+      type="button"
+      onClick={startSession}
+      aria-label={state ? `Focus timer: ${clock(remaining)}` : "Start a focus session"}
+      title={state ? `Focus timer: ${clock(remaining)}` : "Start a focus session (25 min)"}
+      className="grid size-14 place-items-center rounded-[18px] bg-reward-soft text-on-reward-soft shadow-xs transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-primary"
+    >
+      {state ? (
+        <span className="font-mono text-xs font-semibold tabular-nums">
+          {clock(remaining)}
+        </span>
+      ) : (
+        <svg viewBox="0 0 24 24" className="size-6 fill-current" aria-hidden="true">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
-export function NavLinks({ pathname, counts }: { pathname: string | null; counts?: NavCounts }) {
+/** 96px navigation rail for desktop: ZD logo, Focus FAB, 5 items, avatar at bottom. */
+function NavRailInner({ counts, account, pathname }: { counts?: NavCounts; account?: ReactNode; pathname: string | null }) {
   return (
-    <nav aria-label="Main" className="-mx-1 overflow-x-auto px-1 max-md:hidden lg:mx-0 lg:overflow-visible lg:px-0">
-      <ul className="flex gap-1 lg:flex-col lg:gap-0.5">
-        {SIDEBAR.map((l) => (
-          <NavItem key={l.href} link={l} pathname={pathname} count={counts?.[l.href]} />
-        ))}
-        <li aria-hidden className="mx-1 w-px shrink-0 self-stretch bg-line lg:hidden" />
-        {SECONDARY.map((l) => (
-          <NavItem key={l.href} link={l} pathname={pathname} extra="lg:hidden" />
-        ))}
-      </ul>
+    <nav
+      aria-label="Main"
+      className="flex h-full w-24 shrink-0 flex-col items-center gap-4 bg-background py-5 text-foreground max-md:hidden print:hidden"
+    >
+      {/* ZD logo: 40px rounded square in primary */}
+      <Link
+        href="/"
+        aria-label="Zen Dojo, Today"
+        className="grid size-10 place-items-center rounded-[14px] bg-primary text-[15px] font-semibold text-on-primary transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-primary"
+      >
+        ZD
+      </Link>
+
+      {/* Focus FAB */}
+      <FocusFab />
+
+      {/* Five items: Today, Practice, Learn, Review, Roadmap */}
+      <div className="mt-2 flex flex-col items-center gap-3">
+        {SIDEBAR.map((item) => {
+          const active = isActive(item, pathname);
+          const count = counts?.[item.href];
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`group flex w-20 flex-col items-center gap-1 text-center no-underline transition-colors ${
+                active ? "text-foreground" : "text-muted hover:text-foreground"
+              }`}
+            >
+              <span
+                className={`relative grid h-8 w-14 place-items-center rounded-full transition-colors ${
+                  active ? "bg-primary-soft text-primary" : "text-muted group-hover:bg-surface-2 group-hover:text-foreground"
+                }`}
+              >
+                <Icon name={item.icon} active={active} className="size-6" />
+                {item.href === "/review" && count && (
+                  <span className="absolute -top-0.5 right-2 min-w-4 h-4 px-1 rounded-full bg-danger text-[12px] font-semibold text-white leading-4 text-center">
+                    {count}
+                  </span>
+                )}
+              </span>
+              <span className={`text-[12px] leading-tight ${active ? "font-semibold" : "font-medium"}`}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Bottom avatar trigger (Account menu) */}
+      <div className="mt-auto">
+        {account}
+      </div>
     </nav>
   );
 }
 
-export function NavFooterLinks({ pathname, account }: { pathname: string | null; account?: ReactNode }) {
-  // With the account area (signed in or out), the profile button and sync status live in it. The plain Profile link
-  // and sync icon remain as the fallback while it loads.
-  if (account) {
-    return <div className="hidden border-t border-line pt-2 lg:block">{account}</div>;
+function NavRailDynamic({ counts, account }: { counts?: NavCounts; account?: ReactNode }) {
+  const pathname = usePathname();
+  return <NavRailInner counts={counts} account={account} pathname={pathname} />;
+}
+
+export function NavRail({ counts, account, pathname }: { counts?: NavCounts; account?: ReactNode; pathname?: string | null }) {
+  if (pathname !== undefined) {
+    return <NavRailInner counts={counts} account={account} pathname={pathname} />;
   }
   return (
-    <div className="hidden items-center gap-1 border-t border-line pt-2 lg:flex">
-      <ul className="min-w-0 flex-1">
-        {SECONDARY.map((l) => (
-          <NavItem key={l.href} link={l} pathname={pathname} />
-        ))}
-      </ul>
-      <SyncStatusPill compact />
-    </div>
+    <Suspense fallback={<NavRailInner counts={counts} account={account} pathname={null} />}>
+      <NavRailDynamic counts={counts} account={account} />
+    </Suspense>
   );
+}
+
+/** Phone navigation bar (below `md`): 5 items including You */
+export function PhoneNavBar({ pathname }: { pathname: string | null }) {
+  return (
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line dark:border-0 bg-surface-2 px-1 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:hidden print:hidden"
+    >
+      <div className="grid grid-cols-5">
+        {TABS.map((item) => {
+          const active = isActive(item, pathname);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-14 flex-col items-center gap-1 text-center no-underline transition-colors ${
+                active ? "text-foreground" : "text-muted hover:text-foreground"
+              }`}
+            >
+              <span
+                className={`grid h-8 w-16 place-items-center rounded-full transition-colors ${
+                  active ? "bg-primary-soft text-primary" : "text-muted"
+                }`}
+              >
+                <Icon name={item.icon} active={active} className="size-6" />
+              </span>
+              <span className={`text-[12px] leading-tight ${active ? "font-semibold" : "font-medium"}`}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+/** Legacy helpers preserved for backward compatibility */
+export function Nav({ counts }: { counts?: NavCounts }) {
+  return <NavRail counts={counts} />;
+}
+
+export function NavLinks({ counts }: { pathname?: string | null; counts?: NavCounts }) {
+  return <NavRail counts={counts} />;
+}
+
+export function NavFooter({ account }: { account?: ReactNode }) {
+  return account ?? null;
+}
+
+export function NavFooterLinks({ account }: { pathname?: string | null; account?: ReactNode }) {
+  return account ?? null;
 }

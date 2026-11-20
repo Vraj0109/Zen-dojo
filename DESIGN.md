@@ -1,218 +1,153 @@
-# Zen Dojo design system
+# Zen Dojo Design System: Material 3 Expressive
 
-Status: approved for build (2026-11-19), plan 0083. Nothing in the app uses it yet. Mockups: "Zen Dojo redesign mockups"
-(https://claude.ai/artifact/Da18ULMwvybAWrQ13uRXmj, private). After you approve this file, a plan in `docs/plans/` moves the app onto these tokens screen by screen.
+Status: Implemented (plans 0085–0089). Supersedes and replaces the 0083 Dojo specification.
+Reference: "Expressive (Google style)" canvas boards (`docs/mockups/expressive/`).
 
-## Direction
+---
 
-**Keep what works today, fix what holds it back.** The current app already has the right bones: a quiet sidebar, dark
-and light modes, a green accent, flat cards and plain wording. The redesign keeps that look as the default theme
-(**Dojo**) and improves hierarchy, motivation, reading comfort and speed. Structure stays calm, like Linear or Notion.
-Motivation comes from progress you can feel (streak, XP bar, daily-goal ring) shown with real numbers, never from
-confetti, mascots everywhere or loud gradients. Warmer palettes (Ember and others) are themes, and every token can be
-changed in the custom theme.
+## 1. Direction and Principles
 
-Things we never do: purple-to-blue gradients, gradient text, glass panels, emoji as icons, three identical cards in a
-row as decoration, shadows on everything, more than one accent colour on one screen.
+The Zen Dojo design system is built on **Material 3 Expressive** principles adapted for a local-first software engineering interview preparation platform:
 
-## What changes from today's UI
+1. **Focus and Calm**: Warm neutral canvases (`#F6FBF5` light, `#0F1512` dark) paired with tonal forest greens (`#1E6B4A` light, `#8FD8B0` dark) provide high contrast without visual fatigue during multi-hour study sessions.
+2. **Intentional Hierarchy**: Expressive rounded shapes (10px to 32px radii and full pills), distinct tonal containers, and scalloped badge badges establish clear visual anchors without unnecessary borders or heavy drop shadows.
+3. **Purposeful Color**: Color conveys meaning. Primary green indicates interactive progress and positive actions; reward tones indicate XP and streaks; warning indicates review urgency; danger is strictly reserved for errors and destructive actions (guarded so primary can never collide with danger).
+4. **Fluid Responsiveness**: Container-query-driven layouts (`@container`) and responsive card grids (`repeat(auto-fill, minmax(min(100%, Npx), 1fr))`) ensure seamless flow from phone (375px) through large monitors (1440px+).
 
-Found by looking at the live site (Today, Practice, Learn, a lesson):
+---
 
-1. **Pages open blank for 3 to 5 seconds.** Every page shows a faded placeholder before content appears. Fix: render
-   the page shell and first section at once, stream the rest, and keep skeletons only for waits over 1 second.
-2. **Today shows no motivation.** No streak, XP or goal is visible; "This week" and "Week focus" are collapsed rows
-   that look empty. Fix: a progress row (daily-goal ring, XP bar, streak) and open, useful week and review cards.
-3. **Practice is heavy at the top.** Four all-caps stat tiles full of zeros, then five dropdowns and a separate Filter
-   button. Fix: one line of stats in plain case, a search box and one Filters button (sheet on phone, popover on
-   desktop), applied as you pick.
-4. **Lesson lines are too long.** Text runs about 90 characters wide and the outline is collapsed. Fix: a 68-character
-   column, the outline open on the right on wide screens, a clear "Mark as learned" and next-lesson link at the end.
-5. **Low-contrast grey text** in captions and table cells. Fix: muted text at 4.5:1 or more on its background.
-6. **The sidebar mixes jobs.** Back and forward arrows by the logo, a timer box and a large Sign in button compete with
-   navigation. Fix: streak and XP under the logo, the timer only while it runs, account and sync in one compact row at
-   the bottom.
-7. **The guest notice floats over content.** Fix: a slim bar at the top of the content area that can be dismissed.
-8. **Course cards all look the same.** Fix: a coloured subject mark, a visible progress bar and a clear next step.
+## 2. Color System
 
-## Colour
+Every color has an explicit semantic role. The design system defines 23 core theme tokens plus 5 paired subject tokens. Tokens map directly to Tailwind CSS utility classes via CSS custom properties.
 
-Every colour has one role. Pages use the token names (Tailwind classes such as `bg-surface`, `text-muted`), never raw
-values. Contrast: body text 4.5:1 or more on its background, large text and icons 3:1 or more.
-
-### Light (default theme "Dojo")
-
-| Token | Value | Role |
-|---|---|---|
-| `background` | `#F7F7F5` | Page background |
-| `surface` | `#FFFFFF` | Cards, panels, inputs, menus |
-| `surface-2` | `#EFEFEB` | Sunken areas: sidebar, table header, code block frame, hover row |
-| `line` | `#E4E4E0` | Borders and dividers (1px) |
-| `line-strong` | `#D3D3CE` | Input borders, focused card edge |
-| `foreground` | `#1A1A1A` | Main text, headings |
-| `muted` | `#66665F` | Secondary text, captions, icons at rest (5.6:1 on background) |
-| `primary` | `#2F7D5B` | Main buttons, links, selected nav item, focus ring (4.9:1 on white) |
-| `primary-hover` | `#256A4C` | Hover and pressed state of primary |
-| `primary-soft` | `#E3F0E8` | Selected nav background, primary badge background |
-| `on-primary` | `#FFFFFF` | Text and icons on primary |
-| `reward` | `#E8A317` | Streak flame, XP bar fill, earned badges. Decoration only, never text on light backgrounds |
-| `reward-soft` | `#FDF1D6` | Background of streak and XP chips |
-| `success` | `#2E7D4F` | Solved, passed tests, done tasks |
-| `warning` | `#9A6210` | Due for review, slow run, near limit (4.9:1 on background; `#A86A12` was 4.1:1) |
-| `danger` | `#B8322A` | Failed tests, destructive actions, errors |
-
-### Dark
-
-| Token | Value | Notes |
-|---|---|---|
-| `background` | `#111211` | Near-black, not pure black |
-| `surface` | `#1A1B1A` | |
-| `surface-2` | `#222322` | |
-| `line` | `#2C2D2B` | |
-| `line-strong` | `#3B3D3A` | |
-| `foreground` | `#ECECEA` | |
-| `muted` | `#9A9A94` | |
-| `primary` | `#5BB98A` | Lighter so it reads on dark (6.0:1 on background) |
-| `primary-hover` | `#73C69C` | |
-| `primary-soft` | `#1D3328` | |
-| `on-primary` | `#0B1A12` | Dark text on the light-orange button |
-| `reward` | `#F2B63C` | |
-| `reward-soft` | `#33280F` | |
-| `success` | `#5CB884` | |
-| `warning` | `#E0A23A` | |
-| `danger` | `#EF6F64` | |
-
-### Subject and difficulty colours
-
-Used only as a small dot, a 3px left edge or a chip, never as a large fill.
+### 2.1 Core Tokens (Default Theme "Dojo")
 
 | Token | Light | Dark | Role |
 |---|---|---|---|
-| `cat-dsa` | `#2F6FD6` | `#6EA2F0` | DSA |
-| `cat-sd` | `#8A4FC9` | `#B48AE8` | System design |
-| `cat-lld` | `#0F8A8A` | `#4CC2C2` | Low-level design |
-| `cat-core` | `#7A6A55` | `#B8A88F` | Core CS |
-| `cat-beh` | `#B7791F` | `#E3AE55` | Behavioural |
-| `cat-mock` | `#2F7D5B` | `#5BB98A` | Mock interviews |
-| `diff-easy` | `success` | | |
-| `diff-medium` | `warning` | | |
-| `diff-hard` | `danger` | | |
+| `background` | `#F6FBF5` | `#0F1512` | Page canvas background |
+| `surface` | `#FFFFFF` | `#1B211E` | Cards, panels, active tab items |
+| `surface-2` | `#EBF0EA` | `#252B28` | Segmented control tracks, search bars, sunken areas |
+| `line` | `#DEE5DD` | `#2F3631` | Subtle card borders in light mode; section dividers |
+| `line-strong` | `#C0C9C1` | `#404943` | Input outlines, chip borders, focused edges |
+| `outline` | `#707971` | `#8A938B` | Outlined button borders and inactive icon strokes |
+| `foreground` | `#171D19` | `#DEE4DE` | High-emphasis body text, headings |
+| `muted` | `#404943` | `#BFC9C1` | Secondary text, timestamps, captions (>= 4.5:1) |
+| `primary` | `#1E6B4A` | `#8FD8B0` | Filled buttons, active links, progress fills |
+| `primary-hover` | `#185A3E` | `#A6E3C2` | Hover and pressed state for primary elements |
+| `primary-container` | `#B6F1CF` | `#0F5236` | Hero cards, "next up" rows, Continue pills |
+| `on-primary-container` | `#00210F` | `#ABF4CB` | Text and icons on primary-container |
+| `primary-soft` | `#D2E8D9` | `#334B3D` | Tonal buttons, selected nav pill, selected chips and tabs |
+| `on-primary-soft` | `#0D1F15` | `#D2E8D9` | Text on primary-soft |
+| `on-primary` | `#FFFFFF` | `#003822` | High-contrast text on primary filled buttons |
+| `reward` | `#8B5000` | `#FFB95C` | XP numbers, warm icons |
+| `reward-soft` | `#FFDDB2` | `#6A3C00` | Focus FAB, streak, XP chips, boss cards (tertiary) |
+| `on-reward-soft` | `#2C1600` | `#FFDDB2` | Text on reward-soft |
+| `success` | `#1E6B4A` | `#8FD8B0` | Passed cases, easy difficulty |
+| `warning` | `#9A5B00` | `#FFB95C` | Medium difficulty, due |
+| `danger` | `#BA1A1A` | `#FFB4AB` | Compilation errors, test failures, deletions |
+| `danger-soft` | `#FFDAD6` | `#93000A` | Error boxes (compile errors, failed runs) |
+| `on-danger-soft` | `#410002` | `#FFDAD6` | Text on danger soft banners |
 
-## Themes and the custom theme
+### 2.2 Subject Category Tokens
 
-A theme is a full set of the colour tokens above plus a font pair and a radius scale. Built-in themes:
+Subject categories use balanced pastel tones in light mode and deep saturated tones in dark mode:
 
-| Theme | Feel | Background / primary |
-|---|---|---|
-| **Dojo** (default) | Today's look, sharpened: neutral, green | `#F7F7F5` / `#2F7D5B` |
-| **Ember** | Warm paper, orange | `#FAF7F2` / `#C2481B` |
-| **Ocean** | Cool blue, clear | `#F4F7FA` / `#2563B8` |
-| **Dusk** | Muted violet evening | `#F7F5F9` / `#6B4FB8` |
-| **Paper** | Black on cream, book-like, serif headings | `#FBF8F1` / `#1F1A14` |
-| **Terminal** | Dark only, green on black, mono headings | `#0E110E` / `#4ADE80` |
-
-Each built-in theme has a light and a dark version (Terminal is dark only).
-
-**Custom theme** (Settings > Appearance > Custom). Start from any theme, then change any token:
-
-- Colours: background, surface, surface-2, line, foreground, muted, primary, reward, success, warning, danger, each
-  with a colour picker and a hex field, for light and dark separately.
-- `on-primary` and `primary-hover` are worked out automatically (black or white text by contrast; hover 8% darker in
-  light, 8% lighter in dark) but can be overridden.
-- Fonts: UI font, heading font, code font. Pick from the bundled list or type any Google Font name.
-- Shape: radius (Sharp 4 / Default 8 / Round 12) and density (Compact / Comfortable).
-- A live preview card shows a button, a link, a card, a progress bar and body text while you edit.
-- A contrast check under each text colour shows the ratio and warns below 4.5:1 (it warns; it never blocks).
-- Export and import a theme as a small JSON file; it syncs to your account like other appearance settings.
-
-## Typography
-
-| Use | Family | Why |
-|---|---|---|
-| UI and body | **Figtree** | Friendly, round, very legible at small sizes; warmer than Inter or Geist |
-| Headings | **Figtree** (600 to 700) | One family keeps it calm; Paper theme switches headings to **Newsreader** |
-| Code | **JetBrains Mono** | Clear 0/O and 1/l, good ligature-free default for interview code |
-
-Reading fonts in Settings (Lexend, Atkinson Hyperlegible, custom) stay and replace the UI and body family.
-
-Scale (rem at 16px base, line height):
-
-| Token | Size | Line height | Weight | Use |
+| Subject | Light Tone (`bg-cat-*`) | Light Text (`text-on-cat-*`) | Dark Tone (`bg-cat-*`) | Dark Text (`text-on-cat-*`) |
 |---|---|---|---|---|
-| `text-xs` | 12px | 16px | 500 | Labels, badges, timestamps |
-| `text-sm` | 14px | 20px | 400 | Secondary text, table cells, nav items |
-| `text-base` | 16px | 26px | 400 | Body and lesson text |
-| `text-lg` | 18px | 28px | 600 | Card titles |
-| `text-xl` | 22px | 30px | 600 | Section headings |
-| `text-2xl` | 28px | 36px | 700 | Page titles |
-| `text-3xl` | 36px | 44px | 700 | Big numbers (streak, XP, today's count) |
+| **DSA** | `#D6E3FF` | `#001B3E` | `#284777` | `#D6E3FF` |
+| **System Design** | `#F0DBFF` | `#2A0E45` | `#56397A` | `#F0DBFF` |
+| **Low-Level Design** | `#BCEBEE` | `#002022` | `#1D4E51` | `#BCEBEE` |
+| **Core CS** | `#D2E8D9` | `#0D1F15` | `#334B3D` | `#D2E8D9` |
+| **Behavioural** | `#FFDDB2` | `#2C1600` | `#6A3C00` | `#FFDDB2` |
 
-Weights in use: 400, 500, 600, 700. Lesson text max width 68 characters (`max-w-[68ch]`). Numbers that change (XP,
-timers, counts) use tabular figures (`tabular-nums`).
+---
 
-## Spacing and layout
+## 3. Typography
 
-- Base unit 4px. Scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64.
-- Inside a card: 20px (16px compact). Between cards: 16px. Between page sections: 40px.
-- Layout is wide (the user prefers wide pages): content area up to 1440px with a 240px sidebar; reading pages (lessons)
-  centre a 68ch text column with a sticky outline on the right from 1280px up.
-- Phone (under 768px): no sidebar; bottom tab bar (Today, Practice, Learn, Review, You), 16px side margins, touch
-  targets at least 44px.
+- **Primary UI & Headings**: **Google Sans** (weights 400, 500, 600).
+- **Rule**: Never use font weights above 600 (`font-bold` and `font-extrabold` are disallowed).
+- **Code & Numbers**: **JetBrains Mono** (400, 500) for editor panes, test cases, and memory/runtime statistics.
+- **Reading Options**: Users can choose Lexend, Atkinson Hyperlegible, or Custom font in Settings.
 
-## Shape and depth
+### Type Scale
 
-- Radius: `sm` 6px (badges, inputs), `md` 10px (buttons, cards), `lg` 14px (panels, dialogs), `full` (chips, avatars,
-  progress bars). Custom theme can switch the whole scale to Sharp or Round.
-- Depth comes from borders and surfaces first. Shadows only on things that float:
-  - `shadow-sm`: `0 1px 2px rgba(31,26,20,0.06)` for raised cards on hover.
-  - `shadow-lg`: `0 8px 24px rgba(31,26,20,0.12)` for menus, popovers and dialogs.
-  - Dark mode uses no shadows; floating things get `line-strong` borders instead.
+| Size Token | Font Size | Line Height | Typical Usage |
+|---|---|---|---|
+| `text-xs` | 12px (0.75rem) | 16px | Badges, kicker captions, keyboard hints |
+| `text-sm` | 14px (0.875rem) | 20px | Subtitles, metadata, secondary body |
+| `text-base` | 16px (1.0rem) | 24px | Default body copy, form inputs, button labels |
+| `text-lg` | 18px (1.125rem) | 28px | Sub-headings, card titles |
+| `text-xl` | 20px (1.25rem) | 28px | Section headings |
+| `text-2xl` | 24px (1.5rem) | 32px | Sub-page headers |
+| `text-3xl` | 32px (2.0rem) | 38px | Main page titles (phone: 24–28px) |
+| `text-4xl` | 40px (2.5rem) | 48px | Stat hero numbers, daily countdowns |
 
-## Components
+Prose text is strictly capped at `max-w-[70ch]` for reading comfort.
 
-- **Buttons.** Primary: `primary` fill, `on-primary` text, 36px high (40px on phone), radius `md`, weight 600. Secondary:
-  `surface` with a `line-strong` border, `foreground` text. Quiet: no border, `muted` text, `surface-2` on hover.
-  Danger: `danger` text and border, filled only in the confirm dialog. All: 2px `primary` focus ring with 2px offset;
-  disabled at 45% opacity, no hover. Labels start with a verb ("Start session", "Mark done"), never "OK" or "Submit".
-- **Links.** `primary`, no underline until hover inside UI; always underlined inside lesson text.
-- **Inputs.** 36px, `surface`, `line-strong` border, radius `sm`, visible label above, help or error text below in
-  `muted` or `danger`. Focus: `primary` border plus ring.
-- **Cards.** `surface`, 1px `line`, radius `md`, 20px padding, no shadow at rest. A card that links somewhere gets
-  `line-strong` and `shadow-sm` on hover. A subject is shown with a 3px left edge in its `cat-*` colour.
-- **Sidebar.** `surface-2` background, 240px wide, items 32px high with an icon and label; the selected item has
-  `primary-soft` background and `primary` text and icon. Streak and XP sit at the top under the logo, account at the
-  bottom.
-- **Progress.** Bars are 6px high, radius `full`, `surface-2` track, `primary` fill (lessons, courses) or `reward` fill
-  (XP). Rings for the daily goal: 4px stroke. Numbers next to every bar ("12 of 40").
-- **Streak and XP chips.** `reward-soft` background, flame or bolt icon in `reward`, number in `foreground` 600.
-- **Badges and tags.** 20px high, `text-xs` 500, radius `sm`; difficulty uses the `diff-*` colour as text on a 12%
-  tinted background.
-- **Tables and lists.** Rows 44px, `line` dividers, `surface-2` header and hover. Solved rows get a `success` check,
-  not a coloured row.
-- **Tabs.** Text tabs with a 2px `primary` underline on the selected one; no pill backgrounds.
-- **Dialogs and sheets.** Radius `lg`, `shadow-lg`, 24px padding; on phone they become bottom sheets with a grab bar.
-  Destructive confirms name the thing being deleted.
-- **Empty states.** One line of plain text, one primary action, a small line icon. No illustrations or mascots.
-- **Loading.** Nothing for waits under 100ms, inline spinner up to 1s, skeleton blocks in `surface-2` beyond that.
-- **Code.** Editor and code blocks on `surface` (light) or `#0D0E0D` (dark) with JetBrains Mono 14px; the existing
-  Shiki token colours are kept but checked against the new backgrounds.
-- **Rewards.** On finishing a task: the check animates (150ms) and the XP chip counts up. A level up or a new badge gets
-  one small toast with the badge. No full-screen confetti. All motion respects reduced-motion.
+---
 
-## Motion
+## 4. Shape and Elevation
 
-- Durations: 120ms (hover, press), 180ms (menus, tabs), 240ms (sheets, dialogs). Easing `cubic-bezier(0.2, 0, 0, 1)`.
-- Animate only opacity and transform. Under `prefers-reduced-motion`, everything becomes an instant or opacity-only change.
+The Expressive shape system relies on progressive radii and pill buttons:
 
-## Icons and imagery
+- `r-sm` (`10px` / `rounded-sm`): Filter chips, badges, small control boxes.
+- `r-md` (`16px` / `rounded-md`): Text inputs, row items, standard dialogs.
+- `r-lg` (`24px` / `rounded-lg`): Problem workspace panes, standard cards.
+- `r-xl` (`32px` / `rounded-xl`): Hero cards, login container, major sheets.
+- `full` (`9999px` / `rounded-full`): All action buttons, segmented pill selectors, search inputs, status dots.
 
-- One icon set: **Lucide**, 1.75px stroke, 16px in text and nav, 20px in buttons and empty states. Icons are `muted` at
-  rest and take the text colour of their context.
-- No stock photos. Imagery is the content itself: diagrams, code, charts. The Buddy pet keeps its own art and stays the
-  only illustrated element, in the corner, never in the layout.
-- Charts use `primary`, `reward` and the `cat-*` colours; gridlines in `line`.
+### Elevation & Borders
+- Cards in light mode have a 1px border using `line` (`#DEE5DD`).
+- Cards in dark mode have **no borders** (`border-0`), allowing the contrast between `background` (`#0F1512`) and `surface` (`#1B211E`) to define depth naturally.
+- Menus and popovers use `var(--elev-menu)`: `0 8px 28px rgba(0, 0, 0, 0.07)` in light mode, `0 8px 28px rgba(0, 0, 0, 0.40)` in dark mode.
 
-## Open decisions
+### Decorative Elements
+- **Scallop Badge**: A 24-point scalloped star SVG path (`M50 4 61 13 75 10...`) used for streak counters, level badges, and achievements.
+- **Wavy Progress Line**: An undulating SVG progress indicator for the XP bar.
+- **Subject Shapes**: Distinct rounded geometric tiles (rounded square, leaf corner, pill, circle) identifying study categories.
 
-1. Whether Paper's serif headings (Newsreader) are worth the extra font download.
-2. Figma file: needs the Figma connector signed in (`/mcp`) before the mockups can be built there.
+---
+
+## 5. Shell and Navigation Layout
+
+1. **Desktop Shell (>= 768px)**:
+   - Fixed **96px Navigation Rail** docked on the left: ZD logo, the focus FAB (shows the countdown while a session runs), the five items, and the avatar at the bottom.
+   - The frame never scrolls (`html, body { overflow: clip }` from md up); `<main>` is the only scroll area and an inline-size container, so pages size side panels by the content width with `@min-[…]`/`@max-[…]` (thresholds exclude the rail).
+   - The rail has **no right border line**, blending directly into the canvas background.
+   - 5 primary destinations: Today, Practice, Learn, Review, Roadmap (or Backlog/Revise).
+   - Bottom avatar button with sync status dot (green=synced, amber=syncing, red=error).
+   - Clicking the avatar opens the **Account Popover** menu (profile, settings, shortcuts, theme toggle, sync options, sign out).
+   - Content area has no artificial desktop top bar header (`HistoryButtons` removed), maximizing vertical viewing space.
+   - Page content (`PageMain`) is wide: up to 1360px, centred. `narrow` (896px) is only for forms; `full` is for pages that manage their own scroll areas (Practice, the workspace).
+2. **Phone Shell (< 768px)**:
+   - Top slim bar with app logo and quick account access.
+   - Bottom **Navigation Bar** with 5 equal tabs (Today, Practice, Learn, Review, You).
+   - Account settings and profile menu items are embedded directly into the "You" tab.
+3. **Workspace Focus Shell** (`/dsa/[id]`, pack problems):
+   - DSA problem workspace and "Your classes" IDE switch into full-viewport layout (`h-screen overflow-hidden`).
+   - Dedicated 56px (`h-14`) top bar on `background` containing:
+     - 44px round back button on `surface`.
+     - Kicker and problem title with difficulty badge.
+     - 40px rounded-full layout switcher pill button group.
+     - 44px Run (tonal: `primary-soft`) and Submit (`primary`) pills with key hints (Ctrl ' and Ctrl Enter; Cmd on macOS).
+     - 44px round keyboard shortcuts button (`?`).
+   - Panes are `surface` with `rounded-[24px]` corners and 8px gaps on `background`. The workspace follows the current theme (the board shows dark, but dark is not forced). Under 980px the panes stack in one column.
+
+---
+
+## 6. Theme Engine & Near-Danger Guard
+
+- **Supported Themes**: Dojo (default green), Paper (high-contrast warm), Ocean (blue), Terminal (dark monospace green), Sage (muted green), Dusk (violet), Ember (terracotta).
+- **Automated Palette Derivation**: Themes automatically calculate expressive companion tokens (`primary-container`, `primary-soft`, `on-*`) using `derivePalette` / `deriveTones`.
+- **Near-Danger Guard**: If a user selects a custom primary color whose hue is within 25° of the danger color (`#BA1A1A`) and saturation > 40%, the theme editor displays a `danger-soft` warning banner and renders a side-by-side preview with the destructive "Delete" action to prevent deceptive or ambiguous UI states.
+
+---
+
+## 7. Responsive Rules
+
+- **Card grids** never use a fixed column count: `repeat(auto-fill, minmax(min(100%, Npx), 1fr))` (`grid-auto-cards-200/240/300`), or `auto-fit` when a row must stretch to the width.
+- **Side panels** (group list, lesson list, outline, progress aside) show and hide by the content width with container queries on `<main>`, so in-between window widths never squeeze the middle column. Practice: group list from 1160px, aside from 920px. Lessons: lesson list from 780px, outline from 1040px (an "Outline" button opens it below that). Workspace: panes stack under 980px.
+- **375px (phone)**: one column, the phone nav bar at the bottom (content padded above it), no sideways page scroll, 44px targets.
+- **768px and up**: the rail and the fixed frame.
+- **Text**: nothing below 12px, nothing above weight 600, prose capped at `max-w-[70ch]`.
+- **Lists**: no pagination anywhere; long lists are one scroll area with `content-visibility: auto` rows.

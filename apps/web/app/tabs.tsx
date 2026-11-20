@@ -11,7 +11,7 @@ export function Tabs({
   active,
   hrefFor,
   label,
-  className = "flex touch-pan-x gap-6 border-b border-line overflow-x-auto overflow-y-hidden overscroll-x-contain print:hidden",
+  className = "inline-flex p-1 rounded-full bg-surface-2 gap-1 overflow-x-auto print:hidden",
 }: {
   tabs: readonly TabItem[];
   active: string;
@@ -30,10 +30,10 @@ export function Tabs({
             href={hrefFor(t.id)}
             scroll={false}
             aria-current={isActive ? "page" : undefined}
-            className={`-mb-px shrink-0 pb-2 text-sm font-medium whitespace-nowrap transition-colors duration-180 ease-dojo ${
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-180 ease-dojo ${
               isActive
-                ? "border-b-2 border-primary text-foreground"
-                : "border-b-2 border-transparent text-muted hover:text-foreground"
+                ? "bg-primary-soft text-on-primary-soft font-semibold shadow-xs"
+                : "text-muted hover:text-foreground"
             }`}
           >
             {t.label}

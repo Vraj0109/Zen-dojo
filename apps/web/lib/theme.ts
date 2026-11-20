@@ -9,23 +9,189 @@ export const THEME_MODES = ["system", "light", "dark"] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
 /**
- * One colour each, the same in light and dark. The default ("green", the stored id since before themes had their own
- * colour) keeps the theme's own primary: green in Dojo, orange in Ember and so on. `color` is Dojo's green.
+ * Accent colours: `color` is the light primary (tone 40, also the swatch) and `dark` the dark primary (tone 80). The
+ * CSS in globals.css sets a full tonal set for each (container, soft, on-*). The default ("green", the stored id since
+ * before themes had their own colour) keeps the theme's own primary: green in Dojo, orange in Ember and so on; its
+ * values are Dojo's green.
  */
 export const ACCENTS = [
-  { id: "green", label: "Theme colour", color: "#2f7d5b" },
-  { id: "blue", label: "Blue", color: "#2f6fe0" },
-  { id: "violet", label: "Violet", color: "#7c4dde" },
-  { id: "amber", label: "Amber", color: "#b8590a" },
-  { id: "rose", label: "Rose", color: "#d6285a" },
+  { id: "green", label: "Theme colour", color: "#1e6b4a", dark: "#8fd8b0" },
+  { id: "blue", label: "Blue", color: "#005eb4", dark: "#b2c5ff" },
+  { id: "violet", label: "Violet", color: "#7348ad", dark: "#dbb8ff" },
+  { id: "amber", label: "Amber", color: "#815500", dark: "#feba53" },
+  { id: "rose", label: "Rose", color: "#ae2071", dark: "#ffafd3" },
 ] as const;
 export type AccentId = (typeof ACCENTS)[number]["id"];
 export const DEFAULT_ACCENT: AccentId = "green";
 
 /** Every colour token a theme sets (DESIGN.md). The CSS variable is `--` + the name. */
-export const THEME_TOKENS = ["background", "surface", "surface-2", "line", "line-strong", "foreground", "muted", "primary", "primary-hover", "primary-soft", "on-primary", "reward", "reward-soft", "success", "warning", "danger"] as const;
+export const THEME_TOKENS = [
+  "background",
+  "surface",
+  "surface-2",
+  "line",
+  "line-strong",
+  "outline",
+  "foreground",
+  "muted",
+  "primary",
+  "primary-hover",
+  "primary-container",
+  "on-primary-container",
+  "primary-soft",
+  "on-primary-soft",
+  "on-primary",
+  "reward",
+  "reward-soft",
+  "on-reward-soft",
+  "success",
+  "warning",
+  "danger",
+  "danger-soft",
+  "on-danger-soft",
+] as const;
 export type ThemeToken = (typeof THEME_TOKENS)[number];
 export type Palette = Record<ThemeToken, string>;
+
+export function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export function mixHex(color: string, bg: string, bgWeight: number): string {
+  const [r1, g1, b1] = hexToRgb(color);
+  const [r2, g2, b2] = hexToRgb(bg);
+  return rgbToHex(r1 * (1 - bgWeight) + r2 * bgWeight, g1 * (1 - bgWeight) + g2 * bgWeight, b1 * (1 - bgWeight) + b2 * bgWeight);
+}
+
+export function relativeLuminance(hex: string): number {
+  const [r, g, b] = hexToRgb(hex).map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function getContrast(hex1: string, hex2: string): number {
+  const l1 = relativeLuminance(hex1);
+  const l2 = relativeLuminance(hex2);
+  const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+export function bestTextColor(bg: string): string {
+  const whiteContrast = getContrast("#ffffff", bg);
+  const blackContrast = getContrast("#000000", bg);
+  return whiteContrast >= blackContrast ? "#ffffff" : "#000000";
+}
+
+/** Converts a hex color string to [hue (0-360), saturation (0-1), lightness (0-1)]. */
+export function hexToHsl(hex: string): [number, number, number] {
+  try {
+    const [r255, g255, b255] = hexToRgb(hex);
+    if (Number.isNaN(r255) || Number.isNaN(g255) || Number.isNaN(b255)) return [0, 0, 0];
+    const r = r255 / 255;
+    const g = g255 / 255;
+    const b = b255 / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+
+    if (delta !== 0) {
+      s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+      switch (max) {
+        case r:
+          h = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
+          break;
+        case g:
+          h = ((b - r) / delta + 2) * 60;
+          break;
+        case b:
+          h = ((r - g) / delta + 4) * 60;
+          break;
+      }
+    }
+    return [h, s, l];
+  } catch {
+    return [0, 0, 0];
+  }
+}
+
+/**
+ * Checks if the primary color's hue is within ~25 deg of the danger color's hue
+ * and its saturation is above 40%.
+ */
+export function isNearDanger(primary: string, danger = "#BA1A1A"): boolean {
+  if (!primary) return false;
+  const [hP, sP] = hexToHsl(primary);
+  const [hD] = hexToHsl(danger);
+  const hueDiff = Math.abs(hP - hD);
+  const shortestDiff = Math.min(hueDiff, 360 - hueDiff);
+  return shortestDiff <= 25 && sP > 0.4;
+}
+
+/** Pure helper to derive missing Expressive tokens for a theme palette. */
+export function derivePalette(palette: Record<string, string>): Palette {
+  const primary = palette.primary;
+  const background = palette.background;
+  const danger = palette.danger;
+  const rewardSoft = palette["reward-soft"] || palette.reward || "#e8a317";
+  const foreground = palette.foreground || "#171d19";
+
+  const primaryContainer = palette["primary-container"] || mixHex(primary, background, 0.75);
+  const onPrimaryContainer = palette["on-primary-container"] || bestTextColor(primaryContainer);
+  const primarySoft = palette["primary-soft"] || mixHex(primary, background, 0.85);
+  const onPrimarySoft = palette["on-primary-soft"] || bestTextColor(primarySoft);
+  const onRewardSoft = palette["on-reward-soft"] || bestTextColor(rewardSoft);
+  const dangerSoft = palette["danger-soft"] || mixHex(danger, background, 0.85);
+  const onDangerSoft = palette["on-danger-soft"] || bestTextColor(dangerSoft);
+  const outline = palette.outline || mixHex(foreground, background, 0.45);
+
+  return {
+    ...palette,
+    outline,
+    "primary-container": primaryContainer,
+    "on-primary-container": onPrimaryContainer,
+    "primary-soft": primarySoft,
+    "on-primary-soft": onPrimarySoft,
+    "on-reward-soft": onRewardSoft,
+    "danger-soft": dangerSoft,
+    "on-danger-soft": onDangerSoft,
+  } as Palette;
+}
+
+export function deriveTones<T extends { light: Record<string, string>; dark: Record<string, string> }>(
+  target: T
+): Omit<T, "light" | "dark"> & { light: Palette; dark: Palette };
+export function deriveTones<T extends Record<string, string>>(target: T): Palette;
+export function deriveTones(
+  target: { light: Record<string, string>; dark: Record<string, string> } | Record<string, string>
+): unknown {
+  if (
+    target &&
+    "light" in target &&
+    typeof target.light === "object" &&
+    target.light !== null &&
+    "dark" in target &&
+    typeof target.dark === "object" &&
+    target.dark !== null
+  ) {
+    return {
+      ...target,
+      light: derivePalette(target.light as Record<string, string>),
+      dark: derivePalette(target.dark as Record<string, string>),
+    };
+  }
+  return derivePalette(target as Record<string, string>);
+}
 
 /**
  * Themes (stored as `style`; the ids never change so saved choices keep working). `classic` is shown as Dojo, the
@@ -37,73 +203,120 @@ export const STYLES = [
     id: "classic",
     label: "Dojo",
     blurb: "Neutral and green, the default",
-    light: { background: "#f7f7f5", surface: "#ffffff", "surface-2": "#efefeb", line: "#e4e4e0", "line-strong": "#d3d3ce", foreground: "#1a1a1a", muted: "#66665f", primary: "#2f7d5b", "primary-hover": "#256a4c", "primary-soft": "#e3f0e8", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
-    dark: { background: "#111211", surface: "#1a1b1a", "surface-2": "#222322", line: "#2c2d2b", "line-strong": "#3b3d3a", foreground: "#ececea", muted: "#9a9a94", primary: "#5bb98a", "primary-hover": "#73c69c", "primary-soft": "#1d3328", "on-primary": "#0b1a12", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
-    radius: "0.625rem",
+    light: {
+      background: "#f6fbf5",
+      surface: "#ffffff",
+      "surface-2": "#ebf0ea",
+      line: "#dee5dd",
+      "line-strong": "#c0c9c1",
+      outline: "#707971",
+      foreground: "#171d19",
+      muted: "#404943",
+      primary: "#1e6b4a",
+      "on-primary": "#ffffff",
+      "primary-hover": "#185a3e",
+      "primary-container": "#b6f1cf",
+      "on-primary-container": "#00210f",
+      "primary-soft": "#d2e8d9",
+      "on-primary-soft": "#0d1f15",
+      reward: "#8b5000",
+      "reward-soft": "#ffddb2",
+      "on-reward-soft": "#2c1600",
+      success: "#1e6b4a",
+      warning: "#9a5b00",
+      danger: "#ba1a1a",
+      "danger-soft": "#ffdad6",
+      "on-danger-soft": "#410002",
+    },
+    dark: {
+      background: "#0f1512",
+      surface: "#1b211e",
+      "surface-2": "#252b28",
+      line: "#2f3631",
+      "line-strong": "#404943",
+      outline: "#8a938b",
+      foreground: "#dee4de",
+      muted: "#bfc9c1",
+      primary: "#8fd8b0",
+      "on-primary": "#003822",
+      "primary-hover": "#a6e3c2",
+      "primary-container": "#0f5236",
+      "on-primary-container": "#abf4cb",
+      "primary-soft": "#334b3d",
+      "on-primary-soft": "#d2e8d9",
+      reward: "#ffb95c",
+      "reward-soft": "#6a3c00",
+      "on-reward-soft": "#ffddb2",
+      success: "#8fd8b0",
+      warning: "#ffb95c",
+      danger: "#ffb4ab",
+      "danger-soft": "#93000a",
+      "on-danger-soft": "#ffdad6",
+    },
+    radius: "16px",
     darkOnly: false,
   },
   {
     id: "paper",
     label: "Paper",
-    blurb: "Black on cream, like a book",
-    light: { background: "#fbf8f1", surface: "#fffdf8", "surface-2": "#f2ede1", line: "#e6dfcf", "line-strong": "#d4cbb6", foreground: "#1f1a14", muted: "#6b6152", primary: "#1f1a14", "primary-hover": "#3a3227", "primary-soft": "#efe9dc", "on-primary": "#fbf8f1", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
-    dark: { background: "#1a1713", surface: "#221e19", "surface-2": "#2a251f", line: "#363028", "line-strong": "#463f35", foreground: "#efe7d6", muted: "#b0a48e", primary: "#efe7d6", "primary-hover": "#d9d0be", "primary-soft": "#332d24", "on-primary": "#1a1713", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
-    radius: "0.375rem",
+    blurb: "Sand and sepia ink, for long reading",
+    light: { background: "#fcf6ed", surface: "#fffcf7", "surface-2": "#f0eae1", line: "#eee0d2", "line-strong": "#d2c4b6", outline: "#817568", foreground: "#1f1b15", muted: "#4f4539", primary: "#7d5636", "primary-hover": "#6d4828", "primary-container": "#ffdcc2", "on-primary-container": "#2b1700", "primary-soft": "#f3dfcd", "on-primary-soft": "#251909", "on-primary": "#ffffff", reward: "#7a5900", "reward-soft": "#ffdea9", "on-reward-soft": "#251a00", success: "#206b3c", warning: "#925400", danger: "#ba1a1a", "danger-soft": "#ffdad6", "on-danger-soft": "#410002" },
+    dark: { background: "#17130a", surface: "#231f19", "surface-2": "#2d2923", line: "#3d3328", "line-strong": "#4f4539", outline: "#9b8f81", foreground: "#e7e2d9", muted: "#d2c4b6", primary: "#e5c094", "primary-hover": "#f6d1a4", "primary-container": "#5c421c", "on-primary-container": "#ffddb5", "primary-soft": "#534435", "on-primary-soft": "#f3dfcd", "on-primary": "#432c04", reward: "#efbf65", "reward-soft": "#5d4200", "on-reward-soft": "#ffdea9", success: "#8cd7a0", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    radius: "16px",
     darkOnly: false,
   },
   {
     id: "ocean",
     label: "Ocean",
-    blurb: "Cool blue, clear",
-    light: { background: "#f4f7fa", surface: "#ffffff", "surface-2": "#e9eef4", line: "#dce3ec", "line-strong": "#c8d2df", foreground: "#14213a", muted: "#56657a", primary: "#2563b8", "primary-hover": "#1e529a", "primary-soft": "#e0eaf7", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
-    dark: { background: "#0d131c", surface: "#141c27", "surface-2": "#1b2431", line: "#253041", "line-strong": "#34425a", foreground: "#e4ecf8", muted: "#93a3ba", primary: "#6ea2f0", "primary-hover": "#8ab5f4", "primary-soft": "#18283f", "on-primary": "#0a1424", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
-    radius: "0.75rem",
+    blurb: "Clear blue on cool grey",
+    light: { background: "#f6f9ff", surface: "#ffffff", "surface-2": "#eaeef5", line: "#d9e3f1", "line-strong": "#bdc7d5", outline: "#6f7884", foreground: "#191c21", muted: "#3f4753", primary: "#005fae", "primary-hover": "#005195", "primary-container": "#d8e2ff", "on-primary-container": "#001c3a", "primary-soft": "#dbe3f1", "on-primary-soft": "#151c26", "on-primary": "#ffffff", reward: "#8b5000", "reward-soft": "#ffdcbe", "on-reward-soft": "#291800", success: "#206b3c", warning: "#925400", danger: "#ba1a1a", "danger-soft": "#ffdad6", "on-danger-soft": "#410002" },
+    dark: { background: "#101419", surface: "#1d2025", "surface-2": "#272a30", line: "#2d3540", "line-strong": "#3f4753", outline: "#88929e", foreground: "#dfe3ea", muted: "#bdc7d5", primary: "#aec6ff", "primary-hover": "#c8d7ff", "primary-container": "#004785", "on-primary-container": "#d8e2ff", "primary-soft": "#404753", "on-primary-soft": "#dbe3f1", "on-primary": "#00315e", reward: "#ffb871", "reward-soft": "#6a3c00", "on-reward-soft": "#ffdcbe", success: "#8cd7a0", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    radius: "16px",
     darkOnly: false,
   },
   {
     id: "terminal",
     label: "Terminal",
-    blurb: "Green on black, monospace, square corners (dark only)",
-    light: { background: "#0e110e", surface: "#131813", "surface-2": "#192019", line: "#223022", "line-strong": "#2e402e", foreground: "#c8f5c8", muted: "#7fae7f", primary: "#4ade80", "primary-hover": "#6ee79a", "primary-soft": "#143220", "on-primary": "#052e12", reward: "#f2b63c", "reward-soft": "#2e2a0f", success: "#4ade80", warning: "#e0b23a", danger: "#f07a6e" },
-    dark: { background: "#0e110e", surface: "#131813", "surface-2": "#192019", line: "#223022", "line-strong": "#2e402e", foreground: "#c8f5c8", muted: "#7fae7f", primary: "#4ade80", "primary-hover": "#6ee79a", "primary-soft": "#143220", "on-primary": "#052e12", reward: "#f2b63c", "reward-soft": "#2e2a0f", success: "#4ade80", warning: "#e0b23a", danger: "#f07a6e" },
-    radius: "0",
+    blurb: "Phosphor green on black, monospace (dark only)",
+    light: { background: "#081007", surface: "#161b15", "surface-2": "#1e231d", line: "#242f23", "line-strong": "#3e4a3c", outline: "#879485", foreground: "#dde4dc", muted: "#bdcaba", primary: "#5ce060", "primary-hover": "#6ff270", "primary-container": "#005310", "on-primary-container": "#7bfe7b", "primary-soft": "#334d30", "on-primary-soft": "#ccebc7", "on-primary": "#003907", reward: "#dfc745", "reward-soft": "#514700", "on-reward-soft": "#fde261", success: "#5ce060", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    dark: { background: "#081007", surface: "#161b15", "surface-2": "#1e231d", line: "#242f23", "line-strong": "#3e4a3c", outline: "#879485", foreground: "#dde4dc", muted: "#bdcaba", primary: "#5ce060", "primary-hover": "#6ff270", "primary-container": "#005310", "on-primary-container": "#7bfe7b", "primary-soft": "#334d30", "on-primary-soft": "#ccebc7", "on-primary": "#003907", reward: "#dfc745", "reward-soft": "#514700", "on-reward-soft": "#fde261", success: "#5ce060", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    radius: "10px",
     darkOnly: true,
   },
   {
     id: "sage",
     label: "Sage",
-    blurb: "Soft green-grey. Calm, low glare",
-    light: { background: "#e9efe7", surface: "#f6f9f4", "surface-2": "#dfe7dc", line: "#cbd8c8", "line-strong": "#b7c7b3", foreground: "#1c2a21", muted: "#4a5d50", primary: "#276b4d", "primary-hover": "#1f5a40", "primary-soft": "#d5e6da", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2a7348", warning: "#8e5a0e", danger: "#a82d25" },
-    dark: { background: "#17201b", surface: "#1e2923", "surface-2": "#25312a", line: "#2f3f35", "line-strong": "#3e5045", foreground: "#dbe7de", muted: "#9db3a3", primary: "#6cc59a", "primary-hover": "#86d1ac", "primary-soft": "#21382b", "on-primary": "#0b1a12", reward: "#f2b63c", "reward-soft": "#33280f", success: "#66be8c", warning: "#e0a23a", danger: "#ef7a70" },
-    radius: "0.625rem",
+    blurb: "Moss and grey-green. Calm, low glare",
+    light: { background: "#f5f7f0", surface: "#fafdf6", "surface-2": "#e9ece5", line: "#dfe5d6", "line-strong": "#c3c9ba", outline: "#74796c", foreground: "#2b2d27", muted: "#44483c", primary: "#526441", "primary-hover": "#445534", "primary-container": "#d5e9c1", "on-primary-container": "#141f00", "primary-soft": "#dfe5d2", "on-primary-soft": "#191d0f", "on-primary": "#fffffe", reward: "#885206", "reward-soft": "#ffdcbc", "on-reward-soft": "#291800", success: "#206b3c", warning: "#925400", danger: "#ba1a1a", "danger-soft": "#ffdad6", "on-danger-soft": "#410002" },
+    dark: { background: "#12140d", surface: "#1e201b", "surface-2": "#282b25", line: "#32362b", "line-strong": "#44483c", outline: "#8d9385", foreground: "#d5d8d1", muted: "#c3c9ba", primary: "#b9cda6", "primary-hover": "#cadeb6", "primary-container": "#3b4c2b", "on-primary-container": "#d5e9c1", "primary-soft": "#444939", "on-primary-soft": "#dfe5d2", "on-primary": "#243516", reward: "#feb96f", "reward-soft": "#683d00", "on-reward-soft": "#ffdcbc", success: "#8cd7a0", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    radius: "16px",
     darkOnly: false,
   },
   {
     id: "dusk",
     label: "Dusk",
-    blurb: "Muted violet evening",
-    light: { background: "#f7f5f9", surface: "#fdfcfe", "surface-2": "#eeeaf3", line: "#e2ddea", "line-strong": "#d0c9dc", foreground: "#2a2438", muted: "#645c74", primary: "#6b4fb8", "primary-hover": "#5a41a0", "primary-soft": "#ece6f7", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
-    dark: { background: "#15131a", surface: "#1d1a24", "surface-2": "#25212e", line: "#302b3a", "line-strong": "#403a4d", foreground: "#e2ddeb", muted: "#a39cb2", primary: "#b49af0", "primary-hover": "#c5b0f4", "primary-soft": "#2a2240", "on-primary": "#170f2a", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
-    radius: "0.625rem",
+    blurb: "Soft violet evening",
+    light: { background: "#fbf8ff", surface: "#ffffff", "surface-2": "#efedf4", line: "#e6e0ef", "line-strong": "#cac4d3", outline: "#7a7582", foreground: "#29272c", muted: "#494551", primary: "#6750a4", "primary-hover": "#574194", "primary-container": "#e9ddff", "on-primary-container": "#150c57", "primary-soft": "#e4e0f3", "on-primary-soft": "#1c1a27", "on-primary": "#ffffff", reward: "#8b5000", "reward-soft": "#ffdcbe", "on-reward-soft": "#291800", success: "#206b3c", warning: "#925400", danger: "#ba1a1a", "danger-soft": "#ffdad6", "on-danger-soft": "#410002" },
+    dark: { background: "#151218", surface: "#211f24", "surface-2": "#2b292f", line: "#37333e", "line-strong": "#494551", outline: "#948e9c", foreground: "#dcd9e0", muted: "#cac4d3", primary: "#d2bbff", "primary-hover": "#e0cfff", "primary-container": "#4d388a", "on-primary-container": "#e9ddff", "primary-soft": "#484554", "on-primary-soft": "#e4e0f3", "on-primary": "#322270", reward: "#ffb871", "reward-soft": "#6a3c00", "on-reward-soft": "#ffdcbe", success: "#8cd7a0", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    radius: "16px",
     darkOnly: false,
   },
   {
     id: "ember",
     label: "Ember",
-    blurb: "Warm paper and orange",
-    light: { background: "#faf7f2", surface: "#fffdf9", "surface-2": "#f1ebe1", line: "#e6ded1", "line-strong": "#d6cbb9", foreground: "#3a2c1e", muted: "#6e5d4c", primary: "#c2481b", "primary-hover": "#a63c15", "primary-soft": "#f8e4d9", "on-primary": "#ffffff", reward: "#e8a317", "reward-soft": "#fdf1d6", success: "#2e7d4f", warning: "#9a6210", danger: "#b8322a" },
-    dark: { background: "#171310", surface: "#201a16", "surface-2": "#29221c", line: "#352c25", "line-strong": "#463b32", foreground: "#e8dcc8", muted: "#a8998a", primary: "#f08a5d", "primary-hover": "#f4a27d", "primary-soft": "#3a2318", "on-primary": "#1f0d05", reward: "#f2b63c", "reward-soft": "#33280f", success: "#5cb884", warning: "#e0a23a", danger: "#ef6f64" },
-
-    radius: "0.625rem",
+    blurb: "Warm orange and clay",
+    light: { background: "#fff8f4", surface: "#ffffff", "surface-2": "#f5ece7", line: "#f0dfd5", "line-strong": "#d4c3ba", outline: "#83746b", foreground: "#2d2723", muted: "#51443c", primary: "#9d5600", "primary-hover": "#884a00", "primary-container": "#ffdcc1", "on-primary-container": "#2a1700", "primary-soft": "#f7decf", "on-primary-soft": "#28180c", "on-primary": "#ffffff", reward: "#735c00", "reward-soft": "#ffdf96", "on-reward-soft": "#231b00", success: "#206b3c", warning: "#925400", danger: "#ba1a1a", "danger-soft": "#ffdad6", "on-danger-soft": "#410002" },
+    dark: { background: "#19120d", surface: "#241e1b", "surface-2": "#2f2925", line: "#3e322b", "line-strong": "#51443c", outline: "#9d8e85", foreground: "#e1d8d3", muted: "#d4c3ba", primary: "#ffb864", "primary-hover": "#ffce9b", "primary-container": "#663e00", "on-primary-container": "#ffddba", "primary-soft": "#564337", "on-primary-soft": "#f7decf", "on-primary": "#462a00", reward: "#e8c25d", "reward-soft": "#574500", "on-reward-soft": "#ffdf96", success: "#8cd7a0", warning: "#ffb871", danger: "#ffb4ab", "danger-soft": "#93000a", "on-danger-soft": "#ffdad6" },
+    radius: "16px",
     darkOnly: false,
   },
 ] as const satisfies readonly { id: string; label: string; blurb: string; light: Palette; dark: Palette; radius: string; darkOnly: boolean }[];
 export type StyleId = (typeof STYLES)[number]["id"];
 export const DEFAULT_STYLE: StyleId = "classic";
 
-/** Reading fonts. "default" is the app font (Figtree). Lexend and Atkinson Hyperlegible are made for easy reading. */
+/** Reading fonts. "default" is the app font (Google Sans). Lexend and Atkinson Hyperlegible are made for easy reading. */
 export const FONTS = [
-  { id: "default", label: "Figtree (default)", sample: "Friendly and clear at small sizes" },
+  { id: "default", label: "Google Sans (default)", sample: "Friendly and clear at small sizes" },
   { id: "lexend", label: "Lexend", sample: "Wide, even letter spacing" },
   { id: "atkinson", label: "Atkinson Hyperlegible", sample: "Letters that are hard to confuse" },
   { id: "serif", label: "Serif", sample: "Georgia, like a book" },
@@ -163,19 +376,23 @@ export function resolveMode(mode: ThemeMode, systemDark: boolean, style?: StyleI
 }
 
 /** The CSS custom properties the init script may set inline for a custom theme (cleared on every apply). */
-export const CUSTOM_THEME_VARS = [...THEME_TOKENS.map((t) => "--" + t), "--accent", "--on-accent", "--r-sm", "--r-md", "--r-lg", "--font-ui", "--font-heading", "--font-code"];
+export const CUSTOM_THEME_VARS = [...THEME_TOKENS.map((t) => "--" + t), "--accent", "--on-accent", "--r-sm", "--r-md", "--r-lg", "--r-xl", "--font-ui", "--font-heading", "--font-code"];
 
 /** Custom theme fonts: built-in ids map to these CSS values; any other (safe) name is used as an installed font. */
 export const CUSTOM_FONT_CSS: Record<string, string> = {
-  figtree: "var(--font-figtree)",
+  googleSans: "var(--font-google-sans)",
+  figtree: "var(--font-sans)",
   lexend: "var(--font-lexend)",
   atkinson: "var(--font-atkinson)",
   jetbrains: "var(--font-jetbrains-mono)",
   serif: "Georgia, serif",
   system: "system-ui",
 };
-/** Custom theme corners: --r-sm / --r-md / --r-lg. "default" leaves the theme's own. */
-export const CUSTOM_CORNERS: Record<string, [string, string, string]> = { sharp: ["0px", "0px", "0px"], round: ["8px", "14px", "20px"] };
+/** Custom theme corners: --r-sm / --r-md / --r-lg / --r-xl. "default" leaves the theme's own. */
+export const CUSTOM_CORNERS: Record<string, [string, string, string, string]> = {
+  sharp: ["0px", "0px", "0px", "0px"],
+  round: ["10px", "16px", "24px", "32px"],
+};
 
 /**
  * Runs in <head> before the page paints. Sets data-mode (the choice), data-theme (light or dark, resolved),
@@ -213,15 +430,29 @@ var dk=d.getAttribute("data-theme")==="dark";
 var p=t&&t[dk?"dark":"light"];if(!p||typeof p!=="object")p=null;
 var dg=p&&hex(p.danger)?p.danger:null;
 var pr=p&&hex(p.primary)?p.primary:t&&hex(t.accent)?t.accent:null;
-if(pr&&pr!==dg){d.style.setProperty("--primary",pr);d.style.setProperty("--on-primary",lum(pr)>0.179?"#111111":"#ffffff");d.style.setProperty("--primary-hover","color-mix(in oklab, "+pr+" 92%, "+(dk?"white":"black")+")");d.style.setProperty("--primary-soft","color-mix(in oklab, "+pr+" 14%, var(--surface))")}
-if(p){tokens.forEach(function(k){if(k!=="primary"&&hex(p[k]))d.style.setProperty("--"+k,p[k])});
-if(hex(p["surface-2"])&&hex(p.line)&&!hex(p["line-strong"]))d.style.setProperty("--line-strong","color-mix(in oklab, "+p.line+" 80%, "+p.foreground+")");
-if(hex(p.reward)&&!hex(p["reward-soft"]))d.style.setProperty("--reward-soft","color-mix(in oklab, "+p.reward+" 16%, var(--surface))")}
+if(pr&&pr!==dg){
+  d.style.setProperty("--primary",pr);
+  d.style.setProperty("--on-primary",lum(pr)>0.179?"#111111":"#ffffff");
+  d.style.setProperty("--primary-hover","color-mix(in oklab, "+pr+" 92%, "+(dk?"white":"black")+")");
+  d.style.setProperty("--primary-soft","color-mix(in oklab, "+pr+" 14%, var(--surface))");
+  d.style.setProperty("--primary-container","color-mix(in oklab, "+pr+" 25%, var(--background))");
+  d.style.setProperty("--on-primary-soft",dk?"#ffffff":"#000000");
+  d.style.setProperty("--on-primary-container",dk?"#ffffff":"#000000");
+}
+if(p){
+  tokens.forEach(function(k){if(k!=="primary"&&hex(p[k]))d.style.setProperty("--"+k,p[k])});
+  if(hex(p["surface-2"])&&hex(p.line)&&!hex(p["line-strong"]))d.style.setProperty("--line-strong","color-mix(in oklab, "+p.line+" 80%, "+p.foreground+")");
+  if(hex(p.reward)&&!hex(p["reward-soft"]))d.style.setProperty("--reward-soft","color-mix(in oklab, "+p.reward+" 16%, var(--surface))");
+  if(!hex(p["on-reward-soft"]))d.style.setProperty("--on-reward-soft",hex(p["reward-soft"])&&lum(p["reward-soft"])>0.179?"#000000":"#ffffff");
+  if(!hex(p["danger-soft"])&&hex(p.danger))d.style.setProperty("--danger-soft","color-mix(in oklab, "+p.danger+" 15%, var(--background))");
+  if(!hex(p["on-danger-soft"]))d.style.setProperty("--on-danger-soft",dk?"#ffffff":"#000000");
+  if(!hex(p.outline))d.style.setProperty("--outline","color-mix(in oklab, var(--foreground) 50%, var(--background))");
+}
 var FC=${JSON.stringify(CUSTOM_FONT_CSS)},fo=t&&t.fonts&&typeof t.fonts==="object"?t.fonts:{};
 ["ui","heading","code"].forEach(function(k){var v=fo[k],c=typeof v==="string"?(FC.hasOwnProperty(v)?FC[v]:/^[A-Za-z0-9][A-Za-z0-9 ._\\-]{0,60}$/.test(v)?String.fromCharCode(34)+v+String.fromCharCode(34):null):null;
 if(c){d.setAttribute("data-"+k+"-font","on");d.style.setProperty("--font-"+k,c)}else d.removeAttribute("data-"+k+"-font")});
 var RC=${JSON.stringify(CUSTOM_CORNERS)},co=t&&RC.hasOwnProperty(t.corners)?RC[t.corners]:null;
-if(co){d.style.setProperty("--r-sm",co[0]);d.style.setProperty("--r-md",co[1]);d.style.setProperty("--r-lg",co[2])}
+if(co){d.style.setProperty("--r-sm",co[0]);d.style.setProperty("--r-md",co[1]);d.style.setProperty("--r-lg",co[2]);if(co[3])d.style.setProperty("--r-xl",co[3])}
 if(t&&t.density==="compact")d.setAttribute("data-density","compact");else d.removeAttribute("data-density");
 var cf=null;try{var fr=read("habit-custom-font");cf=fr?JSON.parse(fr):null}catch(e){}
 if(cf&&typeof cf.family==="string"&&/^[A-Za-z0-9][A-Za-z0-9 ._\\-]{0,60}$/.test(cf.family)){d.setAttribute("data-custom-font","on");d.style.setProperty("--font-custom",String.fromCharCode(34)+cf.family+String.fromCharCode(34))}else{d.removeAttribute("data-custom-font");d.style.removeProperty("--font-custom")}

@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { tool } from "./resolve";
+import { pickEntry, QUALIFIED_NAME } from "./project-entry";
 
 export interface Diagnostic {
   file: string;
@@ -24,6 +25,7 @@ export interface ProjectRunResult {
 
 export interface RunJavaProjectOptions {
   files: Record<string, string>;
+  /** Fully qualified class to run (e.g. "demo.Main"). Without it the project's entry point is picked (see pickEntry). */
   mainClass?: string;
   input?: string;
   timeoutMs?: number;
@@ -32,6 +34,8 @@ export interface RunJavaProjectOptions {
 const DEFAULT_TIMEOUT_MS = 5000;
 const COMPILE_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_CHARS = 500_000;
+/** javac output folder inside the temp dir; not a valid .java file name, so it cannot clash with a source file. */
+const CLASSES_DIR = "_classes";
 
 export function cleanDirFromOutput(text: string, dir: string): string {
   const norm = dir.replace(/\\/g, "/");
@@ -228,15 +232,23 @@ function executeProcess(
  * 1. Writes all files into an isolated temporary directory.
  * 2. Compiles all .java files with javac.
  * 3. If compilation fails, parses diagnostics (file, line, column, message).
- * 4. If compilation succeeds, runs mainClass (default Main) with memory limit and timeout.
+ * 4. If compilation succeeds, runs mainClass (default: the project's entry point, see pickEntry) with memory limit and
+ *    timeout. Classes go to a separate output folder so packaged classes load by their qualified name.
  * 5. Cleans up temp directory on completion.
  */
 export async function runJavaProject(options: RunJavaProjectOptions): Promise<ProjectRunResult> {
   const startTime = performance.now();
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const mainClass = options.mainClass || "Main";
   const files = options.files ?? {};
   const fileKeys = Object.keys(files);
+  let mainClass = options.mainClass ?? "";
+  if (!mainClass) {
+    const choice = pickEntry({ files: fileKeys.map((name) => ({ name, content: files[name] })), active: "", mode: "project" });
+    mainClass = choice.ok ? choice.qualified : "Main";
+  }
+  if (!QUALIFIED_NAME.test(mainClass)) {
+    return { success: false, status: "runtime_error", output: `"${mainClass}" is not a Java class name.`, elapsedMs: 0 };
+  }
 
   const javaFiles = fileKeys.filter((f) => f.endsWith(".java"));
   if (javaFiles.length === 0) {
@@ -270,9 +282,11 @@ export async function runJavaProject(options: RunJavaProjectOptions): Promise<Pr
       await writeFile(targetPath, content, "utf8");
     }
 
+    await mkdir(path.join(dir, CLASSES_DIR), { recursive: true });
+
     // Compile with javac
     const javacCmd = tool("HABIT_JAVAC", "javac");
-    const javacArgs = ["-encoding", "UTF-8", "-Xlint:all", ...javaFiles];
+    const javacArgs = ["-encoding", "UTF-8", "-Xlint:all", "-d", CLASSES_DIR, ...javaFiles];
     const compileResult = await executeProcess(javacCmd, javacArgs, {
       cwd: dir,
       timeoutMs: COMPILE_TIMEOUT_MS,
@@ -301,7 +315,7 @@ export async function runJavaProject(options: RunJavaProjectOptions): Promise<Pr
 
     // Compilation succeeded, run the java program
     const javaCmd = tool("HABIT_JAVA", "java");
-    const javaArgs = ["-Xmx256m", "-cp", ".", mainClass];
+    const javaArgs = ["-Xmx256m", "-cp", CLASSES_DIR, mainClass];
     const runResult = await executeProcess(javaCmd, javaArgs, {
       cwd: dir,
       timeoutMs,

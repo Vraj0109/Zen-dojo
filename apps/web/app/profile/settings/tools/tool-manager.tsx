@@ -114,14 +114,14 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
           type="button"
           disabled={working}
           onClick={() => setConfirm(missing.map((c) => c.id))}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-45"
         >
           Set up all missing tools
         </button>
       )}
 
       {confirm && (
-        <div role="dialog" aria-label="Confirm download" className="space-y-3 rounded-md border border-line bg-surface p-5">
+        <div role="dialog" aria-label="Confirm download" className="space-y-3 rounded-[24px] border border-line bg-surface p-5 dark:border-0">
           <h3 className="font-semibold">Download these tools?</h3>
           <ul className="space-y-1 text-sm">
             {confirm.map((id) => {
@@ -139,10 +139,10 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
             checked against its published checksum before it is unpacked. Nothing is installed system-wide and no administrator rights are needed.
           </p>
           <div className="flex gap-2">
-            <button type="button" onClick={() => run(confirm)} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+            <button type="button" onClick={() => run(confirm)} className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-hover">
               Download
             </button>
-            <button type="button" onClick={() => setConfirm(null)} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+            <button type="button" onClick={() => setConfirm(null)} className="inline-flex h-10 items-center rounded-full border border-outline px-5 text-sm font-medium text-primary hover:bg-surface-2">
               Not now
             </button>
           </div>
@@ -150,23 +150,23 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
       )}
 
       {message && (
-        <p role="status" className={`rounded-lg border px-3 py-2 text-sm ${message.kind === "error" ? "border-amber-600/50 text-amber-700 dark:text-amber-400" : "border-line text-muted"}`}>
+        <p role="status" className={`rounded-[16px] border px-3 py-2 text-sm ${message.kind === "error" ? "border-transparent bg-danger-soft text-on-danger-soft" : "border-line text-muted"}`}>
           {message.text}
         </p>
       )}
 
-      <ul className="grid gap-4 xl:grid-cols-2">
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,420px),1fr))] gap-4">
         {cards.map((c) => {
           const active = progress?.id === c.id;
           const pct = active && progress.total > 0 ? Math.min(100, Math.floor((progress.received / progress.total) * 100)) : 0;
           const queued = queue.includes(c.id) && !active;
           return (
-            <li key={c.id} className="space-y-3 rounded-md border border-line bg-surface p-5">
+            <li key={c.id} className="space-y-3 rounded-[24px] border border-line bg-surface p-5 dark:border-0">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-semibold">{c.label}</h3>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                    c.found ? "border-green-600/40 text-green-600 dark:text-green-400" : "border-amber-600/50 text-amber-700 dark:text-amber-400"
+                    c.found ? "border-green-600/40 text-green-600 dark:text-green-400" : "border-transparent bg-danger-soft text-on-danger-soft"
                   }`}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -196,7 +196,7 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
                         cancelled.current = true;
                         abort.current?.abort();
                       }}
-                      className="rounded-lg border border-line px-3 py-1 text-sm font-medium hover:bg-surface-2"
+                      className="inline-flex h-10 items-center rounded-full border border-outline px-4 text-sm font-medium text-primary hover:bg-surface-2"
                     >
                       Cancel
                     </button>
@@ -212,18 +212,18 @@ export function ToolManager({ cards }: { cards: ToolCard[] }) {
                       type="button"
                       disabled={working}
                       onClick={() => setConfirm([c.id])}
-                      className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
+                      className="inline-flex h-10 items-center rounded-full border border-outline px-5 text-sm font-medium text-primary hover:bg-surface-2 disabled:opacity-45"
                     >
                       Set up{c.offer ? ` (${formatBytes(c.offer.bytes)})` : ""}
                     </button>
                   )}
                   {c.action === "xcode" && !c.found && (
-                    <button type="button" disabled={working} onClick={() => run([c.id])} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50">
+                    <button type="button" disabled={working} onClick={() => run([c.id])} className="inline-flex h-10 items-center rounded-full border border-outline px-5 text-sm font-medium text-primary hover:bg-surface-2 disabled:opacity-45">
                       Install Apple&apos;s command line tools
                     </button>
                   )}
                   {c.downloaded && (
-                    <button type="button" disabled={working} onClick={() => remove(c.id)} className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50">
+                    <button type="button" disabled={working} onClick={() => remove(c.id)} className="inline-flex h-10 items-center rounded-full border border-outline px-5 text-sm font-medium text-primary hover:bg-surface-2 disabled:opacity-45">
                       Remove the downloaded copy
                     </button>
                   )}

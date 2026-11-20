@@ -11,9 +11,31 @@ import { toLang, type Lang } from "@/lib/code-lang";
  * `languageSelectId` is the id of a `<select>` whose value names the language ("C++", "Java"…).
  * CodeMirror loads lazily: pages without an editor never download it.
  */
-export function EditorField({ children, languageSelectId, rows = 14, fill = false }: { children: ReactNode; languageSelectId?: string; rows?: number; fill?: boolean }) {
+export function EditorField({
+  children,
+  languageSelectId,
+  rows = 14,
+  fill = false,
+  keys,
+}: {
+  children: ReactNode;
+  languageSelectId?: string;
+  rows?: number;
+  fill?: boolean;
+  /**
+   * Page shortcuts the editor must not swallow, as CodeMirror key names ("Mod-Enter", "Alt-1") mapped to a handler
+   * that returns true when it handled the key. They run before every editor binding (Prec.highest), so for example
+   * Mod-Enter submits instead of inserting a blank line. Read through a ref, so new handlers need no new editor.
+   */
+  keys?: Record<string, () => boolean>;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  const keysRef = useRef(keys);
+  useEffect(() => {
+    keysRef.current = keys;
+  });
+  const keyNames = keys ? Object.keys(keys).sort().join(" ") : "";
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -127,6 +149,14 @@ export function EditorField({ children, languageSelectId, rows = 14, fill = fals
             langCompartment.of(langExtension(currentLang())),
             state.EditorState.changeFilter.of((tr) => !tr.docChanged || tr.newDoc.length <= max),
             view.EditorView.contentAttributes.of({ "aria-label": label.trim(), spellcheck: "false" }),
+            state.Prec.highest(
+              view.keymap.of(
+                keyNames
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((key) => ({ key, run: () => keysRef.current?.[key]?.() ?? false })),
+              ),
+            ),
             view.keymap.of([...autocomplete.closeBracketsKeymap, ...commands.defaultKeymap, ...commands.historyKeymap, ...search.searchKeymap, commands.indentWithTab]),
             view.EditorView.updateListener.of((u) => {
               if (u.docChanged) textarea.value = u.state.doc.toString();
@@ -156,7 +186,7 @@ export function EditorField({ children, languageSelectId, rows = 14, fill = fals
       cancelled = true;
       destroy?.();
     };
-  }, [languageSelectId, rows, fill]);
+  }, [languageSelectId, rows, fill, keyNames]);
 
   return (
     <div ref={wrapRef} className={fill ? "flex h-full min-h-0 flex-col" : undefined}>

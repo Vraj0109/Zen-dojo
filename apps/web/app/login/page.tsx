@@ -3,10 +3,6 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
-import { buttonClass } from "../ui";
-
-/** Centered card on desktop, full width on a phone. */
-const CARD = "w-full space-y-4 rounded-lg border border-line bg-surface p-6 sm:max-w-md sm:p-8 sm:shadow-sm";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -37,9 +33,23 @@ function errorText(code: string | string[] | undefined): string | null {
   return ERRORS[c] ?? "Sign-in did not work. Please try again.";
 }
 
+function ScallopLogo() {
+  return (
+    <svg width="64" height="64" viewBox="0 0 100 100" aria-hidden="true" className="shrink-0">
+      <path
+        d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z"
+        className="fill-primary"
+      />
+      <text x="50" y="60" textAnchor="middle" className="fill-on-primary font-semibold text-[28px] select-none">
+        ZD
+      </text>
+    </svg>
+  );
+}
+
 function GitHubMark() {
   return (
-    <svg viewBox="0 0 16 16" className="size-5" fill="currentColor" aria-hidden="true">
+    <svg viewBox="0 0 16 16" className="size-5 shrink-0 fill-current" aria-hidden="true">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
     </svg>
   );
@@ -58,13 +68,25 @@ async function LoginBody({
 
   if (session) {
     return (
-      <div className={CARD}>
-        <p className="text-sm">You are signed in as {session.name}.</p>
-        <div className="flex flex-wrap gap-3">
-          <Link href={next} className={buttonClass("primary")}>Continue</Link>
-          <Link href="/profile/account" className={buttonClass("secondary")}>Account</Link>
+      <section className="relative z-10 flex w-full max-w-[420px] flex-col items-center gap-5 rounded-[32px] border border-line bg-surface px-[22px] py-7 text-center shadow-sm dark:border-0 sm:px-9 sm:py-10">
+        <ScallopLogo />
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">Signed in</h1>
+        <p className="text-sm text-muted">You are signed in as <strong className="text-foreground">{session.name}</strong>.</p>
+        <div className="flex w-full flex-col gap-2.5 sm:flex-row">
+          <Link
+            href={next}
+            className="flex h-12 flex-1 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          >
+            Continue
+          </Link>
+          <Link
+            href="/profile/account"
+            className="flex h-12 flex-1 items-center justify-center rounded-full border border-outline px-5 text-sm font-medium text-primary transition-colors hover:bg-surface-2"
+          >
+            Account
+          </Link>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -72,49 +94,94 @@ async function LoginBody({
   if (waiting) {
     // Desktop: the sign-in continues in the system browser; the app comes back here through the zendojo:// link.
     return (
-      <div className={CARD}>
-        <p className="text-sm">Finish signing in in your browser. Zen Dojo will switch back here when you are done.</p>
-        <div className="flex flex-wrap gap-3">
-          <a href={`/auth/start?next=${encodeURIComponent(next)}`} className={buttonClass("primary")}>
+      <section className="relative z-10 flex w-full max-w-[420px] flex-col items-center gap-5 rounded-[32px] border border-line bg-surface px-[22px] py-7 text-center shadow-sm dark:border-0 sm:px-9 sm:py-10">
+        <ScallopLogo />
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">Check your browser</h1>
+        <p className="text-sm text-muted leading-relaxed">
+          Finish signing in in your browser. Zen Dojo will switch back here when you are done.
+        </p>
+        <div className="flex w-full flex-col gap-2.5 sm:flex-row">
+          <a
+            href={`/auth/start?next=${encodeURIComponent(next)}`}
+            className="flex h-12 flex-1 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
+          >
             Start again
           </a>
-          <Link href="/" className={buttonClass("secondary")}>Cancel</Link>
+          <Link
+            href="/"
+            className="flex h-12 flex-1 items-center justify-center rounded-full border border-outline px-5 text-sm font-medium text-primary transition-colors hover:bg-surface-2"
+          >
+            Cancel
+          </Link>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className={CARD}>
-      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+    <section className="relative z-10 flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[32px] border border-line bg-surface px-[22px] py-7 text-center shadow-sm dark:border-0 sm:px-9 sm:py-10">
+      <ScallopLogo />
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px] m-0">
+        Welcome back to the dojo
+      </h1>
+      <p className="text-[15px] text-muted m-0 leading-snug">
+        Sign in to sync your plan, solves and theme between the desktop app and the web.
+      </p>
+
+      {error ? (
+        <p role="alert" className="w-full rounded-[16px] bg-danger-soft px-3.5 py-3 text-sm text-on-danger-soft">
+          {error}
+        </p>
+      ) : null}
+
       <a
         href={`/auth/start?next=${encodeURIComponent(next)}`}
-        className={buttonClass("primary", "md", "w-full")}
+        className="mt-2 flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-primary text-base font-medium text-on-primary transition-colors hover:bg-primary-hover"
       >
         <GitHubMark />
         Continue with GitHub
       </a>
-      <Link href="/" className={buttonClass("secondary", "md", "w-full")}>
-        Try it without an account
+
+      <div className="flex w-full items-center gap-3 text-[13px] text-muted">
+        <span className="h-px flex-1 bg-line" />
+        or
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      <Link
+        href={next || "/"}
+        className="flex h-12 w-full items-center justify-center rounded-full border border-outline text-[15px] font-medium text-primary transition-colors hover:bg-surface-2"
+      >
+        Keep using it on this device only
       </Link>
-      <p className="text-xs text-muted">
-        The app works fully without an account. Signing in links this device to your account so your progress syncs across your
-        devices. Nothing on this device is deleted when you sign in or out.
+
+      <p className="mt-1 text-xs text-muted">
+        We only read your GitHub name and avatar.
       </p>
-    </div>
+    </section>
   );
 }
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="flex w-full flex-col items-center px-4 py-10 sm:min-h-[70vh] sm:justify-center">
-      <div className="w-full sm:max-w-md">
-        <h1 className="mb-1 text-2xl font-semibold tracking-tight">Sign in to Zen Dojo</h1>
-        <p className="mb-5 text-sm text-muted">Keep your plan, notes and progress in step on every device.</p>
-      </div>
-      <Suspense fallback={<div className="h-56 w-full rounded-lg border border-line bg-surface sm:max-w-md" />}>
+    <div className="relative isolate flex min-h-dvh w-full items-center justify-center overflow-hidden px-4 py-12">
+      {/* Background soft shapes */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-20 -left-16 -z-10 size-[220px] rounded-[42%_58%_60%_40%] bg-primary-container sm:size-[420px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-20 -right-10 -z-10 size-[180px] rounded-full bg-reward-soft sm:size-[320px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[120px] -left-10 -z-10 size-[140px] rotate-[18deg] rounded-[32px] bg-cat-dsa sm:bottom-[140px] sm:left-[12%]"
+      />
+
+      <Suspense fallback={<div className="h-[460px] w-full max-w-[420px] rounded-[32px] border border-line bg-surface dark:border-0" />}>
         <LoginBody searchParams={searchParams} />
       </Suspense>
-    </main>
+    </div>
   );
 }

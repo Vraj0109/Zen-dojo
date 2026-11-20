@@ -94,7 +94,7 @@ export async function getPortfolio(): Promise<PortfolioData> {
     activeDays: stats.totals.activeDays,
     hours: stats.totals.hours,
     totalProblems: problemIds.length,
-    heatmap: stats.heatmap.map((week) => week.map((c) => ({ date: c.date, xp: c.xp, level: c.level, future: c.future }))),
+    heatmap: stats.heatmap.slice(-16).map((week) => week.map((c) => ({ date: c.date, xp: c.xp, level: c.level, future: c.future }))),
     badges: stats.badges.map((b) => ({ id: b.id, title: b.title, description: b.description, earned: b.earned, value: b.value, target: b.target })),
   };
 }

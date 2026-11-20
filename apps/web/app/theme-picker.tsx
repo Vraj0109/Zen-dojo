@@ -29,7 +29,6 @@ const MODE_LABEL: Record<ThemeMode, string> = { system: "System", light: "Light"
 
 function subscribe(onChange: () => void) {
   window.addEventListener(THEME_EVENT, onChange);
-  // The OS scheme can change while on System; the inline script then updates data-theme, which the previews follow.
   const observer = new MutationObserver(onChange);
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   return () => {
@@ -38,8 +37,6 @@ function subscribe(onChange: () => void) {
   };
 }
 
-// The <html> attributes (set by the inline script before paint) are the source of truth. On the server, and during
-// hydration, the defaults are used and React then re-renders with the real values.
 const attr = (name: string) => document.documentElement.getAttribute(name);
 const readMode = () => parseMode(attr("data-mode"));
 const readAccent = () => parseAccent(attr("data-accent"));
@@ -48,7 +45,6 @@ const readFont = () => parseFont(attr("data-font"));
 const readScheme = () => (attr("data-theme") === "dark" ? "dark" : "light");
 const readGamify = () => attr("data-gamify") === "on";
 const readBionic = () => parseBionic(attr("data-bionic"));
-// The animation setting (Auto, On, Off) is not visible on <html> (it only shows the result), so read what was saved.
 const readMotion = (): MotionSetting => {
   try {
     return parseMotion(localStorage.getItem(MOTION_KEY));
@@ -57,7 +53,7 @@ const readMotion = (): MotionSetting => {
   }
 };
 
-/** Appearance and reading settings. Needs JavaScript; saved in this browser or app window, not in backups. */
+/** Appearance and reading settings with Expressive styling and Material 3 switches. */
 export function ThemePicker() {
   const mode = useSyncExternalStore(subscribe, readMode, () => "system" as ThemeMode);
   const accent = useSyncExternalStore(subscribe, readAccent, () => "green" as AccentId);
@@ -68,31 +64,49 @@ export function ThemePicker() {
   const bionic = useSyncExternalStore(subscribe, readBionic, () => "off" as BionicSetting);
   const motion = useSyncExternalStore(subscribe, readMotion, () => "auto" as MotionSetting);
   const current: Appearance = { mode, accent, style, font, gamify, bionic, motion };
-  const accentColor = ACCENTS.find((a) => a.id === accent)!.color;
 
   const pill = (active: boolean) =>
-    `h-8 rounded-sm px-3 text-sm font-medium transition-colors duration-120 ${active ? "bg-surface text-foreground shadow-sm ring-1 ring-line-strong" : "text-muted hover:text-foreground"}`;
+    `h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+      active ? "bg-primary-soft text-on-primary-soft" : "text-muted hover:text-foreground"
+    }`;
 
   return (
     <div className="space-y-6">
+      {/* Light or dark */}
       <div>
         <p id="theme-mode-label" className="mb-2 text-sm font-medium">
           Light or dark
         </p>
-        <div role="radiogroup" aria-labelledby="theme-mode-label" className="inline-flex flex-wrap gap-0.5 rounded-md border border-line-strong bg-surface-2 p-0.5">
+        <div
+          role="radiogroup"
+          aria-labelledby="theme-mode-label"
+          className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface-2 p-1"
+        >
           {THEME_MODES.map((m) => (
-            <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => applyTheme({ ...current, mode: m })} className={pill(mode === m)}>
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={mode === m}
+              onClick={() => applyTheme({ ...current, mode: m })}
+              className={pill(mode === m)}
+            >
               {MODE_LABEL[m]}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Preset Swatches (min 104px auto-fill grid) */}
       <div>
         <p id="theme-style-label" className="mb-2 text-sm font-medium">
-          Theme
+          Theme presets
         </p>
-        <div role="radiogroup" aria-labelledby="theme-style-label" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          role="radiogroup"
+          aria-labelledby="theme-style-label"
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,104px),1fr))] gap-2.5"
+        >
           {STYLES.map((s) => {
             const p = s[scheme];
             const selected = style === s.id;
@@ -103,37 +117,27 @@ export function ThemePicker() {
                 role="radio"
                 aria-checked={selected}
                 onClick={() => applyTheme({ ...current, style: s.id, customTheme: null })}
-                className={`overflow-hidden border-2 text-left ${selected ? "border-primary" : "border-line"}`}
-                style={{ background: p.background, borderRadius: s.radius, color: p.foreground }}
+                className={`flex min-w-0 flex-col items-center gap-2 rounded-[24px] border-2 px-2 py-3 transition-colors ${
+                  selected ? "border-primary bg-primary-soft" : "border-transparent bg-background hover:bg-surface-2"
+                }`}
               >
-                <span className="block p-3">
-                  <span className="block p-3" style={{ background: p.surface, border: `1px solid ${p.line}`, borderRadius: s.radius }}>
-                    <span className="block text-sm font-semibold">{s.label}</span>
-                    <span className="mt-0.5 block text-xs" style={{ color: p.muted }}>
-                      {s.blurb}
-                    </span>
-                    <span
-                      className="mt-2 inline-block px-2.5 py-1 text-xs font-medium"
-                      style={{
-                        background: accent === DEFAULT_ACCENT ? p.primary : accentColor,
-                        color: accent === DEFAULT_ACCENT ? p["on-primary"] : "#ffffff",
-                        borderRadius: s.radius,
-                      }}
-                    >
-                      Button
-                    </span>
-                  </span>
+                <span aria-hidden="true" className="flex size-14 shrink-0 overflow-hidden rounded-full border border-line">
+                  <span className="flex-1 h-full" style={{ background: p.primary }} />
+                  <span className="flex-1 h-full" style={{ background: p["primary-container"] }} />
+                </span>
+                <span className="text-center text-sm leading-tight font-medium text-foreground">
+                  {s.label}
                 </span>
               </button>
             );
           })}
         </div>
-        <p className="mt-1 text-xs text-muted">
-          Previews use your current light or dark choice and accent. Terminal is dark only. Sage, Dusk and Ember are soft, low-glare palettes: text is at least 10:1 against the
-          background (the web standard asks for 4.5:1, or 7:1 for the strictest level).
+        <p className="mt-2 text-sm text-muted">
+          Presets use your current light or dark choice. Picking one turns off your own theme. Sage, Dusk and Ember provide soft, low-glare palettes meeting AA contrast.
         </p>
       </div>
 
+      {/* Accent colour */}
       <div>
         <p id="theme-accent-label" className="mb-2 text-sm font-medium">
           Accent colour
@@ -146,21 +150,34 @@ export function ThemePicker() {
               role="radio"
               aria-checked={accent === a.id}
               onClick={() => applyTheme({ ...current, accent: a.id, customTheme: null })}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium ${accent === a.id ? "border-foreground" : "border-line hover:bg-surface-2"}`}
+              className={`flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors ${
+                accent === a.id ? "border-primary bg-primary-soft text-on-primary-soft" : "border-line-strong text-muted hover:bg-surface-2 hover:text-foreground"
+              }`}
             >
-              <span aria-hidden className="size-3.5 rounded-full" style={{ background: a.id === DEFAULT_ACCENT ? STYLES.find((s) => s.id === style)![scheme].primary : a.color }} />
+              <span
+                aria-hidden
+                className="size-3.5 rounded-full"
+                style={{
+                  background:
+                    a.id === DEFAULT_ACCENT
+                      ? STYLES.find((s) => s.id === style)![scheme].primary
+                      : scheme === "dark"
+                        ? a.dark
+                        : a.color,
+                }}
+              />
               {a.label}
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-muted">Theme colour keeps the style&apos;s own colour. The others are the same colour in light and dark.</p>
       </div>
 
+      {/* Reading font */}
       <div>
         <p id="theme-font-label" className="mb-2 text-sm font-medium">
           Reading font
         </p>
-        <div role="radiogroup" aria-labelledby="theme-font-label" className="grid gap-2 sm:grid-cols-2">
+        <div role="radiogroup" aria-labelledby="theme-font-label" className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-2">
           {FONTS.map((f) => (
             <button
               key={f.id}
@@ -168,57 +185,77 @@ export function ThemePicker() {
               role="radio"
               aria-checked={font === f.id}
               onClick={() => applyTheme({ ...current, font: f.id })}
-              className={`rounded-lg border px-3 py-2 text-left text-sm ${font === f.id ? "border-primary bg-background" : "border-line hover:bg-surface-2"}`}
+              className={`rounded-[20px] border p-3.5 text-left text-sm transition-colors ${
+                font === f.id ? "border-primary bg-primary-soft text-on-primary-soft" : "border-line bg-surface hover:bg-surface-2"
+              }`}
               style={{ fontFamily: FONT_CSS[f.id] }}
             >
               <span className="block font-medium">{f.label}</span>
-              <span className="block text-xs text-muted">{f.sample}</span>
+              <span className="block text-xs opacity-80">{f.sample}</span>
             </button>
           ))}
         </div>
       </div>
 
+      {/* Focus reading */}
       <div>
         <p id="theme-bionic-label" className="mb-2 text-sm font-medium">
           Focus reading
         </p>
-        <div role="radiogroup" aria-labelledby="theme-bionic-label" className="inline-flex flex-wrap gap-0.5 rounded-md border border-line-strong bg-surface-2 p-0.5">
+        <div
+          role="radiogroup"
+          aria-labelledby="theme-bionic-label"
+          className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface-2 p-1"
+        >
           {(["off", "subtle", "strong"] as const).map((level) => (
-            <button key={level} type="button" role="radio" aria-checked={bionic === level} onClick={() => applyTheme({ ...current, bionic: level })} className={pill(bionic === level)}>
+            <button
+              key={level}
+              type="button"
+              role="radio"
+              aria-checked={bionic === level}
+              onClick={() => applyTheme({ ...current, bionic: level })}
+              className={pill(bionic === level)}
+            >
               {level === "off" ? "Off" : level === "subtle" ? "Subtle" : "Strong"}
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-muted">
-          Bolds the start of words in lessons, articles and problem statements. Subtle leaves short words alone and uses a semi-bold; Strong bolds about
-          half of every word. Headings, code and buttons are never changed. Studies have not found that it speeds up reading for everyone, so keep it only
-          if it feels good.
-        </p>
       </div>
 
+      {/* Play: game features and motion */}
+      <div className="space-y-4 border-t border-line pt-5">
+        <p className="text-base font-medium">Play</p>
+        <M3Switch
+          label="XP, levels and badges"
+          on={gamify}
+          onChange={(v) => applyTheme({ ...current, gamify: v })}
+          text="Turn off for a quiet, numbers-free app. Off by default."
+        />
       <div>
-        <p id="theme-motion-label" className="mb-2 text-sm font-medium">
+        <p id="theme-motion-label" className="mb-1 text-sm font-medium">
           Animations
         </p>
-        <div role="radiogroup" aria-labelledby="theme-motion-label" className="inline-flex flex-wrap gap-0.5 rounded-md border border-line-strong bg-surface-2 p-0.5">
+        <p className="mb-2 text-sm text-muted">Auto follows your system&apos;s reduce-motion setting.</p>
+        <div
+          role="radiogroup"
+          aria-labelledby="theme-motion-label"
+          className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface-2 p-1"
+        >
           {(["auto", "on", "off"] as const).map((m) => (
-            <button key={m} type="button" role="radio" aria-checked={motion === m} onClick={() => applyTheme({ ...current, motion: m })} className={pill(motion === m)}>
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={motion === m}
+              onClick={() => applyTheme({ ...current, motion: m })}
+              className={pill(motion === m)}
+            >
               {m === "auto" ? "Auto" : m === "on" ? "On" : "Off"}
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-muted">
-          Fades, sliding highlights and moving progress bars. Turn them Off on a slower computer, or if motion bothers you. Auto follows your computer&apos;s
-          &quot;reduce motion&quot; setting.
-        </p>
       </div>
-
-      <Toggle
-        label="Game features"
-        on={gamify}
-        onChange={(v) => applyTheme({ ...current, gamify: v })}
-        text="XP, levels, streaks and streak freezes, badges, and the XP numbers on tasks and problems. Off by default. Your progress is still tracked underneath, so turning this on shows everything you have earned."
-      />
+      </div>
     </div>
   );
 }
@@ -230,25 +267,35 @@ const FONT_CSS: Record<FontId, string> = {
   serif: 'Georgia, "Times New Roman", serif',
 };
 
-function Toggle({ label, on, onChange, text }: { label: string; on: boolean; onChange: (v: boolean) => void; text: string }) {
+function M3Switch({
+  label,
+  on,
+  onChange,
+  text,
+}: {
+  label: string;
+  on: boolean;
+  onChange: (v: boolean) => void;
+  text: string;
+}) {
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">
-          {label}: {on ? "on" : "off"}
-        </p>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label={label}
-          onClick={() => onChange(!on)}
-          className={`relative h-6 w-11 shrink-0 rounded-full border ${on ? "border-primary bg-primary" : "border-line bg-background"}`}
-        >
-          <span className={`absolute top-0.5 size-4.5 rounded-full shadow transition-all ${on ? "left-[1.4rem] bg-white" : "left-0.5 bg-muted"}`} />
-        </button>
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] font-medium">{label}</p>
+        <p className="mt-0.5 text-sm text-muted">{text}</p>
       </div>
-      <p className="mt-1 text-xs text-muted">{text}</p>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        onClick={() => onChange(!on)}
+        className={`relative flex h-8 w-[52px] shrink-0 items-center rounded-full border-2 px-[2px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          on ? "justify-end border-primary bg-primary" : "justify-start border-outline bg-surface-2"
+        }`}
+      >
+        <span className={`rounded-full ${on ? "size-6 bg-on-primary" : "mx-1 size-4 bg-outline"}`} />
+      </button>
     </div>
   );
 }

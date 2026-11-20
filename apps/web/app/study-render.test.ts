@@ -402,3 +402,43 @@ describe("Problem micro-steps deconstruction: UI render & interaction components
     });
   });
 });
+
+describe("Expressive Learn Page Layouts (0088)", () => {
+  it("Course page uses full content width without 960px cap", async () => {
+    const { PageMain } = await import("./ui");
+    const html = await renderHtml(
+      React.createElement(PageMain, { title: "Course", full: true }, React.createElement("div", null, "Course content"))
+    );
+    expect(html).not.toContain("max-w-4xl");
+    expect(html).not.toContain("max-w-[960px]");
+    expect(html).toContain("Course content");
+  });
+
+  it("Lesson page renders outline and lesson list with container-query classes", async () => {
+    const { ArticleLayout } = await import("./learn-blocks");
+    const sampleToc = [{ id: "section-1", title: "Section 1" }];
+    const sampleLessonNav = React.createElement("div", { className: "sample-nav" }, "Lesson nav");
+
+    const html = await renderHtml(
+      React.createElement(
+        ArticleLayout,
+        {
+          toc: sampleToc,
+          lessonNav: sampleLessonNav,
+        },
+        React.createElement("p", null, "Article body")
+      )
+    );
+
+    const dom = parseDom(html);
+    const listNav = dom.querySelector(".zd-list");
+    expect(listNav).not.toBeNull();
+    expect(listNav!.className).toContain("@min-[780px]:flex");
+
+    const tocAside = dom.querySelector(".zd-toc");
+    expect(tocAside).not.toBeNull();
+    expect(tocAside!.className).toContain("@min-[1040px]:flex");
+
+    expect(html).toContain("Article body");
+  });
+});

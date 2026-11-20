@@ -26,8 +26,8 @@ import {
   type Profile,
 } from "@/lib/custom";
 import { deleteFontFile, registerFont, saveFontFile } from "@/lib/font-store";
-import { STYLES, type Palette as ThemePalette } from "@/lib/theme";
-import { Button, INPUT_CLASS } from "./ui";
+import { STYLES, isNearDanger, type Palette as ThemePalette } from "@/lib/theme";
+import { Button, INPUT_CLASS, buttonClass } from "./ui";
 
 // ---- storage (this browser or app window only) -------------------------------------------------------------------
 
@@ -111,7 +111,7 @@ function complete(p: Palette | undefined, base: ThemePalette, accent: string | u
 
 function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-md border border-line-strong bg-surface-2 p-0.5">
+    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap rounded-full border border-line bg-surface-2 p-1">
       {options.map(([v, text]) => (
         <button
           key={v}
@@ -119,7 +119,9 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
           role="radio"
           aria-checked={value === v}
           onClick={() => onChange(v)}
-          className={`h-8 rounded-sm px-3 text-sm font-medium transition-colors duration-120 ${value === v ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}
+          className={`h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+            value === v ? "bg-primary-soft text-on-primary-soft" : "text-muted hover:text-foreground"
+          }`}
         >
           {text}
         </button>
@@ -132,22 +134,37 @@ function TokenSwatch({ token, palette, onChange }: { token: EditableToken; palet
   const id = `ct-${token}`;
   const c = textContrast(palette, token);
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-line py-2 last:border-b-0">
-      <div className="min-w-0">
-        <label htmlFor={id} className="block text-sm">
-          {TOKEN_LABELS[token]}
-        </label>
-        {c && (
-          <p className={`text-xs ${c.ok ? "text-muted" : "text-warning"}`}>
-            {c.ratio.toFixed(1)}:1 on {c.on === "background" ? "the page" : "cards"}
-            {c.ok ? "" : ". Below 4.5:1, hard to read"}
-          </p>
-        )}
+    <div className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-[16px] bg-background px-3 py-2">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <label
+          htmlFor={id}
+          className="size-8 shrink-0 cursor-pointer rounded-[10px] border border-line-strong"
+          style={{ background: palette[token] }}
+          title={`Click to pick ${TOKEN_LABELS[token]}`}
+        />
+        <div className="min-w-0">
+          <label htmlFor={id} className="block cursor-pointer text-[15px]">
+            {TOKEN_LABELS[token]}
+          </label>
+          {c && (
+            <p className={`text-xs ${c.ok ? "text-muted" : "text-warning font-medium"}`}>
+              {c.ratio.toFixed(1)}:1 on {c.on === "background" ? "the page" : "cards"}
+              {c.ok ? "" : " (below 4.5:1, hard to read)"}
+            </p>
+          )}
+        </div>
       </div>
-      <span className="flex shrink-0 items-center gap-2">
-        <code className="text-xs text-muted">{palette[token]}</code>
-        <input id={id} type="color" value={palette[token]} onChange={(e) => onChange(e.target.value)} className="h-8 w-10 rounded-sm border border-line-strong bg-transparent p-0.5" />
-      </span>
+      <div className="flex shrink-0 items-center gap-2">
+        <code className="text-xs font-mono text-muted">{palette[token]}</code>
+        <input
+          id={id}
+          type="color"
+          value={palette[token]}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={`${TOKEN_LABELS[token]} colour`}
+          className="h-10 w-11 cursor-pointer rounded-[10px] border border-line bg-transparent p-0.5"
+        />
+      </div>
     </div>
   );
 }
@@ -156,38 +173,62 @@ function TokenSwatch({ token, palette, onChange }: { token: EditableToken; palet
 function Preview({ palette, mode }: { palette: Required<Palette>; mode: "light" | "dark" }) {
   const vars = Object.fromEntries(EDITABLE_TOKENS.map((k) => [`--${k}`, palette[k]])) as React.CSSProperties;
   const on = textContrast(palette, "primary");
+  // Text on a filled button: whichever of the palette's text or card colour reads better on it.
+  const onFill = (fill: string) => {
+    const l = luminance(fill);
+    const a = luminance(palette.foreground);
+    const b = luminance(palette.surface);
+    const ratio = (x: number, y: number) => (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+    return ratio(l, a) >= ratio(l, b) ? palette.foreground : palette.surface;
+  };
+
   return (
-    <div
-      style={{ ...vars, ["--primary-soft" as string]: `color-mix(in oklab, ${palette.primary} 14%, ${palette.surface})`, ["--reward-soft" as string]: `color-mix(in oklab, ${palette.reward} 16%, ${palette.surface})`, ["--line-strong" as string]: `color-mix(in oklab, ${palette.line} 80%, ${palette.foreground})` }}
-      className="space-y-3 rounded-lg border border-line bg-background p-4 text-foreground"
-      aria-label={`Preview, ${mode} mode`}
-    >
-      <p className="text-xs font-medium text-muted">Preview, {mode} mode</p>
-      <div className="flex gap-3">
-        <div className="hidden w-28 shrink-0 space-y-1 rounded-md bg-surface-2 p-2 text-xs sm:block">
-          <p className="rounded-sm bg-primary-soft px-2 py-1 font-medium text-primary">Today</p>
-          <p className="px-2 py-1 text-muted">Practice</p>
-          <p className="px-2 py-1 text-muted">Learn</p>
-        </div>
-        <div className="min-w-0 flex-1 space-y-2 rounded-md border border-line bg-surface p-3">
-          <p className="text-base font-semibold">Two pointers</p>
-          <p className="text-sm text-muted">Next up: Container With Most Water</p>
-          <div className="flex flex-wrap gap-1.5 text-xs font-medium">
-            <span className="rounded-full bg-reward-soft px-2 py-0.5 text-reward">+20 XP</span>
-            <span className="text-success">Solved</span>
-            <span className="text-warning">Due</span>
-            <span className="text-danger">Failed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-semibold" style={{ color: luminance(palette.primary) > 0.179 ? "#111111" : "#ffffff" }}>
-              Run
+    <div className="space-y-3">
+      <div
+        style={{
+          ...vars,
+          ["--primary-soft" as string]: `color-mix(in oklab, ${palette.primary} 16%, ${palette.surface})`,
+          ["--reward-soft" as string]: `color-mix(in oklab, ${palette.reward} 16%, ${palette.surface})`,
+          ["--line-strong" as string]: `color-mix(in oklab, ${palette.line} 80%, ${palette.foreground})`,
+        }}
+        className="flex flex-col gap-2.5 rounded-[24px] border border-line bg-background p-4 text-foreground"
+        aria-label={`Preview, ${mode} mode`}
+      >
+        <p className="text-xs font-semibold tracking-wider text-muted">Preview · {mode === "light" ? "Light" : "Dark"} mode</p>
+        <div className="flex flex-col gap-2 rounded-[20px] border border-line bg-surface p-4">
+          <p className="text-base font-medium">Two Sum II</p>
+          <p className="text-sm opacity-75">Two pointers · 20 min</p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <span
+              className="inline-flex h-10 items-center rounded-full px-5 text-sm font-medium transition-colors"
+              style={{
+                background: palette.primary,
+                color: onFill(palette.primary),
+              }}
+            >
+              Start
             </span>
-            <span className="inline-flex h-8 items-center rounded-md border border-line-strong px-3 text-sm">Reset</span>
-            <code className="font-mono text-xs text-muted">O(n)</code>
+            <span
+              className="inline-flex h-10 items-center rounded-full px-5 text-sm font-medium transition-colors"
+              style={{
+                background: `color-mix(in oklab, ${palette.primary} 16%, ${palette.surface})`,
+                color: palette.foreground,
+              }}
+            >
+              Later
+            </span>
           </div>
         </div>
+        <span
+          className="inline-flex h-10 items-center self-start rounded-full px-5 text-sm font-medium"
+          style={{ background: palette.danger, color: onFill(palette.danger) }}
+        >
+          Delete this note
+        </span>
+        {on && !on.ok && (
+          <p className="text-xs text-warning">The primary colour is hard to read as link text on cards.</p>
+        )}
       </div>
-      {on && !on.ok && <p className="text-xs text-warning">The primary colour is hard to read as link text on cards.</p>}
     </div>
   );
 }
@@ -277,7 +318,7 @@ export function CustomColours() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium">Your own theme: {on ? "on" : "off"}</p>
-          <p className="text-xs text-muted">
+          <p className="text-sm text-muted">
             Start from any theme and change its colours for light and dark, the fonts, corners and spacing. A warning shows when text would be hard to
             read; it never stops you.
           </p>
@@ -288,21 +329,23 @@ export function CustomColours() {
           aria-checked={on}
           aria-label="Your own theme"
           onClick={() => (on ? save(CUSTOM_THEME_KEY, null) : startFrom(STYLES[0].id))}
-          className={`relative h-6 w-11 shrink-0 rounded-full border ${on ? "border-primary bg-primary" : "border-line-strong bg-surface-2"}`}
+          className={`relative flex h-8 w-[52px] shrink-0 items-center rounded-full border-2 px-[2px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            on ? "justify-end border-primary bg-primary" : "justify-start border-outline bg-surface-2"
+          }`}
         >
-          <span className={`absolute top-0.5 size-4.5 rounded-full shadow-sm transition-all duration-120 ${on ? "left-[1.4rem] bg-on-primary" : "left-0.5 bg-muted"}`} />
+          <span className={`rounded-full ${on ? "size-6 bg-on-primary" : "mx-1 size-4 bg-outline"}`} />
         </button>
       </div>
 
       {on && (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-          <div className="space-y-5">
+        <div className="grid items-start gap-5 @min-[880px]:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+          <div className="min-w-0 space-y-5">
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1.5">
                 <label htmlFor="ct-base" className="block text-sm font-medium">
                   Start from
                 </label>
-                <select id="ct-base" value={baseStyle.id} onChange={(e) => startFrom(e.target.value)} className={`${INPUT_CLASS} w-48`}>
+                <select id="ct-base" value={baseStyle.id} onChange={(e) => startFrom(e.target.value)} className={`${INPUT_CLASS} w-48 max-w-full`}>
                   {STYLES.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.label}
@@ -312,16 +355,21 @@ export function CustomColours() {
               </div>
               <Segmented label="Mode to edit" value={mode} options={[["light", "Light"], ["dark", "Dark"]]} onChange={setMode} />
             </div>
-            <p className="text-xs text-muted">Picking a theme above replaces your colours with that theme&apos;s. The page shows the mode your device is in.</p>
+            <p className="text-sm text-muted">Picking a theme above replaces your colours with that theme&apos;s. The page shows the mode your device is in.</p>
 
-            <fieldset className="rounded-md border border-line bg-surface px-3 py-1">
-              <legend className="px-1 text-sm font-medium">{mode === "light" ? "Light" : "Dark"} mode colours</legend>
+            <fieldset className="min-w-0 space-y-2">
+              <legend className="mb-2 text-sm font-medium">{mode === "light" ? "Light" : "Dark"} mode colours</legend>
               {EDITABLE_TOKENS.map((k) => (
                 <TokenSwatch key={k} token={k} palette={palette} onChange={(v) => setToken(k, v)} />
               ))}
+              {isNearDanger(palette.primary, palette.danger) && (
+                <p role="status" className="rounded-[16px] bg-danger-soft px-3.5 py-3 text-sm leading-5 text-on-danger-soft">
+                  Primary is close to the danger colour, so buttons may look like errors. Pick a colour further from red.
+                </p>
+              )}
             </fieldset>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-3">
               {FONT_SLOTS.map((f) => (
                 <FontSelect
                   key={f.slot + (theme.fonts?.[f.slot] ?? "")}
@@ -342,7 +390,7 @@ export function CustomColours() {
                 <Segmented
                   label="Corners"
                   value={theme.corners ?? "default"}
-                  options={[["sharp", "Sharp"], ["default", "Default"], ["round", "Round"]]}
+                  options={[["round", "Round"], ["default", "Soft"], ["sharp", "Sharp"]]}
                   onChange={(v) => write(full({ corners: v === "default" ? undefined : v }))}
                 />
               </div>
@@ -351,18 +399,18 @@ export function CustomColours() {
                 <Segmented
                   label="Density"
                   value={theme.density ?? "comfortable"}
-                  options={[["compact", "Compact"], ["comfortable", "Comfortable"]]}
+                  options={[["comfortable", "Comfortable"], ["compact", "Compact"]]}
                   onChange={(v) => write(full({ density: v === "comfortable" ? undefined : v }))}
                 />
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4 @min-[880px]:sticky @min-[880px]:top-6">
             <Preview palette={palette} mode={mode} />
-            <div className="space-y-2 rounded-md border border-line bg-surface p-3">
+            <div className="space-y-2 rounded-[24px] border border-line bg-background p-4">
               <p className="text-sm font-medium">Share or move this theme</p>
-              <p className="text-xs text-muted">Your theme syncs with your appearance when you are signed in. Export it to keep a copy or give it to someone.</p>
+              <p className="text-sm text-muted">Your theme syncs with your appearance when you are signed in. Export it to keep a copy or give it to someone.</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" size="sm" onClick={() => download("zen-dojo-theme.json", exportCustomTheme(theme))}>
                   Export JSON
@@ -383,15 +431,15 @@ export function CustomColours() {
                   }}
                 />
               </div>
-              <label htmlFor="ct-paste" className="block text-xs text-muted">
+              <label htmlFor="ct-paste" className="block text-sm text-muted">
                 Or paste theme JSON
               </label>
-              <textarea id="ct-paste" value={paste} onChange={(e) => setPaste(e.target.value)} rows={3} className={`${INPUT_CLASS} h-auto py-2 font-mono text-xs`} />
+              <textarea id="ct-paste" value={paste} onChange={(e) => setPaste(e.target.value)} rows={3} className={`${INPUT_CLASS} h-auto rounded-[16px] py-2 font-mono text-xs`} />
               <Button variant="secondary" size="sm" disabled={!paste.trim()} onClick={() => importText(paste)}>
                 Import pasted theme
               </Button>
               {message && (
-                <p role="status" className="text-xs text-muted">
+                <p role="status" className="text-sm text-muted">
                   {message}
                 </p>
               )}
@@ -440,7 +488,7 @@ export function CustomFontPicker() {
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium">Your own font{font ? `: ${font.family}` : ""}</p>
-      <p className="text-xs text-muted">
+      <p className="text-sm text-muted">
         Use a font installed on this computer by typing its name, or upload a font file (.woff2, .woff, .ttf, .otf). Uploaded fonts stay in this
         browser or app window only. Check the font&apos;s licence before using it.
       </p>
@@ -450,12 +498,12 @@ export function CustomFontPicker() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Installed font name, e.g. Inter"
           aria-label="Installed font name"
-          className="min-w-0 flex-1 rounded-lg border border-line bg-background px-3 py-1.5 text-sm"
+          className={`${INPUT_CLASS} h-10 min-w-0 flex-1 basis-56 px-4`}
         />
-        <button type="button" onClick={useInstalled} className="inline-flex h-8 items-center rounded-md border border-line-strong bg-surface px-3 text-sm font-medium hover:bg-surface-2">
+        <button type="button" onClick={useInstalled} className={buttonClass("outline", "sm")}>
           Use this font
         </button>
-        <button type="button" onClick={() => file.current?.click()} className="inline-flex h-8 items-center rounded-md border border-line-strong bg-surface px-3 text-sm font-medium hover:bg-surface-2">
+        <button type="button" onClick={() => file.current?.click()} className={buttonClass("outline", "sm")}>
           Upload a font file
         </button>
         <input ref={file} type="file" accept=".woff2,.woff,.ttf,.otf,font/*" hidden onChange={(e) => upload(e.target.files?.[0])} />
@@ -466,7 +514,7 @@ export function CustomFontPicker() {
               deleteFontFile().catch(() => undefined);
               save(CUSTOM_FONT_KEY, null);
             }}
-            className="inline-flex h-8 items-center rounded-md border border-line-strong bg-surface px-3 text-sm font-medium hover:bg-surface-2"
+            className={buttonClass("quiet", "sm")}
           >
             Back to the built-in font
           </button>
@@ -517,11 +565,11 @@ export function ProfileEditor() {
       <div className="flex items-center gap-4">
         <Avatar className="size-16 text-xl" />
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => file.current?.click()} className="inline-flex h-8 items-center rounded-md border border-line-strong bg-surface px-3 text-sm font-medium hover:bg-surface-2">
+          <button type="button" onClick={() => file.current?.click()} className={buttonClass("outline", "sm")}>
             {profile.picture ? "Change picture" : "Add a picture"}
           </button>
           {profile.picture && (
-            <button type="button" onClick={() => write({ ...profile, picture: "" })} className="inline-flex h-8 items-center rounded-md border border-line-strong bg-surface px-3 text-sm font-medium hover:bg-surface-2">
+            <button type="button" onClick={() => write({ ...profile, picture: "" })} className={buttonClass("quiet", "sm")}>
               Remove
             </button>
           )}
@@ -536,10 +584,10 @@ export function ProfileEditor() {
           maxLength={40}
           onBlur={(e) => write({ ...profile, name: e.target.value.trim() })}
           placeholder="Your name"
-          className="mt-1 block w-full max-w-xs rounded-lg border border-line bg-background px-3 py-1.5"
+          className={`${INPUT_CLASS} mt-1 h-10 max-w-xs px-4`}
         />
       </label>
-      <p className="text-xs text-muted">The picture is cropped to a square and kept only in this browser or app window. It is not part of a backup.</p>
+      <p className="text-sm text-muted">The picture is cropped to a square and kept only in this browser or app window. It is not part of a backup.</p>
       {error && (
         <p role="alert" className="text-xs text-danger">
           {error}

@@ -93,7 +93,7 @@ export function SkeletonCard({
     <div
       aria-hidden="true"
       className={cn(
-        "rounded-md border border-line bg-surface p-4 space-y-3",
+        "rounded-lg border border-line dark:border-0 bg-surface p-5 space-y-3",
         className
       )}
       {...props}
@@ -115,7 +115,7 @@ export interface SkeletonButtonProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Button placeholder matching Zen Dojo standard heights (h-8 for compact/sm, h-9 for default/md).
+ * Button placeholder matching Expressive standard pill heights (h-10 for compact/sm, h-12 for default/md).
  */
 export function SkeletonButton({
   size = "default",
@@ -124,12 +124,12 @@ export function SkeletonButton({
 }: SkeletonButtonProps) {
   const sizeClasses =
     size === "sm"
-      ? "h-8 w-20 rounded-md"
+      ? "h-10 w-20 rounded-full"
       : size === "icon"
-        ? "size-8 rounded-md"
+        ? "size-10 rounded-full"
         : size === "lg"
-          ? "h-10 w-28 rounded-lg"
-          : "h-9 w-24 rounded-lg";
+          ? "h-12 w-28 rounded-full"
+          : "h-12 w-24 rounded-full";
 
   return (
     <Skeleton
@@ -158,7 +158,7 @@ export function SkeletonTable({
     <div
       aria-hidden="true"
       className={cn(
-        "overflow-hidden rounded-md border border-line bg-surface",
+        "overflow-hidden rounded-lg border border-line dark:border-0 bg-surface",
         className
       )}
       {...props}

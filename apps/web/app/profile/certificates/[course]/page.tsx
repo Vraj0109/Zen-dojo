@@ -33,11 +33,11 @@ async function Certificate({ params }: { params: PageProps<"/profile/certificate
   const ref = certificateId(data.name, course.id, course.completedOn);
 
   return (
-    <main className="w-full px-4 py-6 sm:px-6 lg:px-10">
+    <div className="w-full px-4 py-6 sm:px-6 md:px-8">
       <style>{`@page { size: A4 landscape; margin: 0; } @media print { body { background: #fff !important; } .no-print { display: none !important; } .cert { border-width: 8px !important; width: 297mm; height: 209mm; min-height: 0 !important; max-width: none !important; } }`}</style>
       <div className="no-print mb-6 flex flex-wrap items-center gap-3">
         <PrintButton />
-        <Link href="/profile/portfolio" className="text-sm text-muted hover:text-foreground">
+        <Link href="/profile/portfolio" className="inline-flex h-10 items-center text-sm text-muted hover:text-foreground">
           Back to portfolio
         </Link>
       </div>
@@ -56,6 +56,6 @@ async function Certificate({ params }: { params: PageProps<"/profile/certificate
         <p className="text-neutral-600">on {longDate(course.completedOn)}</p>
         <p className="mt-4 text-xs text-neutral-500">Certificate number {ref}. A self-study record from Zen Dojo, not an accredited qualification.</p>
       </section>
-    </main>
+    </div>
   );
 }

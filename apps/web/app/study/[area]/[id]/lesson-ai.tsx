@@ -3,6 +3,21 @@
 import { useEffect, useState } from "react";
 import { AiChat, type ProviderInfo } from "../../../dsa/ai-chat";
 
+const OPEN_EVENT = "zd:open-lesson-ai";
+
+/** The outline's "Ask AI about this lesson" button: opens the lesson chat panel. */
+export function AskAiButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}
+      className="mt-2 flex h-12 w-full items-center justify-center rounded-[18px] bg-primary-container px-4 text-center text-sm font-medium text-on-primary-container transition-colors hover:brightness-95"
+    >
+      Ask AI about this lesson
+    </button>
+  );
+}
+
 /**
  * "Ask AI" for a course lesson. Wide screens: a floating button that opens the same chat as on problems, in a panel at the
  * bottom right. Phones: a button above the tab bar (the tab bar used to cover it) that opens the chat as a full-screen
@@ -11,6 +26,13 @@ import { AiChat, type ProviderInfo } from "../../../dsa/ai-chat";
  */
 export function LessonAi({ lessonId, providers, provider }: { lessonId: string; providers: ProviderInfo[]; provider: string }) {
   const [open, setOpen] = useState(false);
+
+  // The "Ask AI about this lesson" button in the outline opens this same panel.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_EVENT, onOpen);
+  }, []);
 
   // While the phone sheet is open the page behind it should not scroll.
   useEffect(() => {

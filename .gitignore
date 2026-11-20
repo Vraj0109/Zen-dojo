@@ -26,6 +26,7 @@ jwt-private.jwk.json
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
+.claude/
 
 .wrangler/
 

@@ -13,7 +13,7 @@ export function SettingsSection({ id, scope, children }: { id: string; scope?: S
   return (
     <div data-settings-section={id} className="relative">
       {scope && (
-        <p className="mb-1.5 text-xs text-muted sm:absolute sm:top-5 sm:right-5 sm:mb-0">
+        <p className="mb-1.5 text-xs text-muted @min-[700px]:absolute @min-[700px]:top-6 @min-[700px]:right-6 @min-[700px]:mb-0">
           <span className={`mr-1.5 inline-block size-1.5 rounded-full align-middle ${scope === "device" ? "bg-muted" : "bg-primary"}`} aria-hidden />
           {SCOPE_TEXT[scope]}
         </p>
@@ -27,9 +27,9 @@ export function SettingsSection({ id, scope, children }: { id: string; scope?: S
 export function SettingsBlock({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} data-category-block={id} aria-labelledby={`${id}-heading`} className="scroll-mt-24 space-y-4">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+      <h2 id={`${id}-heading`} className="text-xl font-medium">
         {title}
-      </h3>
+      </h2>
       <div className="space-y-4">{children}</div>
     </section>
   );

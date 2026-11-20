@@ -8,17 +8,13 @@ import "katex/dist/katex.min.css";
 import { cpAlgoCount, getCpAlgoArticles } from "@/lib/cp-algorithms";
 import { getDsaView } from "@/lib/dsa";
 import { getSimpleMode } from "@/lib/ui-prefs";
-import { focusMinutes, patternTimerId } from "@/lib/timer";
-import { StartTimer } from "../../../start-timer";
 import { Code } from "../../../code";
 import { Diagram } from "../../../diagram";
 import { ArticleLayout, ArticleSection } from "../../../learn-blocks";
-import { Tabs } from "../../../tabs";
-import { Badge, buttonClass, PageMain, ProgressBar, SimpleHint } from "../../../ui";
-import { AddedProblems } from "../../added-problems";
 import { CheatSheet, ProblemCard } from "../../problem-ui";
 import { StudyArticleSkeleton } from "@/app/components/study-skeleton";
 import { Skeleton } from "@/app/components/skeleton";
+import { buttonClass } from "../../../ui";
 import { patternNeighbours } from "@/lib/pattern-nav";
 import { LessonEnd } from "./lesson-end";
 
@@ -33,12 +29,12 @@ export async function generateMetadata({ params }: PageProps<"/dsa/pattern/[id]"
 }
 
 /** Learn (when a full article exists), Practice and My template always; Reference (cp-algorithms articles) only for patterns that have some. */
-function tabsFor(patternId: string) {
+function tabsFor(patternId: string, problemCount = 0) {
   const hasArticle = Boolean(PATTERN_ARTICLES[patternId]);
   const refs = cpAlgoCount(patternId);
   return [
     ...(hasArticle ? [{ id: "learn", label: "Learn" }] : []),
-    { id: "practice", label: "Practice" },
+    { id: "practice", label: problemCount > 0 ? `Practice · ${problemCount}` : "Practice" },
     { id: "template", label: "My template" },
     ...(refs > 0 ? [{ id: "reference", label: "Reference", count: refs }] : []),
   ];
@@ -53,11 +49,11 @@ export default async function PatternPage({
   if (!pattern) notFound();
 
   return (
-    <PageMain title={pattern.name}>
+    <div className="mx-auto w-full min-w-0 max-w-[1680px] px-4 pt-4 pb-10 sm:px-6 md:px-8 md:pt-6">
       <Suspense fallback={<StudyArticleSkeleton />}>
         <PatternView params={params} searchParams={searchParams} />
       </Suspense>
-    </PageMain>
+    </div>
   );
 }
 
@@ -68,6 +64,8 @@ async function PatternView({
   params: PageProps<"/dsa/pattern/[id]">["params"];
   searchParams: PageProps<"/dsa/pattern/[id]">["searchParams"];
 }) {
+  // Request-time page (cacheComponents): connection() before reading searchParams, and the code highlighting below.
+  await connection();
   const { id } = await params;
   const sp = await searchParams;
   const pattern = ALL_PATTERNS.find((p) => p.id === id);
@@ -79,42 +77,55 @@ async function PatternView({
   const prev = nav?.prev;
   const next = nav?.next;
 
-  const tabs = tabsFor(id);
+  const tabs = tabsFor(id, pattern.problems.length);
   const defaultTab = article ? "learn" : "practice";
   const requested = typeof sp?.tab === "string" ? sp.tab : defaultTab;
   const currentTab = tabs.some((t) => t.id === requested) ? requested : defaultTab;
 
   return (
-    <article className="min-w-0 space-y-6">
-      <header className="space-y-3">
-        <nav aria-label="Breadcrumb" className="text-sm text-muted">
-          <Link href="/dsa" className="hover:text-foreground">
-            Practice
-          </Link>
-          <span aria-hidden="true"> / </span>
-          <Link href={`/dsa?group=${group.id}#p-${id}`} className="hover:text-foreground">
-            {group.title}
-          </Link>
-        </nav>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0 space-y-1">
-            <h2 className="text-3xl font-semibold tracking-tight">{pattern.name}</h2>
-            <p className="max-w-[68ch] text-sm text-muted">Recognize by: {pattern.recognize}</p>
-          </div>
-          <div className="w-full sm:w-64">
-            <Suspense fallback={<Skeleton className="h-5 w-full" />}>
-              <HeaderProgress id={id} />
-            </Suspense>
-          </div>
+    <article className="flex min-w-0 flex-col gap-4">
+      {/* Breadcrumb pill */}
+      <Link
+        href={`/dsa?group=${group.id}#g-${group.id}`}
+        className="inline-flex max-w-full self-start items-center gap-1.5 min-h-10 py-1 pr-3.5 pl-2 rounded-full bg-surface-2 text-foreground text-sm font-medium hover:bg-line transition-colors"
+      >
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 6-6 6 6 6" />
+        </svg>
+        {group.title}
+      </Link>
+
+      {/* Hero card on primary-container */}
+      <header className="flex items-center justify-between gap-5 flex-wrap p-5 sm:px-7 sm:py-6 rounded-[32px] bg-primary-container text-on-primary-container">
+        <div className="min-w-0 flex-[1_1_260px]">
+          <h1 className="text-[26px] sm:text-[34px] font-semibold leading-tight [overflow-wrap:anywhere]">{pattern.name}</h1>
+          <p className="mt-1.5 text-[15px] leading-relaxed opacity-85">Spot it when {pattern.recognize}</p>
         </div>
+        <Suspense fallback={<div className="size-[88px] rounded-full bg-primary/20 animate-pulse shrink-0" />}>
+          <PatternProgressRing id={id} />
+        </Suspense>
       </header>
 
-      <Tabs
-        tabs={tabs}
-        active={currentTab}
-        hrefFor={(t) => (t === "learn" ? `/dsa/pattern/${id}` : `/dsa/pattern/${id}?tab=${t}`)}
-        label="Pattern sections"
-      />
+      {/* Segmented tabs */}
+      <div role="tablist" aria-label="Pattern sections" className="flex gap-1 p-1 rounded-full bg-surface-2 self-start select-none max-w-full overflow-x-auto [scrollbar-width:none]">
+        {tabs.map((t) => {
+          const isActive = t.id === currentTab;
+          const href = t.id === "learn" ? `/dsa/pattern/${id}` : `/dsa/pattern/${id}?tab=${t.id}`;
+          return (
+            <Link
+              key={t.id}
+              href={href}
+              role="tab"
+              aria-selected={isActive}
+              className={`h-10 px-4.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center ${
+                isActive ? "bg-primary-soft text-on-primary-soft font-semibold" : "text-muted hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
+      </div>
 
       {currentTab === "learn" && article && <ArticleView article={article} />}
 
@@ -123,7 +134,7 @@ async function PatternView({
       {currentTab === "practice" && (
         <Suspense
           fallback={
-            <div className="space-y-4 rounded-md border border-line bg-surface p-4">
+            <div className="space-y-4 rounded-2xl border border-line bg-surface p-4">
               <Skeleton className="h-5 w-40" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
@@ -137,7 +148,7 @@ async function PatternView({
       )}
 
       {currentTab === "template" && (
-        <Suspense fallback={<Skeleton className="h-40 w-full rounded-md" />}>
+        <Suspense fallback={<Skeleton className="h-40 w-full rounded-2xl" />}>
           <Template id={id} />
         </Suspense>
       )}
@@ -152,23 +163,31 @@ async function PatternView({
         />
       )}
 
-      {currentTab === "practice" && article && (
-        <p className="text-sm">
-          <Link href={`/dsa/pattern/${id}`} className="text-muted underline-offset-2 hover:text-foreground hover:underline">
-            Back to the lesson
-          </Link>
-        </p>
+      {/* Next pattern card at the end */}
+      {next && (
+        <Link
+          href={`/dsa/pattern/${next.id}`}
+          className="flex items-center justify-between gap-3 px-5.5 py-4.5 rounded-[28px] bg-surface-2 text-foreground hover:bg-line transition-colors"
+        >
+          <span>
+            <span className="text-sm text-muted block">Next pattern</span>
+            <span className="text-lg font-medium">{next.name}</span>
+          </span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </Link>
       )}
 
-      <nav aria-label="Other patterns" className="flex flex-wrap justify-between gap-2 border-t border-line pt-6 text-sm">
+      {/* Previous / next pattern links */}
+      <nav aria-label="Other patterns" className="flex flex-wrap justify-between gap-2 border-t border-line pt-4 text-sm">
         {prev ? (
           <Link
             href={`/dsa/pattern/${prev.id}${currentTab === "practice" ? "?tab=practice" : ""}`}
-            className="rounded-md border border-line bg-surface px-4 py-2.5 transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm max-md:min-h-11 max-md:flex-1"
+            className="rounded-xl border border-line dark:border-0 bg-surface px-4 py-2.5 transition-colors hover:bg-surface-2 max-md:min-h-11 max-md:flex-1"
           >
             <span className="block text-xs text-muted">Previous pattern</span>
             <span className="font-medium">{prev.name}</span>
-            {nav?.prevGroup && <span className="block text-xs text-muted">{nav.prevGroup.title}</span>}
           </Link>
         ) : (
           <span />
@@ -176,15 +195,49 @@ async function PatternView({
         {next && (
           <Link
             href={`/dsa/pattern/${next.id}${currentTab === "practice" ? "?tab=practice" : ""}`}
-            className="rounded-md border border-line bg-surface px-4 py-2.5 text-right transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm max-md:min-h-11 max-md:flex-1"
+            className="rounded-xl border border-line dark:border-0 bg-surface px-4 py-2.5 text-right transition-colors hover:bg-surface-2 max-md:min-h-11 max-md:flex-1"
           >
             <span className="block text-xs text-muted">Next pattern</span>
             <span className="font-medium text-primary">{next.name}</span>
-            {nav?.nextPatternGroup && <span className="block text-xs text-muted">{nav.nextPatternGroup.title}</span>}
           </Link>
         )}
       </nav>
     </article>
+  );
+}
+
+/** Progress ring in hero */
+async function PatternProgressRing({ id }: { id: string }) {
+  await connection();
+  const view = await getDsaView();
+  const p = view.groups.flatMap((g) => g.patterns).find((x) => x.id === id);
+  if (!p) return null;
+  const solved = p.solved;
+  const total = p.items.length;
+  const len = total > 0 ? Math.round((solved / total) * 239) : 0;
+
+  return (
+    <div className="relative size-[88px] shrink-0 text-on-primary-container">
+      <svg role="img" aria-label={`${solved} of ${total} solved`} width="88" height="88" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="12" className="opacity-25" />
+        {len > 0 && (
+          <circle
+            cx="50"
+            cy="50"
+            r="38"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="12"
+            strokeLinecap="round"
+            strokeDasharray={`${len} 239`}
+            transform="rotate(-90 50 50)"
+          />
+        )}
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xl font-semibold tabular-nums">
+        {solved}/{total}
+      </span>
+    </div>
   );
 }
 
@@ -227,7 +280,6 @@ async function Reference({ id }: { id: string }) {
             cp-algorithms contributors, CC BY-SA 4.0 (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">license</a>).
             Converted to HTML; text unchanged.
           </p>
-          {/* Imported at build time from the cp-algorithms repo; scripts are stripped by the importer and code is coloured by our highlighter. */}
           <div className="cp-prose" dangerouslySetInnerHTML={{ __html: a.html }} />
         </ArticleSection>
       ))}
@@ -235,21 +287,12 @@ async function Reference({ id }: { id: string }) {
   );
 }
 
-/** Solved count for the header; loads on its own so the static header paints first. */
-async function HeaderProgress({ id }: { id: string }) {
-  await connection();
-  const view = await getDsaView();
-  const p = view.groups.flatMap((g) => g.patterns).find((x) => x.id === id);
-  if (!p) return null;
-  return <ProgressBar value={p.solved} max={p.target} label={`${p.name}: problems solved`} showCount />;
-}
-
 async function Template({ id }: { id: string }) {
   await connection();
   const [view, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
   const p = view.groups.flatMap((g) => g.patterns).find((x) => x.id === id);
   if (!p) return null;
-  if (simple) return <SimpleHint />;
+  if (simple) return null;
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">Your template and how you spot this pattern. Write it from memory, then compare with the lesson.</p>
@@ -260,47 +303,55 @@ async function Template({ id }: { id: string }) {
 
 async function Practice({ id }: { id: string }) {
   await connection();
-  const [view, minutes, simple] = await Promise.all([getDsaView(), focusMinutes(patternTimerId(id)), getSimpleMode()]);
+  const [view, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
   const p = view.groups.flatMap((g) => g.patterns).find((x) => x.id === id);
   if (!p) return null;
   const nextId = p.items.find((i) => i.status.state === "unsolved")?.id;
+  const hasArticle = Boolean(PATTERN_ARTICLES[id]);
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="min-w-0 space-y-6">
-        <section className="space-y-3" aria-labelledby="practice-heading">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 id="practice-heading" className="font-semibold">
-              Problems
-            </h3>
-            <span className="text-sm text-muted">Easy to hard. Solve, then re-solve cold two weeks later.</span>
+    <div className="flex gap-5 flex-wrap items-start">
+      {/* Problems column */}
+      <section aria-label="Problems" className="flex-[999_1_420px] min-w-0 flex flex-col gap-2.5">
+        {p.items.map((item) => (
+          <ProblemCard key={item.id} p={item} next={item.id === nextId} />
+        ))}
+      </section>
+
+      {/* Cheat sheet aside */}
+      {!simple && (
+        <aside
+          aria-label="Cheat sheet"
+          className="flex-[1_1_300px] min-w-0 p-5 rounded-[28px] bg-surface border border-line dark:border-0 flex flex-col gap-3"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[15px] font-medium text-foreground">Your template</span>
+            {p.note?.template && <span className="text-xs text-success font-medium">Saved</span>}
           </div>
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {p.items.map((item) => (
-              <ProblemCard key={item.id} p={item} next={item.id === nextId} />
-            ))}
-          </ul>
-        </section>
-        <AddedProblems patternId={id} />
-      </div>
-      <aside className="space-y-4 self-start xl:sticky xl:top-6">
-        <StartTimer itemId={patternTimerId(id)} label={p.name} href={`/dsa/pattern/${id}`} defaultMinutes={25} totalMinutes={minutes} />
-        {!simple && (
-          <section className="space-y-3 rounded-md border border-line bg-surface p-4 text-sm" aria-labelledby="cheat-heading">
-            <div className="flex items-center justify-between gap-2">
-              <h3 id="cheat-heading" className="font-semibold">
-                Cheat sheet
-              </h3>
-              {p.note?.template ? <Badge tone="success">Saved</Badge> : <Badge>Empty</Badge>}
-            </div>
-            <p className="text-muted">{p.note?.recognize || p.recognize}</p>
-            {p.note?.template && <Code code={p.note.template} lang={p.note.language} maxHeight="14rem" />}
-            <Link href={`/dsa/pattern/${id}?tab=template`} className={buttonClass("secondary", "sm")}>
-              {p.note?.template ? "Edit my template" : "Write my template"}
+          {p.note?.template ? (
+            <pre className="p-3.5 rounded-2xl bg-surface-2 font-mono text-[13px] leading-5 overflow-x-auto text-foreground">
+              {p.note.template}
+            </pre>
+          ) : null}
+          <p className="text-sm text-muted">{p.note?.recognize || p.recognize}</p>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Link
+              href={`/dsa/pattern/${id}?tab=template`}
+              className={buttonClass("tonal", "sm")}
+            >
+              {p.note?.template ? "Edit template" : "Write template"}
             </Link>
-          </section>
-        )}
-        {simple && <SimpleHint />}
-      </aside>
+            {hasArticle && (
+              <Link
+                href={`/dsa/pattern/${id}?tab=learn`}
+                className={buttonClass("quiet", "sm")}
+              >
+                Read the guide
+              </Link>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

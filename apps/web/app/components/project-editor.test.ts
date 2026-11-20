@@ -81,6 +81,36 @@ describe("ProjectEditor full-screen and package tree features", () => {
     container.remove();
   });
 
+  it("explains a missing main instead of running, and can create Main.java", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const noMain = [{ name: "Cache.java", content: "public class Cache {\n    int size;\n}\n" }];
+    await act(async () => {
+      root.render(React.createElement(ProjectEditor, { projectId: "test-no-main", initialFiles: noMain }));
+    });
+    const button = (text: string) => Array.from(container.querySelectorAll("button")).find((b) => b.textContent === text);
+
+    await act(async () => {
+      button("Run file")!.click();
+    });
+    expect(container.textContent).toContain("Cache.java has no main method.");
+    expect(button("Add a main method")).toBeDefined();
+
+    await act(async () => {
+      button("Run project")!.click();
+    });
+    expect(container.textContent).toContain("No class in this project has a main method");
+    await act(async () => {
+      button("Create Main.java")!.click();
+    });
+    expect(container.textContent).toContain("Main.java");
+    expect(container.textContent).not.toContain("No class in this project has a main method");
+    root.unmount();
+    container.remove();
+    window.localStorage.clear();
+  });
+
   it("allows switching between reference tabs", async () => {
     const container = document.createElement("div");
     document.body.appendChild(container);

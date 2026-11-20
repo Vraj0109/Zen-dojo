@@ -6,6 +6,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorField } from "../code-editor";
 import { Diagram } from "../diagram";
 import { CopyButton } from "../copy-button";
+import {
+  addMainMethod,
+  classNameOf,
+  mainClasses,
+  pickEntry,
+  starterMain,
+  type EntryChoice,
+  type EntryClass,
+  type EntryMode,
+} from "@/lib/judge/project-entry";
 
 export type ProjectFile = { name: string; content: string };
 
@@ -59,6 +69,25 @@ function saveStored(key: string, files: ProjectFile[], active: string) {
   }
 }
 
+/** Why a run did not start: the open file has no main, the project has none, or the user must pick one. */
+type RunNotice = Exclude<EntryChoice, { ok: true }>;
+
+function readEntry(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeEntry(key: string, qualified: string) {
+  try {
+    window.localStorage.setItem(key, qualified);
+  } catch {
+    // Storage can be blocked; the editor asks again next time.
+  }
+}
+
 function clearStored(key: string) {
   try {
     window.localStorage.removeItem(key);
@@ -89,7 +118,6 @@ function Icon({ d, className = "size-3.5" }: { d: string; className?: string }) 
   );
 }
 
-const ICON_PLAY = "M6 4l14 8-14 8z";
 const ICON_PLUS = "M12 5v14M5 12h14";
 const ICON_FOLDER = "M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z";
 const ICON_TRASH = "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3";
@@ -105,6 +133,9 @@ const ICON_CHEVRON_RIGHT = "M9 18l6-6-6-6";
 
 const BUTTON =
   "inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 sm:px-3 text-xs font-semibold text-foreground transition-colors duration-120 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-45";
+
+const TREE_BUTTON =
+  "inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45";
 
 export type ProjectEditorProps = {
   projectId: string;
@@ -143,6 +174,10 @@ export function ProjectEditor({
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [failure, setFailure] = useState("");
+  const [runningMode, setRunningMode] = useState<EntryMode | null>(null);
+  const [notice, setNotice] = useState<RunNotice | null>(null);
+  const [lastEntry, setLastEntry] = useState<EntryClass | null>(null);
+  const runningRef = useRef(false);
 
   // Full-screen and side-drawer state
   const [fullscreen, setFullscreen] = useState(false);
@@ -157,6 +192,7 @@ export function ProjectEditor({
 
   // Collapsed packages map
   const [collapsedPkgs, setCollapsedPkgs] = useState<Record<string, boolean>>({});
+  const [showMobileFiles, setShowMobileFiles] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const filesRef = useRef(files);
@@ -166,6 +202,35 @@ export function ProjectEditor({
   const pendingJump = useRef<{ file: string; line: number; column?: number } | null>(null);
   const selectId = `project-lang-${projectId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
   const resolvedKey = storageKey ?? (STORAGE_PREFIX + projectId);
+  // The class picked when several classes have a main method, remembered per project.
+  const entryKey = `${resolvedKey}:entry`;
+  // A link to #classes-<projectId> (the "Write your classes" button on the LLD page) scrolls here without JS
+  // and opens the full-screen editor with it.
+  const anchorId = `classes-${projectId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash !== `#${anchorId}`) return;
+      setFullscreen(true);
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    };
+    // Links to "#classes-<id>" open the editor even when the hash is already set (a second click, or a reload).
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (!a || a.getAttribute("href") !== `#${anchorId}`) return;
+      e.preventDefault();
+      setFullscreen(true);
+    };
+    const first = window.setTimeout(onHash, 0); // a reload that kept the hash
+    window.addEventListener("hashchange", onHash);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.clearTimeout(first);
+      window.removeEventListener("hashchange", onHash);
+      document.removeEventListener("click", onClick);
+    };
+  }, [anchorId]);
 
   useEffect(() => {
     filesRef.current = files;
@@ -271,15 +336,21 @@ export function ProjectEditor({
     }
   }, []);
 
-  const run = useCallback(async () => {
+  /** Compiles every file and runs `entry`. */
+  const runEntry = useCallback(async (entry: EntryClass, mode: EntryMode) => {
+    if (runningRef.current) return;
+    runningRef.current = true;
     const current = flush();
     setRunning(true);
+    setRunningMode(mode);
     setFailure("");
+    setNotice(null);
+    setLastEntry(entry);
     try {
       const res = await fetch("/api/judge/run-project", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: current.map((f) => ({ name: f.name, content: f.content })) }),
+        body: JSON.stringify({ files: current.map((f) => ({ name: f.name, content: f.content })), entry: entry.qualified }),
       });
       const text = await res.text();
       let data: Partial<RunResult> | null = null;
@@ -309,9 +380,33 @@ export function ProjectEditor({
       setResult(null);
       setFailure("Could not reach the runner. Check that the app is running and try again.");
     } finally {
+      runningRef.current = false;
       setRunning(false);
+      setRunningMode(null);
     }
   }, [flush]);
+
+  /** Run file: the class open in the editor. Run project: the entry point (Main, the only main, or the picked one). */
+  const run = useCallback(
+    (mode: EntryMode) => {
+      if (runningRef.current) return;
+      const current = flush();
+      const choice = pickEntry({ files: current, active: activeRef.current, mode, remembered: readEntry(entryKey) });
+      if (!choice.ok) {
+        setResult(null);
+        setFailure("");
+        setNotice(choice);
+        return;
+      }
+      void runEntry(choice, mode);
+    },
+    [flush, entryKey, runEntry],
+  );
+
+  const chooseEntry = (entry: EntryClass) => {
+    writeEntry(entryKey, entry.qualified);
+    void runEntry(entry, "project");
+  };
 
   // Escape key handler: drawer first, then fullscreen, returning focus to editor
   useEffect(() => {
@@ -334,7 +429,7 @@ export function ProjectEditor({
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !readOnly && !noRun) {
         e.preventDefault();
-        run();
+        run(e.shiftKey ? "file" : "project");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -499,6 +594,53 @@ export function ProjectEditor({
     focusEditor();
   };
 
+  /** Inserts a minimal main method into one of the user's files and puts the caret inside it. */
+  const addMain = (fileName: string) => {
+    if (readOnly) return;
+    const current = flush();
+    const file = current.find((f) => f.name === fileName);
+    if (!file) return;
+    const added = addMainMethod(file.content, classNameOf(file.name));
+    if (!added) {
+      setNotice(null);
+      setFailure(`Could not find class ${classNameOf(file.name)} in ${file.name}. Add public static void main(String[] args) to it by hand.`);
+      return;
+    }
+    const next = current.map((f) => (f.name === fileName ? { ...f, content: added.code } : f));
+    filesRef.current = next;
+    setFiles(next);
+    setActive(fileName);
+    setNotice(null);
+    setFailure("");
+    pendingJump.current = { file: fileName, line: added.line, column: 9 };
+    setRevision((r) => r + 1);
+    onChangeRef.current?.(next);
+  };
+
+  /** Adds Main.java with a starter main (or a main method to an existing Main.java). */
+  const createMain = () => {
+    if (readOnly) return;
+    const current = flush();
+    if (current.some((f) => f.name === "Main.java")) {
+      addMain("Main.java");
+      return;
+    }
+    if (current.length >= MAX_FILES) {
+      setNotice(null);
+      setFailure(`A project can have at most ${MAX_FILES} files. Delete one, or add a main method to an existing class.`);
+      return;
+    }
+    const next = [...current, { name: "Main.java", content: starterMain() }];
+    filesRef.current = next;
+    setFiles(next);
+    setActive("Main.java");
+    setNotice(null);
+    setFailure("");
+    pendingJump.current = { file: "Main.java", line: 3, column: 9 };
+    setRevision((r) => r + 1);
+    onChangeRef.current?.(next);
+  };
+
   const goToDiagnostic = (d: Diagnostic) => {
     const known = filesRef.current.some((f) => f.name === d.file);
     if (!known) return;
@@ -524,15 +666,17 @@ export function ProjectEditor({
     }
   };
 
+  const entryCandidates = useMemo(() => mainClasses(files), [files]);
   const diagnostics = result?.diagnostics ?? [];
   const succeeded = result !== null && result.exitCode === 0;
 
   return (
     <div
+      id={anchorId}
       className={
         fullscreen
-          ? "fixed inset-0 z-50 flex flex-col bg-background text-foreground overflow-hidden"
-          : "overflow-hidden rounded-md border border-line bg-surface"
+          ? "@container fixed inset-0 z-50 flex flex-col overflow-hidden bg-background text-foreground"
+          : "@container relative overflow-hidden rounded-[24px] border border-line bg-surface dark:border-0"
       }
     >
       {noRun && (
@@ -541,9 +685,9 @@ export function ProjectEditor({
         </div>
       )}
 
-      {/* Top action bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      {/* Top action bar matching XClasses.dc.html */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 bg-background text-foreground border-b border-surface-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {fullscreen && (
             <button
               type="button"
@@ -551,25 +695,40 @@ export function ProjectEditor({
                 setFullscreen(false);
                 focusEditor();
               }}
-              className={BUTTON}
+              className="grid size-11 place-items-center rounded-full bg-surface text-foreground transition-colors hover:bg-surface-2"
               title="Exit full screen (Esc)"
             >
-              <Icon d={ICON_BACK} />
-              <span className="hidden sm:inline">Exit full screen</span>
+              <Icon d={ICON_BACK} className="size-5" />
             </button>
           )}
 
-          {title && <span className="font-semibold text-xs sm:text-sm truncate max-w-[12rem]">{title}</span>}
+          <div className="min-w-0 leading-tight">
+            <p className="text-xs text-muted truncate">{title || "Java project"}</p>
+            <p className="text-[17px] font-medium text-foreground">Your classes</p>
+          </div>
 
-          {/* Reference buttons */}
+          {/* Under about 820px of editor width the file tree hides behind this button. */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFiles((v) => !v)}
+            aria-expanded={showMobileFiles}
+            className={`h-10 rounded-full px-4 text-sm font-medium transition-colors max-md:hidden @min-[820px]:hidden ${
+              showMobileFiles ? "bg-primary-soft text-on-primary-soft" : "bg-surface text-muted hover:text-foreground"
+            }`}
+            title="Show or hide your files"
+          >
+            Files
+          </button>
+
+          {/* Reference drawer buttons */}
           {reference && (
-            <div className="flex items-center gap-1 border-l border-line pl-2 ml-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               {reference.requirements && (
                 <button
                   type="button"
                   onClick={() => toggleDrawer("requirements")}
-                  className={`h-7 rounded-sm px-2.5 text-xs font-medium transition-colors ${
-                    activeDrawer === "requirements" ? "bg-primary text-on-primary" : "text-muted hover:bg-surface hover:text-foreground"
+                  className={`h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+                    activeDrawer === "requirements" ? "bg-primary-soft text-on-primary-soft" : "bg-surface text-muted hover:text-foreground"
                   }`}
                 >
                   Requirements
@@ -579,8 +738,8 @@ export function ProjectEditor({
                 <button
                   type="button"
                   onClick={() => toggleDrawer("walkthrough")}
-                  className={`h-7 rounded-sm px-2.5 text-xs font-medium transition-colors ${
-                    activeDrawer === "walkthrough" ? "bg-primary text-on-primary" : "text-muted hover:bg-surface hover:text-foreground"
+                  className={`h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+                    activeDrawer === "walkthrough" ? "bg-primary-soft text-on-primary-soft" : "bg-surface text-muted hover:text-foreground"
                   }`}
                 >
                   Walkthrough
@@ -590,8 +749,8 @@ export function ProjectEditor({
                 <button
                   type="button"
                   onClick={() => toggleDrawer("diagrams")}
-                  className={`h-7 rounded-sm px-2.5 text-xs font-medium transition-colors ${
-                    activeDrawer === "diagrams" ? "bg-primary text-on-primary" : "text-muted hover:bg-surface hover:text-foreground"
+                  className={`h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+                    activeDrawer === "diagrams" ? "bg-primary-soft text-on-primary-soft" : "bg-surface text-muted hover:text-foreground"
                   }`}
                 >
                   Diagrams
@@ -601,8 +760,8 @@ export function ProjectEditor({
                 <button
                   type="button"
                   onClick={() => toggleDrawer("reference")}
-                  className={`h-7 rounded-sm px-2.5 text-xs font-medium transition-colors ${
-                    activeDrawer === "reference" ? "bg-primary text-on-primary" : "text-muted hover:bg-surface hover:text-foreground"
+                  className={`h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+                    activeDrawer === "reference" ? "bg-primary-soft text-on-primary-soft" : "bg-surface text-muted hover:text-foreground"
                   }`}
                 >
                   Reference code
@@ -612,43 +771,31 @@ export function ProjectEditor({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 max-md:hidden">
-          {!readOnly && (
-            <>
-              {!noRun && (
-                <button
-                  type="button"
-                  onClick={run}
-                  disabled={running}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-on-primary transition-colors duration-120 hover:bg-primary-hover disabled:opacity-45"
-                >
-                  <Icon d={ICON_PLAY} />
-                  {running ? "Running..." : "Run Project"}
-                </button>
-              )}
-              <button type="button" onClick={() => startAddFile()} className={BUTTON} title="New Java class">
-                <Icon d={ICON_PLUS} />
-                New file
+        <div className="flex flex-wrap items-center gap-2 max-md:hidden">
+          {!readOnly && !noRun && (
+            <div role="group" aria-label="Run" className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => run("file")}
+                disabled={running}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-primary-soft px-4 text-[15px] font-medium text-on-primary-soft transition-colors hover:bg-primary-soft/80 disabled:opacity-50"
+                title={`Run ${activeFile?.name ?? "the open file"} (Ctrl+Shift+Enter)`}
+              >
+                {runningMode === "file" ? "Running..." : "Run file"}
               </button>
-              <button type="button" onClick={startAddPackage} className={BUTTON} title="New package / folder">
-                <Icon d={ICON_FOLDER} />
-                New folder
+              <button
+                type="button"
+                onClick={() => run("project")}
+                disabled={running}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-medium text-on-primary transition-transform active:scale-95 disabled:opacity-50"
+                title="Compile every file and run the entry point (Ctrl+Enter)"
+              >
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                <span>{runningMode === "project" ? "Running..." : "Run project"}</span>
               </button>
-              <button type="button" onClick={startRename} className={BUTTON} title="Rename selected file">
-                <Icon d={ICON_EDIT} />
-                Rename
-              </button>
-              <button type="button" onClick={deleteFile} disabled={files.length <= 1} className={BUTTON} title="Delete selected file">
-                <Icon d={ICON_TRASH} />
-                Delete
-              </button>
-              {showReset !== false && (
-                <button type="button" onClick={resetCode} className={BUTTON} title="Reset code">
-                  <Icon d={ICON_RESET} />
-                  Reset
-                </button>
-              )}
-            </>
+            </div>
           )}
 
           <button
@@ -657,11 +804,10 @@ export function ProjectEditor({
               setFullscreen((f) => !f);
               focusEditor();
             }}
-            className={BUTTON}
+            className="grid size-11 place-items-center rounded-full bg-surface text-foreground transition-colors hover:bg-surface-2"
             title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}
           >
-            <Icon d={fullscreen ? ICON_COLLAPSE : ICON_EXPAND} />
-            <span className="hidden sm:inline">{fullscreen ? "Exit" : "Full screen"}</span>
+            <Icon d={fullscreen ? ICON_COLLAPSE : ICON_EXPAND} className="size-5" />
           </button>
         </div>
       </div>
@@ -708,30 +854,50 @@ export function ProjectEditor({
         </div>
       )}
 
-      {/* Main editor split area */}
-      <div className={`flex flex-1 min-h-0 ${fullscreen ? "h-[calc(100vh-3.5rem)]" : "h-[36rem]"}`}>
-        {/* Left: Package file tree on user's files */}
+      {/* Main editor split area matching XClasses.dc.html */}
+      <div className={`relative flex flex-1 min-h-0 gap-2 p-2 bg-background text-foreground ${fullscreen ? "" : "h-[40rem]"}`}>
+        {/* Left: package file tree on the user's files. Under about 820px of width it floats over the editor,
+            opened from the "Files" button. */}
         <nav
           aria-label="File tree"
-          className="w-48 lg:w-56 shrink-0 border-r border-line bg-surface-2 p-2 overflow-y-auto max-md:hidden"
+          className={`zd-tree w-60 shrink-0 flex-col rounded-[24px] bg-surface p-3 overflow-y-auto max-md:hidden ${
+            showMobileFiles
+              ? "flex @max-[820px]:absolute @max-[820px]:inset-y-2 @max-[820px]:left-2 @max-[820px]:z-30 @max-[820px]:max-w-[calc(100%-1rem)] @max-[820px]:shadow-2xl"
+              : "flex @max-[820px]:hidden"
+          }`}
         >
-          <div className="mb-2 flex items-center justify-between px-2">
-            <span className="text-xs font-semibold text-muted">
-              {files.length} file{files.length === 1 ? "" : "s"}
-            </span>
-          </div>
+          {!readOnly && (
+            <div className="mb-3 flex items-center justify-between gap-2 px-1">
+              <button
+                type="button"
+                onClick={() => startAddFile()}
+                className="flex-1 h-10 rounded-full bg-surface-2 text-foreground font-medium text-sm hover:bg-primary-soft transition-colors"
+                title="New Java class"
+              >
+                + File
+              </button>
+              <button
+                type="button"
+                onClick={startAddPackage}
+                className="flex-1 h-10 rounded-full bg-surface-2 text-foreground font-medium text-sm hover:bg-primary-soft transition-colors"
+                title="New package / folder"
+              >
+                + Folder
+              </button>
+            </div>
+          )}
 
           {[...packageMap.entries()].map(([pkg, list]) => {
             const isCollapsed = Boolean(collapsedPkgs[pkg]);
             return (
-              <div key={pkg} className="mb-2.5 last:mb-0">
-                <div className="group flex items-center justify-between rounded px-1.5 py-1 text-xs text-muted hover:bg-surface">
+              <div key={pkg} className="mb-2 last:mb-0">
+                <div className="group flex items-center justify-between rounded-full px-2.5 py-1 text-xs text-muted hover:bg-surface-2">
                   <button
                     type="button"
                     onClick={() => setCollapsedPkgs((c) => ({ ...c, [pkg]: !c[pkg] }))}
                     className="flex min-w-0 flex-1 items-center gap-1.5 truncate font-mono font-medium text-left text-xs"
                   >
-                    <Icon d={isCollapsed ? ICON_CHEVRON_RIGHT : ICON_CHEVRON_DOWN} className="size-3" />
+                    <Icon d={isCollapsed ? ICON_CHEVRON_RIGHT : ICON_CHEVRON_DOWN} className="size-3 text-muted" />
                     <Icon d={ICON_FOLDER} className="size-3.5 text-primary" />
                     <span className="truncate">{pkg}</span>
                   </button>
@@ -740,7 +906,8 @@ export function ProjectEditor({
                       type="button"
                       onClick={() => startAddFile(pkg)}
                       title={`Add file to ${pkg}`}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-foreground"
+                      aria-label={`Add file to ${pkg}`}
+                      className="grid size-7 shrink-0 place-items-center rounded-full opacity-60 hover:bg-surface hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
                     >
                       <Icon d={ICON_PLUS} className="size-3" />
                     </button>
@@ -748,7 +915,7 @@ export function ProjectEditor({
                 </div>
 
                 {!isCollapsed && (
-                  <ul className="mt-0.5 space-y-0.5 border-l border-line pl-2 ml-2">
+                  <ul className="mt-1 space-y-0.5 pl-3">
                     {list.map((f) => {
                       const selected = f.name === activeFile?.name;
                       const errors = diagnostics.filter((d) => d.file === f.name && d.severity === "error").length;
@@ -758,11 +925,11 @@ export function ProjectEditor({
                             type="button"
                             onClick={() => selectFile(f.name)}
                             aria-current={selected ? "true" : undefined}
-                            className={`flex w-full items-center gap-1.5 truncate rounded-sm px-2 py-1 text-left font-mono text-xs transition-colors duration-120 ${
-                              selected ? "bg-primary-soft text-foreground font-medium" : "text-muted hover:bg-surface hover:text-foreground"
+                            className={`flex w-full items-center gap-2 truncate rounded-full px-2.5 py-1.5 text-left font-mono text-xs transition-colors duration-120 ${
+                              selected ? "bg-primary-soft text-on-primary-soft font-medium" : "text-foreground hover:bg-surface-2"
                             }`}
                           >
-                            <Icon d={ICON_FILE} className="size-3 shrink-0" />
+                            <Icon d={ICON_FILE} className="size-3.5 shrink-0 opacity-70" />
                             <span className="min-w-0 truncate">{f.name}</span>
                             {errors > 0 && <span className="ml-auto text-danger font-semibold">{errors}</span>}
                           </button>
@@ -774,12 +941,31 @@ export function ProjectEditor({
               </div>
             );
           })}
+
+          {!readOnly && activeFile && (
+            <div className="mt-auto flex flex-wrap gap-1.5 border-t border-line pt-3">
+              <button type="button" onClick={startRename} className={TREE_BUTTON} title="Rename selected file">
+                <Icon d={ICON_EDIT} />
+                Rename
+              </button>
+              <button type="button" onClick={deleteFile} disabled={files.length <= 1} className={TREE_BUTTON} title="Delete selected file">
+                <Icon d={ICON_TRASH} />
+                Delete
+              </button>
+              {showReset !== false && (
+                <button type="button" onClick={resetCode} className={TREE_BUTTON} title="Reset code">
+                  <Icon d={ICON_RESET} />
+                  Reset
+                </button>
+              )}
+            </div>
+          )}
         </nav>
 
         {/* Center: Tabs + CodeMirror Editor + Console */}
-        <div className="flex flex-1 flex-col min-w-0 overflow-hidden bg-background">
+        <div className="flex flex-1 flex-col min-w-0 overflow-hidden rounded-[24px] bg-surface">
           {/* File tabs */}
-          <div role="tablist" aria-label="Project files" className="flex max-md:hidden gap-px overflow-x-auto border-b border-line bg-surface-2 shrink-0">
+          <div role="tablist" aria-label="Project files" className="flex max-md:hidden gap-1.5 p-2 overflow-x-auto shrink-0">
             {files.map((f) => {
               const selected = f.name === activeFile?.name;
               const errors = diagnostics.filter((d) => d.file === f.name && d.severity === "error").length;
@@ -790,12 +976,12 @@ export function ProjectEditor({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => selectFile(f.name)}
-                  className={`whitespace-nowrap border-t-2 px-3 py-1.5 font-mono text-xs transition-colors ${
-                    selected ? "border-t-primary bg-background text-foreground font-medium" : "border-t-transparent bg-surface-2 text-muted hover:text-foreground"
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1 font-mono text-xs transition-colors ${
+                    selected ? "bg-primary-soft text-on-primary-soft font-medium" : "text-muted hover:text-foreground hover:bg-surface-2"
                   }`}
                 >
                   {f.name}
-                  {errors > 0 && <span className="ml-1.5 text-danger">{errors}</span>}
+                  {errors > 0 && <span className="ml-1 text-danger font-semibold">{errors}</span>}
                 </button>
               );
             })}
@@ -813,7 +999,7 @@ export function ProjectEditor({
           </div>
 
           {/* Editor */}
-          <div ref={editorRef} className="flex-1 min-h-[14rem] max-md:hidden overflow-hidden">
+          <div ref={editorRef} className="flex-1 min-h-[14rem] max-md:hidden overflow-hidden p-2">
             {activeFile && (
               <>
                 <select id={selectId} hidden defaultValue="Java" aria-hidden="true" tabIndex={-1}>
@@ -825,7 +1011,7 @@ export function ProjectEditor({
                     aria-label={`Code of ${activeFile.name}`}
                     readOnly={readOnly}
                     spellCheck={false}
-                    className="h-full w-full resize-none bg-background p-3 font-mono text-sm focus:outline-none"
+                    className="h-full w-full resize-none bg-transparent p-3 font-mono text-sm text-foreground focus:outline-none"
                   />
                 </EditorField>
               </>
@@ -834,9 +1020,24 @@ export function ProjectEditor({
 
           {/* Bottom Console */}
           {!readOnly && !noRun && (
-            <div className="border-t border-line bg-surface-2 max-md:hidden shrink-0 max-h-56 overflow-auto" aria-live="polite">
-              <div className="sticky top-0 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface-2 px-3 py-1.5 text-xs text-muted">
+            <div className="m-2 rounded-[18px] bg-surface-2 text-foreground max-md:hidden shrink-0 max-h-56 overflow-auto" aria-live="polite">
+              <div className="sticky top-0 flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-muted">
                 <span className="font-semibold text-foreground">Console</span>
+                {lastEntry && (result || running) && (
+                  <span>
+                    Ran <span className="font-mono text-foreground">{lastEntry.qualified}</span>
+                    {entryCandidates.length > 1 && !running && (
+                      <button
+                        type="button"
+                        onClick={() => setNotice({ ok: false, reason: "choose", candidates: entryCandidates })}
+                        className="ml-2 rounded-full px-2 py-0.5 text-primary hover:bg-surface"
+                        title="Pick which class Run project starts"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </span>
+                )}
                 {result && (
                   <>
                     <span>
@@ -846,9 +1047,21 @@ export function ProjectEditor({
                   </>
                 )}
               </div>
-              <div className="p-3 font-mono text-xs leading-relaxed">
+              <div className="p-3 px-4 font-mono text-xs leading-relaxed">
                 {running && <p className="text-muted">Compiling and running...</p>}
-                {!running && !result && !failure && <p className="text-muted">Press Run Project (Ctrl+Enter) to compile and run.</p>}
+                {!running && !result && !failure && !notice && (
+                  <p className="text-muted">Run project (Ctrl+Enter) starts the entry point. Run file (Ctrl+Shift+Enter) runs the open class.</p>
+                )}
+                {!running && notice && (
+                  <RunNoticeView
+                    notice={notice}
+                    hasMainFile={files.some((f) => f.name === "Main.java")}
+                    onAddMain={addMain}
+                    onCreateMain={createMain}
+                    onRunProject={() => run("project")}
+                    onChoose={chooseEntry}
+                  />
+                )}
                 {failure && (
                   <p className="text-danger">
                     <FailureText text={failure} />
@@ -886,18 +1099,18 @@ export function ProjectEditor({
         {reference && activeDrawer && (
           <aside
             aria-label="Reference material"
-            className="w-96 lg:w-[30rem] shrink-0 border-l border-line bg-surface flex flex-col h-full shadow-lg z-20 max-md:hidden animate-in slide-in-from-right duration-180"
+            className="zd-drawer z-20 flex w-[340px] shrink-0 flex-col rounded-[28px] bg-surface-2 p-4 text-foreground shadow-[-4px_0_16px_rgba(0,0,0,0.3)] max-md:hidden @min-[1280px]:w-[26rem] @max-[1100px]:absolute @max-[1100px]:inset-y-2 @max-[1100px]:right-2 @max-[1100px]:max-w-[calc(100%-1rem)]"
           >
             {/* Drawer header */}
-            <div className="flex items-center justify-between border-b border-line px-4 py-3 bg-surface-2">
-              <h3 className="font-semibold text-sm">
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-primary-soft/40">
+              <h3 className="font-medium text-base text-foreground">
                 {activeDrawer === "requirements"
                   ? "Requirements"
                   : activeDrawer === "walkthrough"
-                  ? "Design Walkthrough"
+                  ? "Design walkthrough"
                   : activeDrawer === "diagrams"
                   ? "Diagrams"
-                  : "Reference Code"}
+                  : "Reference code"}
               </h3>
               <button
                 type="button"
@@ -905,7 +1118,7 @@ export function ProjectEditor({
                   setActiveDrawer(null);
                   focusEditor();
                 }}
-                className="grid size-6 place-items-center rounded-sm text-muted hover:bg-surface hover:text-foreground"
+                className="grid size-10 place-items-center rounded-full bg-surface text-muted hover:text-foreground"
                 title="Close drawer (Esc)"
                 aria-label="Close reference drawer"
               >
@@ -914,7 +1127,7 @@ export function ProjectEditor({
             </div>
 
             {/* Drawer body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm leading-relaxed">
+            <div className="flex-1 overflow-y-auto p-1 space-y-4 text-sm leading-relaxed">
               {activeDrawer === "requirements" && reference.requirements && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-base">{reference.requirements.title}</h4>
@@ -999,6 +1212,76 @@ export function ProjectEditor({
           </aside>
         )}
       </div>
+    </div>
+  );
+}
+
+const CONSOLE_BUTTON =
+  "inline-flex h-9 items-center rounded-full px-4 font-sans text-xs font-medium transition-colors duration-120 disabled:opacity-45";
+
+/** Console message when a run cannot start, with the one-click fix. */
+function RunNoticeView({
+  notice,
+  hasMainFile,
+  onAddMain,
+  onCreateMain,
+  onRunProject,
+  onChoose,
+}: {
+  notice: RunNotice;
+  hasMainFile: boolean;
+  onAddMain: (file: string) => void;
+  onCreateMain: () => void;
+  onRunProject: () => void;
+  onChoose: (entry: EntryClass) => void;
+}) {
+  if (notice.reason === "no-main-in-file") {
+    return (
+      <div className="space-y-2 font-sans text-sm">
+        <p className="text-foreground">
+          {notice.file} has no main method. Add <code className="font-mono text-xs">public static void main(String[] args)</code> or use Run
+          project.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => onAddMain(notice.file)} className={`${CONSOLE_BUTTON} bg-primary-soft text-on-primary-soft hover:bg-primary-soft/80`}>
+            Add a main method
+          </button>
+          <button type="button" onClick={onRunProject} className={`${CONSOLE_BUTTON} text-muted hover:bg-surface hover:text-foreground`}>
+            Run project
+          </button>
+        </div>
+      </div>
+    );
+  }
+  if (notice.reason === "no-main") {
+    return (
+      <div className="space-y-2 font-sans text-sm">
+        <p className="text-foreground">
+          No class in this project has a main method, so there is nothing to start. Add a Main class that creates your objects and prints
+          what they do.
+        </p>
+        <button type="button" onClick={onCreateMain} className={`${CONSOLE_BUTTON} bg-primary-soft text-on-primary-soft hover:bg-primary-soft/80`}>
+          {hasMainFile ? "Add a main method to Main.java" : "Create Main.java"}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2 font-sans text-sm">
+      <p className="text-foreground">More than one class has a main method. Pick the one Run project starts; it is remembered for this project.</p>
+      <ul className="flex flex-wrap gap-2" aria-label="Classes with a main method">
+        {notice.candidates.map((c) => (
+          <li key={c.qualified}>
+            <button
+              type="button"
+              onClick={() => onChoose(c)}
+              className={`${CONSOLE_BUTTON} bg-surface font-mono text-foreground hover:bg-primary-soft hover:text-on-primary-soft`}
+            >
+              {c.qualified}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

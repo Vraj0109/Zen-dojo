@@ -56,24 +56,24 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
           </h2>
           {isCurrent && <p className="mt-1 text-sm text-muted">This week so far. Come back on Sunday to write your reflection.</p>}
         </div>
-        <nav aria-label="Choose a week" className="flex gap-2 text-sm">
-          <Link href={`/review/week?week=${addDays(monday, -7)}`} className="rounded-md border border-line px-3 py-1.5 hover:bg-surface-2">
+        <nav aria-label="Choose a week" className="flex flex-wrap gap-2 text-sm">
+          <Link href={`/review/week?week=${addDays(monday, -7)}`} className="inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-medium hover:bg-surface-2 transition-colors">
             Earlier week
           </Link>
           {!isCurrent && (
-            <Link href={`/review/week?week=${addDays(monday, 7)}`} className="rounded-md border border-line px-3 py-1.5 hover:bg-surface-2">
+            <Link href={`/review/week?week=${addDays(monday, 7)}`} className="inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-medium hover:bg-surface-2 transition-colors">
               Later week
             </Link>
           )}
           {!isCurrent && (
-            <Link href="/review/week" className="rounded-md border border-line px-3 py-1.5 hover:bg-surface-2">
+            <Link href="/review/week" className="inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-medium hover:bg-surface-2 transition-colors">
               This week
             </Link>
           )}
         </nav>
       </header>
 
-      <section aria-label="The week in numbers" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <section aria-label="The week in numbers" className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-3">
         <Stat label="XP" value={`${s.xp}`} hint={versus(s.xp, p.xp)} className="gamify-only" />
         <Stat label="Active days" value={`${s.activeDays} of 7`} hint={versus(s.activeDays, p.activeDays)} />
         <Stat label="Tasks done" value={`${s.tasksDone} of ${s.tasksTotal}`} hint={versus(s.tasksDone, p.tasksDone)} />
@@ -94,18 +94,18 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
         <Stat label="Boss fights" value={`${s.bossFights}`} hint={versus(s.bossFights, p.bossFights)} />
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-2">
+      <div className="grid gap-8 @min-[1000px]:grid-cols-2">
         <section aria-labelledby="reflection" className="space-y-3">
           <h3 id="reflection" className="text-lg font-semibold">
             Your reflection
           </h3>
           <p className="text-sm text-muted">A few honest lines. Saved for this week only, and part of your backup.</p>
-          <form action={saveReflectionAction} className="space-y-4 rounded-md border border-line bg-surface p-5">
+          <form action={saveReflectionAction} className="space-y-4 rounded-[24px] border border-line bg-surface dark:border-0 p-6">
             <input type="hidden" name="week" value={r.monday} />
             <Field name="wins" label="What went well" value={r.reflection.wins} />
             <Field name="struggles" label="What was hard or slipped" value={r.reflection.struggles} />
             <Field name="nextFocus" label="What to do first next week" value={r.reflection.nextFocus} />
-            <SubmitButton className={buttonClass("primary")}>Save reflection</SubmitButton>
+            <SubmitButton className={buttonClass("primary", "md")}>Save reflection</SubmitButton>
           </form>
         </section>
 
@@ -115,9 +115,9 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
               Weak spots to look at
             </h3>
             {weakCount === 0 ? (
-              <p className="rounded-md border border-line bg-surface p-5 text-sm text-muted">Nothing stands out right now.</p>
+              <p className="rounded-[24px] border border-line bg-surface dark:border-0 p-6 text-sm text-muted">Nothing stands out right now.</p>
             ) : (
-              <ul className="divide-y divide-line rounded-md border border-line bg-surface text-sm">
+              <ul className="divide-y divide-line rounded-[24px] border border-line bg-surface dark:border-0 text-sm overflow-hidden">
                 {r.weak.stuck.map((x) => (
                   <Row key={`stuck-${x.id}`} href={`/dsa/${encodeURIComponent(x.id)}?tab=stuck#stuck`} kind="Stuck" title={x.title} detail={x.reason || `${x.count} time${x.count === 1 ? "" : "s"}`} />
                 ))}
@@ -146,9 +146,9 @@ async function Week({ searchParams }: { searchParams: PageProps<"/review/week">[
               <h3 id="site" className="text-lg font-semibold">
                 Most time on LeetCode this week
               </h3>
-              <ul className="divide-y divide-line rounded-md border border-line bg-surface text-sm">
+              <ul className="divide-y divide-line rounded-[24px] border border-line bg-surface dark:border-0 text-sm overflow-hidden">
                 {r.topProblems.map((x) => (
-                  <li key={x.slug} className="flex items-center justify-between gap-3 p-3">
+                  <li key={x.slug} className="flex items-center justify-between gap-3 px-4 py-3">
                     {x.id ? (
                       <Link href={`/dsa/${encodeURIComponent(x.id)}`} className="font-medium hover:underline">
                         {x.title}
@@ -177,7 +177,7 @@ function Field({ name, label, value }: { name: string; label: string; value: str
         defaultValue={value}
         rows={4}
         maxLength={REFLECTION_MAX}
-        className="w-full rounded-md border border-line bg-background px-3 py-2 text-sm"
+        className="w-full rounded-2xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
       />
     </label>
   );
@@ -186,12 +186,12 @@ function Field({ name, label, value }: { name: string; label: string; value: str
 function Row({ href, kind, title, detail }: { href: string; kind: string; title: string; detail: string }) {
   return (
     <li>
-      <Link href={href} className="flex items-center justify-between gap-3 p-3 hover:bg-surface-2">
-        <span>
+      <Link href={href} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 hover:bg-surface-2">
+        <span className="min-w-0">
           <span className="mr-2 text-xs uppercase tracking-wide text-muted">{kind}</span>
           <span className="font-medium">{title}</span>
         </span>
-        <span className="shrink-0 text-muted">{detail}</span>
+        <span className="text-muted">{detail}</span>
       </Link>
     </li>
   );

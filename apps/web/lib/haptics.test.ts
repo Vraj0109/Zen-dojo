@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HAPTICS_KEY, hapticsEnabled, setHapticsEnabled, tick } from "./haptics";
+import { HAPTICS_KEY, hapticsEnabled, setHapticsEnabled, tick, haptic, HAPTIC_PATTERNS } from "./haptics";
 
 function stubBrowser(opts: { off?: boolean; reduce?: boolean; vibrate?: boolean }) {
   const store: Record<string, string> = opts.off ? { [HAPTICS_KEY]: "off" } : {};
@@ -43,5 +43,13 @@ describe("haptics", () => {
   it("never throws where storage or vibration is missing", () => {
     vi.stubGlobal("window", { get localStorage(): never { throw new Error("blocked"); } });
     expect(() => tick()).not.toThrow();
+  });
+
+  it("plays named patterns", () => {
+    const b = stubBrowser({});
+    haptic("success");
+    expect(b.vibrate).toHaveBeenCalledWith([...HAPTIC_PATTERNS.success]);
+    haptic("error");
+    expect(b.vibrate).toHaveBeenLastCalledWith([...HAPTIC_PATTERNS.error]);
   });
 });

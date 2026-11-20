@@ -30,7 +30,7 @@ export function DeleteCloudData({
 
   if (!signedIn) {
     return (
-      <section className="space-y-3 rounded-md border border-line bg-surface p-6">
+      <section className="space-y-3 rounded-[28px] border border-line bg-surface p-6 dark:border-0">
         <div className="border-b border-line pb-3">
           <h2 className="text-base font-semibold">Cloud data</h2>
           <p className="mt-1 text-xs text-muted">Manage or delete data stored in your cloud account.</p>
@@ -93,7 +93,7 @@ export function DeleteCloudData({
   const isConfirmValid = confirmText === "DELETE" && understood;
 
   return (
-    <section className="space-y-4 rounded-md border border-line bg-surface p-6">
+    <section className="space-y-4 rounded-[28px] border border-line bg-surface p-6 dark:border-0">
       <div className="border-b border-line pb-3">
         <h2 className="text-base font-semibold">Cloud data</h2>
         <p className="mt-1 text-xs text-muted">
@@ -101,7 +101,7 @@ export function DeleteCloudData({
         </p>
       </div>
 
-      <div className="rounded-lg border border-line bg-background p-3 text-xs text-muted">
+      <div className="rounded-[16px] border border-line bg-background p-3 text-xs text-muted">
         <span className="font-semibold text-foreground">Notice:</span> This unlinks this device, but does NOT touch local data stored on this device or other devices.
       </div>
 
@@ -175,7 +175,7 @@ export function DeleteCloudData({
 
         <div className="space-y-1.5">
           <label htmlFor="confirm-cloud-delete-input" className="block text-sm">
-            Type <span className="font-mono font-bold text-danger">DELETE</span> to confirm:
+            Type <span className="font-mono font-semibold text-danger">DELETE</span> to confirm:
           </label>
           <input
             id="confirm-cloud-delete-input"
@@ -199,7 +199,7 @@ export function DeleteCloudData({
           type="button"
           onClick={handleDelete}
           disabled={!isConfirmValid || busy}
-          className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full bg-danger px-5 text-sm font-medium text-on-primary hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {busy ? "Deleting..." : "Delete cloud data"}
         </button>
@@ -287,13 +287,13 @@ export function DeleteLocalData() {
   const isConfirmValid = confirmText === "DELETE" && understood;
 
   return (
-    <section className="space-y-4 rounded-md border border-line bg-surface p-6">
+    <section className="space-y-4 rounded-[28px] border border-line bg-surface p-6 dark:border-0">
       <div className="border-b border-line pb-3">
         <h2 className="text-base font-semibold">Data on this device</h2>
         <p className="mt-1 text-xs text-muted">Erase your local progress and stored history on this device.</p>
       </div>
 
-      <div className="rounded-lg border border-line bg-background p-3 text-sm">
+      <div className="rounded-[16px] border border-line bg-background p-3 text-sm">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Current local data:</div>
         {loadingSummary ? (
           <p className="text-xs text-muted">Loading data counts...</p>
@@ -325,7 +325,7 @@ export function DeleteLocalData() {
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-line bg-background p-3 text-sm">
+      <div className="flex items-center gap-2 rounded-[16px] border border-line bg-background p-3 text-sm">
         <svg viewBox="0 0 20 20" className="size-5 shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M4 16v1a2 2 0 002 2h8a2 2 0 002-2v-1M10 3v10m0 0l-3-3m3 3l3-3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -337,7 +337,7 @@ export function DeleteLocalData() {
         </span>
       </div>
 
-      <div className="rounded-lg border border-line bg-background p-3 text-xs text-muted">
+      <div className="rounded-[16px] border border-line bg-background p-3 text-xs text-muted">
         <span className="font-semibold text-foreground">Notice:</span> Erasing local data will NOT delete your cloud copy if you are signed in; sync triggers are silenced so no deletions are sent to the cloud.
       </div>
 
@@ -414,7 +414,7 @@ export function DeleteLocalData() {
 
         <div className="space-y-1.5">
           <label htmlFor="confirm-local-erase-input" className="block text-sm">
-            Type <span className="font-mono font-bold text-danger">DELETE</span> to confirm:
+            Type <span className="font-mono font-semibold text-danger">DELETE</span> to confirm:
           </label>
           <input
             id="confirm-local-erase-input"
@@ -438,7 +438,7 @@ export function DeleteLocalData() {
           type="button"
           onClick={handleErase}
           disabled={!isConfirmValid || busy}
-          className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full bg-danger px-5 text-sm font-medium text-on-primary hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {busy ? "Deleting data on this device..." : "Delete data on this device"}
         </button>

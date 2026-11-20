@@ -95,11 +95,11 @@ function Tile({ label, value }: { label: string; value: number }) {
 
 export default function AdminDashboardPage() {
   return (
-    <main>
+    <div>
       <h1 className="mb-4 text-2xl font-semibold tracking-tight">Dashboard</h1>
       <Suspense fallback={<div className="h-48 rounded-xl border border-line bg-surface" />}>
         <Dashboard />
       </Suspense>
-    </main>
+    </div>
   );
 }

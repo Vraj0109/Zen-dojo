@@ -67,7 +67,15 @@ export async function POST(request: Request) {
   }
   const text = await request.text();
   if (text.length > JUDGE_LIMITS.code + 1000) return Response.json({ error: "The code is too long." }, { status: 413 });
-  let body: { id?: unknown; lang?: unknown; code?: unknown; save?: unknown; input?: unknown };
+  let body: {
+    id?: unknown;
+    lang?: unknown;
+    code?: unknown;
+    save?: unknown;
+    input?: unknown;
+    mode?: unknown;
+    cases?: unknown;
+  };
   try {
     body = JSON.parse(text);
   } catch {
@@ -83,6 +91,28 @@ export async function POST(request: Request) {
     if (!checked.ok) return Response.json({ error: checked.message }, { status: 400 });
     return Response.json(await runCustom(spec, lang, body.code, checked.values));
   }
+  const mode = body.mode === "run" ? "run" : "submit";
+
+  if (mode === "run") {
+    let extraCases: unknown[][] | undefined = undefined;
+    if (body.cases !== undefined) {
+      if (!Array.isArray(body.cases)) {
+        return Response.json({ error: "Cases must be a list." }, { status: 400 });
+      }
+      if (body.cases.length > 10) {
+        return Response.json({ error: "At most 10 custom cases are allowed." }, { status: 400 });
+      }
+      extraCases = [];
+      for (const c of body.cases) {
+        const checked = checkInput(spec, c);
+        if (!checked.ok) return Response.json({ error: checked.message }, { status: 400 });
+        extraCases.push(checked.values);
+      }
+    }
+    const result = await runCode(spec, lang, body.code, { only: "examples", extra: extraCases });
+    return Response.json(result);
+  }
+
   const result = await runCode(spec, lang, body.code);
   // Keep the code of every run (a compile error is a run too) so it comes back after a reload.
   if (result.status === "done") await saveRun(spec.id, lang, body.code, { status: "done", passed: result.passed, total: result.total, failedIds: result.results.filter((c) => !c.pass).map((c) => c.index) });

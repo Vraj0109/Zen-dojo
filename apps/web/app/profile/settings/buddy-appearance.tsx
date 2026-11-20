@@ -228,7 +228,7 @@ export function BuddyAppearance({ aiEnabled, providerLabel, cloud }: { aiEnabled
 
       <div>
         <p className="text-sm font-medium">Avatar</p>
-        <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(min(100%,140px),1fr))] gap-3">
           {BUILTIN_AVATARS.map((a) => card(a.id, a.label))}
           {prefs.customSrc ? card("custom", "Your image", prefs.customSrc) : null}
         </div>
@@ -287,7 +287,7 @@ export function BuddyAppearance({ aiEnabled, providerLabel, cloud }: { aiEnabled
           </p>
         ) : null}
         {pets.length ? (
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,140px),1fr))] gap-3">
             {pets.map((m) => (
               <PetCard
                 key={m.id}

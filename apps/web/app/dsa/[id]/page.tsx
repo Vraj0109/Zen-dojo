@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_PATTERNS, JUDGE_PROBLEMS, PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
+import { ALL_PATTERNS, JUDGE_PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
 import { getProblemDetail } from "@/lib/dsa";
 import { parseProblemTab } from "@/lib/dsa-filters";
 import { getPatternNotes } from "@/lib/pattern-notes";
 import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggles";
 import { JudgeWorkspace, type ProblemTab } from "../../judge-workspace";
+import { workspaceSpec } from "../../workspace-helpers";
 import { ProblemDescription, ProblemHelp, startersFor } from "../../problem-workspace";
 import { siteMinutesForSlug } from "@/lib/site-time";
 import { focusMinutes } from "@/lib/timer";
@@ -24,6 +25,7 @@ import { detectProviders } from "@/lib/ai/detect";
 import { AiChat } from "../ai-chat";
 import { buttonClass, Difficulty, PageMain, SimpleHint, StatusMark } from "../../ui";
 import { ProblemWorkspaceSkeleton } from "./problem-skeleton";
+import { BackButton } from "./back-button";
 
 /** The text of the link to the original problem page, by where the problem comes from. */
 function linkLabel(id: string, url: string): string {
@@ -142,29 +144,24 @@ async function Problem({
     const nextId = firstPattern && position >= 0 ? firstPattern.problems[position + 1] : undefined;
     const statusState = s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none";
     const header = (
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Link
-          href={firstPattern ? `/dsa/pattern/${firstPattern.id}?tab=practice` : "/dsa"}
-          aria-label={firstPattern ? `Back to ${firstPattern.name}` : "Back to Practice"}
-          className="grid size-9 shrink-0 place-items-center rounded-sm border border-line text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
-        >
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </Link>
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+        <BackButton
+          fallbackHref={firstPattern ? `/dsa/pattern/${firstPattern.id}?tab=practice` : "/dsa"}
+          fallbackLabel={firstPattern ? `Back to ${firstPattern.name}` : "Back to Practice"}
+        />
+        <div className="min-w-0 flex-1 leading-tight">
           {firstPattern && position >= 0 && (
-            <p className="truncate text-xs text-muted zen-dim">
+            <p className="truncate text-xs text-muted">
               <Link href={`/dsa/pattern/${firstPattern.id}`} className="hover:text-foreground">
                 {firstPattern.name}
               </Link>{" "}
               · {position + 1} of {firstPattern.problems.length}
             </p>
           )}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 className="truncate text-lg font-semibold tracking-tight">{label}</h2>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5">
+            <h2 className="truncate text-[17px] font-medium tracking-tight text-foreground">{label}</h2>
             <Difficulty level={p.difficulty} />
-            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted">
               <StatusMark state={statusState} here={p.here} onLeetCode={p.onLeetCode} />
               {s.state === "unsolved" && "Not solved"}
               {s.state === "solved" && (s.resolveDue ? "Solved, re-solve due" : `Solved ${fmt(s.solvedOn)}`)}
@@ -172,54 +169,13 @@ async function Problem({
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 zen-dim">
-          {!readOnly && !p.judgeable && p.kind === "roadmap" && s.state !== "resolved" && (
-            <form action={markSolvedAction}>
-              <input type="hidden" name="problemId" value={p.id} />
-              <SubmitButton className={buttonClass("secondary", "sm")}>
-                {s.state === "unsolved" ? "Mark solved" : "Mark re-solved"}
-                <span className="gamify-only"> (+{s.state === "unsolved" ? solveXp(p) : RESOLVE_XP} XP)</span>
-              </SubmitButton>
-            </form>
-          )}
-          {!readOnly && p.kind === "roadmap" && s.state !== "unsolved" && (
-            <form action={undoSolveAction}>
-              <input type="hidden" name="problemId" value={p.id} />
-              <SubmitButton className={buttonClass("quiet", "sm")}>Undo</SubmitButton>
-            </form>
-          )}
-          <StartTimer
-            itemId={p.id}
-            label={p.title}
-            href={`/dsa/${encodeURIComponent(p.id)}`}
-            defaultMinutes={p.difficulty === "hard" ? 45 : p.difficulty === "easy" ? 15 : 25}
-            totalMinutes={focused}
-          />
-        </div>
-        <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted zen-dim">
-          {p.patterns.map((pat) => (
-            <Link key={pat.id} href={`/dsa/pattern/${pat.id}`} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface-2 hover:text-foreground">
-              {pat.name}
-            </Link>
-          ))}
-          {PROBLEMS[p.id]?.why && <span>Why this one: {PROBLEMS[p.id].why}</span>}
-          {p.solveSource === "judge" && <span className="rounded-full bg-success/10 px-2 py-0.5 font-semibold text-success">Solved on Zen Dojo</span>}
-          {p.onLeetCode && <span>Synced from LeetCode</span>}
-          {!readOnly && p.judgeable && s.state === "unsolved" && <span>Run and pass all tests to solve on Zen Dojo</span>}
-          {!readOnly && p.judgeable && s.state === "solved" && s.resolveDue && <span>Run and pass all tests to re-solve</span>}
-          {p.url && (
-            <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
-              {linkLabel(p.id, p.url)}
-            </a>
-          )}
-          {onSite > 0 && <span>{onSite} min on the LeetCode page</span>}
-        </div>
-      </header>
+      </div>
     );
     return (
       <article className="judged">
         <JudgeWorkspace
           id={p.id}
+          spec={workspaceSpec(spec)}
           templates={startersFor(spec)}
           tabs={judgedTabs}
           initialTab={wanted === "solve" ? "description" : wanted}
@@ -241,9 +197,7 @@ async function Problem({
 
   return (
     <article className="space-y-6">
-      <Link href="/dsa" className="inline-block text-sm text-muted hover:text-foreground">
-        ← Practice
-      </Link>
+      <BackButton fallbackHref="/dsa" fallbackLabel="Back to Practice" variant="text" />
       <header className="space-y-2">
         <h2 className="text-2xl font-semibold tracking-tight">
           {label}

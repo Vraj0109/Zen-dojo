@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { CONCEPT_REVIEW_DAYS, CONFIDENCE_LABELS, COVERED_CONFIDENCE } from "@habit/shared";
-import { REVIEW_KIND_LABELS, applySkips, getReviewQueue, splitReviewQueue, type ReviewItem } from "@/lib/review";
-import { clearStruggleAction, logStruggleAction, markSolvedAction, rateConceptAction } from "../actions";
+import { STUDY_AREAS, toLocalDate } from "@habit/shared";
+import { applySkips, getReviewQueue, splitReviewQueue, type ReviewItem } from "@/lib/review";
+import { getProgress } from "@/lib/progress";
 import { ReviewTabs } from "../section-tabs";
-import { SubmitButton } from "../submit-button";
-import { EmptyState, PageMain, buttonClass } from "../ui";
+import { EmptyState, PageMain, SubjectShape, type Subject } from "../ui";
 import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
+import { ReviewCard } from "./review-card";
 
 export const metadata: Metadata = { title: "Review" };
 
 export default function ReviewPage({ searchParams }: PageProps<"/review">) {
   return (
-    <PageMain title="Review" narrow>
+    <PageMain title="Review" hideTitle>
       <Suspense fallback={<ReviewQueueSkeleton />}>
         <Review searchParams={searchParams} />
       </Suspense>
@@ -22,9 +22,42 @@ export default function ReviewPage({ searchParams }: PageProps<"/review">) {
   );
 }
 
-const KIND_LABEL: Record<ReviewItem["kind"], string> = { struggle: "Stuck", resolve: "Re-solve", concept: "Concept", exercise: "Practice" };
+const KIND_LABEL: Record<ReviewItem["kind"], string> = {
+  struggle: "Stuck",
+  resolve: "Re-solve",
+  concept: "Concept",
+  exercise: "Practice",
+};
 const keyOf = (i: ReviewItem) => `${i.kind}:${i.id}`;
 const itemHref = (i: ReviewItem) => (i.kind === "struggle" ? `${i.href}?tab=stuck#stuck` : i.href);
+
+function itemSubject(item: ReviewItem): Subject {
+  if (item.kind === "struggle" || item.kind === "resolve") return "dsa";
+  if (item.kind === "concept" || item.kind === "exercise") {
+    if (item.area === "sd") return "sd";
+    if (item.area === "lld") return "lld";
+    if (item.area === "core") return "core";
+  }
+  return "dsa";
+}
+
+const SUBJECT_LABEL: Record<Subject, string> = {
+  dsa: "DSA",
+  sd: "System design",
+  lld: "LLD",
+  core: "Core CS",
+  beh: "Behavioural",
+  mock: "Mock",
+};
+
+const SUBJECT_TONE: Record<Subject, string> = {
+  dsa: "bg-cat-dsa text-on-cat-dsa",
+  sd: "bg-cat-sd text-on-cat-sd",
+  lld: "bg-cat-lld text-on-cat-lld",
+  core: "bg-cat-core text-on-cat-core",
+  beh: "bg-cat-beh text-on-cat-beh",
+  mock: "bg-cat-mock text-on-cat-mock",
+};
 
 async function Review({ searchParams }: { searchParams: PageProps<"/review">["searchParams"] }) {
   await connection();
@@ -36,102 +69,127 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
   const [next, ...rest] = items;
   const skipHref = (i: ReviewItem) => `/review?skip=${encodeURIComponent([...skipped.filter((s) => s !== keyOf(i)), keyOf(i)].join(","))}`;
 
+  const today = toLocalDate();
+  const progress = await getProgress(today);
+  const streak = progress.streak;
+
+  const currentSubject = next ? itemSubject(next) : "dsa";
+  let conceptPoints: string[] | undefined;
+  if (next && next.kind === "concept") {
+    const area = STUDY_AREAS.find((a) => a.id === next.area);
+    for (const s of area?.sections ?? []) {
+      const c = s.concepts.find((x) => x.id === next.id);
+      if (c) {
+        conceptPoints = c.points;
+        break;
+      }
+    }
+  }
+
+  const estMinutes = Math.max(3, items.length * 2);
+
   return (
     <div className="space-y-6">
-      <ReviewTabs active="review" due={items.length} />
-      <header>
-        <h2 className="text-2xl font-semibold tracking-tight">Review</h2>
-        <p className="mt-1 text-sm text-muted">
-          Everything due today in one place: problems you got stuck on, 14-day re-solves, concepts you rated below Solid, and designs due for
-          another practice. Do them cold, without looking at your notes first.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-tight sm:text-4xl">Review</h1>
+          <p className="mt-1 text-sm text-muted">
+            {next ? `Card 1 of ${items.length} · about ${estMinutes} minutes` : "Nothing due right now"}
+          </p>
+        </div>
+        {next && (
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            {items.slice(0, 10).map((_, i) => (
+              <span key={i} className={`h-2.5 rounded-full ${i === 0 ? "w-6 bg-primary" : "w-2.5 bg-line-strong"}`} />
+            ))}
+            {items.length > 10 && <span className="ml-1 text-xs text-muted">+{items.length - 10}</span>}
+          </div>
+        )}
       </header>
+
+      <ReviewTabs active="review" due={items.length} />
 
       {!next ? (
         <EmptyState message="Nothing due. Come back tomorrow, or pick up today's plan." action={{ label: "Open Today", href: "/" }} />
       ) : (
         <>
-          <section aria-label="Up next" className="overflow-hidden rounded-lg border border-line-strong bg-surface shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-5 py-2.5 text-xs text-muted">
-              <span className="font-medium">
-                {REVIEW_KIND_LABELS[next.kind]}
-              </span>
-              <span>
-                1 of {items.length} due today
-              </span>
+          {/* Card stack + Aside */}
+          <div className="flex flex-wrap items-start gap-6">
+            {/* The main card with stack behind */}
+            <div className="min-w-0 flex-[999_1_420px]">
+              <ReviewCard
+                item={next}
+                index={1}
+                total={items.length}
+                skipHref={skipHref(next)}
+                itemHref={itemHref(next)}
+                subjectLabel={SUBJECT_LABEL[currentSubject]}
+                subjectClass={SUBJECT_TONE[currentSubject]}
+                instruction={instruction(next)}
+                points={conceptPoints}
+              />
             </div>
-            <div className="px-5 py-8 text-center sm:px-10">
-              <h3 className="text-2xl font-semibold tracking-tight">
-                <Link href={itemHref(next)} className="hover:underline">
-                  {next.title}
-                </Link>
-              </h3>
-              {next.detail && <p className="mt-1 text-sm text-muted">{next.detail}</p>}
-              <p className="mx-auto mt-4 max-w-prose text-sm">{instruction(next)}</p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-line px-5 py-4">
-              <Actions item={next} big />
-            </div>
-            <div className="border-t border-line px-5 py-2.5 text-center">
-              <Link href={skipHref(next)} className="text-sm text-muted hover:text-foreground">
-                Skip for now
-              </Link>
-            </div>
-          </section>
 
-          {rest.length > 0 && (
-            <section>
-              <h3 className="mb-2 font-semibold">Also due</h3>
-              <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-                {rest.map((i) => (
-                  <li key={keyOf(i)} className="hit flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-                    <span className="text-xs text-muted w-16 shrink-0">{KIND_LABEL[i.kind]}</span>
-                    <div className="min-w-0 flex-1">
-                      <Link href={itemHref(i)} className="hit-link font-medium">
-                        {i.title}
-                      </Link>
-                      <p className="truncate text-xs text-muted">
-                        {REVIEW_KIND_LABELS[i.kind]}
-                        {i.detail && ` · ${i.detail}`}
-                      </p>
+            {/* Aside: Up next & streak card */}
+            <aside aria-label="Next in the queue" className="flex min-w-0 flex-[1_1_260px] flex-col gap-2">
+              <span className="text-base font-medium">Up next</span>
+              {rest.length === 0 ? (
+                <div className="rounded-[20px] border border-line bg-surface p-4 text-sm text-muted dark:border-0">
+                  No other cards due today. Finish this one to clear the queue.
+                </div>
+              ) : (
+                rest.slice(0, 4).map((u) => {
+                  const subj = itemSubject(u);
+                  return (
+                    <div
+                      key={keyOf(u)}
+                      className="flex items-center gap-3 rounded-[20px] border border-line bg-surface px-3.5 py-3 dark:border-0"
+                    >
+                      <SubjectShape subject={subj} className="!size-8 !text-xs !rounded-xl" />
+                      <div className="min-w-0 flex-1">
+                        <Link href={itemHref(u)} className="block text-[15px] hover:underline">
+                          {u.title}
+                        </Link>
+                      </div>
+                      <span className="text-xs text-muted shrink-0">{KIND_LABEL[u.kind]}</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Actions item={i} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+                  );
+                })
+              )}
 
+              <div className="gamify-only mt-1 rounded-[20px] bg-reward-soft p-4 text-sm font-medium text-on-reward-soft">
+                {streak > 0 ? `Finish the queue to keep your ${streak}-day streak going.` : "Finish the queue to start a streak today."}
+              </div>
+            </aside>
+          </div>
+
+          {/* Catch-up backlog if any */}
           {backlog.length > 0 && (
             <section className="mt-8">
-              <details className="group rounded-md border border-line bg-surface p-5">
-                <summary className="flex cursor-pointer items-center justify-between font-semibold">
+              <details className="group rounded-[24px] border border-line bg-surface p-5 dark:border-0">
+                <summary className="flex cursor-pointer items-center justify-between font-medium">
                   <span>Catch-up backlog ({backlog.length} more)</span>
                   <span className="text-xs text-muted transition-transform group-open:rotate-180">▼</span>
                 </summary>
-                <p className="mt-2 text-xs text-muted">
+                <p className="mt-2 text-sm text-muted">
                   Overflow items from past days. Work through these at your own pace without streak stress.
                 </p>
-                <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line bg-background">
-                  {backlog.map((i) => (
-                    <li key={keyOf(i)} className="hit flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-                      <span className="w-16 shrink-0 text-xs text-muted">{KIND_LABEL[i.kind]}</span>
-                      <div className="min-w-0 flex-1">
-                        <Link href={itemHref(i)} className="hit-link font-medium">
-                          {i.title}
-                        </Link>
-                        <p className="truncate text-xs text-muted">
-                          {REVIEW_KIND_LABELS[i.kind]}
-                          {i.detail && ` · ${i.detail}`}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Actions item={i} />
-                      </div>
-                    </li>
-                  ))}
+                <ul className="mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-background">
+                  {backlog.map((i) => {
+                    const subj = itemSubject(i);
+                    return (
+                      <li key={keyOf(i)} className="flex flex-wrap items-center gap-3 p-3 sm:px-4">
+                        <SubjectShape subject={subj} className="!size-7 !text-xs !rounded-lg" />
+                        <div className="min-w-0 flex-1">
+                          <Link href={itemHref(i)} className="text-sm font-medium hover:underline">
+                            {i.title}
+                          </Link>
+                          <p className="truncate text-xs text-muted">{i.detail}</p>
+                        </div>
+                        <span className="text-xs text-muted">{KIND_LABEL[i.kind]}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </details>
             </section>
@@ -152,89 +210,5 @@ function instruction(i: ReviewItem): string {
       return "Explain it out loud in 2 minutes (open the lesson if you're stuck), then rate yourself honestly.";
     case "exercise":
       return "Set the timer and do the full design aloud, then log the practice with your step scores.";
-  }
-}
-
-/** The four ratings the flashcard offers, and when the concept comes back after each (study.ts rules). */
-const RATINGS = [2, 3, 4, 5] as const;
-const nextInterval = (n: number) => (n >= COVERED_CONFIDENCE ? "Leaves the queue" : `Back in ${CONCEPT_REVIEW_DAYS} days`);
-
-function Actions({ item, big = false }: { item: ReviewItem; big?: boolean }) {
-  const primary = buttonClass("primary", big ? "md" : "sm");
-  const secondary = buttonClass("secondary", big ? "md" : "sm");
-  switch (item.kind) {
-    case "struggle":
-      return (
-        <>
-          <form action={clearStruggleAction}>
-            <input type="hidden" name="problemId" value={item.id} />
-            <SubmitButton className={primary}>Solved it cold</SubmitButton>
-          </form>
-          <form action={logStruggleAction}>
-            <input type="hidden" name="problemId" value={item.id} />
-            <input type="hidden" name="kind" value="failed" />
-            <input type="hidden" name="reason" value={item.struggle.reason} />
-            <SubmitButton className={secondary}>Still stuck</SubmitButton>
-          </form>
-        </>
-      );
-    case "resolve":
-      return (
-        <>
-          <form action={markSolvedAction}>
-            <input type="hidden" name="problemId" value={item.id} />
-            <SubmitButton className={primary}>Re-solved</SubmitButton>
-          </form>
-          <form action={logStruggleAction}>
-            <input type="hidden" name="problemId" value={item.id} />
-            <input type="hidden" name="kind" value="hint" />
-            <input type="hidden" name="reason" value="Forgot it at the 14-day re-solve" />
-            <SubmitButton className={secondary}>Needed help</SubmitButton>
-          </form>
-        </>
-      );
-    case "concept":
-      if (big)
-        return (
-          <form action={rateConceptAction} className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
-            <input type="hidden" name="conceptId" value={item.id} />
-            {RATINGS.map((n) => (
-              <SubmitButton
-                key={n}
-                name="confidence"
-                value={String(n)}
-                className={`flex flex-col items-center gap-0.5 rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors duration-120 ${
-                  n >= COVERED_CONFIDENCE ? "border-primary bg-primary-soft text-primary hover:bg-primary hover:text-on-primary" : "border-line-strong bg-surface hover:bg-surface-2"
-                }`}
-              >
-                {CONFIDENCE_LABELS[n]}
-                <span className="text-xs font-normal opacity-80">{nextInterval(n)}</span>
-              </SubmitButton>
-            ))}
-          </form>
-        );
-      return (
-        <form action={rateConceptAction} className="flex flex-wrap items-center gap-1">
-          <input type="hidden" name="conceptId" value={item.id} />
-          {big && <span className="mr-1 text-sm text-muted">Rate now:</span>}
-          {[1, 2, 3, 4, 5].map((n) => (
-            <SubmitButton
-              key={n}
-              name="confidence"
-              value={String(n)}
-              title={CONFIDENCE_LABELS[n]}
-              className={`${n >= 4 ? primary : secondary} ${big ? "" : "px-2"}`}
-            >
-              {big ? `${n} · ${CONFIDENCE_LABELS[n]}` : n}
-            </SubmitButton>
-          ))}
-        </form>
-      );
-    case "exercise":
-      return (
-        <Link href={item.href} className={primary}>
-          Practice now →
-        </Link>
-      );
   }
 }

@@ -2,6 +2,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import React from "react";
 import { prerender } from "react-dom/static";
+import { ALL_PATTERNS, DSA_GROUPS } from "@habit/shared";
 
 vi.mock("next/server", () => ({
   connection: vi.fn().mockResolvedValue(undefined),
@@ -34,13 +35,12 @@ describe("Practice /dsa tabs and searchParams regression tests", () => {
     vi.stubEnv("DATABASE_URL", ":memory:");
   });
 
-  const cases: [string, Record<string, string>][] = [
+  const cases: [string, Record<string, string | string[]>][] = [
     ["default (patterns)", {}],
     ["patterns with open group", { group: "two-pointers" }],
-    ["patterns with group=none", { group: "none" }],
     ["tab=all", { tab: "all" }],
-    ["tab=all with page and sort", { tab: "all", page: "2", sort: "difficulty-asc" }],
-    ["tab=all with filters", { tab: "all", q: "two", difficulty: "easy", status: "solved" }],
+    ["tab=all with sort", { tab: "all", sort: "difficulty" }],
+    ["tab=all with filters", { tab: "all", q: "two", difficulty: "easy" }],
     ["tab=resolve", { tab: "resolve" }],
     ["tab=other", { tab: "other" }],
     ["platforms=all", { platforms: "all" }],
@@ -53,4 +53,39 @@ describe("Practice /dsa tabs and searchParams regression tests", () => {
       expect(html).toContain("Practice");
     });
   }
+
+  it("?tab=all renders every problem row without paging", async () => {
+    const page = await DsaPage({ params: Promise.resolve({}), searchParams: Promise.resolve({ tab: "all" }) });
+    const html = await renderToString(page);
+    expect(html).toContain("Two Sum");
+    expect(html).toContain("rows are on this one page.");
+  });
+
+  it("an old ?page=3 is ignored", async () => {
+    const page = await DsaPage({ params: Promise.resolve({}), searchParams: Promise.resolve({ tab: "all", page: "3" }) });
+    const html = await renderToString(page);
+    expect(html).toContain("Two Sum");
+    expect(html).toContain("Practice");
+  });
+
+  it("topic with two patterns filters correctly", async () => {
+    const page = await DsaPage({
+      params: Promise.resolve({}),
+      searchParams: Promise.resolve({ tab: "all", topic: ["Hash map / counting", "Two pointers"] }),
+    });
+    const html = await renderToString(page);
+    expect(html).toContain("Two Sum");
+    expect(html).not.toContain("All 201 rows are on this one page.");
+  });
+
+  it("the patterns view renders all 10 group sections and every pattern tile", async () => {
+    const page = await DsaPage({ params: Promise.resolve({}), searchParams: Promise.resolve({}) });
+    const html = await renderToString(page);
+    for (const g of DSA_GROUPS) {
+      expect(html).toContain(g.title);
+    }
+    for (const p of ALL_PATTERNS) {
+      expect(html).toContain(p.name);
+    }
+  });
 });

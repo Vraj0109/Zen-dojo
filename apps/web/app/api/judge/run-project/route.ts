@@ -1,4 +1,5 @@
 import { hostedNoRun } from "@/lib/hosted/no-run";
+import { mainClasses } from "@/lib/judge/project-entry";
 import { runJavaProject } from "@/lib/judge/run-project";
 
 export const maxDuration = 90;
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Request body must be an object." }, { status: 400 });
   }
 
-  const { files, mainClass, input, timeoutMs } = body as Record<string, unknown>;
+  const { files, mainClass, entry, input, timeoutMs } = body as Record<string, unknown>;
 
   const fileMap: Record<string, string> = {};
 
@@ -70,6 +71,20 @@ export async function POST(request: Request) {
     return Response.json({ error: "mainClass must be a string." }, { status: 400 });
   }
 
+  // `entry`: the qualified class the editor chose (Run file / Run project). It must be one of the project's own
+  // classes with a main method, so the runner never starts anything else.
+  let entryClass: string | undefined;
+  if (entry !== undefined) {
+    if (typeof entry !== "string") {
+      return Response.json({ error: "entry must be a string." }, { status: 400 });
+    }
+    const known = mainClasses(Object.entries(fileMap).map(([name, content]) => ({ name, content })));
+    if (!known.some((c) => c.qualified === entry)) {
+      return Response.json({ error: `${entry} has no main method in this project. Add one or run another class.` }, { status: 400 });
+    }
+    entryClass = entry;
+  }
+
   if (input !== undefined && typeof input !== "string") {
     return Response.json({ error: "input must be a string." }, { status: 400 });
   }
@@ -84,7 +99,7 @@ export async function POST(request: Request) {
 
   const result = await runJavaProject({
     files: fileMap,
-    mainClass: typeof mainClass === "string" ? mainClass : undefined,
+    mainClass: entryClass ?? (typeof mainClass === "string" ? mainClass : undefined),
     input: typeof input === "string" ? input : undefined,
     timeoutMs: timeout,
   });

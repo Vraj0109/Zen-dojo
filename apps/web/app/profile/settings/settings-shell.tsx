@@ -18,7 +18,7 @@ const ICONS: Record<string, string> = {
 
 function Icon({ id }: { id: string }) {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
       <path d={ICONS[id] ?? ICONS.appearance} />
     </svg>
   );
@@ -58,7 +58,6 @@ export function SettingsShell({
       });
     };
     apply();
-    // Suspense streams sections in later; re-apply when the DOM changes.
     const mo = new MutationObserver(apply);
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
@@ -107,10 +106,10 @@ export function SettingsShell({
   const navCats = categories.filter((c) => !searching || visibleCats.has(c.id));
 
   return (
-    <div className="min-w-0 max-w-full space-y-5 overflow-x-clip">
+    <div className="@container min-w-0 max-w-full space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-xl">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted">
             <circle cx="11" cy="11" r="7" />
             <path d="M20 20l-4-4" />
           </svg>
@@ -124,10 +123,10 @@ export function SettingsShell({
             }}
             placeholder="Search settings"
             aria-label="Search settings"
-            className="h-10 w-full min-w-0 max-w-full rounded-md border border-line-strong bg-surface pr-12 pl-9 text-base focus:border-primary focus:outline-2 focus:outline-primary/30 md:text-sm"
+            className="h-12 w-full max-w-full min-w-0 rounded-full border border-line-strong bg-surface-2 pr-12 pl-10 text-base focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none md:text-sm"
           />
           {!searching && (
-            <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-line px-1.5 text-xs text-muted">/</kbd>
+            <kbd className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 rounded-full border border-line px-2 py-0.5 text-xs text-muted font-mono">/</kbd>
           )}
         </div>
         {searching && (
@@ -137,17 +136,23 @@ export function SettingsShell({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
-        <nav aria-label="Settings categories" className="min-w-0 max-w-full lg:sticky lg:top-4 lg:self-start">
-          <ul className="flex touch-pan-x gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
+      {/* The section list: sticky on the left from 980px of content width, a wrapping row of pills below that. */}
+      <div className="flex flex-col items-start gap-5 @min-[980px]:flex-row @min-[980px]:gap-8">
+        <nav
+          aria-label="Settings sections"
+          className="w-full shrink-0 @min-[980px]:sticky @min-[980px]:top-6 @min-[980px]:w-56 @min-[980px]:self-start"
+        >
+          <ul className="flex flex-wrap gap-1.5 @min-[980px]:flex-col @min-[980px]:gap-1">
             {navCats.map((c) => (
               <li key={c.id} className="shrink-0">
                 <a
                   href={`#${c.id}`}
                   onClick={(e) => go(e, c.id)}
                   aria-current={active === c.id ? "true" : undefined}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm whitespace-nowrap lg:border-transparent lg:py-2 ${
-                    active === c.id ? "border-primary-soft bg-primary-soft font-medium text-primary" : "border-line text-muted hover:bg-surface-2 hover:text-foreground"
+                  className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors @min-[980px]:h-12 @min-[980px]:px-[18px] @min-[980px]:text-[15px] ${
+                    active === c.id
+                      ? "border border-transparent bg-primary-soft text-on-primary-soft"
+                      : "border border-line text-foreground hover:bg-surface-2 @min-[980px]:border-0"
                   }`}
                 >
                   <Icon id={c.id} />
@@ -158,16 +163,20 @@ export function SettingsShell({
           </ul>
         </nav>
 
-        <div className="min-w-0">
+        <div className="flex-1 min-w-0 w-full">
           {searching && matched.size === 0 && (
-            <div role="status" className="rounded-md border border-line bg-surface p-6 text-center">
-              <p className="font-medium">No settings match &quot;{query.trim()}&quot;</p>
-              <button type="button" onClick={() => setQuery("")} className="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
+            <div role="status" className="rounded-[28px] border border-line bg-surface p-8 text-center dark:border-0">
+              <p className="font-medium text-foreground">No settings match &quot;{query.trim()}&quot;</p>
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-outline px-5 text-sm font-medium text-primary transition-colors hover:bg-surface-2"
+              >
                 Clear search
               </button>
             </div>
           )}
-          <div ref={contentRef} className="space-y-10">
+          <div ref={contentRef} className="space-y-8">
             {children}
           </div>
         </div>

@@ -32,8 +32,7 @@ describe("Roadmap page regression test", () => {
   it("renders the 16-week plan and phases", async () => {
     const page = RoadmapPage();
     const html = await renderToString(page);
-    expect(html).toContain("Roadmap");
-    expect(html).toContain("16-week plan");
+    expect(html).toContain("Your 16 weeks");
     expect(html).toMatch(/Phase\s*(?:<!-- -->)?\s*1/);
     expect(html).toMatch(/Week\s*(?:<!-- -->)?\s*1/);
   });

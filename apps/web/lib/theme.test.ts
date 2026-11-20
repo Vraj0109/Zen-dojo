@@ -24,6 +24,7 @@ import {
   motionEnabled,
   parseMotion,
   THEME_TOKENS,
+  isNearDanger,
 } from "./theme";
 import { parseCustomTheme } from "./custom";
 
@@ -155,13 +156,35 @@ describe("theme CSS", () => {
     expect(css).toContain(':root[data-theme="dark"]');
   });
 
-  it("gives each accent one colour, with no separate dark value", () => {
-    expect(css).not.toMatch(/data-theme="dark"\]\[data-accent/);
+  it("gives each accent a full tonal set in light and dark that matches ACCENTS and reads well", () => {
     for (const a of ACCENTS.filter((x) => x.id !== DEFAULT_ACCENT)) {
-      expect(value(rule(':root[data-accent="' + a.id + '"][data-accent][data-accent]'), "primary"), a.id).toBe(a.color);
+      const blocks = [
+        ["light", rule(':root[data-accent="' + a.id + '"][data-accent][data-accent]'), a.color],
+        ["dark", rule(':root[data-theme="dark"][data-accent="' + a.id + '"][data-accent]'), a.dark],
+      ] as const;
+      for (const [scheme, block, primary] of blocks) {
+        const v = (n: string) => value(block, n)!;
+        expect(v("primary"), a.id + " " + scheme).toBe(primary);
+        for (const n of ["on-primary", "primary-hover", "primary-container", "on-primary-container", "primary-soft", "on-primary-soft"]) {
+          expect(v(n), `${a.id} ${scheme} ${n}`).toMatch(/^#[0-9a-f]{6}$/);
+        }
+        expect(contrast(v("on-primary"), v("primary")), `${a.id} ${scheme} on-primary`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(v("on-primary-container"), v("primary-container")), `${a.id} ${scheme} container`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(v("on-primary-soft"), v("primary-soft")), `${a.id} ${scheme} soft`).toBeGreaterThanOrEqual(4.5);
+      }
     }
-    expect(value(rule(":root"), "primary")).toBe(ACCENTS.find((a) => a.id === DEFAULT_ACCENT)!.color);
+    const dojo = ACCENTS.find((a) => a.id === DEFAULT_ACCENT)!;
+    expect(value(rule(":root"), "primary")).toBe(dojo.color);
+    expect(value(rule(':root[data-theme="dark"]'), "primary")).toBe(dojo.dark);
     expect(value(rule(":root"), "accent")).toBe("var(--primary)");
+  });
+
+  it("gives Terminal sharper (not square) corners and the other themes the Expressive radii", () => {
+    const t = rule(':root[data-style="terminal"]');
+    expect([value(t, "r-sm"), value(t, "r-md"), value(t, "r-lg")]).toEqual(["6px", "10px", "14px"]);
+    for (const s of STYLES.filter((x) => x.id !== "terminal" && x.id !== DEFAULT_STYLE)) {
+      expect(value(rule(':root[data-style="' + s.id + '"]'), "r-md"), s.id).toBeUndefined();
+    }
   });
 
   it("does not touch the accent in dark mode", () => {
@@ -254,11 +277,43 @@ describe("readability of every style (WCAG contrast)", () => {
     }
   });
 
-  it("white text on every accent is at least 4.5:1, and every accent is at least 3:1 on both page backgrounds", () => {
+  it("every accent reads as text on its page (4.5:1) and never looks like danger", () => {
     for (const a of ACCENTS) {
-      expect(contrast("#ffffff", a.color), a.id + " text").toBeGreaterThanOrEqual(4.5);
-      expect(contrast(a.color, "#111211"), a.id + " on dark").toBeGreaterThanOrEqual(3);
-      expect(contrast(a.color, "#ffffff"), a.id + " on light").toBeGreaterThanOrEqual(3);
+      expect(contrast(a.color, "#ffffff"), a.id + " on light").toBeGreaterThanOrEqual(4.5);
+      expect(contrast(a.dark, "#111211"), a.id + " on dark").toBeGreaterThanOrEqual(4.5);
+      expect(isNearDanger(a.color), a.id + " light").toBe(false);
+      expect(isNearDanger(a.dark), a.id + " dark").toBe(false);
+    }
+  });
+
+  it("every text pair of every theme is 4.5:1 or more, light and dark", () => {
+    const pairs = [
+      ["foreground", "surface-2"],
+      ["muted", "surface-2"],
+      ["on-primary", "primary"],
+      ["on-primary-container", "primary-container"],
+      ["on-primary-soft", "primary-soft"],
+      ["on-reward-soft", "reward-soft"],
+      ["on-danger-soft", "danger-soft"],
+    ] as const;
+    for (const s of STYLES) {
+      for (const scheme of ["light", "dark"] as const) {
+        const p = s[scheme];
+        for (const [fg, bg] of pairs) expect(contrast(p[fg], p[bg]), `${s.id} ${scheme} ${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("no theme's primary looks like danger, and every theme has its own primary", () => {
+    for (const s of STYLES) {
+      for (const scheme of ["light", "dark"] as const) {
+        expect(isNearDanger(s[scheme].primary), `${s.id} ${scheme}`).toBe(false);
+        expect(isNearDanger(s[scheme].primary, s[scheme].danger), `${s.id} ${scheme} vs own danger`).toBe(false);
+      }
+    }
+    for (const scheme of ["light", "dark"] as const) {
+      const primaries = STYLES.map((s) => s[scheme].primary);
+      expect(new Set(primaries).size, scheme).toBe(STYLES.length);
     }
   });
 });
@@ -304,10 +359,11 @@ describe("Dojo themes (plan 0083)", () => {
     expect(t.light).toEqual(t.dark);
   });
 
-  it("Ember uses the DESIGN.md background and primary", () => {
+  it("Ember is a warm orange tonal scheme (tinted neutrals, orange primary)", () => {
     const e = STYLES.find((s) => s.id === "ember")!;
-    expect(e.light.background).toBe("#faf7f2");
-    expect(e.light.primary).toBe("#c2481b");
+    expect(e.light.background).toBe("#fff8f4");
+    expect(e.light.primary).toBe("#9d5600");
+    expect(e.dark.primary).toBe("#ffb864");
   });
 
   it("an old custom theme (five colours and an accent) still parses", () => {
@@ -320,5 +376,12 @@ describe("Dojo themes (plan 0083)", () => {
     expect(t.accent).toBe("#2f7d5b");
     expect(t.light?.muted).toBe("#6b6b66");
     expect(t.dark?.background).toBe("#111211");
+  });
+
+  it("detects when primary is near danger colour", () => {
+    expect(isNearDanger("#b21f1f", "#BA1A1A")).toBe(true);
+    expect(isNearDanger("#BA1A1A", "#BA1A1A")).toBe(true);
+    expect(isNearDanger("#1E6B4A", "#BA1A1A")).toBe(false);
+    expect(isNearDanger("#2B5EA8", "#BA1A1A")).toBe(false);
   });
 });

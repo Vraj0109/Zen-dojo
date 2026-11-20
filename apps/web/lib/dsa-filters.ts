@@ -175,7 +175,7 @@ function matches(p: ProblemView, f: DsaFilters, patternNames: string[]): boolean
     }
   }
   if (f.source.length && !f.source.some((s) => matchesSource(p, s))) return false;
-  if (f.topic.length && !f.topic.some((t) => p.topics.includes(t))) return false;
+  if (f.topic.length && !f.topic.some((t) => p.topics.includes(t) || patternNames.includes(t) || patternNames.some((pn) => pn.toLowerCase() === t.toLowerCase()))) return false;
   if (f.difficulty.length && !(p.difficulty && f.difficulty.includes(p.difficulty))) return false;
   const s = p.status;
   const statusHit = (k: StatusKey) =>
@@ -200,7 +200,7 @@ export function filterProblems(patterns: PatternView[], f: DsaFilters): { proble
   const byId = new Map<string, { problem: ProblemView; patterns: string[] }>();
   // Every pattern a problem is in, so a word from any of those names finds it.
   const names = new Map<string, string[]>();
-  if (f.q) for (const pattern of patterns) for (const p of pattern.items) names.set(p.id, [...(names.get(p.id) ?? []), pattern.name]);
+  if (f.q || f.topic.length > 0) for (const pattern of patterns) for (const p of pattern.items) names.set(p.id, [...(names.get(p.id) ?? []), pattern.name]);
   const rejected = new Set<string>();
   for (const pattern of patterns) {
     for (const p of pattern.items) {

@@ -39,11 +39,11 @@ async function Editor({ params }: { params: PageProps<"/admin/study/[area]/[id]"
 
 export default function AdminLessonPage({ params }: PageProps<"/admin/study/[area]/[id]">) {
   return (
-    <main className="space-y-4">
+    <div className="space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">Edit lesson</h1>
       <Suspense fallback={<div className="h-64 rounded-xl border border-line bg-surface" />}>
         <Editor params={params} />
       </Suspense>
-    </main>
+    </div>
   );
 }

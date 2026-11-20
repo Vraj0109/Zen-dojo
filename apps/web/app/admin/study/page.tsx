@@ -96,11 +96,11 @@ async function StudyTables() {
 
 export default function AdminStudyPage() {
   return (
-    <main>
+    <div>
       <h1 className="mb-4 text-2xl font-semibold tracking-tight">Study content</h1>
       <Suspense fallback={<div className="h-64 rounded-xl border border-line bg-surface" />}>
         <StudyTables />
       </Suspense>
-    </main>
+    </div>
   );
 }

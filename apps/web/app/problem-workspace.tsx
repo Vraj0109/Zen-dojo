@@ -77,8 +77,8 @@ export function ProblemDescription({ spec }: { spec: ProblemSpec }) {
           ))}
         </ul>
         <p className="text-xs text-muted">
-          {spec.examples.length + spec.tests.length} test cases run when you press Run: the examples above and {spec.tests.length} more
-          {spec.stress?.length ? `, plus ${spec.stress.length} large inputs that check speed` : ""}. Open any case in Results to see its input.
+          Run checks the {spec.examples.length} examples above and your own cases. Submit also runs {spec.tests.length} extra tests
+          {spec.stress?.length ? ` and ${spec.stress.length} large inputs that check speed` : ""}, and saves your code when everything passes.
         </p>
       </section>
     </div>

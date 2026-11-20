@@ -22,7 +22,7 @@ describe("getStats", () => {
   it("is empty on a fresh database", async () => {
     const s = await getStats();
     expect(s.totals).toMatchObject({ totalXp: 0, streak: 0, bestStreak: 0, activeDays: 0, hours: 0 });
-    expect(s.heatmap).toHaveLength(16);
+    expect(s.heatmap).toHaveLength(52);
     expect(s.recentXp).toBe(0);
     expect(s.badges.every((b) => !b.earned)).toBe(true);
   });
@@ -39,7 +39,7 @@ describe("getStats", () => {
 
     const s = await getStats();
     expect(s.totals).toMatchObject({ totalXp: 120, streak: 2, bestStreak: 2, activeDays: 2, hours: 2.5 });
-    const thisWeek = s.heatmap[15];
+    const thisWeek = s.heatmap[51];
     expect(thisWeek.slice(0, 3).map((c) => c.xp)).toEqual([0, 30, 90]);
     expect(thisWeek[2].level).toBe(4);
 

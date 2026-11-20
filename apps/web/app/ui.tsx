@@ -1,26 +1,29 @@
-// Small presentational pieces shared by the pages, styled to the Dojo design system (DESIGN.md, plan 0083).
+// Small presentational pieces shared by the pages, styled to Material 3 Expressive (plan 0085).
 // Every piece uses the theme tokens (bg-surface, border-line, text-muted, bg-primary...) so themes repaint them.
 // /dev/components shows all of them in light and dark.
 import Link from "next/link";
 
 // ---- buttons
 
-export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
+export type ButtonVariant = "primary" | "tonal" | "secondary" | "outline" | "quiet" | "danger" | "reward";
 export type ButtonSize = "sm" | "md";
 
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-md font-semibold whitespace-nowrap transition-colors duration-120 ease-dojo " +
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap transition-colors duration-120 ease-dojo " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
   "disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45";
 const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   primary: "bg-primary text-on-primary hover:bg-primary-hover",
-  secondary: "border border-line-strong bg-surface text-foreground hover:bg-surface-2",
-  quiet: "text-muted hover:bg-surface-2 hover:text-foreground",
-  danger: "border border-danger text-danger hover:bg-danger/10",
+  tonal: "bg-primary-soft text-on-primary-soft hover:bg-primary-soft/80",
+  secondary: "bg-primary-soft text-on-primary-soft hover:bg-primary-soft/80", // alias for tonal
+  outline: "border border-outline bg-transparent text-primary hover:bg-primary-soft/20",
+  quiet: "bg-transparent text-muted hover:bg-surface-2 hover:text-foreground",
+  danger: "border border-danger text-danger hover:bg-danger-soft/30",
+  reward: "bg-reward-soft text-on-reward-soft hover:bg-reward-soft/80",
 };
 const BUTTON_SIZE: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-sm",
-  md: "h-9 px-4 text-sm max-md:h-10",
+  sm: "h-10 px-4 text-sm",
+  md: "h-12 px-6 text-sm max-md:h-12",
 };
 
 /** Class names for a button (or a link or SubmitButton that should look like one). */
@@ -63,7 +66,7 @@ export function ButtonLink({
 // ---- inputs
 
 export const INPUT_CLASS =
-  "h-9 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-foreground placeholder:text-muted " +
+  "h-12 w-full rounded-full border border-line-strong bg-surface-2 px-5 text-sm text-foreground placeholder:text-muted " +
   "transition-colors duration-120 focus:border-primary focus:outline-2 focus:outline-offset-0 focus:outline-primary/30 " +
   "disabled:opacity-45 aria-invalid:border-danger";
 
@@ -124,34 +127,37 @@ export function TextInput({
   );
 }
 
-// ---- cards
-
-/**
- * A card: surface, 1px line, no shadow at rest. With `href` the whole card is a link and gets `line-strong` and
- * `shadow-sm` on hover. `subject` adds a 3px left edge in that subject's colour.
- */
-export function Card({
-  children,
-  href,
-  subject,
+/** A search field: 48px pill on surface-2, magnifier icon, sr-only label. */
+export function SearchInput({
+  id = "search",
+  label = "Search",
+  placeholder = "Search...",
   className = "",
-}: {
-  children: React.ReactNode;
-  href?: string;
-  subject?: Subject;
-  className?: string;
-}) {
-  const edge = subject ? `border-l-[3px] ${SUBJECT_EDGE[subject]}` : "";
-  const base = `block rounded-md border border-line bg-surface p-5 ${edge} ${className}`;
-  if (href) {
-    return (
-      <Link href={href} className={`${base} transition-[border-color,box-shadow] duration-120 ease-dojo hover:border-line-strong hover:shadow-sm`}>
-        {children}
-      </Link>
-    );
-  }
-  return <div className={base}>{children}</div>;
+  ...rest
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "id"> & { id?: string; label?: string; placeholder?: string }) {
+  return (
+    <div className={`relative flex items-center ${className}`}>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <span className="pointer-events-none absolute left-4 text-muted" aria-hidden>
+        <svg viewBox="0 0 24 24" className="size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+      </span>
+      <input
+        id={id}
+        type="search"
+        placeholder={placeholder}
+        className={`${INPUT_CLASS} pl-11`}
+        {...rest}
+      />
+    </div>
+  );
 }
+
+// ---- cards
 
 export type Subject = "dsa" | "sd" | "lld" | "core" | "beh" | "mock";
 const SUBJECT_EDGE: Record<Subject, string> = {
@@ -163,6 +169,83 @@ const SUBJECT_EDGE: Record<Subject, string> = {
   mock: "border-l-cat-mock",
 };
 
+/**
+ * A card: surface, 1px line in light mode (no border in dark mode), rounded-lg (24px).
+ * With `href` the whole card is a link and gets `line-strong` and `shadow-sm` on hover.
+ */
+export function Card({
+  children,
+  href,
+  subject,
+  variant = "surface",
+  className = "",
+}: {
+  children: React.ReactNode;
+  href?: string;
+  subject?: Subject;
+  variant?: "surface" | "hero";
+  className?: string;
+}) {
+  const edge = subject ? `border-l-[3px] ${SUBJECT_EDGE[subject]}` : "";
+  const base =
+    variant === "hero"
+      ? `block rounded-xl bg-primary-container text-on-primary-container p-6 ${className}`
+      : `block rounded-lg border border-line dark:border-0 bg-surface p-5 ${edge} ${className}`;
+  if (href) {
+    return (
+      <Link href={href} className={`${base} transition-[border-color,box-shadow] duration-120 ease-dojo hover:border-line-strong hover:shadow-sm`}>
+        {children}
+      </Link>
+    );
+  }
+  return <div className={base}>{children}</div>;
+}
+
+/** Hero cards: rounded-xl (32px) on primary-container. */
+export function HeroCard({
+  children,
+  href,
+  className = "",
+}: {
+  children: React.ReactNode;
+  href?: string;
+  className?: string;
+}) {
+  return (
+    <Card variant="hero" href={href} className={className}>
+      {children}
+    </Card>
+  );
+}
+
+/** Filter chip: 36px tall, rounded-sm (10px), outlined; primary-soft when selected. */
+export function FilterChip({
+  label,
+  selected = false,
+  onClick,
+  className = "",
+}: {
+  label: string;
+  selected?: boolean;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`inline-flex h-9 items-center justify-center rounded-sm px-3.5 text-sm font-medium transition-colors ${
+        selected
+          ? "bg-primary-soft text-on-primary-soft border border-transparent font-semibold"
+          : "border border-line-strong bg-transparent text-foreground hover:bg-surface-2"
+      } ${className}`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function Stat({ label, value, hint, href, className = "" }: { label: string; value: string; hint?: string; href?: string; className?: string }) {
   const content = (
     <>
@@ -173,12 +256,12 @@ export function Stat({ label, value, hint, href, className = "" }: { label: stri
   );
   if (href) {
     return (
-      <Link href={href} className={`block rounded-md border border-line bg-surface p-4 transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm ${className}`}>
+      <Link href={href} className={`block rounded-lg border border-line dark:border-0 bg-surface p-4 transition-[border-color,box-shadow] duration-120 hover:border-line-strong hover:shadow-sm ${className}`}>
         {content}
       </Link>
     );
   }
-  return <div className={`rounded-md border border-line bg-surface p-4 ${className}`}>{content}</div>;
+  return <div className={`rounded-lg border border-line dark:border-0 bg-surface p-4 ${className}`}>{content}</div>;
 }
 
 /** Shown at the bottom of pages where Simple mode hid something. */
@@ -194,38 +277,77 @@ export function SimpleHint() {
   );
 }
 
-// ---- badges
+// ---- badges and shapes
 
-/** Difficulty as a tinted badge: the diff colour as text on a 12% tint of it. */
-export function Difficulty({ level }: { level?: string | null }) {
+export const SCALLOP_PATH =
+  "M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z";
+
+/** Scalloped badge shape for streak, level and badges. */
+export function Scallop({
+  size = 48,
+  fill = "var(--reward-soft)",
+  children,
+  className = "",
+}: {
+  size?: number;
+  fill?: string;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`relative inline-grid place-items-center ${className}`} style={{ width: size, height: size }}>
+      <svg viewBox="0 0 100 100" width={size} height={size} className="absolute inset-0 size-full" aria-hidden>
+        <path d={SCALLOP_PATH} fill={fill} />
+      </svg>
+      <div className="relative z-10 flex items-center justify-center font-semibold">{children}</div>
+    </div>
+  );
+}
+
+/** Difficulty as coloured text (no pill): easy success, medium warning, hard danger. */
+export function Difficulty({ level, className = "" }: { level?: string | null; className?: string }) {
   if (!level) return null;
   const key = level.toLowerCase();
-  const color =
-    key === "easy"
-      ? "text-diff-easy bg-diff-easy/12"
-      : key === "medium"
-        ? "text-diff-medium bg-diff-medium/12"
-        : key === "hard"
-          ? "text-diff-hard bg-diff-hard/12"
-          : "text-muted bg-surface-2";
+  const color = key === "easy" ? "text-success" : key === "medium" ? "text-warning" : key === "hard" ? "text-danger" : "text-muted";
   const label = level.charAt(0).toUpperCase() + level.slice(1);
-  return (
-    <span className={`inline-flex h-5 items-center rounded-sm px-1.5 text-xs font-medium ${color}`} aria-label={`Difficulty: ${label}`}>
-      {label}
-    </span>
-  );
+  return <span className={`text-sm font-medium whitespace-nowrap ${color} ${className}`}>{label}</span>;
 }
 
 /** A small tag: 20px high, text-xs, radius sm. `tone` picks the colour. */
 export function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "primary" | "success" | "warning" | "danger" }) {
   const cls = {
     neutral: "bg-surface-2 text-muted",
-    primary: "bg-primary-soft text-primary",
-    success: "bg-success/12 text-success",
-    warning: "bg-warning/12 text-warning",
-    danger: "bg-danger/12 text-danger",
+    primary: "bg-primary-soft text-on-primary-soft",
+    success: "bg-primary-soft/60 text-success",
+    warning: "bg-reward-soft/60 text-warning",
+    danger: "bg-danger-soft/60 text-danger",
   }[tone];
   return <span className={`inline-flex h-5 items-center rounded-sm px-1.5 text-xs font-medium ${cls}`}>{children}</span>;
+}
+
+/** Subject rounded shape in the subject tone (DSA rounded square, SD circle, LLD leaf, core soft square, behavioural reversed leaf). */
+export function SubjectShape({
+  subject,
+  children,
+  className = "",
+}: {
+  subject: Subject;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  const shapeClass: Record<Subject, string> = {
+    dsa: "bg-cat-dsa text-on-cat-dsa rounded-xl",
+    sd: "bg-cat-sd text-on-cat-sd rounded-full",
+    lld: "bg-cat-lld text-on-cat-lld rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-sm",
+    core: "bg-cat-core text-on-cat-core rounded-2xl",
+    beh: "bg-cat-beh text-on-cat-beh rounded-tr-2xl rounded-bl-2xl rounded-tl-sm rounded-br-sm",
+    mock: "bg-cat-mock text-on-cat-mock rounded-xl",
+  };
+  return (
+    <div className={`grid size-11 shrink-0 place-items-center font-medium ${shapeClass[subject]} ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 // ---- icons (Lucide-style inline SVG, 1.75 stroke)
@@ -277,9 +399,10 @@ export function CheckIcon({ className, label }: { className?: string; label?: st
 // ---- status
 
 /**
- * Solved marks, like a chat app's ticks. One primary check: solved here (every test passed in the editor). A primary
- * check followed by a grey one: solved here and also seen on LeetCode. One faint grey check: only seen on LeetCode so
- * far. Without `here`: a success check (solved), a warning ring (needs re-solve) or a faint ring (not solved).
+ * Status mark:
+ * - done: filled primary circle with a check
+ * - due: reward-soft circle
+ * - not started: 2px line-strong ring
  */
 export function StatusMark({ state, here, onLeetCode }: { state: "solved" | "resolve" | "none"; here?: boolean; onLeetCode?: boolean }) {
   if (state === "solved" && here !== undefined) {
@@ -304,29 +427,28 @@ export function StatusMark({ state, here, onLeetCode }: { state: "solved" | "res
     );
   }
   if (state === "solved") {
-    return <CheckIcon className="size-4 text-success" label="Solved" />;
+    return (
+      <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-primary text-on-primary" aria-label="Solved" role="img">
+        <CheckIcon className="size-3.5" />
+      </span>
+    );
   }
   if (state === "resolve") {
     return (
-      <svg className="size-4 shrink-0 text-warning" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" aria-label="Needs re-solve" role="img">
-        <title>Needs re-solve</title>
-        <circle cx="8" cy="8" r="5.5" strokeDasharray="3 2" />
-      </svg>
+      <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-reward-soft" aria-label="Needs re-solve" role="img">
+        <span className="size-2 rounded-full bg-reward" />
+      </span>
     );
   }
   return (
-    <svg className="size-4 shrink-0 text-line-strong" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" aria-label="Unsolved" role="img">
-      <title>Unsolved</title>
-      <circle cx="8" cy="8" r="5.5" />
-    </svg>
+    <span className="size-[22px] shrink-0 rounded-full border-2 border-line-strong" aria-label="Unsolved" role="img" />
   );
 }
 
 // ---- progress
 
 /**
- * A 6px bar, full radius, surface-2 track. `tone` "primary" for lessons and courses, "reward" for XP. With `showCount`
- * the numbers sit beside it ("12 of 40").
+ * 10px pill track on surface-2 with fill in primary, and a number beside it.
  */
 export function ProgressBar({
   value,
@@ -344,7 +466,7 @@ export function ProgressBar({
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   const bar = (
     <div
-      className={`h-1.5 overflow-hidden rounded-full bg-surface-2 ${showCount ? "flex-1" : ""}`}
+      className={`h-2.5 overflow-hidden rounded-full bg-surface-2 ${showCount ? "flex-1" : ""}`}
       role="progressbar"
       aria-label={label}
       aria-valuenow={value}
@@ -361,6 +483,67 @@ export function ProgressBar({
       <span className="shrink-0 text-xs font-medium text-muted tabular-nums">
         {value} of {max}
       </span>
+    </div>
+  );
+}
+
+/** WavyProgress variant for XP: an SVG wave for the done part and a straight line for the rest. */
+export function WavyProgress({
+  value,
+  max,
+  label = "XP progress",
+  className = "",
+}: {
+  value: number;
+  max: number;
+  label?: string;
+  className?: string;
+}) {
+  const pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
+  const split = Math.round(2 + pct * 296);
+
+  let waveD = "M2 8";
+  for (let x = 16; x <= split; x += 14) {
+    waveD += ` T${x} 8`;
+  }
+  if (split > 2 && !waveD.includes("T")) {
+    waveD = `M2 8 Q${(2 + split) / 2} 2 ${split} 8`;
+  }
+  const lineD = `M${Math.min(split + 4, 298)} 8 H298`;
+
+  return (
+    <div className={`flex flex-col gap-1 ${className}`}>
+      <svg
+        role="img"
+        aria-label={label}
+        width="100%"
+        height="16"
+        viewBox="0 0 300 16"
+        preserveAspectRatio="none"
+        className="overflow-visible"
+      >
+        <title>{label}</title>
+        {pct > 0 && (
+          <path
+            d={waveD}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            className="text-primary transition-all duration-300"
+          />
+        )}
+        {pct < 1 && (
+          <path
+            d={lineD}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            className="text-primary-soft opacity-60"
+          />
+        )}
+      </svg>
     </div>
   );
 }
@@ -391,23 +574,23 @@ export function ProgressRing({ value, max, label, size = 40 }: { value: number; 
 
 // ---- streak and XP
 
-/** Streak chip: reward-soft background, flame in reward, the number in foreground 600. */
+/** Streak chip: reward-soft background, flame in reward, the number in foreground. */
 export function StreakChip({ days, className = "" }: { days: number; className?: string }) {
   return (
-    <span className={`gamify-only inline-flex h-7 items-center gap-1.5 rounded-full bg-reward-soft px-2.5 text-sm ${className}`} aria-label={`Streak: ${days} ${days === 1 ? "day" : "days"}`}>
+    <span className={`gamify-only inline-flex h-8 items-center gap-1.5 rounded-full bg-reward-soft px-3 text-sm ${className}`} aria-label={`Streak: ${days} ${days === 1 ? "day" : "days"}`}>
       <FlameIcon className="size-4 text-reward" />
-      <span className="font-semibold text-foreground tabular-nums">{days}</span>
+      <span className="font-semibold text-on-reward-soft tabular-nums">{days}</span>
     </span>
   );
 }
 
-/** XP chip: reward-soft background, bolt in reward, the number in foreground 600. */
+/** XP chip: reward-soft background, bolt in reward, the number in foreground. */
 export function XpChip({ xp, className = "" }: { xp: number; className?: string }) {
   return (
-    <span className={`gamify-only inline-flex h-7 items-center gap-1.5 rounded-full bg-reward-soft px-2.5 text-sm ${className}`} aria-label={`${xp} XP`}>
+    <span className={`gamify-only inline-flex h-8 items-center gap-1.5 rounded-full bg-reward-soft px-3 text-sm ${className}`} aria-label={`${xp} XP`}>
       <BoltIcon className="size-4 text-reward" />
-      <span className="font-semibold text-foreground tabular-nums">{xp}</span>
-      <span className="text-xs text-muted">XP</span>
+      <span className="font-semibold text-on-reward-soft tabular-nums">{xp}</span>
+      <span className="text-xs text-on-reward-soft/80">XP</span>
     </span>
   );
 }
@@ -417,7 +600,7 @@ export function XpChip({ xp, className = "" }: { xp: number; className?: string 
 /** One line of plain text, one primary action, a small line icon. */
 export function EmptyState({ icon, message, action }: { icon?: React.ReactNode; message: string; action?: { label: string; href: string } }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-line px-6 py-10 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line px-6 py-10 text-center">
       {icon && <span className="text-muted [&_svg]:size-5">{icon}</span>}
       <p className="text-sm text-muted">{message}</p>
       {action && (
@@ -431,15 +614,48 @@ export function EmptyState({ icon, message, action }: { icon?: React.ReactNode; 
 
 /** A skeleton block in surface-2 (only for waits over a second). */
 export function Skeleton({ className = "h-4 w-full" }: { className?: string }) {
-  return <div aria-hidden className={`anim-pulse rounded-sm bg-surface-2 ${className}`} />;
+  return <div aria-hidden className={`anim-pulse rounded-md bg-surface-2 ${className}`} />;
 }
 
-/** Page wrapper: wide content area next to the sidebar. `narrow` for reading/form pages. */
-export function PageMain({ title, children, narrow = false, full = false }: { title: string; children: React.ReactNode; narrow?: boolean; full?: boolean }) {
+/**
+ * Page wrapper inside the shell's <main>. Wide by default (the user prefers wide layouts): up to 1360px, centred.
+ * `narrow` for forms and reading pages, `full` for pages that manage their own scroll areas (Practice, workspaces).
+ * `title` is a visually hidden h1 for pages that show their own visible heading as something else; pages with a
+ * visible h1 pass `hideTitle`.
+ */
+export function PageMain({
+  title,
+  children,
+  narrow = false,
+  full = false,
+  hideTitle = false,
+  wide = false,
+  className = "",
+}: {
+  title: string;
+  children?: React.ReactNode;
+  narrow?: boolean;
+  /** Reading pages with side panels (lessons): up to 1680px so big screens give the article the room. */
+  wide?: boolean;
+  full?: boolean;
+  hideTitle?: boolean;
+  className?: string;
+}) {
+  const h1 = hideTitle ? null : <h1 className="sr-only">{title}</h1>;
+  if (full) {
+    return (
+      <div className={`anim-fade flex min-h-0 w-full min-w-0 flex-1 flex-col ${className}`}>
+        {h1}
+        {children}
+      </div>
+    );
+  }
   return (
-    <main className={`anim-fade-up w-full px-4 py-6 sm:px-6 lg:px-10 lg:py-8 ${full ? "max-w-none" : narrow ? "max-w-4xl" : "max-w-7xl"}`}>
-      <h1 className="sr-only">{title}</h1>
+    <div
+      className={`anim-fade mx-auto w-full min-w-0 px-4 pt-5 pb-10 sm:px-6 md:px-8 md:pt-7 ${narrow ? "max-w-4xl" : wide ? "max-w-[1680px]" : "max-w-[1360px]"} ${className}`}
+    >
+      {h1}
       {children}
-    </main>
+    </div>
   );
 }

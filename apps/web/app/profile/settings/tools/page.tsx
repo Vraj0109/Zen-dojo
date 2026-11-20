@@ -13,8 +13,8 @@ export const metadata: Metadata = { title: "Tools for running code" };
 
 export default function ToolsPage() {
   return (
-    <PageMain title="Tools for running code">
-      <ProfileTabs active="/profile/settings" />
+    <PageMain title="Tools for running code" hideTitle>
+      <ProfileTabs active="/profile/settings" title="Tools for running code" />
       <Link href="/profile/settings" className="mb-4 inline-block text-sm text-muted hover:text-foreground">
         &larr; Settings
       </Link>
@@ -41,9 +41,9 @@ async function Tools() {
         {missing === 0 ? "Everything below was found." : `${missing} of ${tools.length} not found.`}
       </p>
       {cards && <ToolManager cards={cards} />}
-      <ul className="grid gap-4 xl:grid-cols-2">
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,420px),1fr))] gap-4">
         {listed.map((t) => (
-          <li key={t.id} className="space-y-3 rounded-md border border-line bg-surface p-5">
+          <li key={t.id} className="space-y-3 rounded-[24px] border border-line bg-surface p-5 dark:border-0">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold">{t.label}</h3>
               <span
@@ -68,7 +68,7 @@ async function Tools() {
         ))}
       </ul>
       <form action="/profile/settings/tools" method="get">
-        <button type="submit" className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2">
+        <button type="submit" className="inline-flex h-10 items-center rounded-full border border-outline px-4 text-sm font-medium text-primary hover:bg-surface-2">
           Check again
         </button>
       </form>

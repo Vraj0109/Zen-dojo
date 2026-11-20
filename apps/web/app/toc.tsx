@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-// The "On this page" list for long lessons and articles. It follows your reading position: the section you are in is
-// highlighted, a marker slides to it, and a thin bar shows how far down the page you are. Clicking an entry scrolls to
-// it. With animations switched off (Settings > Animations) the marker simply jumps.
+// The "On this page" list for long lessons and articles (board XLesson): plain entries, the section you are reading in
+// a soft pill. It follows the reading position of whatever scrolls the page: the shell's <main> from md up (the window
+// itself never scrolls there), the window on phones.
 
 export interface TocItem {
   id: string;
@@ -16,90 +16,87 @@ export interface TocItem {
 /** Every id in page order, parents before children. */
 const flatIds = (items: TocItem[]): string[] => items.flatMap((i) => [i.id, ...flatIds(i.children ?? [])]);
 
-/** How far below the top of the window a heading counts as "reached". */
+/** How far below the top of the scroll area a heading counts as "reached". */
 const OFFSET = 140;
+
+/** The element that scrolls the page: <main id="main"> when it scrolls, else the window. */
+function scrollRoot(): HTMLElement | null {
+  const main = document.getElementById("main");
+  if (main && /(auto|scroll)/.test(getComputedStyle(main).overflowY)) return main;
+  return null;
+}
 
 export function Toc({ items }: { items: TocItem[] }) {
   const all = useMemo(() => flatIds(items), [items]);
   const [active, setActive] = useState(all[0] ?? "");
-  const [progress, setProgress] = useState(0);
-  const listRef = useRef<HTMLUListElement>(null);
-  const [marker, setMarker] = useState<{ top: number; height: number } | null>(null);
 
   useEffect(() => {
     let frame = 0;
+    let root = scrollRoot();
     const update = () => {
       frame = 0;
+      const top = root ? root.getBoundingClientRect().top : 0;
       let current = all[0] ?? "";
       for (const id of all) {
         const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top <= OFFSET) current = id;
+        if (el && el.getBoundingClientRect().top - top <= OFFSET) current = id;
       }
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-      if (atBottom && items.length > 0) current = items[items.length - 1].id;
+      const atBottom = root
+        ? root.scrollTop > 0 && root.scrollTop + root.clientHeight >= root.scrollHeight - 4
+        : window.scrollY > 0 && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (atBottom && all.length > 0) current = all[all.length - 1];
       setActive(current);
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-      setProgress(scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0);
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
     };
+    const target: HTMLElement | Window = root ?? window;
+    const onResize = () => {
+      const next = scrollRoot();
+      if (next !== root) {
+        target.removeEventListener("scroll", schedule);
+        root = next;
+        (root ?? window).addEventListener("scroll", schedule, { passive: true });
+      }
+      schedule();
+    };
     update();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
+    target.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
+      (root ?? window).removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", onResize);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [items, all]);
-
-  // Move the marker to the active entry.
-  useEffect(() => {
-    const li = listRef.current?.querySelector<HTMLElement>(`[data-toc="${CSS.escape(active)}"]`);
-    if (li) setMarker({ top: li.offsetTop, height: li.offsetHeight });
-  }, [active]);
+  }, [all]);
 
   return (
-    <div>
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="How far down the page you are" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full rounded-full bg-primary transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
-      </div>
-      <ul ref={listRef} className="relative space-y-0.5 border-l border-line">
-        {marker && (
-          <span
-            aria-hidden
-            className="absolute -left-px w-0.5 rounded-full bg-primary transition-[transform,height] duration-300 ease-out"
-            style={{ transform: `translateY(${marker.top}px)`, height: marker.height, top: 0 }}
-          />
-        )}
-        {items.map((item) => (
-          <TocRow key={item.id} item={item} active={active} />
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-0.5">
+      {items.map((item) => (
+        <TocRow key={item.id} item={item} active={active} />
+      ))}
+    </ul>
   );
 }
 
-/** One entry. The parent is highlighted while it or any of its children is the current one. */
+/** One entry. A parent reads as current (bold, no pill) while one of its children is the current one. */
 function TocRow({ item, active, depth = 0 }: { item: TocItem; active: string; depth?: number }) {
   const children = item.children ?? [];
-  const inside = item.id === active || flatIds(children).includes(active);
+  const here = item.id === active;
+  const inside = !here && flatIds(children).includes(active);
   return (
     <li>
-      <div data-toc={item.id}>
-        <a
-          href={`#${item.id}`}
-          aria-current={item.id === active ? "location" : undefined}
-          className={`block rounded-r py-1 pr-3 transition-colors ${depth > 0 ? "pl-6 text-[13px]" : "pl-3 text-sm"} ${
-            item.id === active ? "bg-primary-soft font-medium text-foreground" : inside ? "font-medium text-foreground" : "text-muted hover:text-foreground"
-          }`}
-        >
-          {item.title}
-        </a>
-      </div>
+      <a
+        href={`#${item.id}`}
+        aria-current={here ? "location" : undefined}
+        className={`press block rounded-[12px] py-2 pr-3 leading-5 transition-colors duration-150 ${depth > 0 ? "pl-6 text-[13px]" : "pl-3 text-sm"} ${
+          here ? "bg-surface-2 font-medium text-foreground" : inside ? "font-medium text-foreground" : "text-muted hover:bg-surface-2/60 hover:text-foreground"
+        }`}
+      >
+        {item.title}
+      </a>
       {children.length > 0 && (
-        <ul>
+        <ul className="space-y-0.5">
           {children.map((c) => (
             <TocRow key={c.id} item={c} active={active} depth={depth + 1} />
           ))}

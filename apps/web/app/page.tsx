@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { after, connection } from "next/server";
 import Link from "next/link";
-import { CATEGORIES, TOTAL_WEEKS, formatLong, type Category } from "@habit/shared";
+import { CATEGORIES, TOTAL_WEEKS, addDays, formatLong, startOfWeek, type Category } from "@habit/shared";
 import { getResolveDueCount } from "@/lib/dsa";
 import { taskLink, type FocusItem, type TaskLink, type WeekFocusView } from "@/lib/focus";
 import { syncLeetCodeIfStale } from "@/lib/leetcode/sync";
@@ -12,9 +12,22 @@ import { getCountdown } from "@/lib/revise";
 import { ToolsNotice } from "./tools-notice";
 import { addTaskAction, deleteTaskAction, freezeDayAction, toggleTaskAction } from "./actions";
 import { SubmitButton } from "./submit-button";
-import { CatchUpDrawer } from "./today/today-ui";
+import { CatchUpDrawer, StartFocusButton } from "./today/today-ui";
+import { xpEvents } from "@/lib/progress";
 import { todayView, reviewSplit, weekFocus } from "./today/data";
-import { Badge, ButtonLink, CheckIcon, FlameIcon, INPUT_CLASS, PageMain, ProgressBar, ProgressRing, StatusMark, buttonClass } from "./ui";
+import {
+  Badge,
+  ButtonLink,
+  CheckIcon,
+  INPUT_CLASS,
+  PageMain,
+  ProgressBar,
+  StatusMark,
+  SubjectShape,
+  WavyProgress,
+  buttonClass,
+  type Subject,
+} from "./ui";
 import { SignInCard } from "./components/sign-in-card";
 import { TodayCardSkeleton, TodayTopSkeleton, UpNextSkeleton } from "./components/today-skeleton";
 
@@ -23,11 +36,23 @@ const UP_NEXT_VISIBLE = 5;
 /** Reviews listed on the "Due for review" card. */
 const REVIEW_VISIBLE = 5;
 
-// Each section reads its own data inside its own <Suspense>, so the page shell and the first section paint without
-// waiting for the slowest read (the review queue). Reads are shared through `cache` (today/data.ts).
+const NUMBER_WORDS: Record<number, string> = {
+  0: "No",
+  1: "One",
+  2: "Two",
+  3: "Three",
+  4: "Four",
+  5: "Five",
+  6: "Six",
+  7: "Seven",
+  8: "Eight",
+  9: "Nine",
+  10: "Ten",
+};
+
 export default function Page({ searchParams }: PageProps<"/">) {
   return (
-    <PageMain title="Today">
+    <PageMain title="Today" hideTitle>
       <Suspense fallback={null}>
         <SignInCard next="/" phoneOnly />
       </Suspense>
@@ -38,7 +63,7 @@ export default function Page({ searchParams }: PageProps<"/">) {
         <Suspense fallback={<UpNextSkeleton />}>
           <UpNext />
         </Suspense>
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div id="this-week" className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <Suspense fallback={<TodayCardSkeleton label="Loading this week's focus" rows={6} />}>
             <WeekFocusCard searchParams={searchParams} />
           </Suspense>
@@ -50,104 +75,194 @@ export default function Page({ searchParams }: PageProps<"/">) {
           <ThisWeek />
         </Suspense>
       </div>
+
+      <StartFocusButton variant="fab" />
     </PageMain>
   );
 }
 
 const currentWeekOf = (weekNo: number) => Math.min(Math.max(weekNo, 1), TOTAL_WEEKS);
 
-// ---- greeting and progress row
+// ---- greeting, hero card and stat cards
 
 async function TodayTop() {
-  // Today's date and the database are per-request; render at request time.
   await connection();
-  if (process.env.HABIT_HOSTED !== "1") after(syncLeetCodeIfStale); // pull new LeetCode solves after the page is sent
-  const v = await todayView();
+  if (process.env.HABIT_HOSTED !== "1") after(syncLeetCodeIfStale);
+  const [v, { dueToday }, events] = await Promise.all([todayView(), reviewSplit(), xpEvents().catch(() => [])]);
   const { beforeStart, finished } = v;
   const done = v.dayTasks.filter((t) => t.status === "done").length;
+  const total = v.dayTasks.length;
+  const undoneCount = total - done;
+  const undoneMinutes = v.dayTasks.filter((t) => t.status !== "done").reduce((acc, t) => acc + (t.minutes || 30), 0);
   const lvl = v.level;
   const toNext = Math.max(0, lvl.xpForNext - lvl.xpIntoLevel);
 
+  const word = NUMBER_WORDS[total] ?? String(total);
+  const titleText = total === 1 ? "One thing today" : `${word} things today`;
+
+  // Hero one-liner message
+  let heroMessage = "";
+  if (beforeStart) {
+    heroMessage = `Your plan starts on ${formatLong(v.planStart)}. You can work ahead from week focus.`;
+  } else if (finished) {
+    heroMessage = `You finished all ${TOTAL_WEEKS} weeks. Good luck in your interviews!`;
+  } else if (total === 0) {
+    heroMessage = "No scheduled tasks today. Work ahead or rest!";
+  } else if (undoneCount === 0) {
+    heroMessage = "All done for today! Excellent work.";
+  } else if (done === 0) {
+    heroMessage = `Ready to begin. ${undoneCount} ${undoneCount === 1 ? "task" : "tasks"}, about ${undoneMinutes} minutes.`;
+  } else {
+    heroMessage = `Nice start. ${undoneCount} left, about ${undoneMinutes} minutes.`;
+  }
+
+  // Scalloped ring calculations (circumference for r=30 is 188.5)
+  const frac = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
+  const ringDash = Math.round(frac * 188.5);
+
+  // "This week": XP earned on each day Monday to Sunday, from the XP rows (progress.ts), scaled to the best day.
+  const daysShort = ["M", "T", "W", "T", "F", "S", "S"];
+  const monday = startOfWeek(v.today);
+  const weekDates = daysShort.map((_, i) => addDays(monday, i));
+  const weekXp = weekDates.map((d) => events.filter((e) => e.on === d).reduce((a, e) => a + e.xp, 0));
+  const bestDay = Math.max(1, ...weekXp);
+
   return (
     <div className="space-y-5">
-      <header>
-        <p className="text-sm font-medium text-muted">
-          {beforeStart ? "Plan not started" : finished ? "Plan finished" : `Week ${v.weekNo} of ${TOTAL_WEEKS}`}
-          {!beforeStart && !finished && (
-            <span className="font-normal">
-              {" · "}
-              {v.weeksLeft} {v.weeksLeft === 1 ? "week" : "weeks"} left
-            </span>
-          )}
-          {!beforeStart && !finished && v.backlogCount > 0 && (
-            <>
-              {" · "}
-              <Link href="/backlog" className="font-medium text-warning hover:underline">
-                Backlog: {v.backlogCount} {v.backlogCount === 1 ? "task" : "tasks"}
-              </Link>
-            </>
-          )}
-        </p>
-        <h2 className="text-2xl font-bold tracking-tight">{formatLong(v.today)}</h2>
+      <header className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-[1_1_220px]">
+          <p className="text-sm font-medium text-muted">
+            {beforeStart ? "Plan not started" : finished ? "Plan finished" : `Week ${v.weekNo} of ${TOTAL_WEEKS}`}
+            {" · "}
+            {formatLong(v.today)}
+          </p>
+          <h1 className="mt-0.5 text-[28px] leading-[34px] font-semibold tracking-[-0.01em] text-foreground md:text-4xl md:leading-[44px]">{titleText}</h1>
+        </div>
+        <form action="/dsa" method="get" role="search" className="flex h-14 min-w-0 flex-[0_1_380px] items-center gap-3 rounded-full bg-surface-2 px-5 text-muted max-md:hidden">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <label htmlFor="today-search" className="sr-only">Search problems</label>
+          <input
+            id="today-search"
+            type="search"
+            name="q"
+            placeholder="Search problems, lessons, notes"
+            className="flex-1 min-w-0 border-0 bg-transparent text-foreground placeholder:text-muted outline-none text-[15px]"
+          />
+        </form>
       </header>
 
-      <div className="flex flex-wrap gap-4">
-        {/* Daily goal: today's tasks done */}
-        <div className="flex min-w-56 flex-1 items-center gap-4 rounded-md border border-line bg-surface p-5">
-          <ProgressRing value={done} max={v.dayTasks.length} label="Today's tasks done" size={48} />
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-muted">Daily goal</p>
-            {v.dayTasks.length > 0 ? (
-              <p className="text-lg font-semibold tabular-nums">
-                {done} of {v.dayTasks.length} tasks
-              </p>
-            ) : (
-              <p className="text-lg font-semibold">No tasks today</p>
-            )}
-          </div>
-        </div>
-
-        {/* XP and level */}
-        <Link href="/profile" className="gamify-only block min-w-56 flex-1 rounded-md border border-line bg-surface p-5 transition-[border-color,box-shadow] duration-120 ease-dojo hover:border-line-strong hover:shadow-sm">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-xs font-medium text-muted">
-              Level {lvl.level} · {lvl.tier}
-            </p>
-            <p className="text-xs font-medium text-muted tabular-nums">+{v.todayXp} XP today</p>
-          </div>
-          <div className="mt-3">
-            <ProgressBar value={lvl.xpIntoLevel} max={lvl.xpForNext} label="Progress to next level" tone="reward" />
-          </div>
-          <p className="mt-2 text-sm">
-            <span className="font-semibold tabular-nums">{toNext} XP</span> <span className="text-muted">to level {lvl.level + 1}</span>
-          </p>
-        </Link>
-
-        {/* Streak with the last 7 days */}
-        <div className="gamify-only flex min-w-56 flex-1 items-center gap-4 rounded-md border border-line bg-surface p-5">
-          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-reward-soft">
-            <FlameIcon className="size-6 text-reward" />
+      {/* Hero card on primary-container */}
+      <section aria-label="Today's plan" className="flex flex-wrap items-center gap-6 rounded-[32px] bg-primary-container p-5 text-on-primary-container md:px-8 md:py-7">
+        <div className="relative size-[112px] shrink-0 md:size-[132px]">
+          <svg role="img" aria-label={`${done} of ${total} done`} viewBox="0 0 100 100" className="size-full">
+            <path
+              d="M50 3 58 9 68 7 73 16 83 19 84 29 92 36 89 46 94 55 87 62 88 72 79 77 76 87 66 87 58 94 50 89 42 94 34 87 24 87 21 77 12 72 13 62 6 55 11 46 8 36 16 29 17 19 27 16 32 7 42 9z"
+              className="fill-primary/35 dark:fill-background/45"
+            />
+            <circle cx="50" cy="50" r="30" fill="none" className="stroke-primary-container dark:stroke-primary/40" strokeWidth="8" />
+            <circle
+              cx="50"
+              cy="50"
+              r="30"
+              fill="none"
+              className="stroke-on-primary-container"
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${ringDash} 188.5`}
+              transform="rotate(-90 50 50)"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[26px] font-semibold tabular-nums text-on-primary-container">
+            {done}/{total}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-muted">Streak</p>
-            <p className="text-lg font-semibold tabular-nums">
-              {v.streak} {v.streak === 1 ? "day" : "days"}
-            </p>
-            <ol className="mt-1.5 flex gap-1" aria-label="Last 7 days">
-              {v.lastSevenDays.map((d, i) => (
-                <li
-                  key={d.date}
-                  title={formatLong(d.date)}
-                  className={`h-1.5 flex-1 rounded-full ${d.kept ? "bg-reward" : "bg-surface-2"} ${i === 6 ? "ring-1 ring-line-strong ring-offset-1 ring-offset-surface" : ""}`}
-                >
-                  <span className="sr-only">
-                    {formatLong(d.date)}: {d.kept ? "kept" : "missed"}
-                  </span>
-                </li>
-              ))}
-            </ol>
+        </div>
+
+        <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-2">
+          <p className="text-sm font-medium opacity-80">Today&apos;s plan</p>
+          <p className="text-xl leading-tight font-medium md:text-[26px]">{heroMessage}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <StartFocusButton />
+            <a
+              href="#this-week"
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-surface px-[22px] text-[15px] font-medium text-on-primary-container transition-opacity hover:opacity-90 dark:bg-primary/25"
+            >
+              See the week
+            </a>
           </div>
         </div>
+
+        {/* Desktop streak in Scallop on reward-soft */}
+        <div className="gamify-only flex shrink-0 flex-col items-center gap-1 max-md:hidden">
+          <div className="relative size-24 grid place-items-center">
+            <svg viewBox="0 0 100 100" className="size-full absolute inset-0" aria-hidden="true">
+              <path
+                d="M50 4 61 13 75 10 80 24 94 30 90 44 98 56 87 66 88 80 74 83 66 95 52 90 38 96 30 84 16 81 15 67 4 57 12 44 8 30 22 24 27 10 41 12z"
+                fill="var(--reward-soft)"
+              />
+            </svg>
+            <span className="relative z-10 text-3xl font-semibold text-on-reward-soft tabular-nums">{v.streak}</span>
+          </div>
+          <span className="text-xs font-medium text-on-primary-container opacity-80">day streak</span>
+        </div>
+      </section>
+
+      {/* Stat cards in auto-fill grid */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-3 max-md:hidden">
+        {/* Level card */}
+        <section className="gamify-only flex flex-col justify-between gap-3 p-5 rounded-[28px] bg-surface border border-line dark:border-0">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-medium text-foreground">Level {lvl.level}</span>
+            <span className="text-sm text-muted tabular-nums">
+              {lvl.xpIntoLevel} / {lvl.xpForNext} XP
+            </span>
+          </div>
+          <WavyProgress value={lvl.xpIntoLevel} max={lvl.xpForNext} label={`Progress to level ${lvl.level + 1}`} />
+          <p className="text-sm text-muted">
+            <span className="font-medium text-foreground">{toNext} XP</span> to level {lvl.level + 1}. Two medium problems gets you there.
+          </p>
+        </section>
+
+        {/* This week mini bar chart */}
+        <section className="flex flex-col justify-between gap-3 p-5 rounded-[28px] bg-surface border border-line dark:border-0">
+          <span className="text-[15px] font-medium text-foreground">This week</span>
+          <div className="flex h-14 items-end gap-2" role="img" aria-label={`XP this week: ${weekXp.reduce((a, b) => a + b, 0)}`}>
+            {daysShort.map((dayLabel, idx) => {
+              const isToday = weekDates[idx] === v.today;
+              const xp = weekXp[idx];
+              const pct = xp > 0 ? Math.max(12, Math.round((xp / bestDay) * 100)) : 10;
+              return (
+                <div key={weekDates[idx]} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5" title={`${formatLong(weekDates[idx])}: ${xp} XP`}>
+                  <span
+                    className={`w-full rounded-full ${isToday ? "bg-primary" : xp > 0 ? "bg-primary-container" : "bg-surface-2"}`}
+                    style={{ height: `${pct}%` }}
+                  />
+                  <span className={`text-xs ${isToday ? "font-semibold text-foreground" : "text-muted"}`}>{dayLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Due for review card */}
+        <section className="flex flex-col justify-between gap-3 p-5 rounded-[28px] bg-surface border border-line dark:border-0">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">Due for review</span>
+            <span className="min-w-7 h-7 px-2 rounded-full bg-reward-soft text-on-reward-soft text-sm font-semibold inline-flex items-center justify-center tabular-nums">
+              {dueToday.length}
+            </span>
+          </div>
+          <p className="text-sm text-muted line-clamp-2">
+            {dueToday.length === 0
+              ? "All caught up! Nothing due right now."
+              : `${dueToday.slice(0, 3).map((r) => r.title).join(", ")}${dueToday.length > 3 ? " and more." : "."}`}
+          </p>
+          <Link href="/review" className={buttonClass("tonal", "sm", "self-start")}>
+            Review now
+          </Link>
+        </section>
       </div>
 
       <Suspense fallback={null}>
@@ -155,35 +270,31 @@ async function TodayTop() {
       </Suspense>
 
       {v.freezeOffer.length > 0 && (
-        <form action={freezeDayAction} className="gamify-only flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface p-5">
+        <form action={freezeDayAction} className="gamify-only flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-line bg-surface p-5">
           <input type="hidden" name="day" value={v.freezeOffer[0]} />
           <p className="text-sm">
             You missed <strong>{formatLong(v.freezeOffer[0])}</strong>. Use this week&apos;s streak freeze to keep your streak? The day gives no XP.
           </p>
-          <SubmitButton className={buttonClass("secondary", "sm")}>Freeze that day</SubmitButton>
+          <SubmitButton className={buttonClass("tonal", "sm")}>Freeze that day</SubmitButton>
         </form>
       )}
-
-      {beforeStart && (
-        <p className="rounded-md border border-line bg-surface p-5">
-          Your plan starts on <strong>{formatLong(v.planStart)}</strong>. You can work ahead from the week focus below, or{" "}
-          <Link href="/profile/settings" className="font-medium text-primary hover:underline">
-            change the start date
-          </Link>
-          .
-        </p>
-      )}
-      {finished && <p className="rounded-md border border-line bg-surface p-5">You finished all {TOTAL_WEEKS} weeks. Good luck in the interviews!</p>}
     </div>
   );
 }
 
 // ---- up next
 
-/** One line of the Up next list: the interview countdown, the review queue, or a task for today. */
 type UpNextRow =
-  | { kind: "link"; key: string; label: string; title: string; detail: string; href: string; edge: string }
+  | { kind: "link"; key: string; label: string; title: string; detail: string; href: string; edge: string; subject: Subject }
   | { kind: "task"; key: string; task: Task };
+
+function catToSubject(cat: Category): Subject {
+  if (cat === "dsa") return "dsa";
+  if (cat === "sd") return "sd";
+  if (cat === "beh_lld") return "lld";
+  if (cat === "mock_app") return "mock";
+  return "core";
+}
 
 async function UpNext() {
   await connection();
@@ -212,6 +323,7 @@ async function UpNext() {
       detail: countdown.phase ? `${countdown.phase.title}: see the plan` : "Quick revise",
       href: "/revise",
       edge: "border-l-primary",
+      subject: "mock",
     });
   }
   if (dueToday.length > 0) {
@@ -220,12 +332,20 @@ async function UpNext() {
     )
       .map(([label, n]) => `${n} ${label.toLowerCase()}`)
       .join(" · ");
-    rows.push({ kind: "link", key: "reviews", label: "Review", title: `${dueToday.length} review${dueToday.length === 1 ? "" : "s"} due today`, detail: kinds, href: "/review", edge: "border-l-warning" });
+    rows.push({
+      kind: "link",
+      key: "reviews",
+      label: "Review",
+      title: `${dueToday.length} review${dueToday.length === 1 ? "" : "s"} due today`,
+      detail: kinds,
+      href: "/review",
+      edge: "border-l-warning",
+      subject: "core",
+    });
   }
   const active = !beforeStart && !finished;
   if (active) for (const t of undoneTasks) rows.push({ kind: "task", key: `task-${t.id}`, task: t });
   const open = rows.length;
-  // Done tasks stay in the list (checked, struck through) after the open ones, so they can be unticked.
   if (active) for (const t of doneTasks) rows.push({ kind: "task", key: `task-${t.id}`, task: t });
 
   const visible = rows.slice(0, UP_NEXT_VISIBLE);
@@ -234,27 +354,24 @@ async function UpNext() {
   if (rows.length === 0 && !active) return null;
 
   return (
-    <section aria-labelledby="up-next" className="overflow-hidden rounded-md border border-line bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+    <section aria-labelledby="up-next" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-3">
-          <h3 id="up-next" className="text-lg font-semibold">
+          <h2 id="up-next" className="text-xl font-medium tracking-tight text-foreground">
             Up next
-          </h3>
+          </h2>
           <CatchUpDrawer backlog={backlog} />
         </div>
         {active && v.dayTasks.length > 0 && (
-          <span className="flex items-center gap-3 text-sm text-muted tabular-nums">
-            <span className="hidden w-28 sm:block">
-              <ProgressBar value={doneTasks.length} max={v.dayTasks.length} label="Tasks done today" />
-            </span>
+          <span className="text-sm text-muted tabular-nums">
             {doneTasks.length} of {v.dayTasks.length} done
           </span>
         )}
       </div>
 
       {open === 0 && (
-        <div className="space-y-2 border-b border-line px-5 py-4 last:border-b-0">
-          <p className="anim-pop flex items-center gap-2 font-medium">
+        <div className="p-6 rounded-[28px] border border-line bg-surface space-y-2">
+          <p className="flex items-center gap-2 font-medium">
             <CheckIcon className="size-4 text-success" />
             All done for today.
           </p>
@@ -279,130 +396,155 @@ async function UpNext() {
           ) : null}
         </div>
       )}
+
       {rows.length > 0 && (
-        <>
-          <ul className="anim-stagger divide-y divide-line">
-            {visible.map((r) => (
-              <UpNextItem key={r.key} row={r} link={link} />
-            ))}
-          </ul>
+        <div className="flex flex-col gap-2.5">
+          {visible.map((r) => (
+            <UpNextRowComponent key={r.key} row={r} link={link} />
+          ))}
+
           {more.length > 0 && (
-            <details className="group border-t border-line">
-              <summary className="cursor-pointer list-none px-5 py-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-foreground">
+            <details className="group">
+              <summary className="cursor-pointer list-none rounded-full px-5 py-2.5 text-sm font-medium text-muted hover:bg-surface-2 hover:text-foreground">
                 <span aria-hidden className="mr-2 inline-block transition-transform duration-180 group-open:rotate-90">
                   ›
                 </span>
                 +{more.length} more
               </summary>
-              <ul className="divide-y divide-line border-t border-line">
+              <div className="mt-2.5 flex flex-col gap-2.5">
                 {more.map((r) => (
-                  <UpNextItem key={r.key} row={r} link={link} />
+                  <UpNextRowComponent key={r.key} row={r} link={link} />
                 ))}
-              </ul>
+              </div>
             </details>
           )}
-        </>
+        </div>
       )}
     </section>
   );
 }
 
-const CATEGORY_DOT: Record<Category, string> = {
-  dsa: "bg-cat-dsa",
-  sd: "bg-cat-sd",
-  beh_lld: "bg-cat-beh",
-  mock_app: "bg-cat-mock",
-  other: "bg-cat-other",
-};
-
-const CATEGORY_EDGE: Record<Category, string> = {
-  dsa: "border-l-cat-dsa",
-  sd: "border-l-cat-sd",
-  beh_lld: "border-l-cat-beh",
-  mock_app: "border-l-cat-mock",
-  other: "border-l-cat-other",
-};
-
-function UpNextItem({ row, link }: { row: UpNextRow; link: (t: Task) => TaskLink | null }) {
-  if (row.kind === "task") return <TaskRow t={row.task} link={link} />;
+function SubjectIcon({ subject }: { subject: Subject }) {
+  if (subject === "dsa") {
+    return (
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m8 6-6 6 6 6M16 6l6 6-6 6" />
+      </svg>
+    );
+  }
+  if (subject === "sd") {
+    return (
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 6h16v12H4zM4 10h16" />
+      </svg>
+    );
+  }
+  if (subject === "lld") {
+    return (
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3 3 8l9 5 9-5zM3 13l9 5 9-5" />
+      </svg>
+    );
+  }
   return (
-    <li className={`hit flex items-center gap-3 border-l-[3px] px-5 py-3.5 ${row.edge}`}>
-      <span aria-hidden className="size-5 shrink-0" />
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16v6H4zM4 14h16v6H4z" />
+    </svg>
+  );
+}
+
+function UpNextRowComponent({ row, link }: { row: UpNextRow; link: (t: Task) => TaskLink | null }) {
+  if (row.kind === "task") return <ExpressiveTaskRow t={row.task} link={link} />;
+  return (
+    <div className="flex items-center gap-3 rounded-[24px] border border-line bg-surface px-4 py-3.5 sm:gap-3.5 dark:border-0">
+      <span className="size-7 shrink-0 rounded-full border-2 border-line-strong" aria-hidden="true" />
+      <SubjectShape subject={row.subject}>
+        <SubjectIcon subject={row.subject} />
+      </SubjectShape>
       <div className="min-w-0 flex-1">
-        <p className="break-words font-medium">{row.title}</p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
-          <span className="font-medium text-foreground">{row.label}</span>
-          <span>· {row.detail}</span>
+        <p className="text-base font-medium text-foreground">
+          <Link href={row.href} className="hover:underline sm:no-underline">
+            {row.title}
+          </Link>
+        </p>
+        <p className="text-sm text-muted">
+          {row.label} · {row.detail}
         </p>
       </div>
-      <Link href={row.href} prefetch={false} className={buttonClass("secondary", "sm", "hit-link shrink-0")}>
-        Open <span aria-hidden>→</span>
-      </Link>
-    </li>
+      <ButtonLink href={row.href} variant="outline" size="sm" className="max-sm:hidden">
+        Open
+      </ButtonLink>
+    </div>
   );
 }
 
-function TaskList({ tasks, link }: { tasks: Task[]; link: (t: Task) => TaskLink | null }) {
-  if (tasks.length === 0) return <p className="px-5 py-4 text-sm text-muted">Nothing here yet.</p>;
-  return (
-    <ul className="divide-y divide-line">
-      {tasks.map((t) => (
-        <TaskRow key={t.id} t={t} link={link} />
-      ))}
-    </ul>
-  );
-}
-
-function TaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
+function ExpressiveTaskRow({ t, link }: { t: Task; link: (t: Task) => TaskLink | null }) {
   const done = t.status === "done";
   const cat = (t.category in CATEGORIES ? t.category : "other") as Category;
+  const subj = catToSubject(cat);
   const go = link(t);
+
   return (
-    <li className={`${go ? "hit " : ""}flex items-start gap-3 border-l-[3px] px-5 py-3.5 ${done ? "border-l-transparent" : CATEGORY_EDGE[cat]}`}>
-      <form action={toggleTaskAction} className="pt-0.5">
+    <div className="flex items-center gap-3 rounded-[24px] border border-line bg-surface px-4 py-3.5 sm:gap-3.5 dark:border-0">
+      <form action={toggleTaskAction} className="shrink-0">
         <input type="hidden" name="id" value={t.id} />
         <SubmitButton
           aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
-          className={`flex size-5 shrink-0 items-center justify-center rounded-sm border-2 transition-colors duration-120 ${
-            done ? "border-success bg-success text-on-primary" : "border-line-strong hover:border-primary"
+          data-haptic={done ? undefined : "success"}
+          className={`size-7 shrink-0 rounded-full flex items-center justify-center transition-colors duration-120 ${
+            done ? "bg-primary text-on-primary font-semibold" : "border-2 border-line-strong hover:border-primary"
           }`}
         >
           {done && (
-            <svg className="anim-pop size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m3.5 8.5 3 3 6-7" />
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
             </svg>
           )}
         </SubmitButton>
       </form>
+
+      <SubjectShape subject={subj}>
+        <SubjectIcon subject={subj} />
+      </SubjectShape>
+
       <div className="min-w-0 flex-1">
-        <p className={done ? "break-words text-muted line-through" : "break-words font-medium"}>{t.title}</p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-          <span aria-hidden className={`inline-block size-2 rounded-full ${CATEGORY_DOT[cat]}`} />
+        <p className={`text-base font-medium break-words ${done ? "line-through text-muted" : "text-foreground"}`}>
+          {go && !done ? (
+            <Link href={go.href} className="hover:underline">
+              {t.title}
+            </Link>
+          ) : (
+            t.title
+          )}
+        </p>
+        <p className="text-sm text-muted">
           {CATEGORIES[cat].label}
-          {t.minutes ? <span className="tabular-nums">· {t.minutes} min</span> : null}
-          <span className={`gamify-only tabular-nums ${done ? "" : "font-medium text-foreground"}`}>· +{t.xp} XP</span>
+          {t.minutes ? ` · ${t.minutes} min` : ""}
         </p>
       </div>
-      {go && (
-        <Link href={go.href} prefetch={false} title={go.label} className={buttonClass(done ? "quiet" : "secondary", "sm", "hit-link max-w-60 shrink-0 max-sm:hidden")}>
-          <span className="truncate">{go.label}</span>
-          <span aria-hidden>→</span>
-        </Link>
-      )}
-      {go && (
-        <Link href={go.href} prefetch={false} aria-label={`Open: ${go.label}`} className={buttonClass("secondary", "sm", "shrink-0 sm:hidden")}>
-          <span aria-hidden>→</span>
-        </Link>
-      )}
+
+      {done ? (
+        <span className="gamify-only px-3 py-1 rounded-full bg-reward-soft text-on-reward-soft text-xs font-semibold tabular-nums">
+          +{t.xp} XP
+        </span>
+      ) : go ? (
+        <ButtonLink href={go.href} variant="outline" size="sm" className="max-sm:hidden">
+          Open
+        </ButtonLink>
+      ) : null}
+
       {t.templateKey === null && (
         <form action={deleteTaskAction}>
           <input type="hidden" name="id" value={t.id} />
-          <SubmitButton aria-label={`Delete "${t.title}"`} className="grid size-8 place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-foreground">
+          <SubmitButton
+            aria-label={`Delete "${t.title}"`}
+            className="grid size-8 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-foreground"
+          >
             ×
           </SubmitButton>
         </form>
       )}
-    </li>
+    </div>
   );
 }
 
@@ -416,12 +558,12 @@ async function ThisWeek() {
   const link = (t: Task) => taskLink(t, focus, { resolve: resolveDue, reviews: dueToday.length });
   const doneCount = v.weekTasks.filter((t) => t.status === "done").length;
   return (
-    <details className="group overflow-hidden rounded-md border border-line bg-surface">
-      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 hover:bg-surface-2">
+    <details className="group overflow-hidden rounded-[28px] border border-line dark:border-0 bg-surface">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 hover:bg-surface-2 transition-colors">
         <span aria-hidden className="inline-block text-muted transition-transform duration-180 group-open:rotate-90">
           ›
         </span>
-        <span className="font-semibold">This week&apos;s tasks</span>
+        <span className="font-semibold text-foreground">This week&apos;s tasks</span>
         <span className="ml-auto w-40 max-sm:hidden">
           <ProgressBar value={doneCount} max={v.weekTasks.length} label="This week's tasks done" showCount />
         </span>
@@ -429,10 +571,21 @@ async function ThisWeek() {
           {doneCount} of {v.weekTasks.length}
         </span>
       </summary>
-      <div className="border-t border-line">
-        <TaskList tasks={v.weekTasks} link={link} />
-        <form action={addTaskAction} className="flex flex-col gap-2 border-t border-line px-5 py-4 sm:flex-row">
-          <input name="title" required maxLength={200} placeholder="Add your own task, e.g. LeetCode 560 Subarray Sum Equals K" aria-label="Task title" className={`${INPUT_CLASS} min-w-0 flex-1`} />
+      <div className="border-t border-line p-4 space-y-3">
+        <div className="flex flex-col gap-2.5">
+          {v.weekTasks.map((t) => (
+            <ExpressiveTaskRow key={t.id} t={t} link={link} />
+          ))}
+        </div>
+        <form action={addTaskAction} className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row">
+          <input
+            name="title"
+            required
+            maxLength={200}
+            placeholder="Add your own task, e.g. LeetCode 560 Subarray Sum Equals K"
+            aria-label="Task title"
+            className={`${INPUT_CLASS} min-w-0 flex-1`}
+          />
           <select name="category" aria-label="Category" className={`${INPUT_CLASS} sm:w-auto`} defaultValue="dsa">
             {Object.entries(CATEGORIES).map(([key, c]) => (
               <option key={key} value={key}>
@@ -458,9 +611,9 @@ async function DueForReview() {
   const { dueToday, backlog } = await reviewSplit();
   const shown = dueToday.slice(0, REVIEW_VISIBLE);
   return (
-    <section aria-labelledby="due-review" className="rounded-md border border-line bg-surface">
+    <section aria-labelledby="due-review" className="rounded-[28px] border border-line dark:border-0 bg-surface overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <h3 id="due-review" className="text-lg font-semibold">
+        <h3 id="due-review" className="text-lg font-semibold text-foreground">
           Due for review
         </h3>
         {dueToday.length > 0 && <span className="text-sm font-semibold text-warning tabular-nums">{dueToday.length} today</span>}
@@ -477,9 +630,9 @@ async function DueForReview() {
         <ul className="divide-y divide-line">
           {shown.map((r) => (
             <li key={`${r.kind}-${r.id}`}>
-              <Link href={r.href} prefetch={false} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2">
+              <Link href={r.href} prefetch={false} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2 transition-colors">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{r.title}</span>
+                  <span className="block truncate text-sm font-medium text-foreground">{r.title}</span>
                   <span className="block truncate text-xs text-muted">{r.detail}</span>
                 </span>
                 <Badge tone="warning">{REVIEW_KIND_LABELS[r.kind]}</Badge>
@@ -499,7 +652,6 @@ async function DueForReview() {
 
 // ---- this week's focus
 
-/** One week's patterns, concepts and designs with your progress; ‹ › to look at other weeks (?week=N). */
 async function WeekFocusCard({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   await connection();
   const [v, params] = await Promise.all([todayView(), searchParams]);
@@ -516,10 +668,10 @@ function FocusPanel({ focus, currentWeek, started }: { focus: WeekFocusView; cur
   const weekHref = (w: number) => (w === currentWeek ? "/" : `/?week=${w}`);
   const arrow = buttonClass("secondary", "sm", "w-8 px-0");
   return (
-    <section aria-labelledby="focus-title" className="rounded-md border border-line bg-surface">
+    <section aria-labelledby="focus-title" className="rounded-[28px] border border-line dark:border-0 bg-surface overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-4">
         <div className="min-w-0">
-          <h3 id="focus-title" className="text-lg font-semibold">
+          <h3 id="focus-title" className="text-lg font-semibold text-foreground">
             {isCurrent ? "This week's focus" : `Week ${n} focus`}
           </h3>
           <p className="text-xs text-muted">
@@ -592,7 +744,7 @@ function FocusGroup(props: {
   return (
     <section className="min-w-0">
       <div className="flex items-baseline justify-between gap-2">
-        <h4 className="flex items-center gap-2 text-sm font-semibold">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <span aria-hidden className={`inline-block size-2 rounded-full ${props.dot}`} />
           {props.title}
         </h4>
@@ -607,9 +759,9 @@ function FocusGroup(props: {
         <ul className="mt-2 space-y-0.5">
           {props.items.map((i) => (
             <li key={i.id}>
-              <Link href={i.href} prefetch={false} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-2">
+              <Link href={i.href} prefetch={false} className="flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm hover:bg-surface-2 transition-colors">
                 <StatusMark state={i.done ? "solved" : "none"} />
-                <span className={`min-w-0 flex-1 truncate ${i.done ? "text-muted" : ""}`}>{i.title}</span>
+                <span className={`min-w-0 flex-1 truncate ${i.done ? "text-muted" : "text-foreground"}`}>{i.title}</span>
                 <span className="shrink-0 text-xs text-muted">{i.detail}</span>
                 <span className="sr-only">{i.done ? "(done)" : ""}</span>
               </Link>
@@ -626,3 +778,4 @@ function FocusGroup(props: {
     </section>
   );
 }
+

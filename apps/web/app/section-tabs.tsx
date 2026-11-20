@@ -52,13 +52,14 @@ export function ReviewTabs({ active, due }: { active: ReviewTab; due?: number })
   ];
   const href: Record<ReviewTab, string> = { review: "/review", revise: "/revise", weekly: "/review/week" };
   return (
-    <Tabs
-      tabs={tabs}
-      active={active}
-      hrefFor={(id) => href[id as ReviewTab]}
-      label="Review sections"
-      className="mb-6 flex touch-pan-x gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-line print:hidden"
-    />
+    <div className="mb-6 overflow-x-auto print:hidden">
+      <Tabs
+        tabs={tabs}
+        active={active}
+        hrefFor={(id) => href[id as ReviewTab]}
+        label="Review sections"
+      />
+    </div>
   );
 }
 

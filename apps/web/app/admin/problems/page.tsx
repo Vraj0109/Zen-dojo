@@ -212,11 +212,11 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
 
 export default function AdminProblemsPage({ searchParams }: PageProps<"/admin/problems">) {
   return (
-    <main>
+    <div>
       <h1 className="mb-4 text-2xl font-semibold tracking-tight">Problems</h1>
       <Suspense fallback={<div className="h-64 rounded-xl border border-line bg-surface" />}>
         <ProblemsTable searchParams={searchParams} />
       </Suspense>
-    </main>
+    </div>
   );
 }

@@ -15,7 +15,7 @@ import { PackImporter } from "../../pack-importer";
 import { CustomColours, CustomFontPicker, ProfileEditor } from "../../custom-appearance";
 import { ThemePicker } from "../../theme-picker";
 import { AppearanceSyncNote } from "@/app/components/appearance-sync-note";
-import { PageMain } from "../../ui";
+import { PageMain, buttonClass } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { ProfileTabs } from "../profile-ui";
 import { FeedUpdater } from "./feed-updater";
@@ -80,13 +80,13 @@ const ENTRIES: SettingsEntry[] = [
 
 export default function SettingsPage({ searchParams }: PageProps<"/profile/settings">) {
   return (
-    <PageMain title="Settings">
+    <PageMain title="Settings" hideTitle>
       <ProfileTabs active="/profile/settings" />
       <SettingsShell categories={CATEGORIES} entries={ENTRIES}>
         <SettingsBlock id="appearance" title="Appearance and reading">
           <SettingsSection id="theme" scope="sync">
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="mb-1 font-semibold">Appearance and reading</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="mb-1 text-lg font-medium">Appearance and reading</h3>
               <p className="mb-3 text-sm text-muted">
                 System follows your computer&apos;s light or dark setting. These choices are saved in this browser or app window and, when you
                 are signed in, follow you to your other devices.
@@ -96,8 +96,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             </section>
           </SettingsSection>
           <SettingsSection id="customize" scope="sync">
-            <section className="space-y-5 rounded-md border border-line bg-surface p-5">
-              <h4 className="font-semibold">Make it yours</h4>
+            <section className="space-y-5 rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="text-lg font-medium">Make it yours</h3>
               <CustomColours />
               <hr className="border-line" />
               <CustomFontPicker />
@@ -125,10 +125,10 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="practice" title="Practice and running code">
           <SettingsSection id="tools" scope="device">
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="mb-1 font-semibold">Tools for running code</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="mb-1 text-lg font-medium">Tools for running code</h3>
               <p className="mb-3 text-sm text-muted">See which of C++, Java, Node and Python are installed on this computer and copy the command to install the rest.</p>
-              <Link href="/profile/settings/tools" className="inline-block inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
+              <Link href="/profile/settings/tools" className={buttonClass("outline", "sm")}>
                 Check my tools
               </Link>
             </section>
@@ -137,8 +137,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="ai" title="AI and chat">
           <SettingsSection id="ai" scope={HOSTED ? "device" : "data"}>
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="mb-1 font-semibold">{HOSTED ? "AI help with your own key" : "AI help on your own computer"}</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="mb-1 text-lg font-medium">{HOSTED ? "AI help with your own key" : "AI help on your own computer"}</h3>
               <p className="mb-3 text-sm text-muted">
                 {HOSTED ? "Uses an API key you paste here. It stays in this browser only." : "Off until you turn it on. Explains hints and reviews your code with a model that runs here."}
               </p>
@@ -157,8 +157,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="account" title="Account and sync">
           <SettingsSection id="sync">
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="mb-1 font-semibold">Sync across devices</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="mb-1 text-lg font-medium">Sync across devices</h3>
               <p className="mb-3 text-sm text-muted">
                 Sign in to keep your progress in step across devices. See sync status, run a sync and manage signed-in devices.
                 Signed out, everything stays on this device.
@@ -170,8 +170,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="content" title="Content and packs">
           <SettingsSection id="packs" scope="data">
-            <section className="space-y-3 rounded-md border border-line bg-surface p-5">
-              <h4 className="font-semibold">Add problems and lessons</h4>
+            <section className="space-y-3 rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="text-lg font-medium">Add problems and lessons</h3>
               <p className="text-sm text-muted">
                 A content pack is one JSON file with new lessons and Run-button problems. It becomes a course in Learn. Another AI can write one for you from
                 any source: the format and a ready-made prompt are in <code>docs/content-packs.md</code>. Check it first, then install.
@@ -199,8 +199,8 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
 
         <SettingsBlock id="profile" title="Profile and portfolio">
           <SettingsSection id="profile-editor" scope="device">
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="mb-3 font-semibold">Profile</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="mb-3 text-lg font-medium">Profile</h3>
               <ProfileEditor />
             </section>
           </SettingsSection>
@@ -216,20 +216,20 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
             <Status searchParams={searchParams} />
           </Suspense>
           <SettingsSection id="backup-download">
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="font-semibold">Download a backup</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="text-lg font-medium">Download a backup</h3>
               <p className="mt-1 mb-3 text-sm text-muted">
                 One JSON file with everything: tasks, solves, notes, saved LeetCode submissions, study progress and practice logs. Keep it
                 somewhere safe, or use it to move to another computer. The extension pairing key isn&apos;t included.
               </p>
-              <a href="/api/backup" download className="inline-block rounded-lg bg-primary px-4 py-2 font-medium text-on-primary">
+              <a href="/api/backup" download className={buttonClass("primary", "sm")}>
                 Download backup
               </a>
             </section>
           </SettingsSection>
           <SettingsSection id="backup-restore">
-            <section className="rounded-md border border-line bg-surface p-5">
-              <h4 className="font-semibold">Restore from a backup</h4>
+            <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="text-lg font-medium">Restore from a backup</h3>
               <p className="mt-1 mb-3 text-sm text-muted">
                 <strong className="text-foreground">Replaces all your current data</strong> with the file&apos;s contents. A copy of your current
                 data is saved to a <code>backups</code> folder next to your database first, so you can undo by restoring that file. All or nothing: if anything is wrong
@@ -242,13 +242,13 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
                   accept="application/json,.json"
                   required
                   aria-label="Backup file"
-                  className="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-line file:bg-background file:px-3 file:py-1.5 file:text-foreground"
+                  className="block w-full text-sm file:mr-3 file:mr-3 file:h-10 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:text-sm file:font-medium file:text-primary"
                 />
                 <label className="flex items-start gap-2 text-sm">
-                  <input type="checkbox" name="confirm" value="yes" required className="mt-0.5 size-4" />
+                  <input type="checkbox" name="confirm" value="yes" required className="mt-0.5 size-4 accent-primary" />
                   <span>Yes, replace everything with this backup.</span>
                 </label>
-                <button className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Restore</button>
+                <button className={buttonClass("outline", "sm")}>Restore</button>
               </form>
             </section>
           </SettingsSection>
@@ -267,8 +267,8 @@ async function PortfolioNameSection() {
     refresh();
   }
   return (
-    <section className="rounded-md border border-line bg-surface p-5">
-      <h4 className="mb-1 font-semibold">Portfolio name</h4>
+    <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+      <h3 className="mb-1 text-lg font-medium">Portfolio name</h3>
       <p className="mb-3 text-sm text-muted">Shown on your portfolio and certificates. Leave it empty to use &quot;Learner&quot;.</p>
       <form action={save} className="flex flex-wrap items-center gap-2">
         <input
@@ -278,9 +278,9 @@ async function PortfolioNameSection() {
           placeholder="Learner"
           maxLength={60}
           aria-label="Portfolio name"
-          className="rounded-lg border border-line bg-background px-3 py-2"
+          className="h-11 rounded-full border border-line-strong bg-surface-2 px-4 text-sm"
         />
-        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Save</SubmitButton>
+        <SubmitButton className={buttonClass("outline", "sm")}>Save</SubmitButton>
       </form>
     </section>
   );
@@ -290,15 +290,15 @@ async function InterfaceSettings() {
   await connection();
   const simple = await getSimpleMode();
   return (
-    <section className="rounded-md border border-line bg-surface p-5">
-      <h4 className="font-semibold">Simple mode: {simple ? "on" : "off"}</h4>
+    <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+      <h3 className="text-lg font-medium">Simple mode: {simple ? "on" : "off"}</h3>
       <p className="mt-1 mb-3 text-sm text-muted">
         Hides the power tools so each page shows what to do next: the boss fight, pattern cheat sheets, your diagrams, the reading list and
         the stuck-list history. Nothing is deleted and the pages stay reachable by their address.
       </p>
       <form action={setSimpleModeAction}>
         <input type="hidden" name="simple" value={simple ? "0" : "1"} />
-        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">
+        <SubmitButton className={buttonClass("outline", "sm")}>
           {simple ? "Turn Simple mode off" : "Turn Simple mode on"}
         </SubmitButton>
       </form>
@@ -310,8 +310,8 @@ async function PlanSettings() {
   await connection();
   const planStart = await getPlanStart();
   return (
-    <section className="rounded-md border border-line bg-surface p-5">
-      <h4 className="font-semibold">Plan start</h4>
+    <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+      <h3 className="text-lg font-medium">Plan start</h3>
       <p className="mt-1 mb-3 text-sm text-muted">
         Week 1 started on {formatLong(planStart)}. Weeks run Monday to Sunday, so any date snaps to its Monday. Changing it regenerates
         unfinished tasks for the new week; finished tasks and XP are kept.
@@ -322,9 +322,9 @@ async function PlanSettings() {
           name="planStart"
           defaultValue={planStart}
           aria-label="Plan start date"
-          className="rounded-lg border border-line bg-background px-3 py-2"
+          className="h-11 rounded-full border border-line-strong bg-surface-2 px-4 text-sm"
         />
-        <SubmitButton className="inline-flex h-9 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold hover:bg-surface-2">Save</SubmitButton>
+        <SubmitButton className={buttonClass("outline", "sm")}>Save</SubmitButton>
       </form>
     </section>
   );
@@ -348,7 +348,7 @@ async function Status({ searchParams }: { searchParams: PageProps<"/profile/sett
   const restored = one(p.restored);
   if (error) {
     return (
-      <p role="alert" className="rounded-xl border border-cat-mock bg-surface p-4 text-sm">
+      <p role="alert" className="rounded-[16px] bg-danger-soft p-4 text-sm text-on-danger-soft">
         {error.slice(0, 300)}
       </p>
     );
@@ -356,7 +356,7 @@ async function Status({ searchParams }: { searchParams: PageProps<"/profile/sett
   if (restored) {
     const copy = one(p.copy);
     return (
-      <p role="status" className="rounded-xl border border-primary bg-surface p-4 text-sm">
+      <p role="status" className="rounded-[16px] bg-primary-soft p-4 text-sm text-on-primary-soft">
         Restored {Number(restored) || 0} rows.{copy && <> Your previous data was saved to <code className="break-all">{copy.slice(0, 400)}</code>.</>}
       </p>
     );
@@ -368,8 +368,8 @@ async function ContentFeedSection() {
   await connection();
   const [feedUrl, patches] = await Promise.all([getFeedUrl(), listLessonPatches()]);
   return (
-    <section className="space-y-3 rounded-md border border-line bg-surface p-5">
-      <h4 className="font-semibold">Updates and feeds</h4>
+    <section className="space-y-3 rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+      <h3 className="text-lg font-medium">Updates and feeds</h3>
       <p className="text-sm text-muted">
         Connect to an over-the-air content feed to check for new and updated problem packs.
       </p>
@@ -383,9 +383,9 @@ async function BuddySettingsSection() {
   const settings = await getBuddySettings();
   const ai = process.env.HABIT_HOSTED === "1" ? null : await getAiSettings();
   return (
-    <section className="space-y-4 rounded-md border border-line bg-surface p-5">
+    <section className="space-y-4 rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
       <div>
-        <h4 className="font-semibold">Accountability Buddy &amp; Gentle Pacing</h4>
+        <h3 className="text-lg font-medium">Buddy and pacing</h3>
         <p className="mt-1 text-sm text-muted">
           Designed for ADHD and cognitive ease: an optional, shame-free co-working companion, gentle timers with soft nudges, and micro-step deconstruction.
         </p>
@@ -393,27 +393,27 @@ async function BuddySettingsSection() {
       <form action={setBuddySettingsAction} className="space-y-4">
         <div>
           <label htmlFor="buddyMode" className="block text-sm font-medium">
-            Buddy Tone
+            Buddy tone
           </label>
           <select
             id="buddyMode"
             name="buddyMode"
             defaultValue={settings.mode}
-            className="mt-1 block w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+            className="mt-1 block w-full h-11 rounded-full border border-line-strong bg-surface-2 px-4 text-sm"
           >
             <option value="off">Off (Standard Dojo)</option>
             <option value="calm">Sensei (Calm, grounding &amp; mindful)</option>
             <option value="peer">Study Buddy (Friendly, relatable &amp; encouraging)</option>
             <option value="coach">Coach (Direct, positive &amp; motivating)</option>
           </select>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-sm text-muted">
             When enabled, your buddy checks in at sprint start, offers gentle reminders, and celebrates effort without guilt.
           </p>
         </div>
 
         <div>
           <label htmlFor="buddyName" className="block text-sm font-medium">
-            Buddy Name (optional)
+            Buddy name (optional)
           </label>
           <input
             id="buddyName"
@@ -422,29 +422,29 @@ async function BuddySettingsSection() {
             defaultValue={settings.name}
             placeholder="e.g., Sensei, Maya, Coach"
             maxLength={50}
-            className="mt-1 block w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+            className="mt-1 block w-full h-11 rounded-full border border-line-strong bg-surface-2 px-4 text-sm"
           />
         </div>
 
         <div>
           <label htmlFor="adhdPacing" className="block text-sm font-medium">
-            Pacing Mode
+            Pacing mode
           </label>
           <select
             id="adhdPacing"
             name="adhdPacing"
             defaultValue={settings.pacing}
-            className="mt-1 block w-full rounded-lg border border-line bg-background px-3 py-2 text-sm"
+            className="mt-1 block w-full h-11 rounded-full border border-line-strong bg-surface-2 px-4 text-sm"
           >
             <option value="gentle">Gentle pacing (Count-up timer, soft reminder at 20 min, no harsh cutoffs)</option>
             <option value="standard">Standard pacing (25 min Pomodoro countdown)</option>
           </select>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-sm text-muted">
             Gentle pacing avoids countdown anxiety by counting up and softly nudging when it is time to stretch.
           </p>
         </div>
 
-        <SubmitButton className="rounded-lg bg-primary px-4 py-2 font-medium text-on-primary text-sm">
+        <SubmitButton className={buttonClass("primary", "sm")}>
           Save pacing preferences
         </SubmitButton>
       </form>

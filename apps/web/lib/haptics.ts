@@ -34,3 +34,23 @@ export function tick(ms = 8): void {
     // unsupported; ignore
   }
 }
+
+/** Named haptic patterns (Android vibration lengths in ms; pauses between). */
+export const HAPTIC_PATTERNS = {
+  tick: [6],
+  select: [10],
+  success: [12, 60, 22],
+  error: [40, 50, 40],
+  heavy: [24],
+} as const satisfies Record<string, readonly number[]>;
+export type HapticKind = keyof typeof HAPTIC_PATTERNS;
+
+/** Play a named pattern (success after a passing Submit, error after a failing run, select on toggles). */
+export function haptic(kind: HapticKind): void {
+  if (!hapticsEnabled()) return;
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate([...HAPTIC_PATTERNS[kind]]);
+  } catch {
+    // unsupported; ignore
+  }
+}

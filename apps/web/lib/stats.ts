@@ -113,7 +113,7 @@ export async function getStats() {
       activeDays: activeDays.filter((d) => d <= today).length,
       hours: Math.round(((ev.reduce((a, e) => a + e.minutes, 0) + focus.reduce((a, f) => a + f.minutes, 0)) / 60) * 10) / 10,
     },
-    heatmap: heatmap(xpByDay, today, 16),
+    heatmap: heatmap(xpByDay, today, 52),
     balance,
     recentXp,
     badges,

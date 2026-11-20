@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { after, connection } from "next/server";
-import { getDsaView, type PatternView, type ProblemView } from "@/lib/dsa";
+import { DSA_GROUPS } from "@habit/shared";
+import { getDsaView, type ProblemView } from "@/lib/dsa";
 import { AddedProblems } from "./added-problems";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import {
@@ -12,65 +13,57 @@ import {
   hasActiveFilters,
   parseDsaFilters,
   parseDsaTab,
-  removeFilterValue,
   parseDsaSort,
   sortProblems,
-  sourceLabel,
+  removeFilterValue,
   DSA_SORTS,
-  type DsaFilters,
-  type DsaSort,
   type DsaTab,
-  type FilterKey,
 } from "@/lib/dsa-filters";
-import { FiltersMenu, SortSelect } from "./filter-group";
-import { GroupHeaderLink } from "./group-header-link";
+import { FilterChipMenu, SortSelect } from "./filter-group";
+import { PatternsView } from "./patterns-view";
 import { Skeleton } from "@/app/components/skeleton";
 import { getExtensionStatus } from "@/lib/leetcode/extension";
 import { getLeetCodeStatus, syncLeetCodeIfStale } from "@/lib/leetcode/sync";
 import { syncLeetCodeAction } from "../actions";
-import { CheatSheet, ProblemRow, ProblemTable, ProblemTitle } from "./problem-ui";
+import { ProblemTable } from "./problem-ui";
+import { ListMemory } from "./list-memory";
 import { ago } from "../profile/connections";
 import { SubmitButton } from "../submit-button";
-import { Tabs } from "../tabs";
-import { buttonClass, Card, Difficulty, EmptyState, INPUT_CLASS, PageMain, ProgressBar, SimpleHint, StatusMark } from "../ui";
+import { buttonClass, EmptyState, StatusMark } from "../ui";
 import { DsaRoadmapSkeleton } from "@/app/components/roadmap-skeleton";
 
 export const metadata: Metadata = { title: "Practice" };
 
 export default function DsaPage({ searchParams }: PageProps<"/dsa">) {
   return (
-    <PageMain title="Practice">
-      <Suspense fallback={<DsaRoadmapSkeleton />}>
-        <Dsa searchParams={searchParams} />
-      </Suspense>
-    </PageMain>
+    <Suspense fallback={<DsaRoadmapSkeleton />}>
+      <Dsa searchParams={searchParams} />
+    </Suspense>
   );
 }
 
 function dsaTabHref(id: string, params: Record<string, string | string[] | undefined>): string {
   if (id === "boss") return "/dsa/boss";
+  const filters = parseDsaFilters(params);
+  const sp = filtersToSearchParams(filters);
   if (id === "all") {
-    const sp = filtersToSearchParams(parseDsaFilters(params));
     sp.set("tab", "all");
     const sort = parseDsaSort(params);
     if (sort !== "roadmap") sp.set("sort", sort);
-    if (params.platforms === "all") sp.set("platforms", "all");
-    return `/dsa?${sp}`;
+  } else if (id !== "patterns") {
+    sp.set("tab", id);
   }
-  if (id === "patterns") {
-    const filters = parseDsaFilters(params);
-    const sp = filtersToSearchParams(filters);
-    if (typeof params.group === "string" && params.group.trim()) {
-      sp.set("group", params.group.trim());
-    }
-    if (typeof params.platforms === "string" && params.platforms.trim()) {
-      sp.set("platforms", params.platforms.trim());
-    }
-    const qs = sp.toString();
-    return qs ? `/dsa?${qs}` : "/dsa";
+  if (typeof params.platforms === "string" && params.platforms.trim()) {
+    sp.set("platforms", params.platforms.trim());
   }
-  return `/dsa?tab=${id}`;
+  const qs = sp.toString();
+  return qs ? `/dsa?${qs}` : "/dsa";
 }
+
+const PATTERN_FILTER_GROUPS = DSA_GROUPS.map((g) => ({
+  title: g.title,
+  options: g.patterns.map((p) => ({ value: p.name, label: p.name })),
+}));
 
 async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchParams"] }) {
   await connection();
@@ -84,166 +77,373 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
       }
     });
   }
-  const [{ groups, due, extras, topics, totals }, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
+  const [{ groups, due, extras, totals }, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
 
   const anywhere = params.platforms === "all";
   const shown = anywhere ? { solved: totals.solvedAnywhere, allSolved: totals.allSolvedAnywhere } : { solved: totals.solved, allSolved: totals.allSolved };
   const tab = parseDsaTab(params);
   const filters = parseDsaFilters(params);
   const filtering = hasActiveFilters(filters);
-  const results = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : [];
-  // Only the open group's problems are rendered (keeps the page small); ?group=none closes all.
-  const openGroup = typeof params.group === "string" ? params.group : groups[0]?.id;
+
+  // Group lookup for problems
+  const problemGroupMap = new Map<string, string>();
+  let nextProblem: ProblemView | undefined;
+  let easySolved = 0;
+  let medSolved = 0;
+  let hardSolved = 0;
+
+  for (const g of groups) {
+    for (const p of g.patterns) {
+      for (const item of p.items) {
+        if (!problemGroupMap.has(item.id)) {
+          problemGroupMap.set(item.id, g.title);
+        }
+        if (!nextProblem && item.status.state === "unsolved") {
+          nextProblem = item;
+        }
+        if (item.status.state === "solved" || item.status.state === "resolved") {
+          if (item.difficulty === "easy") easySolved++;
+          else if (item.difficulty === "medium") medSolved++;
+          else if (item.difficulty === "hard") hardSolved++;
+        }
+      }
+    }
+  }
 
   const allRows = filterProblems(groups.flatMap((g) => g.patterns), { q: "", source: [], status: [], difficulty: [], topic: [], has: [] });
+  const filteredRows = filtering ? filterProblems(groups.flatMap((g) => g.patterns), filters) : allRows;
   const sort = parseDsaSort(params);
-  const tableRows = tab === "all" ? sortProblems(filtering ? results : allRows, sort) : tab === "patterns" && filtering ? sortProblems(results, sort) : [];
+  const tableRows = sortProblems(filteredRows, sort);
 
-  const tabs = [
+  const dueRows = due.map((p) => ({ problem: p, patterns: [] }));
+
+  // Tabs for segmented pill
+  // The view switch has the three views from the board. Other solves and Boss battle are links in the aside (and
+  // in a short row under the switch on narrow windows, where the aside is hidden).
+  const tabs: { id: DsaTab; label: string; short?: string }[] = [
     { id: "patterns", label: "Patterns" },
-    { id: "all", label: "All problems", count: allRows.length },
-    { id: "resolve", label: "Re-solve due", count: due.length },
-    { id: "other", label: "Other solves", count: extras.length },
-    ...(simple ? [] : [{ id: "boss", label: "Boss battles" }]),
+    { id: "all", label: "All problems" },
+    { id: "resolve", label: `Re-solve due · ${due.length}`, short: `Re-solve · ${due.length}` },
+    ...(tab === "other" ? [{ id: "other" as const, label: `Other solves · ${extras.length}`, short: `Other · ${extras.length}` }] : []),
+  ];
+  const sideLinks = [
+    ...(extras.length > 0 && tab !== "other" ? [{ href: dsaTabHref("other", params), label: `Other solves · ${extras.length}` }] : []),
+    ...(!simple ? [{ href: "/dsa/boss", label: "Boss battle" }] : []),
   ];
 
+  const openGroup = typeof params.group === "string" ? params.group : undefined;
+  // The chip's clear link: this page's URL without one filter (works without JS).
+  const clearHref = (key: "topic" | "difficulty" | "status" | "source" | "has") => {
+    const sp = filtersToSearchParams(removeFilterValue(filters, key));
+    sp.set("tab", "all");
+    if (sort !== "roadmap") sp.set("sort", sort);
+    return `/dsa?${sp.toString()}`;
+  };
+
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <p aria-hidden="true" className="text-2xl font-semibold tracking-tight">Practice</p>
-        <p className="text-sm text-muted">
-          <span className="font-medium text-foreground tabular-nums">{totals.patternsCovered}</span> of {totals.patterns} patterns covered ·{" "}
-          <span className="font-medium text-foreground tabular-nums">{shown.solved}</span> of {totals.problems} roadmap problems solved ·{" "}
-          <span className="tabular-nums">{shown.allSolved}</span> solved in all (goal 150+) ·{" "}
-          <Link href="?tab=resolve" className={due.length > 0 ? "font-medium text-warning hover:underline" : "hover:underline"}>
-            {due.length} re-solve{due.length === 1 ? "" : "s"} due
-          </Link>
-        </p>
-        <p className="text-xs text-muted">
-          {anywhere ? "Counting solves on LeetCode and other platforms too." : "Counting only problems solved here (every test passed in the editor)."}{" "}
-          <Link href={anywhere ? "/dsa" : "/dsa?platforms=all"} className="underline hover:text-foreground">
-            {anywhere ? "Count only this app" : "Count all platforms"}
-          </Link>
-        </p>
-      </header>
+    <div className="anim-fade flex min-h-0 flex-1 flex-col gap-4 px-4 pt-5 pb-6 sm:px-6 md:h-full md:overflow-hidden md:pt-7 md:pb-0">
+      {/* Non-scrolling header */}
+      <div className="shrink-0 space-y-3">
+        <header className="flex items-end justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-[28px] leading-tight font-semibold text-foreground md:text-4xl">Practice</h1>
+            <p className="text-sm text-muted mt-0.5">
+              <span className="font-medium text-foreground tabular-nums">{shown.solved}</span> of {totals.problems} solved ·{" "}
+              <span>{totals.patterns} patterns in {groups.length} groups</span> ·{" "}
+              <Link href={dsaTabHref("resolve", params)} className={due.length > 0 ? "font-medium text-warning hover:underline" : "hover:underline"}>
+                {due.length} re-solve{due.length === 1 ? "" : "s"} due
+              </Link>
+            </p>
+          </div>
+          {nextProblem && (
+            <Link
+              href={`/dsa/${encodeURIComponent(nextProblem.id)}`}
+              className="inline-flex h-11 max-w-full min-w-0 items-center truncate rounded-full bg-primary-container px-5 text-sm font-medium text-on-primary-container transition-colors hover:brightness-95 max-md:hidden"
+            >
+              <span className="truncate">Continue: {nextProblem.title}</span>
+            </Link>
+          )}
+        </header>
 
-      <Tabs tabs={tabs} active={tab} hrefFor={(id) => dsaTabHref(id, params)} label="Practice sections" />
+        {/* View switch segmented pill & Search bar */}
+        <form action="/dsa" method="get" role="search" className="space-y-2">
+          {tab !== "patterns" && <input type="hidden" name="tab" value={tab} />}
+          <div className="flex gap-2.5 flex-wrap items-center">
+            {/* Segmented pill */}
+            <nav aria-label="View" className="inline-flex max-w-full gap-1 rounded-full bg-surface-2 p-1 select-none">
+              {tabs.map((t) => {
+                const isActive = t.id === tab;
+                return (
+                  <Link
+                    key={t.id}
+                    href={dsaTabHref(t.id, params)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`flex h-10 items-center rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors sm:px-[18px] ${
+                      isActive ? "bg-primary-soft text-on-primary-soft" : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {t.short ? (
+                      <>
+                        <span className="sm:hidden">{t.short}</span>
+                        <span className="max-sm:hidden">{t.label}</span>
+                      </>
+                    ) : (
+                      t.label
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
-          {(tab === "patterns" || tab === "all") && <FilterBar filters={filters} topics={topics} tab={tab} sort={sort} />}
+            {/* Search input */}
+            <label className="flex h-12 min-w-0 flex-[1_1_240px] items-center gap-2.5 rounded-full bg-surface-2 px-[18px] text-muted">
+              <svg className="size-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                type="search"
+                name="q"
+                defaultValue={filters.q}
+                placeholder={`Search ${totals.problems} problems or ${totals.patterns} patterns`}
+                aria-label="Search problems and patterns"
+                className="flex-1 min-w-0 border-0 bg-transparent text-foreground placeholder:text-muted outline-none text-[15px]"
+              />
+            </label>
+          </div>
 
-          {tab === "patterns" && (
-            <section className="space-y-3" aria-label="Patterns">
-              {filtering ? (
-                <ResultTable rows={tableRows} />
-              ) : (
-                <>
-                  <p className="text-sm text-muted">Learn the template, solve 4 to 6 problems easy to hard, then re-solve cold two weeks later.</p>
-                  <div className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-                    {groups.map((g) => {
-                      const open = g.id === openGroup;
-                      return (
-                        <div key={g.id} id={`g-${g.id}`} className="scroll-mt-32 lg:scroll-mt-4">
-                          <GroupHeaderLink id={g.id} title={g.title} covered={g.covered} total={g.patterns.length} open={open} />
-                          {open && (
-                            <div className="space-y-4 border-t border-line bg-background/40 p-4">
-                              {g.patterns.map((p) => (
-                                <PatternBlock key={p.id} p={p} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </section>
+          {sideLinks.length > 0 && (
+            <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm @min-[920px]:hidden">
+              {sideLinks.map((l) => (
+                <Link key={l.href} href={l.href} className="font-medium text-primary hover:underline">
+                  {l.label}
+                </Link>
+              ))}
+            </p>
           )}
 
+          {/* Filter chip buttons for All problems */}
           {tab === "all" && (
-            <section className="space-y-3" aria-label="All problems">
-              <ResultTable rows={tableRows} total={tableRows.length} filtering={filtering} />
-            </section>
-          )}
+            <div className="flex gap-2 flex-wrap items-center pt-1">
+              <FilterChipMenu
+                name="topic"
+                clearHref={clearHref("topic")}
+                label="Pattern"
+                selected={filters.topic}
+                groups={PATTERN_FILTER_GROUPS}
+                searchable
+                searchPlaceholder="Find one of 67 patterns"
+              />
+              <FilterChipMenu name="difficulty" clearHref={clearHref("difficulty")} label="Level" selected={filters.difficulty} options={FILTER_OPTIONS.difficulty} />
+              <FilterChipMenu name="status" clearHref={clearHref("status")} label="Status" selected={filters.status} options={FILTER_OPTIONS.status} />
+              <FilterChipMenu name="source" clearHref={clearHref("source")} label="Source" selected={filters.source} options={FILTER_OPTIONS.source} />
+              <FilterChipMenu name="has" clearHref={clearHref("has")} label="Has notes" selected={filters.has} options={FILTER_OPTIONS.has} />
 
-          {tab === "resolve" && (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Re-solve due</h2>
-              <p className="text-sm text-muted">Solved 14+ days ago: solve again from scratch, then tick.</p>
-              {due.length === 0 ? (
-                <EmptyState message="Nothing due." />
-              ) : (
-                <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-                  {due.map((p) => (
-                    <ProblemRow key={p.id} p={p} />
-                  ))}
-                </ul>
-              )}
-            </section>
+              <span className="flex items-center gap-1.5 text-sm whitespace-nowrap text-muted">
+                Showing all {tableRows.length} · <SortSelect value={sort} options={DSA_SORTS} />
+              </span>
+              <ListMemory url={dsaTabHref("all", params)} grouped={sort === "roadmap" && tableRows.length > 0} />
+            </div>
           )}
+        </form>
+      </div>
 
-          {tab === "other" && (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Other LeetCode solves</h2>
-              <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward the 150+ goal (and XP and streak if game features are on).</p>
-              {extras.length === 0 ? (
-                <EmptyState message="No synced solves outside the roadmap yet." />
-              ) : (
-                <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-                  {extras.map((e) => (
-                    <li key={e.problemId} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors duration-120 hover:bg-surface-2">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <StatusMark state="solved" />
-                        <ProblemTitle id={e.problemId} label={`${e.number ? `${e.number}. ` : ""}${e.title}`} url={e.url} struggling={e.struggling} />
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span className="gamify-only text-xs text-muted">+{e.xp} XP</span>
-                        <div className="w-16 text-right">
-                          <Difficulty level={e.difficulty} />
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <AddedProblems />
-            </section>
+      {/* Main Content Area */}
+      {tab === "patterns" && (
+        <PatternsView
+          groups={groups}
+          initialGroup={openGroup}
+          searchQuery={filters.q}
+          aside={
+            <ProgressAside
+              totalProblems={totals.problems}
+              solvedCount={shown.solved}
+              easyCount={easySolved}
+              medCount={medSolved}
+              hardCount={hardSolved}
+              simple={simple}
+              extrasCount={extras.length}
+            />
+          }
+        />
+      )}
+
+      {tab === "all" && (
+        <div className="flex min-h-0 flex-1 flex-col pb-6 md:overflow-hidden">
+          <ProblemTable
+            rows={tableRows}
+            nextProblemId={nextProblem?.id}
+            showGroupDividers={sort === "roadmap"}
+            problemGroupMap={problemGroupMap}
+            openGroups={filtering ? "all" : "next"}
+          />
+        </div>
+      )}
+
+      {tab === "resolve" && (
+        <div className="flex min-h-0 flex-1 flex-col pb-6 md:overflow-hidden">
+          {due.length === 0 ? (
+            <div className="rounded-lg border border-line bg-surface p-10 text-center text-sm text-muted dark:border-0">
+              Nothing due for re-solve right now.
+            </div>
+          ) : (
+            <ProblemTable rows={dueRows} nextProblemId={nextProblem?.id} />
           )}
         </div>
+      )}
 
-        <aside className="space-y-4">
-          {!simple && (
-            <Card href="/dsa/boss" className="p-4 text-sm">
-              <span className="font-semibold text-foreground">Boss battle</span>
-              <span className="mt-1 block text-muted">2 unsolved problems against a 2-hour timer.</span>
-            </Card>
-          )}
-          <Suspense fallback={<Skeleton className="h-32 w-full rounded-md" />}>
-            <SyncPanel />
-          </Suspense>
-          {simple && <SimpleHint />}
-        </aside>
-      </div>
+      {tab === "other" && (
+        <div className="min-h-0 flex-1 space-y-4 pb-6 md:overflow-y-auto">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Other LeetCode solves</h2>
+            <p className="text-sm text-muted">Synced problems outside the roadmap list. They count toward the 150+ goal.</p>
+            {extras.length === 0 ? (
+              <EmptyState message="No synced solves outside the roadmap yet." />
+            ) : (
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line dark:border-0 bg-surface">
+                {extras.map((e) => (
+                  <li key={e.problemId} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors duration-120 hover:bg-surface-2">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <StatusMark state="solved" />
+                      <span className="truncate font-medium">{e.number ? `${e.number}. ` : ""}{e.title}</span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3 text-xs text-muted">
+                      {e.difficulty && <span className="capitalize">{e.difficulty}</span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <AddedProblems />
+          </section>
+        </div>
+      )}
     </div>
   );
 }
 
-function ResultTable({ rows, total, filtering = true }: { rows: { problem: ProblemView; patterns: string[] }[]; total?: number; filtering?: boolean }) {
-  const count = total ?? rows.length;
+/** Progress aside on desktop: Solved ring, Boss battle card, LeetCode sync card */
+function ProgressAside({
+  totalProblems,
+  solvedCount,
+  easyCount,
+  medCount,
+  hardCount,
+  simple = false,
+  extrasCount = 0,
+}: {
+  totalProblems: number;
+  solvedCount: number;
+  easyCount: number;
+  medCount: number;
+  hardCount: number;
+  simple?: boolean;
+  extrasCount?: number;
+}) {
+  const c = 251.3;
+  const easyLen = totalProblems > 0 ? Math.round((easyCount / totalProblems) * c) : 0;
+  const medLen = totalProblems > 0 ? Math.round((medCount / totalProblems) * c) : 0;
+  const hardLen = totalProblems > 0 ? Math.round((hardCount / totalProblems) * c) : 0;
+
+  const medOffset = -(easyLen + 4);
+  const hardOffset = -(easyLen + medLen + 8);
+
   return (
-    <div className="space-y-2">
-      {filtering && (
-        <p className="text-sm text-muted" role="status">
-          {count} problem{count === 1 ? "" : "s"} match.{" "}
-          <Link href="/dsa" className="font-medium text-foreground hover:underline">
-            Clear all
+    <>
+      {/* Solved Card */}
+      <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 flex flex-col gap-3">
+        <span className="text-[15px] font-medium text-foreground">Solved</span>
+        <div className="flex items-center gap-4">
+          <svg role="img" aria-label={`${solvedCount} of ${totalProblems} solved`} width="96" height="96" viewBox="0 0 100 100" className="shrink-0">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-2)" strokeWidth="10" />
+            {easyLen > 0 && (
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke="var(--success)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={`${easyLen} 252`}
+                transform="rotate(-90 50 50)"
+              />
+            )}
+            {medLen > 0 && (
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke="var(--warning)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={`${medLen} 252`}
+                strokeDashoffset={medOffset}
+                transform="rotate(-90 50 50)"
+              />
+            )}
+            {hardLen > 0 && (
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke="var(--danger)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={`${hardLen} 252`}
+                strokeDashoffset={hardOffset}
+                transform="rotate(-90 50 50)"
+              />
+            )}
+            <text x="50" y="57" textAnchor="middle" className="text-xl font-semibold fill-current font-sans text-foreground">
+              {solvedCount}
+            </text>
+          </svg>
+          <div className="flex flex-col gap-1 text-sm text-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-success" />
+              Easy {easyCount}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-warning" />
+              Medium {medCount}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-danger" />
+              Hard {hardCount}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Boss battle card */}
+      {!simple && (
+        <section className="flex flex-col gap-2.5 rounded-[28px] bg-reward-soft p-5 text-on-reward-soft">
+          <span className="text-[15px] font-medium">Boss battle</span>
+          <p className="text-sm opacity-85 leading-snug">3 problems, 60 minutes, no hints.</p>
+          <Link
+            href="/dsa/boss"
+            className="inline-flex self-start items-center h-10 px-4.5 rounded-full bg-on-reward-soft text-reward-soft font-medium text-sm hover:opacity-90 transition-opacity mt-1"
+          >
+            Fight the boss
           </Link>
-        </p>
+        </section>
       )}
-      {rows.length > 0 ? <ProblemTable rows={rows} sourceOf={sourceLabel} /> : <EmptyState message="No problems match these filters." action={{ label: "Clear filters", href: "/dsa" }} />}
-    </div>
+
+      {extrasCount > 0 && (
+        <Link href="/dsa?tab=other" className="rounded-[28px] border border-line bg-surface p-5 text-[15px] font-medium hover:border-line-strong dark:border-0">
+          Other solves · {extrasCount}
+          <span className="mt-1 block text-sm font-normal text-muted">LeetCode solves outside the roadmap list.</span>
+        </Link>
+      )}
+
+      {/* LeetCode Sync */}
+      <Suspense fallback={<Skeleton className="h-32 w-full rounded-2xl" />}>
+        <SyncPanel />
+      </Suspense>
+    </>
   );
 }
 
@@ -254,7 +454,7 @@ async function SyncPanel() {
   return <SyncStatus leetcode={leetcode} extension={extension} />;
 }
 
-/** Compact sync status; connecting and the pairing key live in Profile → Settings. */
+/** Compact sync status */
 function SyncStatus({
   leetcode,
   extension,
@@ -265,173 +465,27 @@ function SyncStatus({
   const sync = leetcode.last;
   const imp = extension.last;
   return (
-    <section className="rounded-md border border-line bg-surface p-4 text-sm">
-      <h2 className="font-semibold">LeetCode sync</h2>
+    <section className="rounded-[28px] border border-line bg-surface p-5 dark:border-0 text-sm flex flex-col gap-2">
+      <h2 className="text-[15px] font-medium text-foreground">LeetCode</h2>
       {leetcode.username ? (
         <>
-          <p className="mt-1 text-muted">
+          <p className="text-muted text-xs leading-relaxed">
             Syncing <span className="font-medium text-foreground">@{leetcode.username}</span>
             {sync && (sync.ok ? ` · last ${ago(sync.at)}, ${sync.added} new` : ` · failed ${ago(sync.at)}`)}
           </p>
-          <form action={syncLeetCodeAction} className="mt-2">
+          <form action={syncLeetCodeAction} className="mt-1">
             <SubmitButton className={buttonClass("secondary", "sm")}>Sync now</SubmitButton>
           </form>
         </>
       ) : (
-        <p className="mt-1 text-muted">Not connected. Add your username to tick solves automatically.</p>
+        <p className="text-muted text-xs leading-relaxed">Not connected. Add your username to tick solves automatically.</p>
       )}
-      <p className="mt-2 text-muted">
+      <p className="text-muted text-xs">
         Extension: {imp ? `last import ${ago(imp.at)}, ${imp.stored} submission${imp.stored === 1 ? "" : "s"}` : "no imports yet"}
       </p>
-      <Link href="/profile/settings#leetcode" className="mt-2 inline-block font-medium text-primary hover:underline">
+      <Link href="/profile/settings#leetcode" className="mt-1 inline-block text-xs font-medium text-primary hover:underline">
         Manage connections →
       </Link>
     </section>
-  );
-}
-
-function ActiveChips({ filters }: { filters: DsaFilters }) {
-  if (!hasActiveFilters(filters)) return null;
-
-  const chips: { key: FilterKey | "q"; value?: string; label: string }[] = [];
-
-  if (filters.q) {
-    chips.push({ key: "q", label: `Search: "${filters.q}"` });
-  }
-
-  for (const s of filters.source) {
-    const opt = FILTER_OPTIONS.source.find((o) => o.value === s);
-    chips.push({ key: "source", value: s, label: opt?.label ?? s });
-  }
-
-  for (const st of filters.status) {
-    const opt = FILTER_OPTIONS.status.find((o) => o.value === st);
-    chips.push({ key: "status", value: st, label: opt?.label ?? st });
-  }
-
-  for (const d of filters.difficulty) {
-    const opt = FILTER_OPTIONS.difficulty.find((o) => o.value === d);
-    chips.push({ key: "difficulty", value: d, label: opt?.label ?? d });
-  }
-
-  for (const t of filters.topic) {
-    chips.push({ key: "topic", value: t, label: `Topic: ${t}` });
-  }
-
-  for (const h of filters.has) {
-    const opt = FILTER_OPTIONS.has.find((o) => o.value === h);
-    chips.push({ key: "has", value: h, label: opt?.label ?? h });
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-      {chips.map((chip) => {
-        const href = `/dsa?${filtersToSearchParams(removeFilterValue(filters, chip.key, chip.value)).toString()}`;
-        return (
-          <Link
-            key={`${chip.key}-${chip.value ?? ""}`}
-            href={href}
-            aria-label={`Remove filter ${chip.label}`}
-            className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-primary-soft px-2.5 text-xs font-medium text-primary transition-colors duration-120 hover:border-primary"
-          >
-            <span>{chip.label}</span>
-            <span aria-hidden="true">
-              ×
-            </span>
-          </Link>
-        );
-      })}
-      <Link href="/dsa" className="text-xs text-muted underline hover:text-foreground">
-        Clear all
-      </Link>
-    </div>
-  );
-}
-
-function FilterBar({ filters, topics, tab, sort }: { filters: DsaFilters; topics: string[]; tab: DsaTab; sort: DsaSort }) {
-  const fallbackTopics = [
-    "Arrays & Hashing",
-    "Two pointers",
-    "Sliding window",
-    "Stack",
-    "Binary search",
-    "Linked list",
-    "Trees",
-    "Tries",
-    "Heap / priority queue",
-    "Backtracking",
-    "Graphs",
-    "Advanced graphs",
-    "1-D Dynamic programming",
-    "2-D Dynamic programming",
-    "Greedy",
-    "Intervals",
-    "Math & geometry",
-    "Bit manipulation",
-  ];
-  const effectiveTopics = topics.length > 0 ? topics : fallbackTopics;
-  const sections = [
-    { title: "Status", name: "status", options: FILTER_OPTIONS.status, selected: filters.status },
-    { title: "Difficulty", name: "difficulty", options: FILTER_OPTIONS.difficulty, selected: filters.difficulty },
-    { title: "Source", name: "source", options: FILTER_OPTIONS.source, selected: filters.source },
-    { title: "Notes", name: "has", options: FILTER_OPTIONS.has, selected: filters.has },
-    { title: "Topic", name: "topic", options: effectiveTopics.map((t) => ({ value: t, label: t })), selected: filters.topic },
-  ];
-
-  return (
-    <div className="space-y-2">
-      <form action="/dsa" method="get" className="flex flex-wrap items-center gap-2" role="search">
-        {tab === "all" && <input type="hidden" name="tab" value="all" />}
-        <div className="relative min-w-0 flex-1 basis-48 sm:max-w-sm">
-          <svg className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </svg>
-          <input
-            name="q"
-            type="search"
-            defaultValue={filters.q}
-            placeholder="Search title, topic, description or tests"
-            aria-label="Search problems"
-            className={`${INPUT_CLASS} pl-8`}
-          />
-        </div>
-        <FiltersMenu sections={sections} />
-        <span className="ml-auto">
-          <SortSelect value={sort} options={DSA_SORTS} />
-        </span>
-        <noscript>
-          <button type="submit" className={buttonClass("secondary", "md")}>
-            Apply
-          </button>
-        </noscript>
-      </form>
-      <ActiveChips filters={filters} />
-    </div>
-  );
-}
-
-function PatternBlock({ p }: { p: PatternView }) {
-  return (
-    <div id={`p-${p.id}`} className="scroll-mt-32 space-y-3 rounded-md border border-line bg-surface p-4 lg:scroll-mt-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="font-semibold">
-          <Link href={`/dsa/pattern/${p.id}`} className="hover:underline">
-            {p.name}
-          </Link>
-        </h3>
-        <Link href={`/dsa/pattern/${p.id}`} className="text-sm font-medium text-primary hover:underline">
-          Learn the pattern
-        </Link>
-      </div>
-      <p className="text-sm text-muted">Recognize by: {p.recognize}</p>
-      <ProgressBar value={p.solved} max={p.target} label={`${p.name} progress`} showCount />
-      <CheatSheet p={p} />
-      <ul className="divide-y divide-line overflow-hidden rounded-md border border-line">
-        {p.items.map((item) => (
-          <ProblemRow key={item.id} p={item} />
-        ))}
-      </ul>
-    </div>
   );
 }

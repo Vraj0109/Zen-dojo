@@ -89,7 +89,10 @@ function parse(raw: string): Saved {
   }
 }
 
-const narrowQuery = "(max-width: 1023px)";
+/** Below this width (of the workspace itself, not the window) the panes stack in one column. */
+const STACK_BELOW = 980;
+/** Used only until the workspace has been measured (first paint). */
+const narrowQuery = `(max-width: ${STACK_BELOW}px)`;
 
 const PRESET_ICON: Record<PresetId, ReactNode> = {
   // Each icon draws its layout: rectangles for the panes.
@@ -131,40 +134,32 @@ export function LayoutSwitcher() {
   const raw = useSyncExternalStore(subscribe, snapshot, () => DEFAULT_RAW);
   const saved = parse(raw);
   const choose = (p: PresetId) => write({ preset: p, order: PRESETS[p].order, sizes: saved.sizes });
-  const reset = () => write({ preset: saved.preset, order: PRESETS[saved.preset].order, sizes: { ...saved.sizes, [saved.preset]: {} } });
   return (
-    <div className="flex items-center gap-1 max-lg:hidden">
-      <div role="group" aria-label="Layout" className="flex items-center gap-0.5 rounded-sm border border-line bg-surface p-0.5">
-        {PRESET_IDS.map((p) => (
-          <button
-            key={p}
-            type="button"
-            aria-pressed={saved.preset === p}
-            aria-label={`${PRESETS[p].label} layout`}
-            title={`${PRESETS[p].label} layout. Drag a pane's title onto another pane to swap them.`}
-            onClick={() => choose(p)}
-            className={`grid size-7 place-items-center rounded-[4px] transition-colors duration-120 ${
-              saved.preset === p ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-foreground"
-            }`}
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-              {PRESET_ICON[p]}
-            </svg>
-          </button>
-        ))}
+    // Hidden where the panes stack (the nearest @container is the workspace).
+    <div className="flex items-center gap-1 @max-[980px]:hidden">
+      <div role="radiogroup" aria-label="Layout" className="flex items-center gap-0.5 rounded-full bg-surface p-1">
+        {PRESET_IDS.map((p) => {
+          const isSelected = saved.preset === p;
+          return (
+            <button
+              key={p}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={`${PRESETS[p].label} layout`}
+              title={`${PRESETS[p].label} layout. Drag a pane's title onto another pane to swap them.`}
+              onClick={() => choose(p)}
+              className={`grid h-8 w-9 place-items-center rounded-full transition-colors duration-120 ${
+                isSelected ? "bg-primary-soft text-on-primary-soft" : "text-muted hover:text-foreground"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+                {PRESET_ICON[p]}
+              </svg>
+            </button>
+          );
+        })}
       </div>
-      <button
-        type="button"
-        onClick={reset}
-        aria-label="Reset pane sizes"
-        title="Reset pane sizes (or double-click a divider)"
-        className="grid size-8 place-items-center rounded-sm text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
-      >
-        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-          <path d="M3 3v5h5" />
-        </svg>
-      </button>
     </div>
   );
 }
@@ -185,12 +180,40 @@ export interface PaneDef {
   children: ReactNode;
 }
 
-export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem))" }: { panes: Record<PaneId, PaneDef>; height?: string }) {
+export function PaneLayout({
+  panes,
+  height = "var(--pane-h, calc(100dvh - 13rem))",
+  maximised: controlledMaximised,
+  onMaximise: setControlledMaximised,
+}: {
+  panes: Record<PaneId, PaneDef>;
+  height?: string;
+  maximised?: PaneId | null;
+  onMaximise?: (id: PaneId | null | ((prev: PaneId | null) => PaneId | null)) => void;
+}) {
   const raw = useSyncExternalStore(subscribe, snapshot, () => DEFAULT_RAW);
-  const narrow = useSyncExternalStore(subscribeNarrow, () => window.matchMedia(narrowQuery).matches, () => false);
+  const narrowViewport = useSyncExternalStore(subscribeNarrow, () => window.matchMedia(narrowQuery).matches, () => false);
+  // The workspace's own width decides stacking, so a wide window with a side rail still stacks when the panes would be
+  // squeezed. Measured with a ResizeObserver on whichever root is rendered; the window query is only the first guess.
+  const [width, setWidth] = useState<number | null>(null);
+  const measure = useCallback((el: HTMLDivElement | null) => {
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setWidth(Math.round(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const narrow = width === null ? narrowViewport : width < STACK_BELOW;
   const saved = parse(raw);
   const preset = PRESETS[saved.preset];
-  const [maximised, setMaximised] = useState<PaneId | null>(null);
+  const [internalMaximised, setInternalMaximised] = useState<PaneId | null>(null);
+  const maximised = controlledMaximised !== undefined ? controlledMaximised : internalMaximised;
+  const setMaximised = (val: PaneId | null | ((prev: PaneId | null) => PaneId | null)) => {
+    if (setControlledMaximised) setControlledMaximised(val);
+    else setInternalMaximised(val);
+  };
   const [dragging, setDragging] = useState<PaneId | null>(null);
   const [over, setOver] = useState<PaneId | null>(null);
 
@@ -232,10 +255,11 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
 
   if (narrow) {
     return (
-      <div className="space-y-4">
-        {saved.order.map((id) => (
-          <section key={id} aria-label={panes[id].title} className={`overflow-hidden rounded-[12px] border border-line bg-surface ${panes[id].phoneHidden ? "max-md:hidden" : ""}`}>
-            <header className="flex min-h-10 flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2/60 px-3 py-1">
+      <div ref={measure} className="w-full space-y-2 p-2">
+        {(["problem", "code", "results"] as const).map((id) => (
+          // phoneHidden hides a pane only on phones (under 768px); tablets (768-980px) keep every pane, stacked.
+          <section key={id} aria-label={panes[id].title} className={`overflow-hidden rounded-[24px] border border-line bg-surface dark:border-0 ${panes[id].phoneHidden ? "max-md:hidden" : ""}`}>
+            <header className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-3 py-1.5">
               {panes[id].tabs ? <div className="min-w-0 flex-1">{panes[id].tabs}</div> : <h3 className="text-sm font-semibold">{panes[id].title}</h3>}
               {panes[id].actions}
             </header>
@@ -247,8 +271,8 @@ export function PaneLayout({ panes, height = "var(--pane-h, calc(100dvh - 13rem)
   }
 
   return (
-    <div className="pane-root">
-      <div style={{ height }} className="pane-box min-h-[30rem] rounded-lg bg-surface-2 p-2">
+    <div ref={measure} className="pane-root w-full">
+      <div style={{ height }} className="pane-box min-h-[30rem] rounded-[24px] bg-background p-2">
         {maximised ? frame(maximised) : render(preset.tree)}
       </div>
     </div>
@@ -402,11 +426,11 @@ function PaneFrame({
         e.preventDefault();
         onDrop();
       }}
-      className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[12px] border bg-surface transition-colors duration-120 ${
-        isOver ? "border-primary ring-2 ring-primary/40" : "border-line"
+      className={`@container flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] bg-surface text-foreground transition-colors duration-120 ${
+        isOver ? "ring-2 ring-primary" : ""
       } ${isDragging ? "opacity-50" : ""}`}
     >
-      <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-line px-1.5">
+      <header className="flex h-11 shrink-0 items-center justify-between gap-2 px-3 pt-1">
         <div
           draggable={draggable}
           onDragStart={(e) => {
@@ -416,9 +440,9 @@ function PaneFrame({
           }}
           onDragEnd={onDragEnd}
           title={draggable ? `Drag ${def.title} onto another pane to swap them` : undefined}
-          className={`flex shrink-0 items-center gap-1.5 rounded-sm px-1 py-1 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-foreground ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
         >
-          <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
+          <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="currentColor">
             <circle cx="6" cy="4" r="1.1" />
             <circle cx="10" cy="4" r="1.1" />
             <circle cx="6" cy="8" r="1.1" />
@@ -429,7 +453,8 @@ function PaneFrame({
           <span className={def.tabs ? "sr-only" : "truncate text-foreground"}>{def.title}</span>
         </div>
         {def.tabs && <div className="min-w-0 flex-1 self-stretch">{def.tabs}</div>}
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1">
+          {/* The section is a size container, so pane controls can drop their less important parts when it is narrow. */}
           {def.actions}
           <button
             type="button"
@@ -437,7 +462,7 @@ function PaneFrame({
             aria-pressed={maximised}
             aria-label={maximised ? `Restore ${def.title}` : `Maximise ${def.title}`}
             title={maximised ? "Restore" : "Maximise"}
-            className="grid size-7 place-items-center rounded-sm text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors duration-120 hover:bg-surface-2 hover:text-foreground"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               {maximised ? <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /> : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}

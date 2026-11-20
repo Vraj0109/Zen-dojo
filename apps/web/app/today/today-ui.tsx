@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { isRunning } from "../timer-math";
+import { timer, useTimer } from "../timer-store";
 
 export interface BacklogItem {
   id: string;
@@ -122,5 +124,31 @@ export function CatchUpDrawer({ backlog }: { backlog: BacklogItem[] }) {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Starts a 25-minute focus session with the same timer as the rail's focus button. While a session runs it says so
+ * instead. `variant` picks the hero pill or the phone FAB look.
+ */
+export function StartFocusButton({ variant = "hero" }: { variant?: "hero" | "fab" }) {
+  const state = useTimer();
+  const running = state !== null && isRunning(state);
+  const start = () => {
+    if (!state) timer.start({ itemId: "focus-session", label: "Focus session", href: "/", targetMinutes: 25 });
+    else if (!running) timer.resume();
+  };
+  const label = running ? "Focusing" : state ? "Resume focus" : variant === "fab" ? "Focus" : "Start focus · 25 min";
+  const cls =
+    variant === "fab"
+      ? "fixed right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 inline-flex h-14 items-center gap-2.5 rounded-[18px] bg-reward-soft pr-5 pl-4 text-[15px] font-medium text-on-reward-soft shadow-lg transition-transform active:scale-95 md:hidden print:hidden"
+      : "inline-flex h-12 items-center gap-2 rounded-full bg-primary px-[22px] text-[15px] font-medium text-on-primary transition-colors hover:bg-primary-hover active:scale-[0.98]";
+  return (
+    <button type="button" onClick={start} aria-label={variant === "fab" ? "Start a focus session" : undefined} className={cls}>
+      <svg aria-hidden="true" width={variant === "fab" ? 24 : 20} height={variant === "fab" ? 24 : 20} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+      <span>{label}</span>
+    </button>
   );
 }

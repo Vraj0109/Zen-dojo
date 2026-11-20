@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Welcome" };
 
 export default function WelcomePage() {
   return (
-    <main className="flex w-full flex-col items-center px-4 py-10 sm:min-h-[80vh] sm:justify-center">
+    <div className="flex w-full flex-col items-center px-4 py-10 sm:min-h-[80vh] sm:justify-center">
       <div className="w-full space-y-5 rounded-lg border border-line bg-surface p-6 sm:max-w-md sm:p-8 sm:shadow-sm">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Zen Dojo</h1>
@@ -25,6 +25,6 @@ export default function WelcomePage() {
         </div>
         <p className="text-xs text-muted">Running code is available in the desktop app.</p>
       </div>
-    </main>
+    </div>
   );
 }

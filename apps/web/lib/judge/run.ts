@@ -55,7 +55,7 @@ export const DEFAULT_TIME_LIMIT_MS: Record<JudgeLang, number> = {
 
 export type CaseResult = {
   index: number;
-  kind: "example" | "test" | "stress";
+  kind: "example" | "test" | "stress" | "mine";
   /** Name of a large input ("100000 random numbers") */
   label?: string;
   pass: boolean;
@@ -542,13 +542,29 @@ export function referenceAnswers(spec: ProblemSpec): Promise<(unknown | undefine
 
 type AnyCase = RunCase & { kind: CaseResult["kind"]; output?: unknown; label?: string; limitMs?: number };
 
-export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string): Promise<RunResult> {
+export type RunCodeOptions = {
+  only?: "examples";
+  extra?: unknown[][];
+};
+
+export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string, options?: RunCodeOptions): Promise<RunResult> {
   if (code.length > JUDGE_LIMITS.code) return { status: "compile_error", message: "The code is too long." };
 
   const timeLimitMs = (spec as { timeLimitMs?: number }).timeLimitMs ?? DEFAULT_TIME_LIMIT_MS[lang];
 
-  const known: AnyCase[] = [...spec.examples.map((c) => ({ ...c, kind: "example" as const })), ...spec.tests.map((c) => ({ ...c, kind: "test" as const }))];
-  const stress: AnyCase[] = (spec.stress ?? []).map((s) => ({ kind: "stress" as const, label: s.label, input: s.make(), limitMs: s.limitMs ?? DEFAULT_LIMIT_MS }));
+  const isOnlyExamples = options?.only === "examples";
+  const extraCases: AnyCase[] = (options?.extra ?? []).map((input, idx) => ({
+    input,
+    kind: "mine" as const,
+    label: `My case ${idx + 1}`,
+  }));
+
+  const known: AnyCase[] = isOnlyExamples
+    ? [...spec.examples.map((c) => ({ ...c, kind: "example" as const })), ...extraCases]
+    : [...spec.examples.map((c) => ({ ...c, kind: "example" as const })), ...spec.tests.map((c) => ({ ...c, kind: "test" as const })), ...extraCases];
+  const stress: AnyCase[] = isOnlyExamples
+    ? []
+    : (spec.stress ?? []).map((s) => ({ kind: "stress" as const, label: s.label, input: s.make(), limitMs: s.limitMs ?? DEFAULT_LIMIT_MS }));
   const cases: AnyCase[] = [...known, ...stress];
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "habit-judge-"));
@@ -605,12 +621,44 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
     }
     const expectedStress = (!hasTle && stress.length > 0) ? await referenceAnswers(spec) : [];
 
+    let extraExpected: (unknown | undefined)[] | null = null;
+    if (!hasTle && options?.extra && options.extra.length > 0 && spec.solution?.cpp) {
+      try {
+        const computed = await computeOutputs(spec, "cpp", spec.solution.cpp, options.extra);
+        if (computed.status === "done") {
+          extraExpected = computed.results.map((r) => (r.ok ? r.value : undefined));
+        }
+      } catch {
+        extraExpected = null;
+      }
+    }
+
     const results: CaseResult[] = cases.map((c, i) => {
       const o = outcomes.get(i) ?? { problem: "not-run" as const, error: "Not run.", output: "" };
       const isStress = c.kind === "stress";
-      const expectedValue = isStress ? expectedStress?.[i - known.length] : c.output;
+      const isMine = c.kind === "mine";
+
+      let expectedValue: unknown = undefined;
+      if (isStress) {
+        expectedValue = expectedStress?.[i - known.length];
+      } else if (isMine) {
+        const extraIdx = i - (isOnlyExamples ? spec.examples.length : spec.examples.length + spec.tests.length);
+        expectedValue = extraExpected?.[extraIdx];
+      } else {
+        expectedValue = c.output;
+      }
+
       const input = isStress ? `(large input: ${c.label})` : JSON.stringify(c.input);
-      const expected = isStress ? (expectedValue === undefined ? "(not available)" : brief(JSON.stringify(expectedValue))) : JSON.stringify(c.output);
+      const expected = isStress
+        ? expectedValue === undefined
+          ? "(not available)"
+          : brief(JSON.stringify(expectedValue))
+        : isMine
+          ? expectedValue === undefined
+            ? ""
+            : brief(JSON.stringify(expectedValue))
+          : JSON.stringify(c.output);
+
       const base: CaseResult = {
         index: i,
         kind: c.kind,
@@ -634,6 +682,11 @@ export async function runCode(spec: ProblemSpec, lang: JudgeLang, code: string):
         // No reference answer (g++ missing): all that can be checked is that it finished in time.
         return tooSlow ? slow(base, o, limitMs, lang, printed) : { ...base, pass: true, actual: actualText, ...printed };
       }
+
+      if (isMine && expectedValue === undefined) {
+        return { ...base, pass: true, actual: actualText, ...printed };
+      }
+
       const right = sameAnswer(expectedValue, o.actual, spec.unordered);
       if (right && tooSlow) return slow(base, o, limitMs, lang, printed);
       const note = !right && spec.design ? firstDifference(c.input, expectedValue, o.actual) : undefined;
