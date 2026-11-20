@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "@/app/api/judge/run/route";
 import { RUN_CODE_LIMIT, getRuns, saveRun } from "./solution-runs";
+import { compactRunCases } from "./judge/saved-run";
 
 beforeEach(() => {
   process.env.DATABASE_URL = ":memory:";
@@ -25,6 +26,26 @@ describe("solution runs", () => {
     expect(runs).toHaveLength(2);
     expect(runs.find((r) => r.lang === "cpp")).toMatchObject({ code: "second", ranOn: "2026-11-10", status: "done", passed: 10, total: 10 });
     expect(runs.find((r) => r.lang === "java")).toMatchObject({ status: "compile_error" });
+  });
+
+  it("keeps every case of a Submit, and runs saved before that have none", async () => {
+    const cases = compactRunCases([
+      { index: 0, kind: "example", pass: true, input: "[1]", expected: "1", micros: 50 },
+      { index: 1, kind: "test", pass: false, input: "[2]", expected: "4", actual: "3", output: "hi", micros: 70 },
+    ]);
+    await saveRun("lc-1", "cpp", "new", { status: "done", passed: 1, total: 2, failedIds: [1], cases });
+    const [run] = await getRuns("lc-1");
+    expect(run.cases).toEqual(cases.cases);
+    expect(run.omitted).toBeUndefined();
+    expect(run.failedCases).toBe("1");
+
+    await saveRun("lc-2", "cpp", "old", { status: "done", passed: 0, total: 2, failedIds: [0, 1] });
+    const [old] = await getRuns("lc-2");
+    expect(old.cases).toBeUndefined();
+    expect(old.failedCases).toBe("0,1");
+
+    await saveRun("lc-2", "cpp", "compile", { status: "compile_error", passed: 0, total: 0 });
+    expect((await getRuns("lc-2"))[0].cases).toBeUndefined();
   });
 
   it("refuses code over 100 KB and keeps the earlier run", async () => {

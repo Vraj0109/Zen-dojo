@@ -5,6 +5,7 @@ import { PhoneCodeNote } from "./components/phone-study";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { CaseResult, RunResult } from "@/lib/judge/run";
+import type { SavedCase } from "@/lib/judge/saved-run";
 import { blockedBannerMessage, isBlockedRunMessage, pickFallbackLanguage } from "@/lib/judge/blocked";
 import { getZenMode, subscribeZen, toggleZenMode } from "@/lib/zen-mode";
 import { saveSolutionAction, getSavedSolutionsAction } from "./actions";
@@ -87,6 +88,10 @@ export interface SavedRun {
   passed: number;
   total: number;
   failed?: { id: number; kind: "example" | "test" | "stress"; input?: unknown[]; expected?: unknown }[];
+  /** Every case of the last Submit from a computer (absent for runs saved before per-case details) */
+  cases?: SavedCase[];
+  /** Cases left out of `cases` to keep the saved run small */
+  omitted?: number;
 }
 
 const verdict = (r: SavedRun) => (r.status === "compile_error" ? "compile error" : `${r.passed} of ${r.total} passed`);
@@ -111,7 +116,7 @@ function HelpTip({ text, id }: { text: string; id: string }) {
         aria-controls={id}
         onClick={() => setShown((v) => !v)}
         onBlur={() => setShown(false)}
-        className="grid size-7 place-items-center rounded-full border border-line text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground"
+        className="grid size-7 place-items-center rounded-full border border-line text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground [@media(pointer:coarse)]:size-11"
       >
         ?
       </button>
@@ -278,6 +283,27 @@ const caseKey = (c: { kind: string; index: number }) => `${c.kind}-${c.index}`;
 
 /** Mono value box used for inputs, outputs and expected values. */
 const VALUE_BOX = "rounded-[14px] bg-surface-2 px-3 py-2 font-mono text-[13px] leading-5 whitespace-pre-wrap break-all";
+
+/** A case of a saved Submit, shaped for CaseDetailView (read-only on the phone). */
+function savedCaseDisplay(c: SavedCase): DisplayCase {
+  const label = c.kind === "stress" ? (c.label ?? String(c.index + 1)) : caseLabel(c);
+  return {
+    kind: c.kind,
+    index: c.index,
+    label,
+    // a passed case keeps no input (the problem has it); a large input is shown by its label
+    input: c.kind === "stress" ? undefined : (c.input ?? "(not kept)"),
+    expected: c.expected,
+    actual: c.actual,
+    pass: c.pass,
+    error: c.error,
+    problem: c.problem as CaseResult["problem"],
+    note: c.note,
+    output: c.output,
+    elapsedMs: c.elapsedMs,
+    micros: c.micros,
+  };
+}
 
 /**
  * One case, in the order the plan gives: verdict, named inputs, your output next to the expected one, and what the code
@@ -926,7 +952,7 @@ export function JudgeWorkspace({
   );
 
   const codeActions = (
-    <div className="flex items-center gap-1.5 max-md:hidden">
+    <div className="flex flex-wrap items-center gap-1.5 max-md:hidden">
       <label htmlFor={selectId} className="sr-only">
         Language
       </label>
@@ -934,7 +960,7 @@ export function JudgeWorkspace({
         id={selectId}
         value={LABEL[lang]}
         onChange={(e) => switchLang((Object.keys(LABEL) as Lang[]).find((l) => LABEL[l] === e.target.value) ?? "cpp")}
-        className="h-8 rounded-full border border-line-strong bg-surface px-3 text-xs font-medium text-foreground"
+        className="h-8 [@media(pointer:coarse)]:h-11 rounded-full border border-line-strong bg-surface px-3 text-xs font-medium text-foreground"
       >
         {(Object.keys(LABEL) as Lang[]).map((l) => (
           <option key={l} value={LABEL[l]}>
@@ -947,7 +973,7 @@ export function JudgeWorkspace({
         onClick={toggleZenMode}
         aria-pressed={zen}
         title="Zen mode: anti-overwhelm focus (Ctrl+Shift+Z)"
-        className={`inline-flex h-8 items-center @max-[520px]:hidden rounded-full px-3 text-xs font-medium transition-colors duration-120 ${
+        className={`inline-flex h-8 [@media(pointer:coarse)]:h-11 items-center @max-[520px]:hidden rounded-full px-3 text-xs font-medium transition-colors duration-120 ${
           zen ? "bg-primary-soft text-primary font-semibold" : "text-muted hover:bg-surface-2 hover:text-foreground"
         }`}
       >
@@ -961,7 +987,7 @@ export function JudgeWorkspace({
             type="button"
             onClick={reset}
             title="Replace your code with the starter code"
-            className="inline-flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
+            className="inline-flex h-8 [@media(pointer:coarse)]:h-11 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
           >
             Reset
           </button>
@@ -970,7 +996,7 @@ export function JudgeWorkspace({
               type="button"
               onClick={restoreLastRun}
               title={`Last run: ${verdict(lastRun)}, ${lastRun.ranOn}`}
-              className="inline-flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
+              className="inline-flex h-8 [@media(pointer:coarse)]:h-11 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
             >
               Restore last run
             </button>
@@ -979,7 +1005,7 @@ export function JudgeWorkspace({
             type="button"
             onClick={() => void save()}
             title="Save your solution (Ctrl+S)"
-            className="inline-flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
+            className="inline-flex h-8 [@media(pointer:coarse)]:h-11 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
           >
             Save
           </button>
@@ -1537,6 +1563,22 @@ export function JudgeWorkspace({
                   ),
                 )}
               </ul>
+            </section>
+          ) : lastSaved && lastSaved.cases && lastSaved.cases.length > 0 ? (
+            <section aria-label="Last run" className="space-y-3">
+              <p className="rounded-[16px] bg-surface-2 px-4 py-3 text-sm">
+                Last submit on a computer ({LABEL[lastSaved.lang]}, {lastSaved.ranOn}): {verdict(lastSaved)}. Tap a case to see it.
+              </p>
+              <ul className="space-y-1.5">
+                {lastSaved.cases.map((c, i) =>
+                  caseRow(i, caseLabel(c), c.pass, timeOf(c), <CaseDetailView c={savedCaseDisplay(c)} params={spec?.fn?.params} copied={copied} onCopy={copyCurrentConsole} />),
+                )}
+              </ul>
+              {lastSaved.omitted ? (
+                <p className="text-xs text-muted">
+                  {lastSaved.omitted} more {lastSaved.omitted === 1 ? "case was" : "cases were"} not kept: the saved run is capped at 64 KB.
+                </p>
+              ) : null}
             </section>
           ) : lastSaved ? (
             <section aria-label="Last run" className="space-y-3">

@@ -1,0 +1,292 @@
+/*
+ * Pattern map (plan 0091): the branching tree and the stacked optimisation table.
+ * Colours come from the theme tokens only. Container queries resolve against <main id="main">, whose width excludes
+ * the rail, so "narrow" means the content is narrower than 760px, not the window.
+ *
+ * Tree markup: ul.pm-tree > li.pm-li > details.pm-grp > summary.pm-node + ul   (or li > .pm-node-leaf for a leaf).
+ * Wide: each level sits to the right of its parent and the connectors are drawn with borders.
+ * Narrow: one indented vertical list with a rail on the left of each group.
+ */
+
+.pm-tree,
+.pm-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pm-li {
+  position: relative;
+  padding: 4px 0 4px 24px;
+}
+.pm-tree > .pm-li {
+  padding-left: 0;
+}
+.pm-tree {
+  --pm-stub: 26px; /* where connectors meet a node: level with its title line (top-aligned tree, no tall gaps) */
+}
+.pm-grp {
+  display: flex;
+  align-items: flex-start;
+}
+.pm-grp > ul {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-left: 24px;
+}
+/* connectors: a stub into every node, a spine between siblings, a stub from the parent out to the spine */
+.pm-li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--pm-stub);
+  width: 24px;
+  border-top: 1.5px solid var(--line-strong);
+}
+.pm-li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 1.5px solid var(--line-strong);
+}
+.pm-li:first-child::after {
+  top: var(--pm-stub);
+}
+.pm-li:last-child::after {
+  bottom: auto;
+  height: var(--pm-stub);
+}
+.pm-li:first-child:last-child::after {
+  display: none;
+}
+.pm-li:only-child::after {
+  display: none;
+}
+.pm-tree > .pm-li::before,
+.pm-tree > .pm-li::after {
+  display: none;
+}
+.pm-grp > ul::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: var(--pm-stub);
+  width: 24px;
+  border-top: 1.5px solid var(--line-strong);
+}
+
+.pm-node {
+  display: block;
+  flex: none;
+  max-width: 230px;
+  min-height: 44px;
+  padding: 9px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  list-style: none;
+  transition:
+    scale 350ms var(--ease-spring),
+    border-color 150ms;
+}
+.pm-node::-webkit-details-marker {
+  display: none;
+}
+.pm-node:hover {
+  border-color: var(--line-strong);
+}
+.pm-node:active {
+  scale: 0.97;
+}
+.pm-node:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.pm-node b {
+  display: block;
+  font-weight: 500;
+  font-size: 14px;
+}
+.pm-node .pm-w {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pm-node .pm-tw {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+.pm-grp[open] > summary .pm-tw-closed,
+.pm-grp:not([open]) > summary .pm-tw-open {
+  display: none;
+}
+.pm-root {
+  max-width: 200px;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: transparent;
+  cursor: default;
+}
+.pm-root:hover {
+  border-color: transparent;
+}
+.pm-sig {
+  background: var(--surface-2);
+  border-color: transparent;
+}
+.pm-pat {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-color: transparent;
+}
+.pm-pat .pm-w {
+  color: var(--on-primary-container);
+  opacity: 0.85;
+}
+.pm-var {
+  border-style: dashed;
+  text-decoration: none;
+}
+.pm-node[data-on="true"] {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* The nodes keep their place and open in; opacity only so nothing shifts (motion is killed under data-motion="off"). */
+.pm-grp[open] > ul {
+  animation: pm-in 220ms var(--ease-dojo) backwards;
+}
+@keyframes pm-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Narrow content: one indented vertical list. */
+@container (max-width: 759px) {
+  .pm-grp,
+  .pm-li {
+    display: block;
+  }
+  .pm-li {
+    padding: 4px 0 4px 0;
+  }
+  .pm-grp {
+    display: block;
+  }
+  .pm-grp > ul {
+    display: block;
+    margin: 4px 0 2px 14px;
+    padding-left: 12px;
+    border-left: 1.5px solid var(--line-strong);
+  }
+  .pm-li::before,
+  .pm-li::after,
+  .pm-grp > ul::before {
+    display: none;
+  }
+  .pm-node {
+    max-width: 100%;
+  }
+}
+
+/* Optimisation moves: a table on wide content, stacked rows with labels on narrow content. */
+.pm-moves {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.pm-moves th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.pm-moves td {
+  padding: 12px;
+  vertical-align: top;
+  border-top: 1px solid var(--line);
+}
+@container (max-width: 639px) {
+  .pm-moves,
+  .pm-moves tbody,
+  .pm-moves tr,
+  .pm-moves td {
+    display: block;
+  }
+  .pm-moves thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .pm-moves tr {
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .pm-moves tr:first-child {
+    border-top: 0;
+  }
+  .pm-moves td {
+    padding: 2px 0;
+    border-top: 0;
+  }
+  .pm-moves td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+  }
+}
+
+/* The mind map's nodes lift a little on hover and press in (springs; killed under data-motion="off"). */
+.pm-svg-node {
+  cursor: pointer;
+  outline: none;
+}
+.pm-svg-node rect,
+.pm-svg-node circle {
+  transition: scale 350ms var(--ease-spring);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pm-svg-node:hover rect,
+.pm-svg-node:hover circle {
+  scale: 1.04;
+}
+.pm-svg-node:focus-visible rect,
+.pm-svg-node:focus-visible circle {
+  stroke: var(--primary);
+  stroke-width: 3;
+}
+
+/* The signals are the first column: the "New problem" root costs a column of width and says nothing the heading
+   does not, so it is hidden and its connectors with it. */
+.pm-tree > .pm-li > .pm-grp > .pm-root {
+  display: none;
+}
+.pm-tree > .pm-li > .pm-grp > ul {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pm-tree > .pm-li > .pm-grp > ul::before,
+.pm-tree > .pm-li > .pm-grp > ul > .pm-li::before,
+.pm-tree > .pm-li > .pm-grp > ul > .pm-li::after {
+  display: none;
+}
+.pm-tree > .pm-li > .pm-grp > ul > .pm-li {
+  padding-left: 0;
+}

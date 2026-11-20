@@ -1,6 +1,7 @@
 # 0032: Roadmap: a hosted Zen Dojo with accounts, Notion-style offline-first sync, and admin portal
 
-- **Status:** ready
+- **Status:** superseded
+- **Superseded by:** 0058 (hosted web app on Vercel and Turso; the Auth.js, Resend and Cloudflare parts of this roadmap were not built)
 - **Planned by:** Antigravity, 2026-11-10 (incorporating user architecture & database selection)
 - **Implemented by:** (not started)
 - **Spec:** none (builds on 0024 and 0030)
@@ -123,3 +124,10 @@ This roadmap is executed through dedicated implementation plans:
 
 1. **Authentication Provider:** Recommended: **Auth.js (NextAuth v5)** supporting GitHub and Google OAuth, plus passwordless Magic Links via Resend (free tier: 3,000 emails/month).
 2. **Desktop Sign-In:** Desktop app defaults to offline local guest account (`user_id = 'local'`), with a "Sign in to sync" button in Settings that opens the browser OAuth flow and returns an auth session token.
+
+## Implementation notes
+
+### Status check (2026-11-20)
+
+- Superseded by 0058. `docs/HANDOFF.md` already lists 0032 as the old roadmap. What was built instead: `apps/web/lib/hosted/` and `apps/web/proxy.ts` (0058), and `apps/web/lib/hub/` with `apps/web/app/hub/[...path]/route.ts` (0073).
+- No Auth.js or Resend code exists in `apps/` (`git grep -il "next-auth\|resend" -- apps` is empty). Plans 0044 and 0045 from the breakdown above were never written as plan files.

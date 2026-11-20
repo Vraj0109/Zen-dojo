@@ -17,14 +17,16 @@ import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "re
  *   transition, so the pill jumps.
  * - `target`: a selector, relative to the active item, for the part that carries the highlight (the rail and phone
  *   bar highlight the icon pill inside each link). `line`: a 2px underline instead of a filled pill.
- * - `persistKey`: remembers the last position for 2 s, so a strip that is re-created by a route change (each profile
- *   page renders its own strip) still slides from where the previous page left it.
+ * - `persistKey`: remembers the last position for 15 s, so a strip that is re-created by a route change (each profile
+ *   page renders its own strip, and /review, /review/week and /revise render theirs) still slides from where the
+ *   previous page left it. The position is also kept in sessionStorage, so it survives a full navigation.
  */
 
 const ACTIVE =
   '[aria-current="page"], [aria-current="true"], [aria-selected="true"], [aria-checked="true"], [aria-pressed="true"], [data-sp-active="true"]';
 const WATCHED = ["aria-current", "aria-selected", "aria-checked", "aria-pressed", "data-sp-active"];
-const REMEMBER_MS = 2000;
+const REMEMBER_MS = 15000;
+const STORE_PREFIX = "sliding-pill:";
 
 interface Box {
   x: number;
@@ -34,6 +36,32 @@ interface Box {
 }
 
 const memory = new Map<string, Box & { at: number }>();
+
+/** Last remembered position for `key`, or undefined. Memory first, then sessionStorage. Storage can be blocked: try/catch. */
+function recall(key: string): (Box & { at: number }) | undefined {
+  const mem = memory.get(key);
+  if (mem) return mem;
+  try {
+    const raw = window.sessionStorage.getItem(STORE_PREFIX + key);
+    if (!raw) return undefined;
+    const v = JSON.parse(raw) as Partial<Box & { at: number }>;
+    if (typeof v.x === "number" && typeof v.y === "number" && typeof v.w === "number" && typeof v.h === "number" && typeof v.at === "number") {
+      return { x: v.x, y: v.y, w: v.w, h: v.h, at: v.at };
+    }
+  } catch {
+    // Storage unavailable or corrupt: fall back to the in-memory copy only.
+  }
+  return undefined;
+}
+
+function remember(key: string, value: Box & { at: number }) {
+  memory.set(key, value);
+  try {
+    window.sessionStorage.setItem(STORE_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // Storage unavailable: the in-memory copy still works within this page.
+  }
+}
 
 /** Position and size of `el` inside `box` (both measured without transforms). Null when `box` is not its offset ancestor. */
 function within(box: HTMLElement, el: HTMLElement): Box | null {
@@ -110,8 +138,8 @@ export function SlidingPill({
       }
       if (!shown) {
         // First placement: no transition. With a fresh memory, start where the previous strip left the pill, then slide.
-        const from = persistKey ? memory.get(persistKey) : undefined;
-        const fresh = from !== undefined && performance.now() - from.at < REMEMBER_MS;
+        const from = persistKey ? recall(persistKey) : undefined;
+        const fresh = from !== undefined && Date.now() - from.at < REMEMBER_MS;
         box!.setAttribute("data-sp-still", "");
         place(fresh ? from : b);
         box!.setAttribute("data-sp-ready", "");
@@ -127,7 +155,7 @@ export function SlidingPill({
       } else {
         place(b);
       }
-      if (persistKey) memory.set(persistKey, { ...b, at: performance.now() });
+      if (persistKey) remember(persistKey, { ...b, at: Date.now() });
     }
 
     measure();

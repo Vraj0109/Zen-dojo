@@ -5,6 +5,10 @@ import { SYNC_SETTINGS_DENYLIST, SYNC_TABLE_MAP, isSyncableSettingKey, syncMigra
 
 let c: Client;
 
+// The sync migrations are found by content: later migrations (after them in MIGRATIONS) must not shift these tests.
+const V1 = MIGRATIONS.indexOf(syncMigrationSql());
+const V2 = MIGRATIONS.indexOf(syncMigrationSqlV2());
+
 async function migrate(upTo = MIGRATIONS.length) {
   for (let i = 0; i < upTo; i++) await c.executeMultiple(MIGRATIONS[i]);
 }
@@ -68,9 +72,9 @@ describe("migration", () => {
     expect(Number(trg[0].n)).toBe(SYNC_TABLE_MAP.length * 3);
   });
 
-  it("are the last two migrations and can run twice", async () => {
-    expect(MIGRATIONS[MIGRATIONS.length - 2]).toBe(syncMigrationSql());
-    expect(MIGRATIONS[MIGRATIONS.length - 1]).toBe(syncMigrationSqlV2());
+  it("are in MIGRATIONS, in order, and can run twice", async () => {
+    expect(V1).toBeGreaterThanOrEqual(0);
+    expect(V2).toBe(V1 + 1);
     await c.executeMultiple(syncMigrationSql());
     await c.executeMultiple(syncMigrationSqlV2());
     await c.execute("INSERT INTO settings (key, value) VALUES ('theme', 'dark')");
@@ -80,7 +84,7 @@ describe("migration", () => {
   it("leaves every user table's rows unchanged on an upgraded database", async () => {
     c.close();
     c = createClient({ url: ":memory:" });
-    await migrate(MIGRATIONS.length - 2);
+    await migrate(V1);
     await c.executeMultiple(`
       INSERT INTO tasks (date, scope, template_key, title, category, xp) VALUES ('2026-11-01', 'day', 'k1', 'T', 'dsa', 10);
       INSERT INTO problem_solves (problem_id, kind, solved_on, xp) VALUES ('lc-1', 'solve', '2026-11-01', 5);
@@ -98,8 +102,8 @@ describe("migration", () => {
       return out;
     };
     const before = await snapshot();
-    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 2]);
-    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
+    await c.executeMultiple(MIGRATIONS[V1]);
+    await c.executeMultiple(MIGRATIONS[V2]);
     const after = await snapshot();
     for (const t of tables) expect(after[t], t).toEqual(before[t]);
     expect(Object.keys(after).filter((t) => t.startsWith("sync_"))).toEqual([]);
@@ -112,7 +116,7 @@ describe("second sync migration (reading, stuck list, boss fights)", () => {
   async function upgraded(linked: boolean) {
     c.close();
     c = createClient({ url: ":memory:" });
-    await migrate(MIGRATIONS.length - 1);
+    await migrate(V2);
     await c.executeMultiple(`
       INSERT INTO reading_progress (reading_id, done_on, notes) VALUES ('r1', '2026-11-01', 'n');
       INSERT INTO reading_custom (item_id, title, url, added_on) VALUES ('i', 'T', 'https://x', '2026-11-01');
@@ -121,7 +125,7 @@ describe("second sync migration (reading, stuck list, boss fights)", () => {
     `);
     if (linked) await c.execute("INSERT INTO sync_flags (k, v) VALUES ('account', 'u1')");
     await clearTracking();
-    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
+    await c.executeMultiple(MIGRATIONS[V2]);
   }
 
   it("queues existing rows once when the device is already linked, without duplicates", async () => {
@@ -129,7 +133,7 @@ describe("second sync migration (reading, stuck list, boss fights)", () => {
     const d = await dirty();
     expect(d.map((r) => r.tbl).sort()).toEqual(["boss_fights", "problem_struggles", "reading_custom", "reading_progress"]);
     expect(d.find((r) => r.tbl === "reading_progress")?.row_key).toBe("r1");
-    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
+    await c.executeMultiple(MIGRATIONS[V2]);
     expect(await dirty()).toHaveLength(4);
     expect(await all("SELECT count(*) AS n FROM sync_ids WHERE tbl IN ('reading_custom','problem_struggles','boss_fights')")).toEqual([{ n: 3 }]);
   });
@@ -193,9 +197,9 @@ describe("triggers", () => {
   it("a row that existed before the migration still deletes cleanly and gets a sync id", async () => {
     c.close();
     c = createClient({ url: ":memory:" });
-    await migrate(MIGRATIONS.length - 1);
+    await migrate(V2);
     await c.execute("INSERT INTO tasks (date, scope, template_key, title, category, xp) VALUES ('2026-11-01', 'day', 'a', 'T', 'dsa', 10)");
-    await c.executeMultiple(MIGRATIONS[MIGRATIONS.length - 1]);
+    await c.executeMultiple(MIGRATIONS[V2]);
     await c.execute("DELETE FROM tasks WHERE id = 1");
     const id = await syncId("tasks", 1);
     expect(await dirty()).toEqual([{ tbl: "tasks", row_key: id, deleted: 1 }]);

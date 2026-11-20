@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { saveProblemAction, updateProblemAction } from "./actions";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { deleteProblemAction, saveProblemAction, updateProblemAction, verifyProblemAction } from "./actions";
+import { runCode } from "@/lib/judge/run";
+import { DELETE as apiDelete, GET as apiGet, POST as apiPost } from "@/app/api/admin/content/route";
 import { requireAdmin, type Session } from "@/lib/auth/session";
 import { getItem } from "@/lib/content";
 
@@ -11,6 +13,8 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/auth/session", () => ({
   requireAdmin: vi.fn(),
 }));
+
+vi.mock("@/lib/judge/run", () => ({ runCode: vi.fn() }));
 
 const mockAdminSession: Session = {
   userId: "admin-1",
@@ -340,5 +344,97 @@ describe("Admin problem actions", () => {
         expect(result.errors).toContain("That stored problem no longer exists.");
       }
     });
+  });
+
+  describe("hints", () => {
+    it("stores one hint per line and shows them again on edit", async () => {
+      const result = await saveProblemAction(null, createValidFormData({ hints: "Think about x.\n\n  Multiply it.  \n" }));
+      expect(result.ok).toBe(true);
+      expect((await getItem("problem:double-the-number"))?.item).toMatchObject({ hints: ["Think about x.", "Multiply it."] });
+    });
+
+    it("refuses too many hints", async () => {
+      const result = await saveProblemAction(null, createValidFormData({ hints: Array.from({ length: 21 }, (_, i) => `hint ${i}`).join("\n") }));
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe("verify with the judge", () => {
+    it("refuses non-admins and runs nothing", async () => {
+      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
+      await expect(verifyProblemAction(null, createValidFormData())).rejects.toThrow("NEXT_REDIRECT");
+      expect(runCode).not.toHaveBeenCalled();
+    });
+
+    it("runs the code on every case without saving", async () => {
+      vi.mocked(runCode).mockResolvedValueOnce({
+        status: "done",
+        passed: 1,
+        total: 2,
+        results: [
+          { index: 0, kind: "example", pass: true, input: "2", expected: "4", actual: "4", elapsedMs: 3 },
+          { index: 1, kind: "test", pass: false, input: "5", expected: "10", actual: "11", elapsedMs: 5 },
+        ],
+      });
+      const result = await verifyProblemAction(null, createValidFormData());
+      expect(result).toEqual({ ok: true, passed: 1, total: 2, maxMs: 5, failures: ["Case 2: expected 10, got 11"] });
+      expect(vi.mocked(runCode).mock.calls[0][1]).toBe("cpp");
+      expect(await getItem("problem:double-the-number")).toBeNull();
+    });
+
+    it("reports a compile error and needs code and valid cases first", async () => {
+      vi.mocked(runCode).mockResolvedValueOnce({ status: "compile_error", message: "expected ';'" });
+      expect(await verifyProblemAction(null, createValidFormData())).toEqual({ ok: false, errors: ["expected ';'"] });
+      const noCode = await verifyProblemAction(null, createValidFormData({ code: "" }));
+      expect(noCode.ok).toBe(false);
+      const badTests = await verifyProblemAction(null, createValidFormData({ tests: "nope" }));
+      expect(badTests.ok).toBe(false);
+      expect(runCode).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("delete a stored problem", () => {
+    const idForm = (id: string) => {
+      const fd = new FormData();
+      fd.set("id", id);
+      return fd;
+    };
+
+    it("refuses non-admins and keeps the problem", async () => {
+      await saveProblemAction(null, createValidFormData());
+      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
+      await expect(deleteProblemAction(null, idForm("double-the-number"))).rejects.toThrow("NEXT_REDIRECT");
+      expect(await getItem("problem:double-the-number")).not.toBeNull();
+    });
+
+    it("removes a stored problem and refuses one that does not exist", async () => {
+      await saveProblemAction(null, createValidFormData());
+      expect((await deleteProblemAction(null, idForm("double-the-number"))).ok).toBe(true);
+      expect(await getItem("problem:double-the-number")).toBeNull();
+      expect((await deleteProblemAction(null, idForm("double-the-number"))).ok).toBe(false);
+      expect((await deleteProblemAction(null, idForm("../x"))).ok).toBe(false);
+    });
+  });
+});
+
+describe("/api/admin/content", () => {
+  const OLD = process.env.CONTENT_ADMIN_TOKEN;
+  afterEach(() => {
+    if (OLD === undefined) delete process.env.CONTENT_ADMIN_TOKEN;
+    else process.env.CONTENT_ADMIN_TOKEN = OLD;
+  });
+  const req = (method: string, auth?: string) => new Request("http://localhost/api/admin/content?id=problem:x", { method, headers: auth ? { authorization: auth } : {}, ...(method === "POST" ? { body: "[]" } : {}) });
+
+  it("does not exist (404) without a configured token, for every method", async () => {
+    delete process.env.CONTENT_ADMIN_TOKEN;
+    for (const call of [apiGet, apiPost, apiDelete]) expect((await call(req("GET"))).status).toBe(404);
+  });
+
+  it("answers 401 without the right token, for every method", async () => {
+    process.env.CONTENT_ADMIN_TOKEN = "secret-token";
+    for (const call of [apiGet, apiPost, apiDelete]) {
+      expect((await call(req("GET"))).status).toBe(401);
+      expect((await call(req("GET", "Bearer wrong-token"))).status).toBe(401);
+    }
   });
 });

@@ -2,6 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import {
   JUDGE_PROBLEMS,
+  INTERVIEW,
   buildChatMessages,
   buildLessonChatMessages,
   buildBuddyChatMessages,
@@ -108,10 +109,15 @@ export async function buildChat(req: ChatRequest): Promise<ChatBuild> {
     language = note?.language || undefined;
     if (!code && req.intent === "review") return { ok: false, error: "no_code" };
   }
+  const interview = INTERVIEW[problemId];
+  const isApproachRequest = req.intent === "interview" || req.messages[req.messages.length - 1]?.content.toLowerCase().includes("approach");
+  const shouldReveal = req.revealSolution || isApproachRequest;
+
   const messages = buildChatMessages({
     problem: { title: spec.title, statement: spec.statement, constraints: spec.constraints, hints: spec.hints },
     solution: req.revealSolution ? spec.solution : undefined,
-    revealSolution: req.revealSolution,
+    revealSolution: shouldReveal,
+    interviewWalkthrough: shouldReveal && interview ? interview.md : undefined,
     code,
     includeCode: req.includeCode,
     language,

@@ -127,9 +127,14 @@ describe("parseProblemTab", () => {
 
   it("passes through valid tab ids", () => {
     expect(parseProblemTab({ tab: "solve" })).toBe("solve");
+    expect(parseProblemTab({ tab: "solution" })).toBe("solution");
     expect(parseProblemTab({ tab: "notes" })).toBe("notes");
     expect(parseProblemTab({ tab: "submissions" })).toBe("submissions");
     expect(parseProblemTab({ tab: "stuck" })).toBe("stuck");
+  });
+
+  it("treats interview as an alias for solution", () => {
+    expect(parseProblemTab({ tab: "interview" })).toBe("solution");
   });
 
   it("falls back to solve if submissions tab is requested but there are none", () => {

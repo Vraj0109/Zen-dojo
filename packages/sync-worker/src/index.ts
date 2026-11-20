@@ -79,7 +79,7 @@ const COLUMNS: Record<string, readonly string[]> = {
   problem_solves: ["problem_id", "kind", "solved_on", "xp", "source"],
   settings: ["value"],
   notes: ["problem_id", "notes", "code", "language"],
-  solution_runs: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases"],
+  solution_runs: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases", "run_detail"],
   pack_progress: ["pack_id", "item_id", "done_on"],
   practice_sessions: ["item_id", "practiced_on", "minutes", "scores", "score", "notes", "link", "xp"],
   timer_rows: ["item_id", "focused_on", "minutes"],
@@ -169,6 +169,14 @@ function parseMutations(raw: unknown): Mutation[] {
   });
 }
 
+/**
+ * Columns a client may leave out (older clients do not know them). When omitted or null, the stored value is set to this,
+ * so an update never keeps a value that belongs to an earlier run.
+ */
+const OMITTED_DEFAULTS: Record<string, Record<string, string>> = {
+  solution_runs: { run_detail: "" },
+};
+
 function buildStatement(db: D1Database, userId: string, m: Mutation, syncedAt: number): D1PreparedStatement {
   const pk = PK[m.table];
   if (m.action === "delete") {
@@ -179,12 +187,16 @@ function buildStatement(db: D1Database, userId: string, m: Mutation, syncedAt: n
       .bind(m.client_timestamp, m.client_timestamp, syncedAt, userId, m.row_id, m.client_timestamp);
   }
   const allowed = COLUMNS[m.table];
-  const cols = Object.keys(m.payload).filter((c) => allowed.includes(c));
+  const payload: Record<string, unknown> = { ...m.payload };
+  for (const [c, fallback] of Object.entries(OMITTED_DEFAULTS[m.table] ?? {})) {
+    if (payload[c] === undefined || payload[c] === null) payload[c] = fallback;
+  }
+  const cols = Object.keys(payload).filter((c) => allowed.includes(c));
   const insertCols = ["user_id", pk, ...cols, "updated_at", "deleted_at", "synced_at"];
   const values: unknown[] = [
     userId,
     m.row_id,
-    ...cols.map((c) => bindable(m.payload[c])),
+    ...cols.map((c) => bindable(payload[c])),
     m.client_timestamp,
     null,
     syncedAt,

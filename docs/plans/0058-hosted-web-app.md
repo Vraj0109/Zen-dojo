@@ -1,6 +1,6 @@
 # 0058: Hosted web app (sign in, see and track your progress in a browser; no code running on the server)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-11
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on 0049 (accounts), 0050 (sync), 0032 (hosted roadmap, older and broader)
@@ -180,5 +180,10 @@ Agent A, steps 1 to 4 (status left `ready`/in-progress; steps 5 to 8 belong to o
   Server actions already call `getDb()`, so they are bound to the user through the hosted branch.
 - Tests: `pnpm.cmd exec vitest run apps/web/lib/hosted` passes; `pnpm.cmd -r typecheck` and eslint on changed files clean.
 - Left: the hosted `getDb()` test only proves the branch is taken; `/login` still exists beside `/welcome`.
+
+### Status check (2026-11-20)
+
+- Steps 1 to 8 are in the tree: `apps/web/lib/hosted/` (control, provision, gate, sync, refresh, no-run, require-user-db), `apps/web/proxy.ts`, `apps/web/app/welcome/page.tsx`, `apps/web/app/hub/[...path]/route.ts`, `docs/hosted-architecture.md`, and the "Hosted Zen Dojo" section of `docs/hosting.md`.
+- Not checked here: the acceptance criteria need a live hosted deploy with a real GitHub account (user-only), so they are unverified. Status set to `implemented` on the code alone.
 
 ## Review

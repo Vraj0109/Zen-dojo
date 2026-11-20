@@ -7,6 +7,7 @@ import { saveSolution } from "@/lib/notes";
 import { resolveProblemSpec } from "@/lib/content";
 import { getPackProblemSpec, setPackItemDone } from "@/lib/packs";
 import { getRuns, saveRun } from "@/lib/solution-runs";
+import { compactRunCases } from "@/lib/judge/saved-run";
 
 // Runs your code on a problem's tests (the Run button). This executes code on this computer, so it only accepts
 // requests made by this app's own pages: same origin, and a JSON body (which a plain cross-site form cannot send).
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
 
   const result = await runCode(spec, lang, body.code);
   // Keep the code of every run (a compile error is a run too) so it comes back after a reload.
-  if (result.status === "done") await saveRun(spec.id, lang, body.code, { status: "done", passed: result.passed, total: result.total, failedIds: result.results.filter((c) => !c.pass).map((c) => c.index) });
+  if (result.status === "done") await saveRun(spec.id, lang, body.code, { status: "done", passed: result.passed, total: result.total, failedIds: result.results.filter((c) => !c.pass).map((c) => c.index), cases: compactRunCases(result.results) });
   else if (result.status === "compile_error") await saveRun(spec.id, lang, body.code, { status: "compile_error", passed: 0, total: 0 });
   // Imported (pack) problems: passing every test marks the problem done in its course.
   if (isPack && result.status === "done" && result.total > 0 && result.passed === result.total) {

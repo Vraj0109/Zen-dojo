@@ -41,7 +41,7 @@ const DEFAULTS: Record<string, Record<string, InValue>> = {
   problem_solves: { problem_id: "", kind: "", solved_on: "", xp: 0, source: "manual" },
   settings: { value: "" },
   problem_notes: { notes: "", code: "", language: "" },
-  solution_runs: { code: "", ran_on: "", status: "", passed: 0, total: 0, failed_cases: "" },
+  solution_runs: { code: "", ran_on: "", status: "", passed: 0, total: 0, failed_cases: "", run_detail: "" },
   pack_progress: { done_on: "" },
   practice_sessions: { item_id: "", practiced_on: "", scores: "{}", score: 0, notes: "", xp: 0 },
   focus_sessions: { item_id: "", focused_on: "", minutes: 0 },

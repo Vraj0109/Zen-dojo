@@ -1,6 +1,6 @@
 # 0073: Move the sync Worker and D1 to Vercel and Turso (four agents)
 
-- **Status:** ready
+- **Status:** implemented
 - **Planned by:** Claude Code, 2026-11-12
 - **Implemented by:** (four agents; each fills its own part of *Implementation notes*)
 - **Builds on:** 0044 / 0050 (cloud sync), 0049 (accounts), 0058 (hosted site), 0069 (public profile)
@@ -267,5 +267,10 @@ Local commits are the lead's job. No agent runs `pnpm check`, `pnpm desktop:buil
 - Longest route: `/hub/api/sync` (up to 500 mutations in one batch plus a 12-table pull); `maxDuration = 60` is far under Hobby's 300 s.
   Nothing else should exceed the limit; `/hub/auth/github/callback` makes one GitHub call (a few seconds at most).
 - Tests: `pnpm exec vitest run apps/web/lib/hub/handler.test.ts` (9 pass, A's modules stubbed with `vi.mock`).
+
+### Status check (2026-11-20)
+
+- Code for agents A to D is in the tree: `apps/web/lib/hub/` (migrations, db, d1, rate-limit, handler, url), `apps/web/app/hub/[...path]/route.ts`, `scripts/hub-import.mjs`, and `docs/migration-cloudflare-to-vercel.md`. The only `workers.dev` reference left in `apps/` or `packages/` is the documented fallback `LEGACY_WORKER_ORIGIN` in `apps/desktop/lib/deeplink.js`.
+- Not confirmed: the user-only cutover steps (Turso database, Vercel env vars, GitHub callback URL, data import, Cloudflare token revoke) and the acceptance checks against real Turso. `packages/sync-worker/wrangler.jsonc` and `.github/workflows/deploy-worker.yml` still exist. Status set to `implemented` on the code alone.
 
 ## Review

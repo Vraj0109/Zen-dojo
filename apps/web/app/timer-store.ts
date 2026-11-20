@@ -95,8 +95,8 @@ export function finishSession() {
   if (!out.ended) return;
   write(null);
   if (s.itemId !== FOCUS_SESSION_ID) {
-    // Loaded on demand: global-timer pulls in the server action, which unit tests of this file do not need.
-    void import("./global-timer").then((m) => m.saveFocus(s.itemId, out.minutes)).catch(() => {});
+    // Loaded on demand: start-timer pulls in the save helper, which unit tests of this file do not need.
+    void import("./start-timer").then((m) => m.saveFocus(s.itemId, out.minutes)).catch(() => {});
   }
   if (out.fresh) setDoneNotice(true);
 }

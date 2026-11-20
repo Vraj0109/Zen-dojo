@@ -689,7 +689,7 @@ describe("Sync Worker Index & Integration", () => {
       problem_solves: ["problem_id", "kind", "solved_on", "xp", "source"],
       settings: ["value"],
       notes: ["problem_id", "notes", "code", "language"],
-      solution_runs: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases"],
+      solution_runs: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases", "run_detail"],
       pack_progress: ["pack_id", "item_id", "done_on"],
       practice_sessions: ["item_id", "practiced_on", "minutes", "scores", "score", "notes", "link", "xp"],
       timer_rows: ["item_id", "focused_on", "minutes"],
@@ -764,6 +764,28 @@ describe("Sync Worker Index & Integration", () => {
           .filter((n) => n && n !== "PRIMARY" && !["user_id", "id", "updated_at", "deleted_at", "synced_at"].includes(n));
         expect(cols.sort(), table).toEqual([...COLS[table]].sort());
       }
+    });
+
+    it("migration 0007 adds run_detail to solution_runs with an empty default", async () => {
+      const { readFileSync } = await import("node:fs");
+      const sql = readFileSync(new URL("../migrations/0007_solution_run_detail.sql", import.meta.url), "utf8");
+      expect(sql).toContain("ALTER TABLE solution_runs ADD COLUMN run_detail TEXT NOT NULL DEFAULT '';");
+    });
+
+    it("clears run_detail when an older client updates the run without it", async () => {
+      const token = await tokenFor("gh:old");
+      const base = { problem_id: "two-sum", lang: "cpp", ran_on: "2026-11-09", status: "done", passed: 1, total: 2, failed_cases: "1" };
+      await sync(token, {
+        mutations: [{ table: "solution_runs", row_id: "two-sum:cpp", action: "upsert", payload: { ...base, code: "a", run_detail: '{"v":1,"cases":[]}' }, client_timestamp: 100 }],
+      });
+      const key = "gh:old:two-sum:cpp";
+      expect(mockDb.tables.get("solution_runs")!.get(key)!.run_detail).toBe('{"v":1,"cases":[]}');
+      await sync(token, {
+        mutations: [{ table: "solution_runs", row_id: "two-sum:cpp", action: "upsert", payload: { ...base, code: "b" }, client_timestamp: 200 }],
+      });
+      const row = mockDb.tables.get("solution_runs")!.get(key)!;
+      expect(row.code).toBe("b");
+      expect(row.run_detail).toBe("");
     });
 
     it("round-trips an upsert and a delete for every table", async () => {

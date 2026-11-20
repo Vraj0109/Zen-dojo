@@ -42,6 +42,12 @@ export const minutesToLog = (s: TimerState, now: number) => Math.round(elapsedAt
 
 export const reachedTarget = (s: TimerState, now: number) => elapsedAt(s, now) >= s.targetMinutes * 60_000;
 
+/** Time left on the countdown at `now` (0 once it has run out). */
+export const remainingAt = (s: TimerState, now: number) => Math.max(0, s.targetMinutes * 60_000 - elapsedAt(s, now));
+
+/** The quick focus session has no item to log to, so finishing it saves nothing (same rule as finishSession). */
+export const savesMinutes = (s: TimerState) => s.itemId !== FOCUS_SESSION_ID;
+
 /** mm:ss, or h:mm:ss from one hour. */
 export function clock(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));

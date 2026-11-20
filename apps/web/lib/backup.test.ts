@@ -9,6 +9,7 @@ import { getDsaView, markSolved } from "./dsa";
 import { getExtensionToken } from "./leetcode/extension";
 import { getNote, saveNote } from "./notes";
 import { getRuns, saveRun } from "./solution-runs";
+import { compactRunCases } from "./judge/saved-run";
 import { getConceptDetail, logPractice, saveConcept } from "./study";
 import { getTodayView } from "./tasks";
 
@@ -70,6 +71,26 @@ describe("backup", () => {
     expect(await getRuns("lc-1")).toEqual([{ problemId: "lc-1", lang: "cpp", code: "class Solution {};", ranOn: "2026-11-06", status: "done", passed: 3, total: 10, failedCases: "" }]);
     expect(await getExtensionToken()).toBe(otherKey);
     expect(await exportBackup()).toMatchObject({ tables: backup.tables });
+  });
+
+  it("keeps the per-case list of the latest Submit through export and restore, and reads a backup without it", async () => {
+    const cases = compactRunCases([
+      { index: 0, kind: "example", pass: true, input: "[1]", expected: "1", micros: 50 },
+      { index: 1, kind: "test", pass: false, input: "[2]", expected: "4", actual: "3", output: "hi", micros: 70 },
+    ]);
+    await saveRun("lc-9", "cpp", "code", { status: "done", passed: 1, total: 2, failedIds: [1], cases });
+    const backup = await exportBackup();
+    expect(backup.tables.solution_runs!.find((r) => r.problem_id === "lc-9")).toMatchObject({ run_detail: expect.stringContaining("\"cases\"") });
+    fresh();
+    expect(await restoreBackup(backup)).toMatchObject({ ok: true });
+    expect((await getRuns("lc-9"))[0].cases).toEqual(cases.cases);
+
+    const older = { ...backup, tables: { ...backup.tables, solution_runs: [{ problem_id: "lc-8", lang: "cpp", code: "old", ran_on: "2026-11-06", status: "done", passed: 1, total: 2, failed_cases: "" }] } };
+    fresh();
+    expect(await restoreBackup(older)).toMatchObject({ ok: true });
+    const [old] = await getRuns("lc-8");
+    expect(old.cases).toBeUndefined();
+    expect(old.code).toBe("old");
   });
 
   it("refuses bad files and changes nothing", async () => {

@@ -11,6 +11,7 @@ export * from "./focus";
 export * from "./reading";
 export * from "./learn";
 export * from "./revise";
+export * from "./thinking-map";
 export * from "./cp-algorithms";
 export * from "./packs";
 export * from "./content-items";

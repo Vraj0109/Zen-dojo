@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, elapsedAt, minutesToLog, newTimer, parseTimer, pauseTimer, reachedTarget, resumeTimer, serializeTimer, sessionOutcome, withTarget } from "./timer-math";
+import { FOCUS_SESSION_ID, clock, elapsedAt, minutesToLog, newTimer, parseTimer, pauseTimer, reachedTarget, remainingAt, resumeTimer, savesMinutes, serializeTimer, sessionOutcome, withTarget } from "./timer-math";
 
 const item = { itemId: "lc-1", label: "1. Two Sum", href: "/dsa/lc-1", targetMinutes: 25 };
 const MIN = 60_000;
@@ -76,5 +76,24 @@ describe("session outcome", () => {
     // paused with the target already lowered below the elapsed time
     const paused = pauseTimer(newTimer({ ...item, targetMinutes: 45 }, 0), 30 * MIN);
     expect(sessionOutcome(withTarget(paused, 20), 99 * MIN).ended).toBe(true);
+  });
+});
+
+describe("rail controls helpers", () => {
+  it("counts the time left down and stops at zero", () => {
+    const t = newTimer(item, 0); // 25 min target
+    expect(remainingAt(t, 0)).toBe(25 * MIN);
+    expect(remainingAt(t, 10 * MIN)).toBe(15 * MIN);
+    expect(remainingAt(t, 40 * MIN)).toBe(0);
+  });
+
+  it("keeps the time left while paused", () => {
+    const paused = pauseTimer(newTimer(item, 0), 5 * MIN);
+    expect(remainingAt(paused, 60 * MIN)).toBe(20 * MIN);
+  });
+
+  it("saves minutes for real items but not for the quick focus session", () => {
+    expect(savesMinutes(newTimer(item, 0))).toBe(true);
+    expect(savesMinutes(newTimer({ ...item, itemId: FOCUS_SESSION_ID }, 0))).toBe(false);
   });
 });

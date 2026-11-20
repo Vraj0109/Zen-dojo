@@ -60,6 +60,17 @@ describe("chat messages", () => {
     expect(system(buildChatMessages({ problem, revealSolution: true, intent: "free", history }))).toContain("Do not give the full solution");
   });
 
+  it("includes interview walkthrough only when reveal is requested", () => {
+    const interviewWalkthrough = "WALKTHROUGH_SECRET_CONTENT";
+    const withoutReveal = buildChatMessages({ problem, interviewWalkthrough, revealSolution: false, intent: "free", history });
+    expect(system(withoutReveal)).not.toContain(interviewWalkthrough);
+    expect(system(withoutReveal)).toContain("Do not give the full solution");
+
+    const withReveal = buildChatMessages({ problem, interviewWalkthrough, revealSolution: true, intent: "free", history });
+    expect(system(withReveal)).toContain(interviewWalkthrough);
+    expect(system(withReveal)).not.toContain("Do not give the full solution");
+  });
+
   it("hint intent contains the chosen hint and clamps the index", () => {
     expect(system(buildChatMessages({ problem, intent: "hint", hintIndex: 1, history }))).toContain("Store complements.");
     expect(system(buildChatMessages({ problem, intent: "hint", hintIndex: 99, history }))).toContain("Store complements.");

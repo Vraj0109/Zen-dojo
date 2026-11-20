@@ -22,7 +22,7 @@ export const HAS_FILTERS = {
 export const DSA_TABS = ["patterns", "all", "resolve", "other"] as const;
 export type DsaTab = (typeof DSA_TABS)[number];
 
-export const PROBLEM_TABS = ["solve", "notes", "submissions", "stuck"] as const;
+export const PROBLEM_TABS = ["solve", "solution", "notes", "submissions", "stuck"] as const;
 export type ProblemTab = (typeof PROBLEM_TABS)[number];
 
 /** The sources the DSA page can be limited to. The choice lives in the URL (?source=cses). */
@@ -128,7 +128,8 @@ export function parseDsaTab(params: Params): DsaTab {
 }
 
 export function parseProblemTab(params: Params, hasSubmissions = true): ProblemTab {
-  const t = one(params.tab);
+  let t = one(params.tab);
+  if (t === "interview") t = "solution";
   if (t === "submissions" && !hasSubmissions) return "solve";
   return (PROBLEM_TABS as readonly string[]).includes(t) ? (t as ProblemTab) : "solve";
 }

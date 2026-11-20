@@ -159,63 +159,51 @@ export function StudyHubSkeleton() {
   );
 }
 
-/** Study Area skeleton (matches apps/web/app/study/[area]/page.tsx) */
+/** Study Area skeleton (matches apps/web/app/study/[area]/page.tsx: hero, three tabs, course path stepper) */
 export function StudyAreaSkeleton() {
   return (
-    <div className="anim-late space-y-8" role="status" aria-label="Loading study area">
-      {/* Back button */}
+    <div className="anim-late mx-auto w-full max-w-[1240px] space-y-5" role="status" aria-label="Loading course">
+      {/* Back link */}
       <Skeleton className="h-4 w-28" />
 
-      {/* Header */}
-      <header className="space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-96 max-w-full" />
-        <Skeleton className="h-3.5 w-72 max-w-full" />
-      </header>
-
-      {/* 4-Stat KPI Grid */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-md border border-line bg-surface p-4 space-y-2">
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-7 w-20" />
-            <Skeleton className="h-3 w-16" />
+      {/* Subject hero: rounded-[32px] block with title, intro, chips and the continue button */}
+      <section className="flex flex-wrap items-center gap-5 rounded-[32px] bg-surface-2 p-5 sm:px-8 sm:py-7">
+        <Skeleton className="hidden size-[72px] shrink-0 rounded-[28px] sm:block" />
+        <div className="min-w-0 flex-[1_1_260px] space-y-3">
+          <Skeleton className="h-8 w-3/5 max-w-sm sm:h-9" />
+          <Skeleton className="h-4 w-full max-w-[70ch]" />
+          <Skeleton className="h-4 w-4/5 max-w-[70ch]" />
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Skeleton className="h-7 w-28 rounded-full" />
+            <Skeleton className="h-7 w-24 rounded-full" />
+            <Skeleton className="h-7 w-32 rounded-full" />
           </div>
-        ))}
+        </div>
+        <Skeleton className="h-12 w-56 max-w-full rounded-full" />
       </section>
 
-      {/* Progress Bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <Skeleton className="h-3.5 w-28" />
-          <Skeleton className="h-3.5 w-12" />
-        </div>
-        <Skeleton className="h-2.5 w-full rounded-full" />
+      {/* Tabs: three pills in a track (About, Learn, Projects) */}
+      <div className="inline-flex max-w-full gap-1 rounded-full border border-line p-1">
+        <Skeleton className="h-9 w-20 rounded-full" />
+        <Skeleton className="h-9 w-28 rounded-full" />
+        <Skeleton className="h-9 w-32 rounded-full" />
       </div>
 
-      {/* Sections and Concepts List */}
-      <div className="space-y-6">
-        {[...Array(3)].map((_, sIndex) => (
-          <section key={sIndex} className="rounded-md border border-line bg-surface overflow-hidden">
-            <div className="flex items-center justify-between border-b border-line/40 p-4">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-16 rounded-full" />
+      {/* Course path: vertical stepper, circle + rounded row per lesson */}
+      <div className="flex flex-col pt-2">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="flex gap-3 sm:gap-4">
+            <div className="flex w-11 shrink-0 flex-col items-center">
+              <Skeleton className="size-11 rounded-full" />
+              {i < 5 && <Skeleton className="my-1 min-h-4 w-1 flex-1 rounded-full" />}
             </div>
-            <div className="divide-y divide-line/40 px-4">
-              {[...Array(4)].map((_, cIndex) => (
-                <div key={cIndex} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-4 w-4 rounded-full" />
-                    <Skeleton className="h-4 w-48" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                    <Skeleton className="h-3.5 w-12" />
-                  </div>
-                </div>
-              ))}
+            <div className="mb-3 flex min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-line bg-surface px-4 py-3.5 sm:px-5">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/5" />
+                <Skeleton className="h-3.5 w-3/5" />
+              </div>
             </div>
-          </section>
+          </div>
         ))}
       </div>
     </div>

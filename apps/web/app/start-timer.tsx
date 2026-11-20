@@ -1,15 +1,86 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { saveFocus } from "./global-timer";
-import { isRunning, minutesToLog } from "./timer-math";
-import { timer, useTimer } from "./timer-store";
+import { useConfirm } from "./components/confirm-dialog";
+import { clock, isRunning, minutesToLog, remainingAt, savesMinutes } from "./timer-math";
+import { timer, useNow, useTimer } from "./timer-store";
 
 const fmtTotal = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`);
 
+/** Logs `minutes` to `itemId` (shows up in Profile hours). Used by Save in SessionControls and by timer-store's auto-finish. */
+export async function saveFocus(itemId: string, minutes: number) {
+  if (minutes < 1) return;
+  // The server action loads only when called, so nav.tsx (which shows these controls) stays light.
+  const { logFocusAction } = await import("./actions");
+  const fd = new FormData();
+  fd.set("itemId", itemId);
+  fd.set("minutes", String(minutes));
+  await logFocusAction(fd);
+}
+
+export async function saveMinutes(itemId: string, minutes: number) {
+  await saveFocus(itemId, minutes);
+}
+
+const tonal = "flex min-h-11 w-full items-center justify-center rounded-full bg-primary-soft px-4 text-sm font-medium text-on-primary-soft hover:bg-primary-container disabled:opacity-40";
+const primary = "flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-40";
+const quiet = "flex min-h-11 w-full items-center justify-center rounded-full px-4 text-sm font-medium text-danger hover:bg-danger-soft hover:text-on-danger-soft disabled:opacity-40";
+
 /**
- * Start button for the one global timer (it lives in the sidebar). `totalMinutes` is what has been logged on this
- * item so far. Starting while another item's timer has time on it asks what to do with that time.
+ * Pause or resume, finish (saves the minutes, as the auto-finish does) and discard for the running session. Shown in
+ * the rail popover (nav.tsx) and, on phones where the rail is hidden, under StartTimer. `onClose` runs after Finish or
+ * Discard.
+ */
+export function SessionControls({ onClose }: { onClose?: () => void }) {
+  const state = useTimer();
+  const running = state !== null && isRunning(state);
+  const now = useNow(running);
+  const [pending, startTransition] = useTransition();
+  const { confirm, dialog } = useConfirm();
+  if (!state) return null;
+
+  const finish = () =>
+    startTransition(async () => {
+      const s = timer.current();
+      if (!s) return;
+      if (savesMinutes(s)) await saveMinutes(s.itemId, minutesToLog(s, Date.now()));
+      timer.reset();
+      onClose?.();
+    });
+
+  const discard = async () => {
+    const minutes = minutesToLog(state, now);
+    const ok = await confirm({
+      title: "Discard this session?",
+      body: minutes > 0 ? `The ${minutes} min counted so far will not be saved.` : "Nothing has been counted yet.",
+      confirmLabel: "Discard session",
+      danger: true,
+    });
+    if (!ok) return;
+    timer.reset();
+    onClose?.();
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button type="button" onClick={() => (running ? timer.pause() : timer.resume())} className={tonal}>
+        {running ? "Pause" : "Resume"}
+      </button>
+      <button type="button" disabled={pending} onClick={finish} className={primary}>
+        {savesMinutes(state) ? "Finish and save" : "Finish"}
+      </button>
+      <button type="button" onClick={discard} className={quiet}>
+        Discard
+      </button>
+      {dialog}
+    </div>
+  );
+}
+
+/**
+ * Start button for the one global timer. `totalMinutes` is what has been logged on this item so far. Starting while
+ * another item's timer has time on it asks what to do with that time. While this item's session runs, it shows the
+ * time left; the controls are in the rail, or inline on phones where the rail is hidden.
  */
 export function StartTimer({
   itemId,
@@ -25,6 +96,8 @@ export function StartTimer({
   totalMinutes: number;
 }) {
   const current = useTimer();
+  const running = current !== null && isRunning(current);
+  const now = useNow(running);
   /** Minutes on the other item's timer while we ask what to do with them; null when not asking. */
   const [asking, setAsking] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
@@ -45,8 +118,16 @@ export function StartTimer({
 
   return (
     <div className="space-y-1.5 text-sm" role="group" aria-label="Focus timer">
-      {mine ? (
-        <p className="rounded-lg border border-accent px-3 py-1.5 text-xs font-medium">{current && isRunning(current) ? "Timer running, see the sidebar" : "Timer paused, see the sidebar"}</p>
+      {mine && current ? (
+        <div className="space-y-2">
+          <p className="rounded-lg border border-accent px-3 py-1.5 text-xs font-medium">
+            {running ? "Running" : "Paused"}
+            <span className="max-md:hidden"> in the rail</span> · {clock(remainingAt(current, now))} left
+          </p>
+          <div className="md:hidden">
+            <SessionControls />
+          </div>
+        </div>
       ) : asking !== null && current ? (
         <div className="space-y-2 rounded-lg border border-line p-3">
           <p className="text-xs">
@@ -59,7 +140,7 @@ export function StartTimer({
               onClick={() =>
                 startTransition(async () => {
                   const old = timer.current();
-                  if (old) await saveFocus(old.itemId, minutesToLog(old, Date.now()));
+                  if (old) await saveMinutes(old.itemId, minutesToLog(old, Date.now()));
                   begin();
                 })
               }

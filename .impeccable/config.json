@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "docs/mockups/pattern-map/pattern-map.html"
+        ],
+        "createdAt": "2026-11-20T15:54:55.759Z",
+        "reason": "Claude: reference copy of the approved mockup; the shipped UI is built with app tokens and checked separately"
+      }
+    ]
+  }
+}

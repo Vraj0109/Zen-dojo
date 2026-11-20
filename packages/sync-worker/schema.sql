@@ -1,4 +1,4 @@
--- Multi-tenant sync tables (Cloudflare D1), state after migration 0005 (plans 0050 and the reading/stuck/boss sync).
+-- Multi-tenant sync tables (Cloudflare D1), state after migration 0007 (plans 0050 and the reading/stuck/boss sync; 0007 adds solution_runs.run_detail).
 -- Mirrors apps/web/lib/schema.ts, plus user_id / updated_at / deleted_at / synced_at.
 -- "notes" mirrors problem_notes; "timer_rows" mirrors focus_sessions.
 -- Cloud ids are TEXT and device-independent, so (user_id, id) is the key.
@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS solution_runs (
   passed INTEGER NOT NULL,
   total INTEGER NOT NULL,
   failed_cases TEXT NOT NULL DEFAULT '',
+  run_detail TEXT NOT NULL DEFAULT '',
   updated_at INTEGER NOT NULL,
   deleted_at INTEGER,
   synced_at INTEGER NOT NULL,

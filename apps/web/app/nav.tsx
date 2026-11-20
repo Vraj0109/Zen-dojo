@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, type ReactNode } from "react";
-import { FOCUS_SESSION_ID, clock, elapsedAt } from "./timer-math";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { FOCUS_SESSION_ID, clock, remainingAt } from "./timer-math";
 import { SlidingPill } from "./sliding-pill";
+import { SessionControls } from "./start-timer";
 import { timer, useFocusTimer } from "./timer-store";
 
 // Icons from Material 3 Expressive spec (XRail.dc.html & XNavBar.dc.html)
@@ -82,30 +83,68 @@ export function Icon({ name, active = false, className = "size-6" }: { name: key
  */
 export function FocusFab() {
   const { state, running, now, done } = useFocusTimer();
+  // The popover shows while a session runs or is paused. It is anchored to the FAB's top edge (fixed, so the rail's
+  // overflow never clips it).
+  const [open, setOpen] = useState(false);
+  const [top, setTop] = useState(16);
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const showMenu = open && state !== null;
 
-  const startSession = () => {
-    if (!state) {
-      timer.start({ itemId: FOCUS_SESSION_ID, label: "Focus session", href: "/", targetMinutes: 25 });
-    } else if (!running) {
-      timer.resume();
-    } else {
-      timer.pause();
+  const onClick = () => {
+    if (state) {
+      const rect = fabRef.current?.getBoundingClientRect();
+      if (rect) setTop(Math.max(16, Math.min(rect.top, window.innerHeight - 320)));
+      setOpen((o) => !o);
+      return;
     }
+    setOpen(false);
+    timer.start({ itemId: FOCUS_SESSION_ID, label: "Focus session", href: "/", targetMinutes: 25 });
   };
 
-  const remaining = state ? Math.max(0, state.targetMinutes * 60_000 - elapsedAt(state, now)) : 0;
+  // Outside click and Esc close the popover, as the account menu does. While a confirm dialog is open (Discard), both
+  // are left to that dialog.
+  useEffect(() => {
+    if (!showMenu) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (menuRef.current?.contains(target) || fabRef.current?.contains(target)) return;
+      if (document.querySelector("dialog[open]")) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
+      e.preventDefault();
+      setOpen(false);
+      fabRef.current?.focus();
+    };
+    // Focus moves into the popover (its first control) so the keyboard can reach it straight away.
+    menuRef.current?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showMenu]);
+
+  const remaining = state ? remainingAt(state, now) : 0;
   const label = state
-    ? `Focus timer: ${clock(remaining)}${running ? ", running. Tap to pause." : ", paused. Tap to resume."}`
+    ? `Focus timer: ${clock(remaining)} left, ${running ? "running" : "paused"}. Open timer controls.`
     : done
       ? "Focus session done. Start another."
       : "Start a focus session";
 
   return (
+    <>
     <button
+      ref={fabRef}
       type="button"
-      onClick={startSession}
+      onClick={onClick}
       aria-label={label}
-      title={state ? `Focus timer: ${clock(remaining)}` : done ? "Session done" : "Start a focus session (25 min)"}
+      aria-haspopup={state ? "dialog" : undefined}
+      aria-expanded={state ? showMenu : undefined}
+      title={state ? `Focus timer: ${clock(remaining)} left` : done ? "Session done" : "Start a focus session (25 min)"}
       className="grid size-14 place-items-center rounded-[18px] bg-reward-soft text-on-reward-soft shadow-xs transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-primary"
     >
       {state ? (
@@ -123,6 +162,29 @@ export function FocusFab() {
         {done && !state ? "Focus session done" : ""}
       </span>
     </button>
+      {showMenu && state && (
+        <div
+          ref={menuRef}
+          role="dialog"
+          aria-label="Focus timer"
+          style={{ top }}
+          className="anim-pop fixed left-[104px] z-50 flex w-72 flex-col gap-4 rounded-[28px] border border-line bg-surface p-5 text-foreground shadow-menu dark:border-line-strong"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold" title={state.label}>
+              {state.label}
+            </p>
+            <p className="text-xs text-muted">
+              {running ? "Running" : "Paused"} · {state.targetMinutes} min session
+            </p>
+          </div>
+          <p className="font-mono text-4xl font-semibold tabular-nums" role="timer" aria-live="off" aria-label={`${clock(remaining)} left`}>
+            {clock(remaining)}
+          </p>
+          <SessionControls onClose={() => { setOpen(false); fabRef.current?.focus(); }} />
+        </div>
+      )}
+    </>
   );
 }
 

@@ -1,0 +1,469 @@
+<title>Pattern map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app frame (96px rail) + Quick revise header + three views; map is an SVG mind map with a detail card beside it. */
+:root{
+  --bg:#F6FBF5;--surface:#FFFFFF;--surface-2:#EBF0EA;--line:#DEE5DD;--line-strong:#C0C9C1;--fg:#171D19;--muted:#404943;
+  --primary:#1E6B4A;--on-primary:#FFFFFF;--pc:#B6F1CF;--on-pc:#00210F;--ps:#D2E8D9;--on-ps:#0D1F15;
+  --reward-soft:#FFDDB2;--on-reward-soft:#2C1600;--warning:#9A5B00;--danger:#BA1A1A;
+  --t1:#D6E3FF;--o1:#001B3E;--t2:#F0DBFF;--o2:#2A0E45;--t3:#BCEBEE;--o3:#002022;--t4:#FFDDB2;--o4:#2C1600;--t5:#D2E8D9;--o5:#0D1F15;
+  --link:#C0C9C1;--font:"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;
+  --t1:#284777;--o1:#D6E3FF;--t2:#56397A;--o2:#F0DBFF;--t3:#1D4E51;--o3:#BCEBEE;--t4:#6A3C00;--o4:#FFDDB2;--t5:#334B3D;--o5:#D2E8D9;--link:#404943;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512;--surface:#1B211E;--surface-2:#252B28;--line:#2F3631;--line-strong:#404943;--fg:#DEE4DE;--muted:#BFC9C1;
+  --primary:#8FD8B0;--on-primary:#003822;--pc:#0F5236;--on-pc:#ABF4CB;--ps:#334B3D;--on-ps:#D2E8D9;
+  --reward-soft:#6A3C00;--on-reward-soft:#FFDDB2;--warning:#FFB95C;--danger:#FFB4AB;
+  --t1:#284777;--o1:#D6E3FF;--t2:#56397A;--o2:#F0DBFF;--t3:#1D4E51;--o3:#BCEBEE;--t4:#6A3C00;--o4:#FFDDB2;--t5:#334B3D;--o5:#D2E8D9;--link:#404943;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:600;font-size:15px}
+.fab{width:56px;height:56px;border-radius:18px;background:var(--reward-soft);color:var(--on-reward-soft);display:grid;place-items:center}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);width:80px}
+.ri span.p{width:56px;height:32px;border-radius:99px;display:grid;place-items:center}
+.ri.on{color:var(--fg);font-weight:600}.ri.on span.p{background:var(--ps);color:var(--primary)}
+main{flex:1;min-width:0;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:36px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+.seg{position:relative;display:inline-flex;gap:4px;padding:4px;border-radius:99px;background:var(--surface-2);max-width:100%;overflow-x:auto}
+.seg button,.seg a{position:relative;z-index:1;height:40px;padding:0 18px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:500 14px var(--font);white-space:nowrap;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.seg [aria-current="page"],.seg [aria-selected="true"]{color:var(--on-ps)}
+.seg .pill{position:absolute;z-index:0;top:4px;height:40px;border-radius:99px;background:var(--ps);transition:transform .38s var(--spring),width .3s var(--spring)}
+.mock{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--on-reward-soft);background:var(--reward-soft);border-radius:10px;padding:4px 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.view{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:1100px){.view{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
+:root[data-theme="dark"] .card{border-color:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .card{border-color:transparent}}
+.mapcard{padding:12px;position:relative;overflow:hidden}
+svg#map{width:100%;height:auto;display:block;touch-action:manipulation}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 6px 0}
+.chip{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ps);border-color:transparent;color:var(--on-ps)}
+.btn{height:40px;padding:0 18px;border-radius:99px;border:0;font:500 14px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:scale .38s var(--spring)}
+.btn:active{scale:.94}.btn.primary{background:var(--primary);color:var(--on-primary)}.btn.tonal{background:var(--ps);color:var(--on-ps)}.btn.outline{background:transparent;border:1px solid var(--line-strong);color:var(--primary)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:2px 8px 6px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:99px;margin-right:6px;vertical-align:-1px}
+.kicker{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:0}
+.dname{font-size:22px;font-weight:500;margin:4px 0 2px;line-height:1.25}
+.cue{margin:10px 0;padding:12px 14px;border-radius:16px;background:var(--pc);color:var(--on-pc);font-size:14px}
+.move{font-size:14px;color:var(--fg);margin:8px 0}
+pre{margin:8px 0 0;padding:12px 14px;border-radius:16px;background:var(--surface-2);font:400 12.5px/1.55 var(--mono);overflow-x:auto;color:var(--fg)}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tag{font-size:12px;padding:4px 10px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.prog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1}.prog i{display:block;height:100%;border-radius:99px;background:var(--primary)}
+.qwrap{display:grid;gap:12px}
+.q{font-size:20px;font-weight:500;margin:0}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:10px}
+.opt{text-align:left;padding:14px 16px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:400 14px var(--font);cursor:pointer;transition:translate .3s var(--spring),border-color .15s}
+.opt:hover{translate:0 -2px;border-color:var(--line-strong)}.opt b{display:block;font-weight:500;font-size:15px;margin-bottom:2px}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--muted)}
+.result{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
+.rcard{padding:16px;border-radius:20px;background:var(--pc);color:var(--on-pc);cursor:pointer}
+.rcard b{display:block;font-size:16px;font-weight:500}.rcard span{font-size:13px}
+.flash{min-height:220px;display:grid;place-items:center;text-align:center;padding:24px;border-radius:32px;background:var(--surface);border:1px solid var(--line)}
+.flash .c{font-size:22px;font-weight:500;max-width:36ch;text-wrap:balance}
+.flash .a{font-size:15px;color:var(--muted);margin-top:10px}
+.rate{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.rate button{height:48px;padding:0 18px;border-radius:20px;border:0;font:500 14px var(--font);cursor:pointer}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+svg text{font-family:var(--font)}
+.g-node{cursor:pointer}.g-node rect{transition:scale .38s var(--spring)}.g-node:hover rect{scale:1.04}
+.leaf{cursor:pointer}
+.fadein{animation:fi .35s ease-out}@keyframes fi{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:700px){.rail{display:none}h1{font-size:28px}}
+.cons{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px;margin-top:10px}
+.con{padding:10px 12px;border-radius:16px;background:var(--surface-2);font-size:13px}.con b{display:block;font:500 13px var(--mono);color:var(--fg)}.con span{color:var(--muted)}
+.tcard{padding:16px}.tscroll{overflow-x:auto;padding-bottom:6px}
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree li{display:flex;align-items:center;position:relative;padding:3px 0 3px 22px}
+.tree>li{padding-left:0}
+.tree ul{display:flex;flex-direction:column;position:relative;margin-left:22px}
+.tree li::before{content:"";position:absolute;left:0;top:50%;width:22px;border-top:1.5px solid var(--link)}
+.tree li::after{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px solid var(--link)}
+.tree li:first-child::after{top:50%}.tree li:last-child::after{bottom:50%}.tree li:only-child::after{display:none}
+.tree>li::before,.tree>li::after{display:none}
+.tree ul::before{content:"";position:absolute;left:-22px;top:50%;width:22px;border-top:1.5px solid var(--link)}
+.node{flex:none;max-width:260px;text-align:left;padding:9px 12px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:400 13px/1.35 var(--font);cursor:pointer;transition:scale .35s var(--spring),border-color .15s}
+.node:hover{border-color:var(--line-strong)}.node:active{scale:.97}
+.node b{display:block;font-weight:500;font-size:14px}
+.node .w{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.node.root{background:var(--primary);color:var(--on-primary);border-color:transparent;font-size:15px;font-weight:500;max-width:200px}
+.node.sig{background:var(--surface-2);border-color:transparent}
+.node.pat{background:var(--pc);color:var(--on-pc);border-color:transparent}.node.pat .w{color:var(--on-pc);opacity:.85}
+.node.var{border-style:dashed}
+.node.on{outline:2px solid var(--primary);outline-offset:2px}
+.node .tw{display:inline-block;margin-left:6px;font-size:12px;opacity:.7}
+.sec{margin-top:14px}.sec h3{margin:0 0 6px;font-size:14px;font-weight:500}.sec ul{margin:0;padding-left:18px;font-size:14px}.sec li{margin:3px 0}
+.vlist{display:grid;gap:6px}.vrow{padding:10px 12px;border-radius:14px;background:var(--surface-2);font-size:13px;cursor:pointer;border:0;text-align:left;color:var(--fg);font-family:var(--font)}.vrow b{font-weight:500;display:block;font-size:14px}
+@media (max-width:760px){.tree li,.tree ul{flex-direction:column;align-items:flex-start}.tree ul{margin-left:14px}.tree li::before,.tree li::after,.tree ul::before{display:none}.tree li{padding-left:0}.node{max-width:100%}}
+</style>
+
+<div class="app">
+  <nav class="rail" aria-label="Main (mockup)">
+    <div class="logo">ZD</div>
+    <div class="fab" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+    <div class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>Today</div>
+    <div class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></span>Practice</div>
+    <div class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg></span>Learn</div>
+    <div class="ri on"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8M20 3v5h-5"/></svg></span>Review</div>
+    <div class="ri"><span class="p"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg></span>Roadmap</div>
+  </nav>
+
+  <main>
+    <div class="wrap">
+      <div class="row">
+        <div>
+          <h1>Quick revise</h1>
+          <p class="sub">Interview in 12 days · pattern map: how to go from a new problem to the right pattern and variation</p>
+        </div>
+        <span class="mock">Mockup · progress shown is sample data</span>
+      </div>
+
+      <div class="seg" id="sectionTabs" aria-label="Quick revise sections">
+        <span class="pill" aria-hidden="true"></span>
+        <a href="#plan">Last days plan</a>
+        <a href="#weak">Weak spots</a>
+        <a aria-current="page" href="#map">Pattern map</a>
+        <a href="#numbers">Key numbers</a>
+        <a href="#quiz">Quiz</a>
+      </div>
+
+      <div class="row">
+        <div class="seg" id="viewTabs" role="tablist" aria-label="Pattern map views">
+          <span class="pill" aria-hidden="true"></span>
+          <button role="tab" aria-selected="true" data-v="think" id="tab-think">Thinking map</button>
+          <button role="tab" aria-selected="false" data-v="map" id="tab-map">Pattern groups</button>
+          <button role="tab" aria-selected="false" data-v="which" id="tab-which">Which pattern?</button>
+          <button role="tab" aria-selected="false" data-v="recall" id="tab-recall">Recall</button>
+        </div>
+        <div class="legend" aria-label="Legend">
+          <span><i class="dot" style="background:var(--primary)"></i>Solid</span>
+          <span><i class="dot" style="background:var(--warning)"></i>Shaky</span>
+          <span><i class="dot" style="background:transparent;border:2px solid var(--line-strong)"></i>Not started</span>
+        </div>
+      </div>
+
+      <section id="v-think" class="fadein" style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="padding:16px 20px">
+          <p class="kicker">Step 1 · read the constraints, they tell you the budget</p>
+          <div class="cons" id="cons"></div>
+        </div>
+        <div class="view">
+          <div class="card tcard">
+            <div class="toolbar" style="padding:0 0 10px">
+              <p class="kicker" style="flex:1;min-width:200px">Step 2 · what is the problem asking? Click to open a branch</p>
+              <button class="chip" id="openAll">Open every branch</button>
+              <button class="chip" id="closeAll">Close all</button>
+            </div>
+            <div class="tscroll"><ul class="tree" id="tree"></ul></div>
+          </div>
+          <aside class="card" id="tdetail" aria-live="polite"></aside>
+        </div>
+      </section>
+
+      <section id="v-map" class="view fadein" hidden>
+        <div class="card mapcard">
+          <div class="toolbar">
+            <button class="chip" id="backAll" hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 6-6 6 6 6"/></svg>All groups</button>
+            <button class="chip" id="hideNames" aria-pressed="false">Hide names (test yourself)</button>
+            <button class="chip" id="weakOnly" aria-pressed="false">Shaky and not started only</button>
+          </div>
+          <svg id="map" viewBox="0 0 1000 640" role="img" aria-label="Mind map of DSA pattern groups and patterns"></svg>
+        </div>
+        <aside class="card" id="detail" aria-live="polite"></aside>
+      </section>
+
+      <section id="v-which" class="card qwrap fadein" hidden></section>
+      <section id="v-recall" class="qwrap fadein" hidden></section>
+    </div>
+  </main>
+</div>
+
+<script>
+const GROUPS=[{"t":"Arrays, strings, hashing","s":"Arrays and strings","p":[{"id":"hash-map","n":"Hash map / counting","r":"Pairs, duplicates, frequency, anagrams","c":5},{"id":"prefix-sums","n":"Prefix sums / difference array","r":"Range sums, many range updates","c":4},{"id":"two-pointers","n":"Two pointers","r":"Sorted array, pairs, in-place edits","c":4},{"id":"sliding-window","n":"Sliding window","r":"Longest/shortest substring or subarray with a condition","c":4},{"id":"kadane","n":"Kadane / subarray DP","r":"Max subarray, circular variants","c":3},{"id":"intervals","n":"Intervals","r":"Merge, overlap, scheduling","c":5},{"id":"cyclic-sort","n":"Cyclic sort","r":"Values in range 1..n, find missing/duplicate","c":2},{"id":"string-matching","n":"String matching","r":"Substring search, repeated patterns","c":5},{"id":"matrix","n":"Matrix traversal","r":"Spiral, rotate, in-place marking","c":3}]},{"t":"Searching and sorting","s":"Search and sort","p":[{"id":"bs-index","n":"Binary search on index","r":"Sorted or rotated sorted data","c":3},{"id":"bs-answer","n":"Binary search on answer","r":"Minimize the maximum or maximize the minimum; monotonic feasibility","c":4},{"id":"quickselect","n":"Quickselect","r":"k-th element in O(n)","c":2},{"id":"custom-sort","n":"Custom sort + greedy","r":"Order by a derived key","c":2},{"id":"merge-sort-count","n":"Merge sort counting","r":"Count pairs with order condition","c":2}]},{"t":"Linked lists, stacks, queues, heaps","s":"Lists, stacks, heaps","p":[{"id":"fast-slow","n":"Fast/slow pointers","r":"Cycle, midpoint, k-th from end","c":3},{"id":"list-reversal","n":"In-place reversal","r":"Reverse sublist or groups","c":2},{"id":"monotonic-stack","n":"Monotonic stack","r":"Next greater/smaller, histogram, spans","c":5},{"id":"monotonic-deque","n":"Monotonic deque","r":"Sliding window min/max","c":2},{"id":"stack-parsing","n":"Stack for parsing","r":"Brackets, expressions, decode","c":6},{"id":"heap-top-k","n":"Heap / top-k","r":"k-th largest, streaming, merge k sources","c":4},{"id":"two-heaps","n":"Two heaps","r":"Median, balancing two halves","c":2},{"id":"lru-lfu","n":"LRU / LFU design","r":"Cache with O(1) ops","c":3}]},{"t":"Trees","s":"Trees","p":[{"id":"tree-dfs","n":"Tree DFS","r":"Path, depth, validate, LCA","c":4},{"id":"tree-bfs","n":"BFS level order","r":"Levels, views, shortest in tree","c":3},{"id":"tree-construct","n":"Construct / serialize","r":"Rebuild from traversals","c":2},{"id":"bst","n":"BST properties","r":"Ordered queries, iterators","c":3},{"id":"tree-dp","n":"Tree DP / rerooting","r":"Subtree values combined bottom-up, answer for every root","c":2},{"id":"binary-lifting","n":"Binary lifting / LCA","r":"Many ancestor queries","c":2},{"id":"trie","n":"Trie","r":"Prefix search, word dictionaries, XOR max","c":4}]},{"t":"Graphs","s":"Graphs","p":[{"id":"graph-bfs","n":"BFS / multi-source","r":"Shortest path unweighted, spreading","c":4},{"id":"graph-dfs","n":"DFS / flood fill","r":"Components, islands, cycle detection","c":3},{"id":"topo-sort","n":"Topological sort","r":"Dependencies, ordering","c":4},{"id":"union-find","n":"Union-Find (DSU)","r":"Dynamic connectivity, grouping","c":4},{"id":"dijkstra","n":"Dijkstra","r":"Weighted shortest path, non-negative","c":4},{"id":"bellman-ford","n":"Bellman-Ford / 0-1 BFS","r":"Negative edges, binary weights","c":2},{"id":"floyd-warshall","n":"Floyd-Warshall","r":"All pairs, small n","c":1},{"id":"mst","n":"MST (Kruskal, Prim)","r":"Connect all at minimum cost","c":2},{"id":"bipartite","n":"Bipartite / coloring","r":"Two groups, conflicts","c":2},{"id":"tarjan","n":"Tarjan: bridges, SCC","r":"Critical connections","c":1},{"id":"eulerian","n":"Eulerian path","r":"Use every edge once","c":1},{"id":"state-space-bfs","n":"State-space BFS","r":"Puzzle states, bitmask state","c":3}]},{"t":"Recursion, backtracking, bits","s":"Backtracking and bits","p":[{"id":"subsets","n":"Subsets / permutations","r":"Enumerate all, with duplicates handling","c":5},{"id":"constraint-backtracking","n":"Constraint backtracking","r":"Board or placement with pruning","c":6},{"id":"meet-in-middle","n":"Meet in the middle","r":"n up to about 40","c":2},{"id":"bit-tricks","n":"Bit tricks","r":"XOR, masks, parity, single number","c":5},{"id":"bitmask-dp-subsets","n":"Bitmask DP","r":"n up to about 20, subsets as state","c":3}]},{"t":"Dynamic programming","s":"Dynamic programming","p":[{"id":"dp-1d","n":"1D linear DP","r":"Choice at each index","c":5},{"id":"knapsack","n":"Knapsack","r":"Pick items under a budget","c":5},{"id":"lis","n":"LIS family","r":"Increasing subsequence","c":3},{"id":"grid-dp","n":"Grid DP","r":"Paths and costs on a grid","c":5},{"id":"two-string-dp","n":"Two-string DP","r":"Alignment, matching","c":5},{"id":"interval-dp","n":"Interval DP","r":"Split a range, merge cost","c":3},{"id":"state-machine-dp","n":"State machine DP","r":"Buy/sell, cooldowns, k transactions","c":5},{"id":"digit-dp","n":"Digit DP","r":"Count numbers in [L, R] with a property","c":2},{"id":"tree-dp-2","n":"Tree DP","r":"Combine children results","c":2},{"id":"bitmask-dp-assign","n":"DP with bitmask","r":"Assignment, TSP style","c":2},{"id":"dp-optimizations","n":"DP optimizations","r":"Large n (rare in interviews)","c":1}]},{"t":"Greedy and math","s":"Greedy and math","p":[{"id":"greedy-proof","n":"Greedy with proof","r":"Local choice is globally safe","c":5},{"id":"exchange-argument","n":"Exchange argument","r":"Ordering decisions","c":2},{"id":"number-theory","n":"Number theory","r":"gcd, sieve, modular arithmetic, fast power","c":5},{"id":"combinatorics","n":"Combinatorics","r":"Counting, expected value","c":3},{"id":"geometry","n":"Geometry basics","r":"Points, lines, overlap","c":2}]},{"t":"Advanced structures","s":"Advanced structures","p":[{"id":"segment-tree","n":"Segment tree / BIT","r":"Range queries with point updates","c":3},{"id":"sparse-table","n":"Sparse table, sqrt","r":"Static range min/max in O(1)","c":2},{"id":"ordered-set","n":"Ordered set (TreeMap)","r":"Floor/ceiling queries, bookings","c":4},{"id":"randomized","n":"Randomized","r":"Sampling, probabilistic membership","c":3},{"id":"design-ds","n":"Design problems","r":"Data-structure design questions","c":5}]}];
+const MOVES={
+"hash-map":["Remember what you have seen: one pass, ask the map for the partner before inserting the current item.","O(n) time, O(n) space","for i, x in enumerate(nums):\n    if target - x in seen: return [seen[target - x], i]\n    seen[x] = i"],
+"sliding-window":["Grow the right edge; while the window breaks the rule, shrink the left edge. Track the best window.","O(n) time, O(k) space","l = 0\nfor r, ch in enumerate(s):\n    add(ch)\n    while broken(): remove(s[l]); l += 1\n    best = max(best, r - l + 1)"],
+"two-pointers":["Start at both ends of a sorted array; move the pointer that can only improve the answer.","O(n) time, O(1) space","l, r = 0, n - 1\nwhile l < r:\n    s = a[l] + a[r]\n    if s == t: return l, r\n    if s < t: l += 1\n    else: r -= 1"],
+"prefix-sums":["Store running totals so any range sum is a subtraction; count earlier prefixes with a map for 'sum equals k'.","O(n) time, O(n) space","pre = 0; count = {0: 1}\nfor x in nums:\n    pre += x\n    ans += count.get(pre - k, 0)\n    count[pre] = count.get(pre, 0) + 1"],
+"bs-answer":["Guess an answer, check if it is feasible with a greedy pass; feasibility flips once, so binary search the guess.","O(n log range)","lo, hi = low, high\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if feasible(mid): hi = mid\n    else: lo = mid + 1"],
+"monotonic-stack":["Keep a stack that is always increasing (or decreasing); popping an item means you found its next greater/smaller.","O(n) time, O(n) space","for i, x in enumerate(a):\n    while st and a[st[-1]] < x:\n        nxt[st.pop()] = x\n    st.append(i)"],
+"heap-top-k":["Keep a min-heap of size k; the root is the k-th largest. For k sorted sources, push the next item of the source you popped.","O(n log k)","for x in nums:\n    heappush(h, x)\n    if len(h) > k: heappop(h)\nreturn h[0]"],
+"topo-sort":["Count incoming edges; repeatedly take nodes with zero in-degree. If not all nodes come out, there is a cycle.","O(V + E)","q = [v for v in nodes if indeg[v] == 0]\nwhile q:\n    v = q.pop()\n    order.append(v)\n    for w in adj[v]:\n        indeg[w] -= 1\n        if indeg[w] == 0: q.append(w)"],
+"union-find":["Each item points to a parent; find the root with path compression, join roots by size.","~O(1) per op","def find(x):\n    while p[x] != x:\n        p[x] = p[p[x]]; x = p[x]\n    return x"],
+"dijkstra":["Pop the closest unfinished node from a min-heap and relax its edges; skip stale heap entries.","O(E log V)","pq = [(0, s)]\nwhile pq:\n    d, v = heappop(pq)\n    if d > dist[v]: continue\n    for w, c in adj[v]:\n        if d + c < dist[w]: dist[w] = d + c; heappush(pq, (dist[w], w))"],
+"subsets":["Choose, explore, un-choose. Sort first and skip equal neighbours at the same depth to avoid duplicates.","O(2^n · n)","def go(i, cur):\n    out.append(cur[:])\n    for j in range(i, n):\n        if j > i and a[j] == a[j-1]: continue\n        cur.append(a[j]); go(j + 1, cur); cur.pop()"],
+"knapsack":["dp[c] = best value using capacity c. 0/1: loop capacity downward; unbounded: upward.","O(n · C)","for w, v in items:\n    for c in range(C, w - 1, -1):\n        dp[c] = max(dp[c], dp[c - w] + v)"],
+"tree-dfs":["Return what the parent needs from each subtree (height, sum, valid range); combine in post-order.","O(n)","def dfs(node):\n    if not node: return 0\n    l, r = dfs(node.left), dfs(node.right)\n    best[0] = max(best[0], l + r)\n    return 1 + max(l, r)"],
+"intervals":["Sort by start; merge when the next start is not after the current end.","O(n log n)","for s, e in sorted(iv):\n    if out and s <= out[-1][1]: out[-1][1] = max(out[-1][1], e)\n    else: out.append([s, e])"]
+};
+const TONES=[["--t1","--o1"],["--t2","--o2"],["--t3","--o3"],["--t4","--o4"],["--t5","--o5"]];
+function hash(s){let h=7;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h}
+function mastery(id){const v=hash(id)%10;return v<4?"solid":v<7?"shaky":"new"}
+function solved(p){const m=mastery(p.id);return m==="solid"?p.c:m==="shaky"?Math.max(1,Math.floor(p.c/2)):0}
+const col={solid:"var(--primary)",shaky:"var(--warning)",new:"transparent"};
+const svg=document.getElementById("map"),NS="http://www.w3.org/2000/svg";
+let focus=null,selected="sliding-window",hide=false,weak=false;
+function el(t,a={},p=svg){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e}
+function wrapLabel(text,max){const w=text.split(" "),lines=[];let cur="";for(const x of w){if((cur+" "+x).trim().length>max){lines.push(cur.trim());cur=x}else cur+=" "+x}lines.push(cur.trim());return lines}
+function textLines(g,lines,x,y,attrs){const lh=15;const start=y-((lines.length-1)*lh)/2;lines.forEach((l,i)=>el("text",{x,y:start+i*lh,"text-anchor":"middle","dominant-baseline":"middle",...attrs},g).textContent=l)}
+function visible(p){return !weak||mastery(p.id)!=="solid"}
+function drawOverview(){
+  svg.innerHTML="";svg.setAttribute("viewBox","0 0 1000 640");
+  const cx=500,cy=320,R=200,n=GROUPS.length;
+  GROUPS.forEach((g,i)=>{const a=(-90+i*360/n)*Math.PI/180;g._x=cx+R*Math.cos(a);g._y=cy+R*Math.sin(a)*0.92;g._a=a});
+  GROUPS.forEach((g,i)=>{
+    const span=(360/n-6)*Math.PI/180,ps=g.p.filter(visible);
+    ps.forEach((p,j)=>{const t=ps.length===1?0:(j/(ps.length-1)-0.5);const a=g._a+t*span;const rr=R+92+(j%2)*16;
+      const x=cx+rr*Math.cos(a),y=cy+rr*Math.sin(a)*0.92;
+      el("line",{x1:g._x,y1:g._y,x2:x,y2:y,stroke:"var(--link)","stroke-width":1});
+      const m=mastery(p.id),c=el("circle",{cx:x,cy:y,r:p.id===selected?9:7,fill:col[m],stroke:m==="new"?"var(--line-strong)":col[m],"stroke-width":2,class:"leaf",tabindex:0,role:"button","aria-label":(hide?p.r:p.n)+", "+m});
+      c.addEventListener("click",()=>{selected=p.id;focus=i;render()});
+      el("title",{},c).textContent=hide?p.r:p.n;
+    });
+  });
+  GROUPS.forEach(g=>el("line",{x1:cx,y1:cy,x2:g._x,y2:g._y,stroke:"var(--line-strong)","stroke-width":2}));
+  const root=el("g",{});el("circle",{cx,cy,r:58,fill:"var(--primary)"},root);
+  textLines(root,["DSA","67 patterns"],cx,cy,{fill:"var(--on-primary)","font-size":15,"font-weight":500});
+  GROUPS.forEach((g,i)=>{
+    const [bg,fg]=TONES[i%5],tot=g.p.reduce((s,p)=>s+p.c,0),done=g.p.reduce((s,p)=>s+solved(p),0);
+    const gg=el("g",{class:"g-node",tabindex:0,role:"button","aria-label":"Open "+g.t});
+    const w=150,h=58;el("rect",{x:g._x-w/2,y:g._y-h/2,width:w,height:h,rx:20,fill:`var(${bg})`,style:`transform-origin:${g._x}px ${g._y}px`},gg);
+    textLines(gg,wrapLabel(g.s,18),g._x,g._y-7,{fill:`var(${fg})`,"font-size":13.5,"font-weight":500});
+    el("text",{x:g._x,y:g._y+16,"text-anchor":"middle",fill:`var(${fg})`,"font-size":12},gg).textContent=`${done}/${tot} solved`;
+    gg.addEventListener("click",()=>{focus=i;selected=g.p[0].id;render()});
+    gg.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();focus=i;render()}});
+  });
+}
+function drawFocus(){
+  svg.innerHTML="";const g=GROUPS[focus],[bg,fg]=TONES[focus%5],ps=g.p.filter(visible);
+  const H=Math.max(640,ps.length*62+60);svg.setAttribute("viewBox",`0 0 1000 ${H}`);
+  const gx=190,gy=H/2;
+  ps.forEach((p,j)=>{
+    const y=40+j*((H-80)/Math.max(1,ps.length-1||1)),x=620,m=mastery(p.id);
+    const yy=ps.length===1?gy:y;
+    el("path",{d:`M${gx+95} ${gy} C ${gx+260} ${gy}, ${x-240} ${yy}, ${x-150} ${yy}`,fill:"none",stroke:"var(--link)","stroke-width":1.5});
+    const n=el("g",{class:"leaf",tabindex:0,role:"button","aria-label":(hide?p.r:p.n)});
+    const on=p.id===selected,w=300,h=48;
+    el("rect",{x:x-150,y:yy-h/2,width:w,height:h,rx:16,fill:on?"var(--pc)":"var(--surface)",stroke:on?"var(--primary)":"var(--line)","stroke-width":on?2:1},n);
+    el("circle",{cx:x-126,cy:yy,r:7,fill:col[m],stroke:m==="new"?"var(--line-strong)":col[m],"stroke-width":2},n);
+    const label=hide&&!revealed.has(p.id)?p.r:p.n;
+    const lines=wrapLabel(label,hide?40:34).slice(0,2);
+    textLines(n,lines,x+6,yy,{fill:on?"var(--on-pc)":"var(--fg)","font-size":hide?12.5:14,"font-weight":hide?400:500});
+    el("text",{x:x+140,y:yy+4,"text-anchor":"end",fill:"var(--muted)","font-size":12},n).textContent=`${solved(p)}/${p.c}`;
+    n.addEventListener("click",()=>{if(hide&&!revealed.has(p.id)){revealed.add(p.id)}selected=p.id;render()});
+    n.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();n.dispatchEvent(new Event("click"))}});
+  });
+  const gg=el("g",{});el("rect",{x:gx-95,y:gy-48,width:190,height:96,rx:28,fill:`var(${bg})`},gg);
+  textLines(gg,wrapLabel(g.t,20),gx,gy-10,{fill:`var(${fg})`,"font-size":15,"font-weight":500});
+  el("text",{x:gx,y:gy+26,"text-anchor":"middle",fill:`var(${fg})`,"font-size":12},gg).textContent=`${g.p.length} patterns`;
+}
+const revealed=new Set();
+function detail(){
+  const d=document.getElementById("detail");let p,g,gi;
+  GROUPS.forEach((G,i)=>G.p.forEach(P=>{if(P.id===selected){p=P;g=G;gi=i}}));
+  const m=mastery(p.id),mv=MOVES[p.id],pct=Math.round(solved(p)/p.c*100);
+  const ml={solid:"Solid",shaky:"Shaky: revise this",new:"Not started"}[m];
+  d.innerHTML=`<p class="kicker">${g.t}</p><p class="dname">${p.n}</p>
+  <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><div class="prog" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Solved"><i style="width:${pct}%"></i></div><span style="font-size:13px;color:var(--muted)">${solved(p)} of ${p.c}</span></div>
+  <div class="cue"><b style="font-weight:500">Spot it when</b><br>${p.r}</div>
+  ${mv?`<p class="move"><b style="font-weight:500">Core move.</b> ${mv[0]}</p><pre>${mv[2].replace(/&/g,"&amp;").replace(/</g,"&lt;")}</pre><div class="meta"><span class="tag">${mv[1]}</span><span class="tag">${ml}</span></div>`:`<p class="move" style="color:var(--muted)">Core move and template come from this pattern's guide (shown for 14 patterns in this mockup).</p><div class="meta"><span class="tag">${ml}</span></div>`}
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px"><button class="btn primary">Practice next</button><button class="btn tonal">Open guide</button><button class="btn outline">Add to review</button></div>`;
+}
+function render(){document.getElementById("backAll").hidden=focus===null;focus===null?drawOverview():drawFocus();detail()}
+document.getElementById("backAll").onclick=()=>{focus=null;render()};
+const hn=document.getElementById("hideNames");hn.onclick=()=>{hide=!hide;revealed.clear();hn.setAttribute("aria-pressed",hide);render()};
+const wo=document.getElementById("weakOnly");wo.onclick=()=>{weak=!weak;wo.setAttribute("aria-pressed",weak);render()};
+
+function slide(seg){const pill=seg.querySelector(".pill"),on=seg.querySelector('[aria-current="page"],[aria-selected="true"]');if(!on)return;pill.style.width=on.offsetWidth+"px";pill.style.transform=`translateX(${on.offsetLeft-4}px)`;pill.style.left="4px"}
+document.querySelectorAll(".seg").forEach(s=>{slide(s);new ResizeObserver(()=>slide(s)).observe(s)});
+document.querySelectorAll("#sectionTabs a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault()}));
+document.querySelectorAll("#viewTabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#viewTabs button").forEach(x=>x.setAttribute("aria-selected",x===b));slide(document.getElementById("viewTabs"));
+  ["think","map","which","recall"].forEach(v=>document.getElementById("v-"+v).hidden=v!==b.dataset.v);
+  if(b.dataset.v==="map")render();
+  if(b.dataset.v==="which")which([]);if(b.dataset.v==="recall")recall();
+}));
+
+const TREE={q:"What does the problem give you?",o:[
+ {l:"An array or string",d:"Contiguous parts, pairs, counts",n:{q:"What do you need from it?",o:[
+   {l:"A best contiguous subarray or substring",d:"Longest, shortest, with a rule",r:["sliding-window","kadane","prefix-sums"]},
+   {l:"A pair or triplet with a sum",d:"Two items that match",r:["two-pointers","hash-map"]},
+   {l:"Counts, duplicates or groups",d:"Frequency, anagrams",r:["hash-map","cyclic-sort"]},
+   {l:"The next greater or smaller item",d:"Spans, histograms",r:["monotonic-stack","monotonic-deque"]},
+   {l:"Ranges to merge or schedule",d:"Start and end times",r:["intervals","custom-sort"]}]}},
+ {l:"Sorted data, or an answer to minimize",d:"Monotonic yes/no question",r:["bs-index","bs-answer"]},
+ {l:"The k largest, smallest or a median",d:"Top-k, streams",r:["heap-top-k","quickselect","two-heaps"]},
+ {l:"A tree",d:"Paths, depths, ancestors",r:["tree-dfs","tree-bfs","bst","trie"]},
+ {l:"A graph, grid or dependencies",d:"Nodes and edges",n:{q:"What do you need?",o:[
+   {l:"Fewest steps, unweighted",d:"Grid moves, spreading",r:["graph-bfs","state-space-bfs"]},
+   {l:"Cheapest path with weights",d:"Costs on edges",r:["dijkstra","bellman-ford"]},
+   {l:"An order that respects dependencies",d:"Prerequisites",r:["topo-sort"]},
+   {l:"Which items are connected",d:"Groups, merging",r:["union-find","graph-dfs"]}]}},
+ {l:"All combinations or arrangements",d:"Generate, place, prune",r:["subsets","constraint-backtracking","bitmask-dp-subsets"]},
+ {l:"A best value with overlapping choices",d:"Count ways, min cost",n:{q:"What is the state?",o:[
+   {l:"A position in one sequence",d:"Choice at each index",r:["dp-1d","lis","state-machine-dp"]},
+   {l:"Two sequences",d:"Edit, match, align",r:["two-string-dp"]},
+   {l:"Items and a budget",d:"Capacity, weight",r:["knapsack"]},
+   {l:"A grid or a range",d:"Cells, split points",r:["grid-dp","interval-dp"]}]}},
+ {l:"Range queries with updates",d:"Sum or min over ranges",r:["segment-tree","sparse-table","prefix-sums"]}]};
+function byId(id){for(const g of GROUPS)for(const p of g.p)if(p.id===id)return p}
+function which(path){
+  const v=document.getElementById("v-which");let node=TREE;const crumbs=[];
+  for(const i of path){const o=node.o[i];crumbs.push(o.l);node=o.n||o}
+  let html=`<div class="crumbs">${crumbs.length?`<button class="chip" id="wb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 6-6 6 6 6"/></svg>Back</button>`+crumbs.map(c=>`<span>${c}</span>`).join("<span>›</span>"):""}</div>`;
+  if(node.r){html+=`<p class="q">Try these patterns</p><div class="result">${node.r.map(id=>{const p=byId(id);return `<div class="rcard" data-id="${id}" tabindex="0" role="button"><b>${p.n}</b><span>Spot it when: ${p.r}</span></div>`}).join("")}</div><p style="color:var(--muted);font-size:13px;margin:0">Click one to open it on the mind map.</p>`}
+  else{html+=`<p class="q">${node.q}</p><div class="opts">${node.o.map((o,i)=>`<button class="opt" data-i="${i}"><b>${o.l}</b>${o.d}</button>`).join("")}</div>`}
+  v.innerHTML=html;
+  v.querySelectorAll(".opt").forEach(b=>b.onclick=()=>which([...path,+b.dataset.i]));
+  const wb=v.querySelector("#wb");if(wb)wb.onclick=()=>which(path.slice(0,-1));
+  v.querySelectorAll(".rcard").forEach(c=>c.onclick=()=>{selected=c.dataset.id;GROUPS.forEach((g,i)=>{if(g.p.some(p=>p.id===selected))focus=i});document.getElementById("tab-map").click();render()});
+}
+let deck=[],di=0,shown=false,score={k:0,s:0};
+function recall(){
+  if(!deck.length){deck=GROUPS.flatMap(g=>g.p.map(p=>({p,g}))).sort((a,b)=>hash(a.p.id+"x")-hash(b.p.id+"x")).slice(0,10);di=0;score={k:0,s:0}}
+  const v=document.getElementById("v-recall");
+  if(di>=deck.length){v.innerHTML=`<div class="flash"><div><div class="c">Done: ${score.k} known, ${score.s} to revise</div><div class="a">Shaky ones go to your Review queue.</div><div class="rate"><button class="btn primary" id="again">New round</button></div></div></div>`;v.querySelector("#again").onclick=()=>{deck=[];recall()};return}
+  const {p,g}=deck[di];
+  v.innerHTML=`<p style="margin:0;color:var(--muted);font-size:14px">Card ${di+1} of ${deck.length} · name the pattern from the cue</p>
+  <div class="flash"><div><p class="kicker">${g.t}</p><div class="c" style="margin-top:6px">${p.r}</div>${shown?`<div class="a" style="color:var(--primary);font-size:20px;font-weight:500">${p.n}</div>${MOVES[p.id]?`<div class="a">${MOVES[p.id][0]}</div>`:""}`:""}
+  <div class="rate">${shown?`<button style="background:var(--reward-soft);color:var(--on-reward-soft)" id="sh">Shaky · review in 1 day</button><button style="background:var(--pc);color:var(--on-pc)" id="kn">Knew it</button>`:`<button class="btn primary" id="show">Show the pattern</button>`}</div></div></div>`;
+  if(!shown)v.querySelector("#show").onclick=()=>{shown=true;recall()};
+  else{v.querySelector("#kn").onclick=()=>{score.k++;di++;shown=false;recall()};v.querySelector("#sh").onclick=()=>{score.s++;di++;shown=false;recall()}}
+}
+render();
+
+const CONS=[["n ≤ 12","O(n!) · permutations"],["n ≤ 20","O(2^n) · subsets, bitmask DP"],["n ≤ 40","meet in the middle"],["n ≤ 500","O(n^3) · interval DP, Floyd"],["n ≤ 5,000","O(n^2) · 2D DP"],["n ≤ 10^5–10^6","O(n log n) or O(n)"],["n ≤ 10^9","O(log n) · binary search, math"]];
+document.getElementById("cons").innerHTML=CONS.map(c=>`<div class="con"><b>${c[0]}</b><span>${c[1]}</span></div>`).join("");
+
+/* Thinking map: signal -> pattern -> variation. k = key idea, x = watch out, t = template id from MOVES */
+const THINK={l:"New problem",kids:[
+ {l:"Best / longest / shortest contiguous part",w:"subarray or substring with a rule",kids:[
+  {p:"sliding-window",l:"Sliding window",w:"all numbers non-negative, or a condition you can update as the window moves",k:"Two indices move only forward, so each element enters and leaves once: O(n).",x:["Negative numbers break it: shrinking may not help. Use prefix sums.","Decide what you track: a count map, a sum, or the number of distinct items.","Update the answer at the right moment: after shrinking (longest) or while shrinking (shortest)."],t:"sliding-window",vars:[
+   {l:"Fixed size k",w:"window length is given",k:"Add the new right element, remove the one that falls off the left, then read the answer."},
+   {l:"Longest valid window",w:"at most K distinct, no repeats",k:"Expand right; while the window is invalid, shrink left; record r - l + 1."},
+   {l:"Shortest valid window",w:"minimum window substring, sum at least target",k:"Expand until valid, then shrink as far as it stays valid, recording the length each time."},
+   {l:"Count windows with exactly K",w:"subarrays with K distinct or K odd numbers",k:"exactly(K) = atMost(K) - atMost(K - 1); atMost is a normal longest-window count."},
+   {l:"Anagram or permutation in a string",w:"fixed window with a letter-count match",k:"Keep a 26-count for the window and a counter of how many letters match."}]},
+  {p:"prefix-sums",l:"Prefix sums",w:"sums over ranges, negatives allowed, many queries",k:"sum(i..j) = pre[j+1] - pre[i], so a range sum is one subtraction.",x:["Seed the map with {0: 1} so a prefix that equals k on its own counts.","Use 64-bit sums when values and n are large.","Off-by-one: pre has n + 1 entries."],t:"prefix-sums",vars:[
+   {l:"Subarray sum equals k",w:"count or find, negatives allowed",k:"Count earlier prefixes equal to current - k with a hash map."},
+   {l:"2D prefix sums",w:"rectangle sums in a matrix",k:"P[r][c] = cell + up + left - up-left; a rectangle uses four lookups."},
+   {l:"Difference array",w:"many range updates, read at the end",k:"Add v at l and subtract at r + 1, then take a running sum."}]},
+  {p:"kadane",l:"Kadane",w:"maximum sum or product subarray",k:"Best ending here = max(x, best ending before + x).",x:["All negatives: start best at the first element, not 0.","Product needs both max and min (a negative flips them)."],vars:[
+   {l:"Maximum product",w:"signs flip the answer",k:"Track max and min ending here; swap them when x is negative."},
+   {l:"Circular array",w:"the subarray may wrap",k:"max(normal Kadane, total - minimum subarray), unless every number is negative."}]}]},
+ {l:"Pairs or targets in sorted data",w:"or data you are allowed to sort",kids:[
+  {p:"two-pointers",l:"Two pointers",w:"sorted array, pairs, in-place edits",k:"Each move discards options that can never be the answer, so the scan is O(n).",x:["Sorting loses the original indices: keep them if you must return indices.","Skip equal neighbours to avoid duplicate triplets."],t:"two-pointers",vars:[
+   {l:"Opposite ends",w:"pair sum, container with most water",k:"Move the side that can only make the answer better."},
+   {l:"Same direction (read and write)",w:"remove duplicates, move zeroes",k:"A slow write index and a fast read index."},
+   {l:"3Sum and 4Sum",w:"k items adding to a target",k:"Sort, fix one item, two-pointer the rest; O(n^2) for 3Sum."}]},
+  {p:"bs-index",l:"Binary search on index",w:"find a position in sorted or rotated data",k:"Keep an invariant on lo and hi and throw away half each step.",x:["Pick one loop style (lo < hi, or lo <= hi) and stick to it.","mid = lo + (hi - lo) / 2 avoids overflow."],vars:[
+   {l:"First position where a check is true",w:"lower bound, first bad version",k:"if ok(mid): hi = mid else lo = mid + 1."},
+   {l:"Rotated sorted array",w:"search or find the minimum",k:"One half is always sorted: check whether the target is inside it."}]},
+  {p:"bs-answer",l:"Binary search on answer",w:"minimise the maximum or maximise the minimum",k:"If answer x works, every bigger x works too, so binary search x with a greedy check.",x:["Get the search range right: low and high must contain the answer.","Write feasible(x) as a simple greedy pass."],t:"bs-answer",vars:[
+   {l:"Smallest capacity or speed",w:"ship packages, Koko eating bananas",k:"feasible(x) counts the days or hours needed at x."},
+   {l:"Largest minimum distance",w:"place k items far apart",k:"feasible(d) places items greedily at gaps of at least d."}]}]},
+ {l:"Seen before, counts or groups",w:"duplicates, frequency, anagrams",kids:[
+  {p:"hash-map",l:"Hash map / counting",w:"look up a partner or a count in O(1)",k:"Trade memory for time: one pass, ask the map first, then insert.",x:["Check the partner before inserting yourself (Two Sum with equal values).","Choose a canonical key for groups."],t:"hash-map",vars:[
+   {l:"Complement lookup",w:"two sum, pairs with difference k",k:"Look up target - x before storing x."},
+   {l:"Group by canonical key",w:"group anagrams",k:"A 26-count tuple is O(k) per word; sorting the word is O(k log k)."},
+   {l:"Longest consecutive sequence",w:"set of values",k:"Only start counting from x when x - 1 is not in the set."}]}]},
+ {l:"Next greater or smaller, spans, window max",w:"nearest item that beats this one",kids:[
+  {p:"monotonic-stack",l:"Monotonic stack",w:"next greater or smaller, histogram",k:"Popping an item means you just found its answer, so every item is pushed and popped once.",x:["Store indices, not values, when you need distances.","Push a sentinel 0 at the end for histogram problems."],t:"monotonic-stack",vars:[
+   {l:"Next greater element",w:"decreasing stack",k:"Pop while the top is smaller than the current item."},
+   {l:"Largest rectangle in histogram",w:"increasing stack",k:"When a bar pops, its width runs from the new top to the current index."},
+   {l:"Circular array",w:"next greater, wrapping around",k:"Loop i from 0 to 2n and use i % n."}]},
+  {p:"monotonic-deque",l:"Monotonic deque",w:"sliding window max or min",k:"The front holds the best index; drop indices that left the window or can never win.",x:["Remove expired indices from the front before reading the answer."]}]},
+ {l:"Top k, k-th, median or merge k",w:"order statistics, streams",kids:[
+  {p:"heap-top-k",l:"Heap / top-k",w:"keep only the k best",k:"A min-heap of size k keeps the k largest; its root is the k-th largest.",x:["Python heapq is a min-heap: negate for max-heap.","For one-off k-th on an array, quickselect is O(n) on average."],t:"heap-top-k",vars:[
+   {l:"Merge k sorted lists",w:"k sources",k:"Push the head of each list; pop the smallest and push that list's next item."},
+   {l:"Top k frequent",w:"counts first",k:"Count, then a size-k heap, or bucket sort by frequency for O(n)."}]},
+  {p:"two-heaps",l:"Two heaps",w:"running median",k:"A max-heap for the low half and a min-heap for the high half, sizes differ by at most one.",x:["Rebalance after every insert."]}]},
+ {l:"Intervals, meetings, bookings",w:"start and end times",kids:[
+  {p:"intervals",l:"Intervals",w:"merge, overlap, scheduling",k:"Sort first: by start to merge, by end to pick the most non-overlapping.",x:["Decide if touching intervals (end == start) overlap.","Sorting is O(n log n); say it in the complexity."],t:"intervals",vars:[
+   {l:"Merge overlapping",w:"sort by start",k:"Extend the last interval while the next one starts before it ends."},
+   {l:"Most non-overlapping intervals",w:"sort by end",k:"Greedy: always keep the interval that ends first."},
+   {l:"Meeting rooms needed",w:"maximum overlap",k:"A min-heap of end times, or a sweep over +1 and -1 events."}]}]},
+ {l:"A tree",w:"paths, depths, ancestors, levels",kids:[
+  {p:"tree-dfs",l:"Tree DFS",w:"anything computed from subtrees",k:"Decide what each call returns to its parent and what it passes down to its children.",x:["Return values up (height, sum); pass limits down (BST range, path so far).","Recursion depth: very deep trees may need an explicit stack."],t:"tree-dfs",vars:[
+   {l:"Return info up",w:"height, diameter, balanced",k:"Post-order: use the children's results, then return yours."},
+   {l:"Pass info down",w:"path sum, validate BST",k:"Pre-order with the running sum or the allowed (low, high) range."},
+   {l:"Lowest common ancestor",w:"two nodes",k:"If both sides return a node, the current node is the answer."}]},
+  {p:"tree-bfs",l:"BFS level order",w:"levels, right side view, minimum depth",k:"Process the queue one level at a time using its size at the start of the level.",x:["Read len(queue) once before the inner loop."]}]},
+ {l:"A graph, grid or dependencies",w:"nodes and edges, maybe hidden",kids:[
+  {p:"graph-bfs",l:"BFS",w:"fewest steps, unweighted",k:"BFS reaches every node by the fewest edges first.",x:["Mark visited when you push, not when you pop.","Multi-source: push every start at distance 0."],vars:[
+   {l:"Multi-source BFS",w:"rotting oranges, distance to nearest",k:"Start the queue with every source at once."},
+   {l:"State-space BFS",w:"puzzles, keys and locks",k:"The node is the full state (position plus bitmask)."}]},
+  {p:"topo-sort",l:"Topological sort",w:"prerequisites, build order",k:"Repeatedly take nodes with no incoming edges; leftovers mean a cycle.",x:["Edge direction: prerequisite -> course."],t:"topo-sort"},
+  {p:"union-find",l:"Union-Find",w:"which items are connected, merging groups",k:"Find the root with path compression; join smaller tree under larger.",x:["Count components by counting successful unions."],t:"union-find"},
+  {p:"dijkstra",l:"Dijkstra",w:"cheapest path, non-negative weights",k:"Always expand the closest unfinished node from a min-heap.",x:["Skip stale heap entries (d > dist[v]).","Negative weights need Bellman-Ford; 0/1 weights use a deque."],t:"dijkstra"}]},
+ {l:"Generate every option",w:"subsets, arrangements, placements",kids:[
+  {p:"subsets",l:"Backtracking",w:"choose, explore, un-choose",k:"Build the answer step by step and undo each choice when you return.",x:["Copy the current list when you save it.","Duplicates: sort, then skip equal values at the same depth.","Check the constraints: n above about 20 means you need something smarter."],t:"subsets",vars:[
+   {l:"Subsets",w:"include or exclude each item",k:"Save at every node; recurse from index i + 1."},
+   {l:"Permutations",w:"every order",k:"A used[] array; recurse until the length is n."},
+   {l:"Combination sum",w:"reuse allowed or not",k:"Reuse: recurse from i; no reuse: recurse from i + 1."},
+   {l:"Board placement with pruning",w:"N-Queens, Sudoku",k:"Check validity before placing, and keep sets for columns and diagonals."}]}]},
+ {l:"Best value or count of ways, choices overlap",w:"the same subproblem appears again",kids:[
+  {p:"dp-1d",l:"Dynamic programming",w:"optimal value or number of ways",k:"Name the state, write the recurrence, set base cases, choose the order. Memoise first if unsure.",x:["Say the state in words before coding: dp[i] = best answer using the first i items.","Check whether you can keep only the last row."],vars:[
+   {l:"1D linear",w:"house robber, climbing stairs",k:"dp[i] depends on dp[i-1] and dp[i-2]."},
+   {l:"0/1 knapsack",w:"each item once, under a budget",k:"Loop capacity downward so an item is used once."},
+   {l:"Unbounded knapsack",w:"coin change",k:"Loop capacity upward so an item can repeat."},
+   {l:"LIS",w:"longest increasing subsequence",k:"O(n log n): keep the smallest tail for each length and binary search."},
+   {l:"Two strings",w:"edit distance, LCS",k:"dp[i][j] over prefixes; compare the last characters."},
+   {l:"Intervals",w:"burst balloons, matrix chain",k:"dp[l][r] tries every split point k; fill by length."},
+   {l:"State machine",w:"stocks with cooldown or fees",k:"One value per state (holding, not holding, cooldown) per day."}]}]}]};
+const tState=new Set(["n0"]);let tSel="sliding-window",tSelVar=null;
+function nodeHtml(n,id,depth){
+  const open=tState.has(id),kids=n.kids||n.vars||[];
+  const cls=depth===0?"root":n.p?"pat":n.vars===undefined&&n.kids===undefined&&depth>2?"var":"sig";
+  const on=(n.p&&n.p===tSel&&!tSelVar)||(tSelVar===id);
+  const tw=kids.length?`<span class="tw" aria-hidden="true">${open?"−":"+"} ${kids.length}</span>`:"";
+  let h=`<li><button class="node ${cls}${on?" on":""}" data-id="${id}" aria-expanded="${kids.length?open:""}"><b>${n.l}${tw}</b>${n.w?`<span class="w">${n.w}</span>`:""}</button>`;
+  if(kids.length&&open)h+=`<ul>${kids.map((k,i)=>nodeHtml(k,id+"-"+i,depth+1)).join("")}</ul>`;
+  return h+"</li>";
+}
+const tIndex={};(function idx(n,id,parent){tIndex[id]={n,parent};(n.kids||n.vars||[]).forEach((k,i)=>idx(k,id+"-"+i,n))})(THINK,"n0",null);
+function patFor(id){let cur=id;while(cur){const e=tIndex[cur];if(e.n.p)return e.n;cur=cur.includes("-")?cur.slice(0,cur.lastIndexOf("-")):null}return null}
+function renderTree(){
+  document.getElementById("tree").innerHTML=nodeHtml(THINK,"n0",0);
+  document.querySelectorAll("#tree .node").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.id,e=tIndex[id],n=e.n;
+    if(n.kids||n.vars){tState.has(id)&&!n.p?tState.delete(id):tState.add(id)}
+    if(n.p){tSel=n.p;tSelVar=null;if(!tState.has(id))tState.add(id)}
+    else if(!n.kids&&!n.vars){tSelVar=id;const p=patFor(id);if(p)tSel=p.p}
+    renderTree();tDetail();
+  });
+}
+function tDetail(){
+  const d=document.getElementById("tdetail");let pid=null,pat=null;
+  for(const id in tIndex){if(tIndex[id].n.p===tSel){pid=id;pat=tIndex[id].n}}
+  const meta=byId(tSel)||{n:pat.l,r:pat.w,c:0};const m=mastery(tSel),mv=pat.t&&MOVES[pat.t];
+  const sig=tIndex[pid.slice(0,pid.lastIndexOf("-"))].n;const v=tSelVar?tIndex[tSelVar].n:null;
+  d.innerHTML=`<p class="kicker">${sig.l}</p><p class="dname">${v?v.l:pat.l}</p>${v?`<p style="margin:0;color:var(--muted);font-size:13px">A variation of ${pat.l}</p>`:""}
+  <div class="cue"><b style="font-weight:500">Use it when</b><br>${v?v.w:pat.w}</div>
+  <p class="move"><b style="font-weight:500">Key idea.</b> ${v?v.k:pat.k}</p>
+  ${!v&&pat.x?`<div class="sec"><h3>Watch out for</h3><ul>${pat.x.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
+  ${!v&&mv?`<div class="sec"><h3>Template · ${mv[1]}</h3><pre>${mv[2].replace(/&/g,"&amp;").replace(/</g,"&lt;")}</pre></div>`:""}
+  ${!v&&pat.vars?`<div class="sec"><h3>Variations</h3><div class="vlist">${pat.vars.map((x,i)=>`<button class="vrow" data-vid="${pid}-${i}"><b>${x.l}</b>${x.w}</button>`).join("")}</div></div>`:""}
+  ${v?`<div class="sec"><button class="btn tonal" id="backPat">Back to ${pat.l}</button></div>`:""}
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px"><button class="btn primary">Practice this</button><button class="btn outline">Open guide</button><span class="tag" style="align-self:center">${{solid:"Solid",shaky:"Shaky",new:"Not started"}[m]}</span></div>`;
+  d.querySelectorAll(".vrow").forEach(b=>b.onclick=()=>{tSelVar=b.dataset.vid;tState.add(pid);renderTree();tDetail()});
+  const bp=d.querySelector("#backPat");if(bp)bp.onclick=()=>{tSelVar=null;renderTree();tDetail()};
+}
+document.getElementById("openAll").onclick=()=>{for(const id in tIndex)if(tIndex[id].n.kids||tIndex[id].n.vars)tState.add(id);renderTree()};
+document.getElementById("closeAll").onclick=()=>{tState.clear();tState.add("n0");renderTree()};
+tState.add("n0-0");tState.add("n0-0-0");renderTree();tDetail();
+</script>

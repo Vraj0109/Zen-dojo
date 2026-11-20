@@ -256,6 +256,8 @@ export const solutionRuns = sqliteTable(
     total: integer("total").notNull(),
     /** Ids (positions in examples, tests, then large inputs) of the tests that failed, comma separated */
     failedCases: text("failed_cases").notNull().default(""),
+    /** The per-case list of a Submit as JSON (lib/judge/saved-run.ts); empty when not kept */
+    runDetail: text("run_detail").notNull().default(""),
   },
   (t) => [primaryKey({ columns: [t.problemId, t.lang] })],
 );

@@ -261,6 +261,8 @@ CREATE INDEX IF NOT EXISTS boss_fights_user_synced ON boss_fights (user_id, sync
   window_start INTEGER NOT NULL,
   count INTEGER NOT NULL
 );`,
+  // 0008 the per-case list of the latest Submit (same as packages/sync-worker/migrations/0007). Not idempotent: runs once, by version.
+  `ALTER TABLE solution_runs ADD COLUMN run_detail TEXT NOT NULL DEFAULT '';`,
 ];
 
 /** Tables the Worker reads or writes (used by tests and the import script). */

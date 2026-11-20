@@ -1,5 +1,6 @@
 import { READING_KINDS, type Lesson, type LldDeep, type LldGuide, type LldProject, type Walkthrough } from "@habit/shared";
-import type { DiagramView } from "@/lib/diagrams";
+import { DIAGRAM_LIMITS, DIAGRAM_TYPES, type DiagramView } from "@/lib/diagrams";
+import { DiagramDrop } from "./diagrams/diagram-drop";
 import type { ReadingView } from "@/lib/reading";
 import { addReadingAction, deleteDiagramAction, deleteReadingAction, toggleReadingAction } from "../actions";
 import { Code } from "../code";
@@ -332,13 +333,7 @@ export function DiagramsSection({ itemId, diagrams, error }: { itemId: string; d
         <input type="hidden" name="itemId" value={itemId} />
         <input name="title" maxLength={200} placeholder="Title, e.g. Attempt 2: sharded by user" aria-label="Diagram title" className={INPUT_CLASS} />
         <input name="url" type="url" maxLength={500} placeholder="Excalidraw / draw.io link (optional)" aria-label="Diagram link" className={INPUT_CLASS} />
-        <input
-          name="file"
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          aria-label="Diagram image"
-          className="text-sm file:mr-3 file:rounded-sm file:border file:border-line-strong file:bg-surface file:px-3 file:py-1 file:text-foreground"
-        />
+        <DiagramDrop name="file" label="Image" required={false} types={DIAGRAM_TYPES} maxBytes={DIAGRAM_LIMITS.bytes} />
         <button className={buttonClass("secondary")}>Save diagram</button>
       </form>
     </ArticleSection>

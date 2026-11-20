@@ -91,6 +91,8 @@ export interface ChatInput {
   /** The reference solution. Only used when `revealSolution` is true; otherwise it is ignored even if given. */
   solution?: SolutionInfo;
   revealSolution?: boolean;
+  /** Interview walkthrough text (plan 0090). Included only when `revealSolution` is true or intent is "interview" / learner asks for approach. */
+  interviewWalkthrough?: string;
   /** The learner's saved code. Only used for intent "review" or when `includeCode` is true. */
   code?: string;
   includeCode?: boolean;
@@ -106,12 +108,12 @@ const NO_SOLUTION =
 /** The final messages for the model: one system message (role, problem, optional hint, code, solution) then the trimmed conversation. */
 export function buildChatMessages(input: ChatInput): ChatMessage[] {
   const { problem: p, intent } = input;
-  const reveal = input.revealSolution === true && input.solution !== undefined;
+  const reveal = input.revealSolution === true && (input.solution !== undefined || Boolean(input.interviewWalkthrough));
   const code = intent === "review" || input.includeCode === true ? (input.code?.trim() ?? "") : "";
   const parts = [
     "You are a patient coding coach helping someone prepare for interviews. Answer the learner's latest message using the conversation so far.",
     reveal
-      ? "The learner has asked for the solution, so you may explain the reference solution below step by step and why it works."
+      ? "The learner has asked for the solution or approach, so you may explain the approach step by step and why it works."
       : NO_SOLUTION,
     STYLE,
     "",
@@ -123,6 +125,9 @@ export function buildChatMessages(input: ChatInput): ChatMessage[] {
     if (hints[i]) parts.push("", `Hint ${i + 1} of ${hints.length}: ${clip(hints[i], 1000)}`);
   }
   if (code) parts.push("", `Learner's code${input.language ? ` (${input.language})` : ""}:`, "```", clip(code, MAX_CODE_CHARS), "```");
+  if (reveal && input.interviewWalkthrough) {
+    parts.push("", `Interview walkthrough:\n${clip(input.interviewWalkthrough, 4000)}`);
+  }
   if (reveal && input.solution) {
     parts.push(
       "",

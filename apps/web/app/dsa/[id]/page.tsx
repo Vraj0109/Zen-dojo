@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_PATTERNS, JUDGE_PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
+import { ALL_PATTERNS, INTERVIEW, JUDGE_PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
 import { getProblemDetail } from "@/lib/dsa";
 import { parseProblemTab } from "@/lib/dsa-filters";
 import { getPatternNotes } from "@/lib/pattern-notes";
@@ -11,6 +11,7 @@ import { STRUGGLE_KINDS, STRUGGLE_RETRY_DAYS, getStruggles } from "@/lib/struggl
 import { JudgeWorkspace, type ProblemTab } from "../../judge-workspace";
 import { workspaceSpec } from "../../workspace-helpers";
 import { ProblemDescription, ProblemHelp, startersFor } from "../../problem-workspace";
+import { ProblemSolution } from "../../solution-walkthrough";
 import { siteMinutesForSlug } from "@/lib/site-time";
 import { focusMinutes } from "@/lib/timer";
 import { clearStruggleAction, logStruggleAction, markSolvedAction, undoSolveAction } from "../../actions";
@@ -107,6 +108,7 @@ async function Problem({
     const judgedTabs: ProblemTab[] = [
       { id: "description", label: "Description", node: <ProblemDescription spec={spec} /> },
       { id: "help", label: "Hints", node: <ProblemHelp spec={spec} /> },
+      { id: "solution", label: "Solution", node: <ProblemSolution spec={spec} interview={INTERVIEW[p.id]} /> },
       {
         id: "notes",
         label: "Notes",
@@ -137,7 +139,7 @@ async function Problem({
         ? [{ id: "pattern", label: "Pattern", node: <PatternHelp p={p} cheats={cheats} simple={simple} /> }]
         : []),
     ];
-    const wanted = typeof sp.tab === "string" ? sp.tab : undefined;
+    const wanted = typeof sp.tab === "string" ? (sp.tab === "interview" ? "solution" : sp.tab) : undefined;
     // "pattern · n of m" and the next problem, from the first pattern this problem is in.
     const firstPattern = p.patterns[0] ? ALL_PATTERNS.find((x) => x.id === p.patterns[0].id) : undefined;
     const position = firstPattern ? firstPattern.problems.indexOf(p.id) : -1;

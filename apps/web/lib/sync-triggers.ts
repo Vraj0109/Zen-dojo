@@ -14,7 +14,10 @@ export type SyncTableDef = {
   cols: string[];
 };
 
-/** Tables covered by the first sync migration (0050). Frozen: that migration is generated from this list. */
+/**
+ * Tables covered by the first sync migration (0050). The trigger SQL is generated from the table names and key columns, which
+ * are frozen; `cols` (what is uploaded) may grow, as solution_runs.run_detail did later.
+ */
 export const SYNC_TABLE_MAP_V1: readonly SyncTableDef[] = [
   { local: "tasks", cloud: "tasks", key: "sync_id", keyCols: ["id"], cols: ["date", "scope", "template_key", "title", "category", "xp", "minutes", "status", "done_on"] },
   { local: "problem_solves", cloud: "problem_solves", key: "composite", keyCols: ["problem_id", "kind"], cols: ["problem_id", "kind", "solved_on", "xp", "source"] },
@@ -25,7 +28,7 @@ export const SYNC_TABLE_MAP_V1: readonly SyncTableDef[] = [
     cloud: "solution_runs",
     key: "composite",
     keyCols: ["problem_id", "lang"],
-    cols: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases"],
+    cols: ["problem_id", "lang", "code", "ran_on", "status", "passed", "total", "failed_cases", "run_detail"],
   },
   { local: "pack_progress", cloud: "pack_progress", key: "composite", keyCols: ["pack_id", "item_id"], cols: ["pack_id", "item_id", "done_on"] },
   {

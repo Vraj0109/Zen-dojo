@@ -137,3 +137,5 @@ export const CSES_PROBLEMS: ProblemSpec[] = [
 export const OTHER_PROBLEMS: ProblemSpec[] = OTHER_SPECS;
 export const LOGIC_PROBLEMS: ProblemSpec[] = [...LOGIC_SPECS_EULER, ...LOGIC_SPECS_ATCODER, ...LOGIC_SPECS_CODEFORCES, ...LOGIC_SPECS_KATTIS, ...LOGIC_SPECS_BATCH2, ...LOGIC_SPECS_C, ...PROBLEMS_LOGIC_D];
 export { SPECIAL_SPECS } from "./problems-special";
+export { INTERVIEW } from "./generated/interview";
+

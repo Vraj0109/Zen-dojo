@@ -60,10 +60,14 @@ describe("Skeletons (Roadmap, Study, Review, Profile, Today)", () => {
     expect(html).toContain("anim-pulse");
   });
 
-  it("renders StudyAreaSkeleton with KPI grid", async () => {
+  it("renders StudyAreaSkeleton with the course hero, tabs and path stepper", async () => {
     const html = await renderHtml(React.createElement(StudyAreaSkeleton));
     expect(html).toContain('role="status"');
+    expect(html).toContain('aria-label="Loading course"');
+    expect(html).toContain("anim-late");
     expect(html).toContain("anim-pulse");
+    expect(html).toContain("rounded-[32px]");
+    expect(html).not.toContain("grid-cols-2");
   });
 
   it("renders ReviewQueueSkeleton with tabs and queue list", async () => {

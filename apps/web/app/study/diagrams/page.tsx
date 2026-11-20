@@ -3,11 +3,12 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ALL_EXERCISES, STUDY_AREAS, studyHref } from "@habit/shared";
-import { DIAGRAM_LIMITS, getDiagrams } from "@/lib/diagrams";
+import { DIAGRAM_LIMITS, DIAGRAM_TYPES, getDiagrams } from "@/lib/diagrams";
 import { LearnBack } from "../../section-tabs";
 import { buttonClass, INPUT_CLASS, PageMain } from "../../ui";
 import { fmtDate } from "../study-ui";
 import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
+import { DiagramDrop } from "./diagram-drop";
 
 export const metadata: Metadata = { title: "Your diagrams" };
 
@@ -37,8 +38,6 @@ function getTone(area?: string) {
       return { cover: "bg-primary-soft text-on-primary-soft", label: "Diagram" };
   }
 }
-
-const MB = Math.round(DIAGRAM_LIMITS.bytes / 1_000_000);
 
 async function Gallery() {
   await connection();
@@ -75,7 +74,7 @@ async function Gallery() {
             <h2 id="add-diagram-title" className="text-base font-medium text-foreground">
               Upload a photo or screenshot
             </h2>
-            <p className="mt-0.5 text-sm text-muted">PNG or JPG up to {MB} MB. Pick the design or project it belongs to, and it shows up on that page too.</p>
+            <p className="mt-0.5 text-sm text-muted">Pick the design or project it belongs to, and it shows up on that page too.</p>
           </div>
         </div>
         <form
@@ -84,16 +83,7 @@ async function Gallery() {
           encType="multipart/form-data"
           className="grid gap-3 @min-[640px]:grid-cols-2 @min-[1040px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] @min-[1040px]:items-end"
         >
-          <label className="min-w-0 space-y-1 text-sm">
-            <span className="font-medium">Image</span>
-            <input
-              name="file"
-              type="file"
-              required
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="block w-full min-w-0 text-sm text-muted file:mr-3 file:h-10 file:rounded-full file:border-0 file:bg-surface-2 file:px-4 file:font-medium file:text-foreground"
-            />
-          </label>
+          <DiagramDrop name="file" label="Image" types={DIAGRAM_TYPES} maxBytes={DIAGRAM_LIMITS.bytes} />
           <label className="min-w-0 space-y-1 text-sm">
             <span className="font-medium">Title</span>
             <input name="title" maxLength={DIAGRAM_LIMITS.title} placeholder="Optional" className={`${INPUT_CLASS} w-full`} />

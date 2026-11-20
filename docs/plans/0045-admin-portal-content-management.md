@@ -1,6 +1,6 @@
 # 0045: Dynamic Admin Portal for Live Content Management
 
-- **Status:** in-progress (login gate, problems table and editor built; study content pages not built)
+- **Status:** in-progress (steps 1 and 5 done; problems editor and study editor partly built, see "Status check (2026-11-20)")
 - **Planned by:** Antigravity, 2026-11-10
 - **Implemented by:** (implementer fills in)
 - **Spec:** builds on plans 0024, 0030, and 0032
@@ -23,7 +23,7 @@ Provide a web-based `/admin` content management portal where administrators can 
 
 ## Steps
 
-- [ ] **1. Admin authentication & route security.**
+- [x] **1. Admin authentication & route security.**
   - Protect `/admin/*` routes with admin verification:
     - Check session admin role or header `x-admin-token` matching `process.env.ADMIN_SECRET_KEY`.
     - Provide a clean login form at `/admin/login` for entering the admin credential.
@@ -66,7 +66,7 @@ Provide a web-based `/admin` content management portal where administrators can 
     - Provide a "Revert to Built-in" button for problems or lessons that were patched.
   - Done when: Editing a problem in `/admin` immediately reflects on the learner's `/dsa/[id]` page upon reload.
 
-- [~] **5. Tests.**
+- [x] **5. Tests.**
   - In `apps/web/app/admin/admin.test.ts`:
     - Test unauthorized access rejection on `/admin` and `/api/admin/*`.
     - Test saving a new problem spec to `content_items`.
@@ -76,11 +76,11 @@ Provide a web-based `/admin` content management portal where administrators can 
 
 ## Acceptance criteria
 
-- [ ] Secure `/admin` portal accessible only with valid admin credentials.
-- [ ] Rich problem authoring interface with statement markdown, test case generator, and hint manager.
-- [ ] "Verify with Judge" button tests the reference code against all test cases before saving.
-- [ ] Study material editor supports section reordering, Mermaid diagram editing, and architecture cards.
-- [ ] Content updates save to `content_items` and propagate to clients without app redeployments.
+- [x] Secure `/admin` portal accessible only with valid admin credentials.
+- [ ] Rich problem authoring interface with statement markdown, test case generator, and hint manager. (Markdown preview and hints done; no test case generator, test cases are a JSON box.)
+- [x] "Verify with Judge" button tests the reference code against all test cases before saving.
+- [ ] Study material editor supports section reordering, Mermaid diagram editing, and architecture cards. (Not built; only question and pitfall reordering exist.)
+- [x] Content updates save to `content_items` and propagate to clients without app redeployments (on the next page load).
 - [ ] `pnpm check` passes.
 
 ## Open questions
@@ -105,6 +105,20 @@ Not built (too big for this pass):
 - Tests for `/api/admin/*` do not exist because no such routes exist.
 
 Also: `cses-grid-path-description.py` was sped up (memo at step 29, about 1.7x) and passes `solutions:verify` without `# verify: skip-stress`. The solutions bundle needs `pnpm solutions:build` (the lead runs it).
+
+### Status check (2026-11-20)
+
+Checked against the code. Notes on what is ticked and what is not:
+
+- **Step 1 (done, with a different design).** Plan 0049 replaced the shared secret with admin by account. `requireAdmin()` in `apps/web/lib/auth/session.ts` redirects a signed-out visitor to `/login?next=/admin` and answers 404 for a signed-in non-admin. It is called by the layout (`apps/web/app/admin/layout.tsx`), by every page (`page.tsx`, `problems/page.tsx`, `study/page.tsx`, `study/[area]/[id]/page.tsx`) and by every server action (`actions.ts`: save, update, verify, delete; `study-actions.ts`: save, revert). The layout also 404s on the hosted site (plan 0058). There is no `/admin/login` page and no `x-admin-token` header; the sign-in page is the normal `/login`. The one HTTP API, `apps/web/app/api/admin/content/route.ts`, uses `CONTENT_ADMIN_TOKEN` (404 when unset, 401 for a wrong token, `lib/content-admin.ts`).
+- **Step 2 (partly done, still open).** Done: searchable list filtered by source and difficulty with Built-in and New stored problem badges (`apps/web/app/admin/problems/page.tsx`); an editor drawer with metadata, statement with a live Markdown preview, constraints, function signature, test cases, hints (one per line) and a C++ reference solution (`problem-drawer.tsx`); **Verify with Judge** (`verifyProblemAction` in `actions.ts`, runs `runCode` on every case and saves nothing); saving a new problem to `content_items`. Not done: separate `/admin/problems/[id]` and `/new` pages (a drawer on `/admin/problems?edit=` and `?new=1` is used instead); the single form is in sections, not tabs; an interactive test case table and edge case generator (cases are a JSON box); a separate examples editor (the first case is the example); pattern tags and a pattern filter; Java and JavaScript reference solutions (the pack problem format only stores C++); a "Dynamic Override" status (stored problems never replace a built-in one, they are added next to it).
+- **Step 3 (partly done, still open).** `/admin/study` is a table per area, not a tree. `/admin/study/[area]/[id]` edits overview, per-point explanations, interview questions and common mistakes with Markdown preview. Not built: Mermaid editor, architecture cards, scorecards, multi-file code editor, creating topics or sections, reordering lessons, editing system design and LLD exercises.
+- **Step 4 (partly done, still open).** Saves go through `upsertItem` (`lib/content.ts`), which writes `content_items` with a new hash `rev` and `updated_at` and rebuilds the "items" pack. "Revert to built-in" exists for lessons (`revertLessonAction`); a stored problem can be deleted (`deleteProblemAction`, confirmation with `useConfirm`). The learner sees stored problems in the `/dsa` list (`listAddedProblems` in `lib/content.ts`) and on `/study/packs/items/<id>`, and a saved lesson patch on `/study/<area>/<id>` after a reload. Not built: a push notification to open clients (a reload picks the change up). A stored problem cannot override a built-in `/dsa/[id]` page.
+- **Step 5 (done).** `apps/web/app/admin/admin.test.ts`: non-admin refusal for save, update, verify and delete; validation; save, update and delete in the content store; hints; verify with a mocked judge; `/api/admin/content` answers 404 without a configured token and 401 for a wrong token on GET, POST and DELETE. `apps/web/app/admin/study.test.ts`: patched lesson returned by `resolveLesson`, revert. `pnpm exec vitest run apps/web/app/admin` passes (44 tests). `pnpm check` was not run in this pass.
+
+Gaps closed on 2026-11-20: hints field, Verify with Judge, delete stored problem, Markdown preview for the description and lessons, and the admin problem and lesson editors restyled with the Expressive tokens, `buttonClass` and `useConfirm()`.
+
+Left (each is larger than a small contained change): tabbed or page-based problem editor, interactive test table and generator, Java and JavaScript reference solutions (needs a pack format change), Mermaid editor, architecture cards and scorecards, multi-file code editor, topic and section creation and lesson reordering, exercise (system design and LLD) editing, push notification to open clients.
 
 ## Review
 

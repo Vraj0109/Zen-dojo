@@ -149,7 +149,7 @@ describe("sync engine", () => {
       await db.execute("INSERT INTO settings (key, value) VALUES ('theme', 'dark')");
       await db.execute("INSERT INTO problem_notes (problem_id, notes, code, language, updated_at) VALUES ('two-sum', 'hash it', 'x', 'cpp', 'now')");
       await db.execute(
-        "INSERT INTO solution_runs (problem_id, lang, code, ran_on, status, passed, total, failed_cases) VALUES ('two-sum', 'cpp', 'c', '2026-11-09', 'pass', 3, 3, '')",
+        "INSERT INTO solution_runs (problem_id, lang, code, ran_on, status, passed, total, failed_cases, run_detail) VALUES ('two-sum', 'cpp', 'c', '2026-11-09', 'pass', 3, 3, '', 'detail')",
       );
       await db.execute("INSERT INTO pack_progress (pack_id, item_id, done_on) VALUES ('p1', 'i1', '2026-11-09')");
       await db.execute("INSERT INTO practice_sessions (item_id, practiced_on, score, xp, notes) VALUES ('lld-1', '2026-11-09', 4.5, 30, 'n')");
@@ -177,7 +177,7 @@ describe("sync engine", () => {
       expect(by("notes")[0]).toMatchObject({ row_id: "two-sum", payload: { problem_id: "two-sum", notes: "hash it", code: "x", language: "cpp" } });
       expect(by("solution_runs")[0]).toMatchObject({
         row_id: "two-sum:cpp",
-        payload: { problem_id: "two-sum", lang: "cpp", code: "c", ran_on: "2026-11-09", status: "pass", passed: 3, total: 3, failed_cases: "" },
+        payload: { problem_id: "two-sum", lang: "cpp", code: "c", ran_on: "2026-11-09", status: "pass", passed: 3, total: 3, failed_cases: "", run_detail: 'detail' },
       });
       expect(by("pack_progress").find((m) => m.row_id === "p1:i1")?.payload).toEqual({ pack_id: "p1", item_id: "i1", done_on: "2026-11-09" });
       expect(by("practice_sessions")[0].payload).toMatchObject({ item_id: "lld-1", practiced_on: "2026-11-09", score: 4.5, xp: 30, notes: "n", link: null });

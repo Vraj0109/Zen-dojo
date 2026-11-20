@@ -7,18 +7,21 @@ The rules for both are in `AGENTS.md` (shared), `CLAUDE.md` and `GEMINI.md` at t
 
 **Picking this up as a new agent? Read [`docs/HANDOFF.md`](../HANDOFF.md) first.** It has the state of every plan, the order of the remaining work, how to verify, and the mistakes already made.
 
-**State on 2026-11-11 (release 0.7.1 is out).** The index at the bottom of this file is the source of truth; this block is the short version.
+**State on 2026-11-20.** The index at the bottom of this file is the source of truth; this block is the short version.
 
 - **Built and released (0.7.0 / 0.7.1):** accounts and GitHub sign-in (0049), cloud sync (0044, 0050), desktop sign-in (0051),
   Java editor in "Your classes" (0052), ticks, filters and search (0053), delete-my-data (0054), round plan 0055.
   Plans 0051 to 0055 are implemented (desktop sign-in confirmed by the user on 2026-11-11).
 - **Round twelve is done (plan 0065, committed locally):** Python in the judge, Java and Python solutions for all 486 problems,
   the tools check and install notes, three UI fixes.
-- **Round thirteen (next): plan 0066** = 0056 (dynamic plan weeks and Backlog, agents A and B) + 0064 (portable tool manager,
-  agent C) + 0060 (local AI helper, agent D). Four Claude agents; 0066 has the file ownership, contracts and a paste-ready prompt per agent.
-- **After that, in this order:** 0061 B3/B4 (signing, waits for the user's choice and secrets), 0058 (hosted web app), 0059 (phone read-only mode, needs 0058).
-- **Still open from older rounds:** 0045 step 3 (admin study pages), 0022 (more problem sources), 0032 (old hosted roadmap,
-  superseded by 0058), un-synced tables (reading list, stuck list, boss fights).
+- **Round thirteen is implemented: plan 0066** = 0056 (dynamic plan weeks and Backlog) + 0064 (portable tool manager)
+  + 0060 (local AI helper).
+- **Hosted:** 0058 (hosted web app) is implemented, live deploy checks pending. 0073 (sync Worker and D1 moved to Vercel and
+  Turso) is implemented, cutover steps pending. 0059 (phone read-only mode) is ready and needs 0058 deployed.
+- **Superseded:** 0032 (old hosted roadmap, replaced by 0058), 0083 and 0084 (replaced by 0085 to 0089).
+- **Still open:** 0022 (problem library), 0045 (admin portal content management), 0076 and 0077 (multi-approach solutions and
+  the solutions audit, 0077 after 0076), 0090 (interview approach write-ups). Also un-synced tables (reading list, stuck list,
+  boss fights).
 
 To start a fresh chat on this repo, paste: `Read docs/HANDOFF.md and docs/plans/README.md ("Next up"), tell me the state and what is next, then wait for my go.`
 
@@ -114,7 +117,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0029 | [Curated CSES logic-building list and cp-algorithms filter](0029-logic-building-list.md) | implemented |
 | 0030 | [Add problems, tests and lessons without a release](0030-content-without-releases.md) | implemented |
 | 0031 | [System design as rich as LLD](0031-system-design-parity.md) | implemented |
-| 0032 | [Roadmap: hosted site with accounts, Notion-style offline-first sync, and admin portal](0032-hosted-site-roadmap.md) | ready |
+| 0032 | [Roadmap: hosted site with accounts, Notion-style offline-first sync, and admin portal](0032-hosted-site-roadmap.md) | superseded by 0058 |
 | 0033 | [Round three: who does what](0033-round-three-parallel-work.md) | implemented (all merged) |
 | 0034 | [Blocked C++ programs and WebAssembly C++ runner](0034-blocked-programs-and-wasm-cpp.md) | implemented |
 | 0035 | [ADHD helper, accountability buddy, and cognitive pacing](0035-adhd-accountability-and-pacing.md) | implemented |
@@ -140,7 +143,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0055 | [Round eleven: finish plans 0053 and 0054 (six agents, balanced)](0055-round-eleven-finish-everything.md) | implemented |
 | 0056 | [Dynamic plan weeks and a Backlog page](0056-dynamic-plan-weeks-and-backlog.md) | implemented |
 | 0057 | [Three UI fixes: Today scroll, course page columns, account arrow](0057-three-ui-fixes.md) | implemented |
-| 0058 | [Hosted web app (sign in, track progress; no code running on the server)](0058-hosted-web-app.md) | ready |
+| 0058 | [Hosted web app (sign in, track progress; no code running on the server)](0058-hosted-web-app.md) | implemented (live deploy checks pending) |
 | 0059 | [Study on your phone: read-only mode, installable web app, phone navigation](0059-mobile-read-only-study.md) | ready (needs 0058 deployed to be useful) |
 | 0060 | [Local AI helper (optional, opt-in, desktop only)](0060-local-ai-helper.md) | implemented |
 | 0061 | [Installer signing and a first-run "Check my tools" screen](0061-installer-signing-and-first-run-tools.md) | part A + B1/B2 implemented; B3/B4 wait for a signing route |
@@ -155,7 +158,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0070 | [Mobile apps overview: PWA vs Capacitor vs React Native vs native (decision record, readiness pass, privacy page)](0070-mobile-apps-overview.md) | dropped (not wanted for now) |
 | 0071 | [Android app: Capacitor shell around the hosted site, system-browser sign-in, Play release](0071-android-app.md) | dropped (not wanted for now) |
 | 0072 | [iOS and iPad app: same Capacitor project, iPad layout and keyboard, TestFlight and App Store](0072-ios-and-ipad-app.md) | dropped (not wanted for now) |
-| 0073 | [Move the sync Worker and D1 to Vercel and Turso: hub database, D1 shim, /hub routes, clients, cutover (four agents)](0073-move-from-cloudflare-to-vercel.md) | ready |
+| 0073 | [Move the sync Worker and D1 to Vercel and Turso: hub database, D1 shim, /hub routes, clients, cutover (four agents)](0073-move-from-cloudflare-to-vercel.md) | implemented (cutover steps pending) |
 | 0074 | [Mobile practice flow: filter sheet, Practice link at the end of a topic, open at the first question](0074-mobile-practice-flow-fixes.md) | done |
 | 0075 | [Settings and theme sync fix: why changes do not reach other devices, and the fixes](0075-settings-and-theme-sync-fix.md) | done |
 | 0076 | [Several solutions per problem, brute force to optimal: model, tooling and UI](0076-multi-approach-solutions-model-and-ui.md) | ready |
@@ -163,7 +166,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0078 | [LM Studio (and other local servers) and "use my own fine-tuned model"](0078-lm-studio-and-own-model.md) | done |
 | 0079 | [Desktop sign-in after the move to Vercel: hand-off page, server-side PKCE, clear errors (priority)](0079-desktop-sign-in-after-vercel-move.md) | done |
 | 0080 | [Sync pill shows one loader, not two](0080-sync-pill-one-loader.md) | done |
-| 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | implemented (partial: steps 1, 4, 8 wait for the courses repo) |
+| 0081 | [Course library: extra courses in a separate repo, downloaded with one click](0081-course-library-download-on-demand.md) | done |
 | 0082 | [Run any GGUF model through Ollama; remove LM Studio](0082-gguf-models-through-ollama.md) | implemented |
 | 0083 | [UI redesign: the Dojo design system, screen by screen (DESIGN.md and the mockups)](0083-ui-redesign-dojo.md) | superseded by 0085–0089 |
 | 0084 | [Fix the redesign's broken screens (Practice, Roadmap, course pages, Your classes) and scan the whole site](0084-redesign-fixes-and-site-scan.md) | superseded by 0085–0089 |
@@ -172,3 +175,5 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0087 | [Expressive redesign 3: problem workspace with per-case results, Run vs Submit, my cases, shortcuts](0087-expressive-workspace-run-submit.md) | done |
 | 0088 | [Expressive redesign 4: Today and every Learn page](0088-expressive-today-and-learn.md) | done |
 | 0089 | [Expressive redesign 5: Review, Revise, Backlog, Roadmap, Profile, Settings and theme warning, Sign in, final scan](0089-expressive-review-profile-settings-and-scan.md) | done |
+| 0090 | [Interview approach write-ups for every DSA problem: context script, checker, Interview tab, AI helper](0090-interview-approach-writeups.md) | ready |
+| 0091 | [Pattern thinking map in Quick revise: thinking map, how to read a problem, groups, recall](0091-pattern-thinking-map.md) | done |

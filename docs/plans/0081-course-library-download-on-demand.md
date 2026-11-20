@@ -1,6 +1,6 @@
 # 0081: Course library: extra courses in a separate repo, downloaded with one click
 
-- **Status:** implemented (partial: steps 1, 4 and 8 wait for the courses repo)
+- **Status:** done
 - **Planned by:** Claude Code, 2026-11-14
 - **Implemented by:** Claude Code (subagent), 2026-11-15
 - **Spec:** none
@@ -47,7 +47,7 @@ course and writes it into that user's own database.
 
 ## Steps
 
-- [ ] (waiting for the repo) **1. Create the courses repo (user or lead, with the user's OK).** Public repo `Vraj0109/zen-dojo-courses`:
+- [x] **1. Create the courses repo (user or lead, with the user's OK).** Public repo `Vraj0109/zen-dojo-courses`:
   ```
   README.md            what the repo is, how to add a course, licence of the content
   catalog.json         the feed the app reads (generated, step 3)
@@ -74,7 +74,7 @@ course and writes it into that user's own database.
   prints a one-line summary per course.
   - Done when: running it on a folder with the sample pack writes a valid catalog whose hash matches the file.
 
-- [ ] (waiting for the repo) **4. Courses repo CI.** `.github/workflows/check.yml` in the courses repo, on push and pull request: check out
+- [x] **4. Courses repo CI.** `.github/workflows/check.yml` in the courses repo, on push and pull request: check out
   this app repo (`Vraj0109/Zen-dojo`, `main`), install with pnpm, run `pnpm courses:catalog <courses checkout>` and fail
   if `catalog.json` differs from the committed one (so the catalog is never stale and every pack is valid). Document
   in the courses README: "edit or add `courses/<id>.json`, bump its `revision`, run `pnpm courses:catalog`, commit both".
@@ -112,7 +112,7 @@ course and writes it into that user's own database.
   Installed library courses keep appearing among the normal course cards (that already works through `listPacks`).
   - Done when: the section renders in all four states and on a phone width without horizontal scroll.
 
-- [ ] (waiting for the repo) **8. Pilot course.** Put one small, real course in the courses repo as `courses/<id>.json` (suggested: the
+- [x] **8. Pilot course.** Put one small, real course in the courses repo as `courses/<id>.json` (suggested: the
   existing `docs/examples/sample-pack.json` rewritten as a short real course the user picks; see Open questions), with
   `revision: "1.0.0"` and a `category`. Run `pnpm pack:check` and `pnpm courses:catalog`, commit both files there.
   - Done when: the live catalog URL returns the catalog and the app can download the course from it.
@@ -192,6 +192,15 @@ by unit tests of `getCourseLibrary`, not by a UI check.
 
 Found but not changed: `checkFeedUpdates` marks any version that differs from the installed one as an update, even an
 older one (`compareRevisions(...) > 0 || p.version !== installedRevision`).
+
+### Courses repo (2026-11-20, Claude Code)
+- Created public repo `Vraj0109/zen-dojo-courses` (README, CC BY-SA 4.0 `LICENSE`, `.github/workflows/check.yml` from
+  `docs/examples/courses-repo/`), first course `courses/behavioural-interviews.json` (14 lessons, revision 1.0.0,
+  category "Interview skills"), `catalog.json` built with `pnpm courses:catalog`. CI run passed.
+- Live check: the catalog URL returns 200, the deployed site lists the course under Course library, and Download as a
+  guest reports "Downloaded. It is now one of your courses."
+- Note: the lesson renderer has no Markdown tables or blockquotes, so the course draws its tables as plain text in code
+  blocks. Adding table support to `parseMarkdown` would let future courses use real tables.
 
 ## Review
 

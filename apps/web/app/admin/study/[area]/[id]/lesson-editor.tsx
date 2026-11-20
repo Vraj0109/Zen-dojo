@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
+import { useConfirm } from "../../../../components/confirm-dialog";
+import { MarkdownPreview } from "../../../markdown-preview";
+import { TEXTAREA_CLASS, buttonClass } from "../../../../ui";
 import { revertLessonAction, saveLessonAction, type StudyActionResult } from "../../../study-actions";
 
-const field = "w-full rounded-md border border-line bg-background px-3 py-2 text-sm";
-const btn = "rounded-md border border-line px-2 py-1 text-xs hover:bg-background disabled:opacity-40";
+const field = TEXTAREA_CLASS;
+const btn = buttonClass("quiet", "sm", "!h-8 !px-3 text-xs");
 
 interface Entry {
   key: number;
@@ -26,8 +29,8 @@ const mk = (text: string): Entry => ({ key: nextKey++, text });
 
 function Preview({ text }: { text: string }) {
   return (
-    <div className="rounded-md border border-line bg-background p-3 text-sm">
-      {text.trim() ? <p className="whitespace-pre-wrap leading-relaxed">{text}</p> : <p className="text-muted">Nothing to preview.</p>}
+    <div className="rounded-2xl bg-surface-2 p-3 text-sm">
+      {text.trim() ? <MarkdownPreview source={text} /> : <p className="text-muted">Nothing to preview.</p>}
     </div>
   );
 }
@@ -45,7 +48,7 @@ function ListEditor({ name, label, items, setItems }: { name: string; label: str
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">{label}</legend>
       {items.map((e, i) => (
-        <div key={e.key} className="space-y-1 rounded-md border border-line p-2">
+        <div key={e.key} className="space-y-1 rounded-2xl border border-line p-2">
           <textarea name={name} rows={3} className={field} value={e.text} aria-label={`${label} ${i + 1}`} onChange={(ev) => setItems(items.map((x) => (x.key === e.key ? { ...x, text: ev.target.value } : x)))} />
           <div className="flex flex-wrap gap-1">
             <button type="button" className={btn} disabled={i === 0} onClick={() => move(i, -1)}>Move up</button>
@@ -70,6 +73,8 @@ export function LessonEditor({ initial }: { initial: LessonInitial }) {
   const [pitfalls, setPitfalls] = useState(() => initial.pitfalls.map(mk));
   const [showOverview, setShowOverview] = useState(false);
   const [showExplain, setShowExplain] = useState<number | null>(null);
+  const { confirm, dialog } = useConfirm();
+  const revertForm = useRef<HTMLFormElement>(null);
   const shown = revertState ?? state;
 
   return (
@@ -85,7 +90,7 @@ export function LessonEditor({ initial }: { initial: LessonInitial }) {
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Explanations, one per checklist point (same order as the checklist)</legend>
           {initial.points.map((point, i) => (
-            <div key={i} className="space-y-1 rounded-md border border-line p-2">
+            <div key={i} className="space-y-1 rounded-2xl border border-line p-2">
               <p className="text-xs text-muted">{point}</p>
               <textarea name="explain" rows={3} className={field} value={explain[i]} aria-label={`Explanation ${i + 1}`} onChange={(e) => setExplain(explain.map((x, j) => (j === i ? e.target.value : x)))} />
               <button type="button" className={btn} onClick={() => setShowExplain(showExplain === i ? null : i)}>{showExplain === i ? "Hide preview" : "Preview"}</button>
@@ -95,24 +100,40 @@ export function LessonEditor({ initial }: { initial: LessonInitial }) {
         </fieldset>
         <ListEditor name="questions" label="Interview questions (reorder with Move up and Move down)" items={questions} setItems={setQuestions} />
         <ListEditor name="pitfalls" label="Common mistakes" items={pitfalls} setItems={setPitfalls} />
-        <button type="submit" disabled={pending} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{pending ? "Saving..." : "Save lesson"}</button>
+        <button type="submit" disabled={pending} className={buttonClass("primary", "md")}>{pending ? "Saving..." : "Save lesson"}</button>
       </form>
       {initial.patched && (
-        <form action={revertAction}>
+        <form ref={revertForm} action={revertAction}>
           <input type="hidden" name="concept" value={initial.concept} />
-          <button type="submit" disabled={reverting} className={btn}>Revert to built-in</button>
+          <button
+            type="button"
+            disabled={reverting}
+            className={buttonClass("danger", "sm")}
+            onClick={async () => {
+              const ok = await confirm({
+                title: "Revert to the built-in lesson?",
+                body: "Your saved text for this lesson is deleted. Learners see the built-in text again.",
+                confirmLabel: "Revert lesson",
+                danger: true,
+              });
+              if (ok) revertForm.current?.requestSubmit();
+            }}
+          >
+            Revert to built-in
+          </button>
         </form>
       )}
       <div role="status" aria-live="polite" className="text-sm">
         {shown?.ok === true && <p>{shown.message}</p>}
         {shown?.ok === false && (
-          <ul className="list-disc pl-5 text-red-600">
+          <ul className="list-disc pl-5 text-danger">
             {shown.errors.map((e) => (
               <li key={e}>{e}</li>
             ))}
           </ul>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

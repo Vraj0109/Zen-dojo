@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PROBLEMS, type PackProblem, type Problem } from "@habit/shared";
 import { requireAdmin } from "@/lib/auth/session";
 import { getItem, listItems } from "@/lib/content";
+import { Badge, Difficulty, INPUT_CLASS, buttonClass } from "../../ui";
 import { ProblemDrawer, type DrawerInitial } from "./problem-drawer";
 
 function sourceOf(id: string): string {
@@ -42,7 +43,7 @@ function keep(p: { q: string; source: string; difficulty: string }, extra: Recor
   return s ? `/admin/problems?${s}` : "/admin/problems";
 }
 
-const field = "w-full rounded-md border border-line bg-background px-3 py-2 text-sm";
+const field = `${INPUT_CLASS} !h-10`;
 
 function toInitial(id: string, builtin: Problem | null, stored: PackProblem | null): DrawerInitial {
   if (stored) {
@@ -56,6 +57,7 @@ function toInitial(id: string, builtin: Problem | null, stored: PackProblem | nu
       category: stored.group ?? "",
       description: stored.statement.join("\n\n"),
       constraints: stored.constraints.join("\n"),
+      hints: stored.hints.join("\n"),
       fnName: stored.fn.name,
       params: stored.fn.params.map((p) => `${p.name}:${p.type}`).join(", "),
       returns: stored.fn.returns,
@@ -73,6 +75,7 @@ function toInitial(id: string, builtin: Problem | null, stored: PackProblem | nu
     category: "",
     description: builtin?.why ?? "",
     constraints: "",
+    hints: "",
     fnName: "",
     params: "",
     returns: "int",
@@ -140,10 +143,10 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
               <option value="none">Unrated</option>
             </select>
           </label>
-          <button type="submit" className="rounded-md border border-line px-4 py-2 text-sm hover:bg-surface">Filter</button>
-          {(q || source || difficulty) && <Link href="/admin/problems" className="py-2 text-sm text-muted hover:underline">Clear</Link>}
+          <button type="submit" className={buttonClass("tonal", "sm")}>Filter</button>
+          {(q || source || difficulty) && <Link href="/admin/problems" className={buttonClass("quiet", "sm")}>Clear</Link>}
         </form>
-        <Link href={keep(f, { new: "1" })} className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent">
+        <Link href={keep(f, { new: "1" })} className={buttonClass("primary", "sm")}>
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
           </svg>
@@ -173,8 +176,8 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
                 <td className="px-4 py-2 font-medium">{p.title}</td>
                 <td className="px-4 py-2 font-mono text-xs text-muted">{p.id}</td>
                 <td className="px-4 py-2">{p.source ?? "Other"}</td>
-                <td className="px-4 py-2">{p.difficulty ? <span className={`text-diff-${p.difficulty}`}>{p.difficulty}</span> : <span className="text-muted">unrated</span>}</td>
-                <td className="px-4 py-2 text-muted">Stored</td>
+                <td className="px-4 py-2">{p.difficulty ? <Difficulty level={p.difficulty} /> : <span className="text-muted">unrated</span>}</td>
+                <td className="px-4 py-2"><Badge tone="primary">New stored problem</Badge></td>
                 <td className="px-4 py-2 text-right">
                   <Link href={keep(f, { edit: p.id })} className="text-accent hover:underline">Edit</Link>
                 </td>
@@ -186,9 +189,9 @@ async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }
                 <td className="px-4 py-2 font-mono text-xs text-muted">{p.slug ?? p.id}</td>
                 <td className="px-4 py-2">{sourceOf(p.id)}</td>
                 <td className="px-4 py-2">
-                  {p.difficulty ? <span className={`text-diff-${p.difficulty}`}>{p.difficulty}</span> : <span className="text-muted">unrated</span>}
+                  {p.difficulty ? <Difficulty level={p.difficulty} /> : <span className="text-muted">unrated</span>}
                 </td>
-                <td className="px-4 py-2 text-muted">Built-in</td>
+                <td className="px-4 py-2"><Badge>Built-in</Badge></td>
                 <td className="px-4 py-2 text-right">
                   <Link href={keep(f, { edit: p.id })} className="text-accent hover:underline">Edit</Link>
                 </td>

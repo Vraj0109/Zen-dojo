@@ -9,9 +9,20 @@ vi.mock("next/server", () => ({
   after: vi.fn(),
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: () => undefined,
+    set: () => {},
+    delete: () => {},
+  }),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
   usePathname: () => "/dsa",
+  notFound: () => {
+    throw new Error("NEXT_NOT_FOUND");
+  },
 }));
 
 import DsaPage from "./page";
@@ -87,5 +98,46 @@ describe("Practice /dsa tabs and searchParams regression tests", () => {
     for (const p of ALL_PATTERNS) {
       expect(html).toContain(p.name);
     }
+  });
+
+  it("problem solution and hints tabs render correctly with walkthrough and fallback", async () => {
+    const ProblemComponent = (await import("./[id]/page")).default;
+
+    // Test with walkthrough (lc-1 has walkthrough in INTERVIEW)
+    const pageWithWalkthrough = await ProblemComponent({
+      params: Promise.resolve({ id: "lc-1" }),
+      searchParams: Promise.resolve({ tab: "solution" }),
+    });
+    const html1 = await renderToString(pageWithWalkthrough);
+    expect(html1).toContain("Try it yourself first");
+    expect(html1).toContain("Optimal approach");
+    expect(html1).toContain("Reference implementation");
+
+    // Test with alias ?tab=interview
+    const pageWithAlias = await ProblemComponent({
+      params: Promise.resolve({ id: "lc-1" }),
+      searchParams: Promise.resolve({ tab: "interview" }),
+    });
+    const htmlAlias = await renderToString(pageWithAlias);
+    expect(htmlAlias).toContain("Try it yourself first");
+    expect(htmlAlias).toContain("Optimal approach");
+
+    // Test Hints tab: must show hints, but NOT "Show the solution"
+    const hintsPage = await ProblemComponent({
+      params: Promise.resolve({ id: "lc-1" }),
+      searchParams: Promise.resolve({ tab: "help" }),
+    });
+    const htmlHints = await renderToString(hintsPage);
+    expect(htmlHints).toContain("Open one hint at a time");
+    expect(htmlHints).not.toContain("Show the solution");
+
+    // Test problem without walkthrough (e.g. lc-37): should show fallback solution
+    const pageWithoutWalkthrough = await ProblemComponent({
+      params: Promise.resolve({ id: "lc-37" }),
+      searchParams: Promise.resolve({ tab: "solution" }),
+    });
+    const html2 = await renderToString(pageWithoutWalkthrough);
+    expect(html2).toContain("Try it yourself first");
+    expect(html2).toContain("Complexity:");
   });
 });

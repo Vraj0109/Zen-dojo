@@ -24,6 +24,7 @@ import { ReviewTabs, ReviewTabsWithCount } from "../section-tabs";
 import { SubmitButton } from "../submit-button";
 import { Tabs } from "../tabs";
 import { Badge, PageMain, buttonClass } from "../ui";
+import { PatternMapTab } from "./pattern-map/pattern-map";
 import { PrintButton } from "./print-button";
 import { ReviewQueueSkeleton } from "@/app/components/review-skeleton";
 
@@ -32,6 +33,7 @@ export const metadata: Metadata = { title: "Quick revise" };
 const TABS = [
   { id: "plan", label: "Plan & weak spots" },
   { id: "dsa", label: "DSA" },
+  { id: "map", label: "Pattern map" },
   { id: "sd", label: "System design" },
   { id: "lld", label: "LLD" },
   { id: "core", label: "Core CS" },
@@ -80,6 +82,7 @@ async function Revise({ searchParams }: { searchParams: Promise<SP> }) {
 
       {tab === "plan" && <PlanTab />}
       {tab === "dsa" && <DsaTab weak={weak} />}
+      {tab === "map" && <PatternMapTab view={str(sp.view)} node={str(sp.node)} />}
       {(tab === "sd" || tab === "lld" || tab === "core") && <AreaTab area={tab} weak={weak} />}
       {tab === "numbers" && <NumbersTab />}
       {tab === "quiz" && <QuizTab sp={sp} />}

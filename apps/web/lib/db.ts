@@ -268,6 +268,10 @@ ALTER TABLE solution_runs ADD COLUMN failed_cases TEXT NOT NULL DEFAULT '';
   syncMigrationSql(),
   // cloud sync for the reading list, stuck list and boss fights (triggers only; no new tables)
   syncMigrationSqlV2(),
+  // the per-case list of the latest Submit (JSON, see lib/judge/saved-run.ts); empty for runs saved before it existed
+  `
+ALTER TABLE solution_runs ADD COLUMN run_detail TEXT NOT NULL DEFAULT '';
+`,
 ];
 
 /** Names the step in the error so a log line says what failed (never any data or token). */

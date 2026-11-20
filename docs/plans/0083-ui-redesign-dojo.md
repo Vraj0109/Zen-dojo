@@ -1,6 +1,7 @@
 # 0083: UI redesign: the Dojo design system, screen by screen
 
-- **Status:** ready
+- **Status:** superseded by 0085–0089
+- **Superseded:** the Expressive redesign (plans 0085 to 0089, see `docs/plans/README.md`) replaced the screen-by-screen plan. Phases 1 to 5 of this plan stay in the file as history.
 - **Planned by:** Claude Code, 2026-11-19
 - **Implemented by:** Claude Code (Phase 1, steps 1-5; Phase 2, steps 6-10), 2026-11-19
 - **Spec:** `DESIGN.md` (repo root) and the mockup canvas "Zen Dojo redesign mockups"

@@ -1,9 +1,11 @@
 "use server";
 
 import { refresh, revalidatePath } from "next/cache";
-import type { PackProblem } from "@habit/shared";
+import { packProblemSpec, type PackProblem } from "@habit/shared";
 import { requireAdmin } from "@/lib/auth/session";
-import { getItem, upsertItem } from "@/lib/content";
+import { deleteItem, getItem, upsertItem } from "@/lib/content";
+import { isHosted } from "@/lib/hosted";
+import { runCode } from "@/lib/judge/run";
 
 // Admin problem saving (plan 0045). Saves go through the existing content store (`upsertItem`, table `content_items`,
 // item id "problem:<slug>"); the store validates the item again with the same rules the pack importer uses and sets
@@ -15,7 +17,7 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const TYPES = ["list", "tree", "int", "long", "double", "bool", "string", "int[]", "long[]", "bool[]", "string[]", "int[][]", "string[][]"];
 const DIFFICULTIES = ["easy", "medium", "hard"];
-const MAX = { title: 120, source: 80, category: 60, description: 20000, tests: 200000, code: 60000, constraints: 4000, fnName: 60 };
+const MAX = { title: 120, source: 80, category: 60, description: 20000, tests: 200000, code: 60000, constraints: 4000, fnName: 60, hints: 20, hint: 500 };
 
 function text(fd: FormData, name: string): string {
   const v = fd.get(name);
@@ -38,6 +40,7 @@ function build(fd: FormData): Built {
   const fnName = text(fd, "fnName").trim();
   const paramsRaw = text(fd, "params").trim();
   const returns = text(fd, "returns").trim();
+  const hints = text(fd, "hints").split("\n").map((h) => h.trim()).filter(Boolean);
 
   if (!title || title.length > MAX.title) errors.push(`Title is required (up to ${MAX.title} characters).`);
   if (!SLUG.test(slug)) errors.push("Slug must be lowercase letters, digits and hyphens, starting with a letter or digit (up to 40 characters).");
@@ -46,6 +49,7 @@ function build(fd: FormData): Built {
   if (category.length > MAX.category) errors.push(`Category is up to ${MAX.category} characters.`);
   if (!description || description.length > MAX.description) errors.push(`Description is required (up to ${MAX.description} characters).`);
   if (constraints.length > MAX.constraints) errors.push(`Constraints are up to ${MAX.constraints} characters.`);
+  if (hints.length > MAX.hints || hints.some((h) => h.length > MAX.hint)) errors.push(`Hints: up to ${MAX.hints} lines of ${MAX.hint} characters each.`);
   if (code.length > MAX.code) errors.push(`Initial code is up to ${MAX.code} characters.`);
   if (!NAME.test(fnName) || fnName.length > MAX.fnName) errors.push("Function name must be an identifier such as twoSum.");
   if (!TYPES.includes(returns)) errors.push(`Return type must be one of: ${TYPES.join(", ")}.`);
@@ -90,7 +94,7 @@ function build(fd: FormData): Built {
     // The first case is shown as the example; the rest are tests. Together they are what the form shows again on edit.
     examples: cases.slice(0, 1) as PackProblem["examples"],
     tests: cases.slice(1) as PackProblem["tests"],
-    hints: [],
+    hints,
     difficulty: difficulty as "easy" | "medium" | "hard",
     ...(category ? { group: category } : {}),
     ...(source ? { source } : {}),
@@ -130,4 +134,43 @@ export async function saveProblemAction(_prev: ProblemActionResult | null, formD
 export async function updateProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
   await requireAdmin();
   return save("update", formData);
+}
+
+// ---- verify with the judge, and delete (plan 0045 steps 2 and 4) -------------------------------------------------------
+
+export type VerifyResult = { ok: true; passed: number; total: number; maxMs: number; failures: string[] } | { ok: false; errors: string[] };
+
+const short = (s: string) => (s.length > 80 ? `${s.slice(0, 77)}...` : s);
+
+/** Compiles the C++ code of the form and runs it on every case of the form (the first case plus the tests). Saves nothing. */
+export async function verifyProblemAction(_prev: VerifyResult | null, formData: FormData): Promise<VerifyResult> {
+  await requireAdmin();
+  if (isHosted()) return { ok: false, errors: ["Running code is available in the desktop app."] };
+  const built = build(formData);
+  if (!built.ok) return built;
+  const code = text(formData, "code");
+  if (!code.trim()) return { ok: false, errors: ["Write the C++ reference solution in the code box first."] };
+  try {
+    const run = await runCode(packProblemSpec(built.item, "verify"), "cpp", code);
+    if (run.status !== "done") return { ok: false, errors: [run.message] };
+    const failures = run.results
+      .filter((r) => !r.pass)
+      .slice(0, 5)
+      .map((r) => `Case ${r.index + 1}: ${r.error ?? `expected ${short(r.expected)}, got ${short(r.actual ?? "nothing")}`}`);
+    return { ok: true, passed: run.passed, total: run.total, maxMs: Math.round(Math.max(0, ...run.results.map((r) => r.elapsedMs ?? 0))), failures };
+  } catch {
+    return { ok: false, errors: ["Could not run the judge. Check the server log."] };
+  }
+}
+
+/** Removes a stored problem. Built-in problems are never touched, and neither are seeded copies (source "builtin"). */
+export async function deleteProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
+  await requireAdmin();
+  const id = text(formData, "id").trim();
+  const row = SLUG.test(id) ? await getItem(`problem:${id}`) : null;
+  if (!row || row.source === "builtin") return { ok: false, errors: ["That stored problem does not exist."] };
+  await deleteItem(`problem:${id}`);
+  refresh();
+  revalidatePath("/admin/problems");
+  return { ok: true, id: `problem:${id}`, message: "Deleted. Built-in problems are unchanged." };
 }

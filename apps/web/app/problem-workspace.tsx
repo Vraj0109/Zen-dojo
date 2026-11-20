@@ -88,7 +88,7 @@ export function ProblemDescription({ spec }: { spec: ProblemSpec }) {
 export function ProblemHelp({ spec }: { spec: ProblemSpec }) {
   return (
     <div data-focus-reading className="space-y-2">
-      <p className="text-xs text-muted">Open one hint at a time. The solution is last.</p>
+      <p className="text-xs text-muted">Open one hint at a time.</p>
       {spec.hints.map((h, i) => (
         <details key={i} className="group rounded-lg border border-line bg-background p-3">
           <summary className="cursor-pointer text-sm font-medium">
@@ -97,26 +97,12 @@ export function ProblemHelp({ spec }: { spec: ProblemSpec }) {
           <p className="anim-fade-up mt-2 text-sm">{h}</p>
         </details>
       ))}
-      <details className="rounded-lg border border-line bg-background p-3">
-        <summary className="cursor-pointer text-sm font-medium">Show the solution</summary>
-        <div className="anim-fade-up mt-3 space-y-3">
-          {spec.solution.idea.map((para, i) => (
-            <p key={i} className="text-sm leading-relaxed">
-              {para}
-            </p>
-          ))}
-          <p className="text-sm">
-            <span className="font-medium">Complexity:</span> {spec.solution.complexity}
-          </p>
-          <SolutionCode spec={spec} />
-        </div>
-      </details>
     </div>
   );
 }
 
 /** The reference solution in every language that has one, as tabs (C++ first). Stored (pack or admin) problems keep C++ only. */
-function SolutionCode({ spec }: { spec: ProblemSpec }) {
+export function SolutionCode({ spec }: { spec: ProblemSpec }) {
   const langs = solutionLangs(spec);
   const builtIn = hasBundledSolutions(spec);
   return (

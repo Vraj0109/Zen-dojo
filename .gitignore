@@ -15,6 +15,7 @@ apps/desktop/dist/
 # --- Local data & logs ---
 data/
 logs/
+tmp/
 *.log
 
 # --- Secrets ---
