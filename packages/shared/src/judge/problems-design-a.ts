@@ -41,9 +41,10 @@ export const DESIGN_SPECS_A: ProblemSpec[] = [
       seq("LRUCache(1) put(1,1) put(2,2) get(1) get(2) put(2,3) get(2) put(1,4) get(2) get(1)", [null, null, null, -1, 2, null, 3, null, -1, 4]),
     ],
     hints: [
-      "A hash map finds a key in O(1) but knows nothing about order. A list knows the order but cannot find a key quickly. You need both.",
-      "Keep the keys in a doubly linked list from most recent to least recent, and a hash map from key to its place in that list. Moving a node to the front or removing the last one is O(1) when you already hold the node.",
-      "On get and on put of an existing key, move that node to the front. On put of a new key when the cache is full, remove the node at the back (and its map entry) before inserting.",
+      "Two things must be fast here: finding a key, and knowing which key was used longest ago. Can one structure do both?",
+      "A lookup table finds any key quickly but does not know the order. A chain of entries keeps the order, and you can reach any entry in it directly if you hold a pointer to it.",
+      "Pair a hash map from key to its place in a doubly linked list ordered by recency. Move an entry to the front on each use, and evict from the back.",
+      "On a put of an existing key, update the value and move that entry to the front instead of adding a second entry.",
     ],
     solution: {
       idea: [
@@ -141,9 +142,10 @@ public:
       seq("LFUCache(2) put(2,1) put(3,2) get(3) get(2) put(4,3) get(2) get(3) get(4)", [null, null, null, 2, 1, null, 1, -1, 3]),
     ],
     hints: [
-      "You need to find the key with the lowest use count quickly, and among those the one used longest ago. Think of one list of keys for every use count.",
-      "Keep a hash map from key to (value, count) and a hash map from count to a list of keys, newest at the front. Also keep minCount, the smallest count that exists.",
-      "When a key is used, move it from the list of its count to the list of count + 1; if the old list is now empty and it was minCount, minCount goes up by one. When adding a new key, minCount becomes 1. To evict, take the key at the back of the list for minCount.",
+      "Eviction now depends on a count, and ties on the count depend on recency. What must you be able to find quickly?",
+      "You need the key with the smallest count and, among those, the one used longest ago. Keeping one ordered group per count helps.",
+      "Map each key to its value and count, and each count to a recency-ordered list of keys. Track the smallest count in use so you know where to evict.",
+      "When a key's count rises and its old list becomes empty, the smallest count may move up by one. A new key always resets it to 1.",
     ],
     solution: {
       idea: [
@@ -250,9 +252,10 @@ public:
       seq('Trie() insert("zebra") startsWith("z") startsWith("zebra") startsWith("zebras") search("zebra")', [null, null, true, true, false, true]),
     ],
     hints: [
-      "Picture a tree where each edge is a letter. Walking down the letters of a word from the root either reaches a node or falls off the tree.",
-      "Each node needs its children (26 slots, or a map from letter to node) and a flag that says a word ends here.",
-      "search walks the letters and also needs the flag at the last node; startsWith only needs the walk to succeed.",
+      "Imagine the letters of each word as steps along a path from one shared starting point. How would you tell whether a word is on that path?",
+      "Words that share a beginning can share their first steps, so one shared branching structure works better than separate lists.",
+      "Use a node for each prefix, with a link for each letter, and a flag on each node that marks where a full word ends.",
+      "A prefix check succeeds for any walk that exists, even if the prefix is not a word. A full word check also needs the end flag.",
     ],
     solution: {
       idea: [
@@ -342,9 +345,10 @@ public:
       seq('WordDictionary() addWord("hello") search("h.llo") search("hell.") search("hell") search(".....") search("......")', [null, null, true, true, false, true, false]),
     ],
     hints: [
-      "Without dots this is a trie. What changes when the next letter is a dot?",
-      "At a dot you have to try every child of the current node, so the search becomes a depth-first search over the trie.",
-      "Write search as a recursive function (node, position). At a normal letter follow one child; at a dot try all children and return true if any works. At the end of the word, return the node's end flag.",
+      "Think about storing words by their shared beginnings. What is different when one letter in the query can stand for any letter?",
+      "A fixed letter has only one way to go. A dot could be any letter, so you must try every possible way and accept if one works.",
+      "Use a recursive search that walks the query and the stored structure together, trying all branches at each dot and checking the end flag at the end.",
+      "The query must match the whole word length, so only accept once every letter of the query has been used.",
     ],
     solution: {
       idea: [
@@ -439,9 +443,10 @@ public:
       seq('TimeMap() set("p","q",1000000) get("p",1000000) get("p",999999) get("p",10000000)', [null, null, "q", "", "q"]),
     ],
     hints: [
-      "For one key you have a list of (timestamp, value) pairs. Because set is called with increasing timestamps, the list is already sorted by time.",
-      "Keep a hash map from key to that list. get is then a search in a sorted list.",
-      "Binary search for the last pair whose timestamp is at most the asked one. If there is none, return the empty string.",
+      "Each key can hold several values over time. How would you find the value that was current at a given moment?",
+      "Timestamps arrive in increasing order, so the history of each key is already sorted and only needs searching.",
+      "Map each key to a list of timestamp and value pairs, then binary search that list for the last entry at or before the requested time.",
+      "If the query is earlier than the first stored time, return the empty string rather than the first value.",
     ],
     solution: {
       idea: [

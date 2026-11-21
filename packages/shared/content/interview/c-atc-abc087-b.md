@@ -3,6 +3,7 @@ id: c-atc-abc087-b
 pattern: cses-atcoder
 difficulty: easy
 optimal: "O(a * b * c) time, at most about 132000 steps; O(1) space"
+brute: same
 reviewed: false
 ---
 

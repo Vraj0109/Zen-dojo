@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ProblemSpec } from "@habit/shared";
 import { parseMarkdown, inlineParts, type MdBlock } from "@habit/shared";
-import { SOLUTION_LANG_LABEL, hasBundledSolutions, solutionCode, solutionLangs } from "@habit/shared/solutions";
+import { SOLUTION_LANG_LABEL, hasBundledSolutions, solutionCode, solutionLangs, bruteCode, bruteLangs } from "@habit/shared/solutions";
 import { SolutionTabs } from "./solution-tabs";
 import { Code } from "./code";
 import { slug } from "./toc-items";
@@ -151,8 +151,10 @@ function WalkthroughBody({
       {/* Sections */}
       <div className="space-y-6">
         {sections.map((sec) => {
+          const isBruteForce = sec.title.toLowerCase().includes("brute force");
           const isOptimalApproach = sec.title.toLowerCase().includes("optimal approach");
           const slot = approachSlots?.[sec.id] ?? approachSlots?.[sec.title];
+          const isBruteSame = /brute:\s*same/i.test(interview.md);
 
           return (
             <section key={sec.id} id={sec.id} className="scroll-mt-16 space-y-3">
@@ -163,6 +165,18 @@ function WalkthroughBody({
 
               {/* Approach slot for future plan 0076 */}
               {slot && <div className="mt-3">{slot}</div>}
+
+              {/* Brute force code directly after Brute force section */}
+              {isBruteForce && (
+                <div className="mt-4 space-y-3 rounded-lg border border-line bg-surface-2/60 p-4">
+                  <h4 className="text-sm font-semibold text-foreground">Brute force implementation</h4>
+                  {isBruteSame ? (
+                    <p className="text-sm text-muted">The direct approach is already optimal here.</p>
+                  ) : (
+                    <BruteCodeBlock spec={spec} />
+                  )}
+                </div>
+              )}
 
               {/* Reference code directly under Optimal approach */}
               {isOptimalApproach && (
@@ -207,6 +221,24 @@ function SolutionCodeBlock({ spec }: { spec: ProblemSpec }) {
       {builtIn && langs.length === 1 && (
         <p className="text-xs text-muted">Java and Python solutions are being added.</p>
       )}
+    </div>
+  );
+}
+
+function BruteCodeBlock({ spec }: { spec: ProblemSpec }) {
+  const langs = bruteLangs(spec);
+  if (!langs.length) {
+    return <p className="text-xs text-muted">Brute force solution is being added.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      <SolutionTabs
+        tabs={langs.map((l) => ({
+          id: l,
+          label: SOLUTION_LANG_LABEL[l],
+          node: <Code code={bruteCode(spec, l) ?? ""} lang={SOLUTION_LANG_LABEL[l]} maxHeight="24rem" />,
+        }))}
+      />
     </div>
   );
 }

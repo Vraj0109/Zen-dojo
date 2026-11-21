@@ -3,6 +3,7 @@ id: c-euler-29
 pattern: cses-euler
 difficulty: medium
 optimal: "O(n^2) pairs inserted, with a hash set or sort: well under a second for n = 1000"
+brute: same
 reviewed: false
 ---
 

@@ -3,6 +3,7 @@ id: c-euler-10
 pattern: cses-euler
 difficulty: easy
 optimal: "O(limit log log limit) time, O(limit) space"
+brute: same
 reviewed: false
 ---
 

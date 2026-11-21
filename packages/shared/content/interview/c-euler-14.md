@@ -3,6 +3,7 @@ id: c-euler-14
 pattern: cses-euler
 difficulty: medium
 optimal: "O(limit * average walk) time, O(limit) space; fast in practice"
+brute: same
 reviewed: false
 ---
 

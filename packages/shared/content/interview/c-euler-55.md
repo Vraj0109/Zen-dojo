@@ -3,6 +3,7 @@ id: c-euler-55
 pattern: cses-euler
 difficulty: hard
 optimal: "O(limit * iterations * digits) time, O(digits) space"
+brute: same
 reviewed: false
 ---
 

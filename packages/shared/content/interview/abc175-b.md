@@ -3,6 +3,7 @@ id: abc175-b
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(n^3) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

@@ -3,6 +3,7 @@ id: c-euler-19
 pattern: cses-euler
 difficulty: medium
 optimal: "O(endYear) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

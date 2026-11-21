@@ -27,9 +27,10 @@ export const LEETCODE_SPECS_7: ProblemSpec[] = [
       { input: [5,[[1,0],[2,1],[3,2],[4,3],[2,4]]], output: false },
     ],
     hints: [
-      "Model courses as nodes and prerequisites as directed edges. A valid plan exists exactly when the graph has no cycle.",
-      "Count how many prerequisites each course still has (its in-degree). Courses with zero can be taken now.",
-      "Kahn's algorithm: repeatedly take a course with in-degree 0, and lower the in-degree of the courses that depend on it. If you take all of them, the answer is true.",
+      "Courses are tasks with ordering rules between them. When is there an order that finishes everything, and when is there not?",
+      "A course with no unfinished prerequisites can be taken now. What happens to the rest as you keep taking the available courses?",
+      "Count each course's remaining prerequisites. Repeatedly take a course whose count is zero, reduce the counts of the courses that depend on it, and use a queue.",
+      "If every course gets taken, the schedule works. If some never reach a count of zero, there is a cycle. Edge direction matters.",
     ],
     solution: {
       idea: [
@@ -84,9 +85,10 @@ public:
       { input: [4,[[1,0],[3,2]]], output: [0,1,2,3] },
     ],
     hints: [
-      "This is a topological sort. It also tells you when there is a cycle.",
-      "Process courses whose prerequisites are all done. Output a course when you take it.",
-      "To get the smallest order, keep the available courses in a min-heap instead of a plain queue. If fewer than numCourses were output, return an empty array.",
+      "This is the same ordering problem as before, but now you must output the order. Which courses can you start with?",
+      "Whenever several courses are available, the order you take them is your choice. What rule gives the smallest order?",
+      "Use the same counting approach, but keep the available courses in a min-heap so the smallest number is always taken next.",
+      "If the output is shorter than the number of courses, there is a cycle, so return an empty result. A pair [a, b] means b comes first.",
     ],
     solution: {
       idea: [
@@ -140,9 +142,10 @@ public:
       { input: [5,[[1,2],[3,2],[4,5]],[10,1,10,3,3]], output: 11 },
     ],
     hints: [
-      "A course can start as soon as the last of its prerequisites ends.",
-      "So finish[c] = time[c] + max(finish of its prerequisites), or just time[c] if it has none.",
-      "Process the courses in topological order (Kahn's algorithm) and keep finish[] up to date. The answer is the maximum finish time.",
+      "A course can start only when all its prerequisites end. How long does a chain of prerequisites take in total?",
+      "A course's finish time depends on the latest finish time among its prerequisites. Which order of processing makes those values known before you need them?",
+      "Process courses as they become ready, using a queue and counts of unfinished prerequisites. Keep the earliest start for each course, and take the largest finish at the end.",
+      "The answer is the longest chain of weighted courses, not the sum of all times. Courses with no prerequisites start at month zero.",
     ],
     solution: {
       idea: [
@@ -199,9 +202,10 @@ public:
       { input: [[[1,1,0,0],[1,1,1,0],[0,1,1,0],[0,0,0,1]]], output: 2 },
     ],
     hints: [
-      "Count connected components of an undirected graph.",
-      "Walk from an unvisited city with DFS or BFS, mark everything reachable, and add one to the count.",
-      "A union-find (disjoint set) works too: start with n sets, and each successful union reduces the count by one.",
+      "Cities linked directly or through others form a group. How many separate groups are there?",
+      "A group can be explored from any of its members. Once a group is fully explored, count it and move on to a city you have not seen.",
+      "Run a depth-first or breadth-first search from each unseen city to mark its group, and count how many searches you start.",
+      "Alternatively, merge connected cities into sets and count the sets left. The matrix is symmetric, so one direction is enough.",
     ],
     solution: {
       idea: [
@@ -252,9 +256,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "An email is the thing that links accounts. Think of emails as the nodes of a graph.",
-      "Union-find: give every email an owner, and union all the emails inside one account. Remember the name for each email.",
-      "After all unions, group the emails by their root, sort each group, and put the name in front.",
+      "Shared emails link accounts together. If you treat each email as a point, what does sharing an email mean for two accounts?",
+      "All emails in one account belong to one person. How can you join groups of emails so that connected emails end up in the same group?",
+      "Give each email an id and join the emails of each account in a disjoint-set structure. Remember the name of each email's owner.",
+      "Group the emails by their final set, sort each group, and put the name first. Two different people can share a name, so do not group by name.",
     ],
     solution: {
       idea: [
@@ -315,9 +320,10 @@ public:
       { input: [[[1,2],[1,3],[2,3],[3,4]]], output: [2,3] },
     ],
     hints: [
-      "Add the edges one by one. When does an edge create the cycle?",
-      "When its two endpoints are already connected through earlier edges.",
-      "Use union-find. Before uniting the endpoints of an edge, check whether they already share a root. The first edge for which they do is the answer.",
+      "The graph started as a tree, so it had no cycle. As edges are added one at a time, when does a new edge create a cycle?",
+      "An edge makes a cycle exactly when its two ends are already connected by earlier edges. How can you check that quickly as edges arrive?",
+      "Use a disjoint-set structure. For each edge, check whether its two ends already share a set. The first edge that does is the answer.",
+      "Only one edge closes the cycle, so the first one found is the one to return. Nodes are numbered from 1.",
     ],
     solution: {
       idea: [
@@ -370,9 +376,10 @@ public:
       { input: [[[1,2,1],[2,1,3],[2,3,1],[3,4,100]],4,1], output: 102 },
     ],
     hints: [
-      "The time a node receives the signal is the length of the shortest path from k.",
-      "All weights are non-negative, so Dijkstra's algorithm applies.",
-      "Run Dijkstra from k with a min-heap. The answer is the largest shortest distance; if any node is unreachable, return -1.",
+      "Each node receives the signal at a time set by the fastest route from the source. What is the question really asking for?",
+      "The last node to be reached decides the total time. How does that node's time relate to the shortest times from the source?",
+      "Use a shortest-path search from the source with a min-heap, since every time is non-negative. Skip outdated heap entries when you pop them.",
+      "If some node is never reached, return -1. Nodes are labelled from 1, so check every label from 1 to n.",
     ],
     solution: {
       idea: [
@@ -433,9 +440,10 @@ public:
       { input: [5,[[0,1,5],[1,2,5],[0,3,2],[3,1,2],[1,4,1],[4,2,1]],0,2,2], output: 7 },
     ],
     hints: [
-      "The number of flights matters as well as the price, so state = (city, flights used).",
-      "Bellman-Ford fits: run k + 1 rounds, each round relaxing every flight using the prices from the previous round only.",
-      "Copy the distance array at the start of each round and relax from the old copy, so one round adds at most one flight.",
+      "The cheapest route may use too many stops, so the best answer depends on both price and number of flights. What must you track?",
+      "Think of rounds: after r rounds you know the cheapest price using at most r flights. How does each round build on the one before?",
+      "Run a fixed number of relaxation rounds over all flights. Read prices only from the previous round's copy, so each round adds at most one flight.",
+      "Use a large sentinel for unreachable cities and do not extend from them. k stops means k plus one flights, so run that many rounds.",
     ],
     solution: {
       idea: [
@@ -487,9 +495,10 @@ public:
       { input: [[[3,3],[3,3]]], output: 0 },
     ],
     hints: [
-      "This is a shortest path, but the cost of a route is its largest step, not the sum.",
-      "Dijkstra works with the cost of reaching a cell defined as max(cost so far, this step's difference).",
-      "Alternatively binary search the effort limit E and check with BFS whether the end is reachable using only steps of at most E.",
+      "The cost of a route is its largest single step, not the sum. How does that change the way costs build up along a path?",
+      "When you extend a route to a neighbour, the new cost is the larger of the old cost and the new step. Which search finds the cheapest such value first?",
+      "Use a min-heap search over cells, where each cell keeps the best largest-step found so far. Skip outdated entries when you pop them.",
+      "You can also binary search the effort limit and check reachability with a plain grid search. Both approaches give the same answer.",
     ],
     solution: {
       idea: [
@@ -549,9 +558,10 @@ public:
       { input: [[[6,0,3],[5,2,1],[8,7,4]]], output: 6 },
     ],
     hints: [
-      "The answer is the smallest water level t for which a path of cells all with elevation <= t exists.",
-      "That is the same bottleneck-path problem as 'minimum effort': minimise the largest elevation on the route.",
-      "Dijkstra with a min-heap keyed by the maximum elevation seen on the way. The first time you pop the end cell, you have the answer.",
+      "Water rises over time, and a cell is usable once the level reaches its height. What single number describes a whole route?",
+      "A route is only as good as its highest cell. The task is to find a route whose highest cell is as low as possible.",
+      "Use a min-heap search where each cell's time is the highest elevation seen on the way. The first time the end cell is popped, that time is the answer.",
+      "Pops come out in increasing time, so the first time a cell is pushed is already its best time. Mark it visited at that moment.",
     ],
     solution: {
       idea: [
@@ -610,9 +620,10 @@ public:
       { input: [[[0,0,0],[1,1,0],[0,0,0]]], output: 0 },
     ],
     hints: [
-      "Think of each cell as costing 1 to enter if it holds an obstacle and 0 otherwise. You want the cheapest route.",
-      "Dijkstra works, but every edge weight is only 0 or 1.",
-      "A deque does it in linear time (0-1 BFS): push a 0-cost neighbour to the front and a 1-cost neighbour to the back.",
+      "Each obstacle costs one removal and empty cells are free. Could this be a shortest-path question where every cost is zero or one?",
+      "A general shortest-path method works, but there is a faster one when all costs are zero or one. What structure can keep cells in order of distance without a heap?",
+      "Use a double-ended queue: a zero-cost step goes to the front and a one-cost step goes to the back. Each cell is then popped at its best distance.",
+      "Skip a neighbour when you cannot improve its distance. The start and the end are guaranteed to be empty.",
     ],
     solution: {
       idea: [
@@ -672,9 +683,10 @@ public:
       { input: [4,[[0,1,10],[0,2,1],[2,3,1],[1,3,1]],4], output: 3 },
     ],
     hints: [
-      "You need the shortest distance between every pair of cities, and n is only 100.",
-      "Floyd-Warshall computes all pairs in O(n^3): for each middle city k, try dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]).",
-      "Then count, for each city, the others within the threshold, and pick the smallest count, preferring the larger index on ties.",
+      "The graph is small, with at most 100 cities. Would computing the distance between every pair of cities be affordable?",
+      "The distance between two cities may pass through any intermediate city. If you allow one more intermediate city at a time, what can you update?",
+      "Use an all-pairs shortest-path table, relaxing through each city in turn as the intermediate. Then count the reachable cities for each city.",
+      "Ties go to the larger city index, so compare counts with less-than-or-equal. Use a large sentinel and guard against overflow when adding.",
     ],
     solution: {
       idea: [
@@ -730,9 +742,10 @@ public:
       { input: [[[2,-3],[-17,-8],[13,8],[-17,-15]]], output: 53 },
     ],
     hints: [
-      "Every pair of points is a possible edge, which makes a complete graph. You want its minimum spanning tree.",
-      "Kruskal sorts all about n^2 / 2 edges and uses union-find. Prim grows the tree from one point.",
-      "For dense graphs Prim without a heap is simple: keep minDist[v] to the tree, repeatedly add the closest outside point, and update the others. O(n^2).",
+      "Every pair of points could be joined, so there are many possible links. What is the cheapest set of links that connects all points without a cycle?",
+      "A cheapest cycle-free connecting set can be grown from one point at a time. Which outside point should join the tree next?",
+      "Grow the tree from one point. Keep for each outside point its cheapest link to the tree, and each step add the closest one. This avoids sorting all the pairs.",
+      "The graph is complete and small, so repeated scanning is fast enough. Use 64-bit sums for the total.",
     ],
     solution: {
       idea: [
@@ -791,9 +804,10 @@ public:
       { input: [[[1,2],[0],[0],[4],[3]]], output: true },
     ],
     hints: [
-      "Try to colour the nodes with two colours so that neighbours differ.",
-      "Start a BFS or DFS from each uncoloured node. Give it a colour and give each neighbour the opposite colour.",
-      "If you meet a neighbour that already has the same colour as the current node, there is an odd cycle: return false. Remember to start searches from every component.",
+      "Think of colouring the nodes with two colours so that every edge joins different colours. When would that be impossible?",
+      "If a cycle has an odd number of edges, two colours cannot alternate all the way around it. Could you colour neighbours as you walk the graph?",
+      "Colour a node, then give each neighbour the opposite colour during a breadth-first or depth-first walk. Start a new walk for each uncoloured node.",
+      "A clash between neighbours means the graph is not bipartite. The graph may be disconnected, so check every node, not just one.",
     ],
     solution: {
       idea: [
@@ -851,9 +865,10 @@ public:
       { input: [7,[[1,2],[3,4],[4,5],[3,5]]], output: false },
     ],
     hints: [
-      "Draw a graph where each dislike is an edge. What do the two groups look like?",
-      "It is exactly the question of whether the graph is bipartite.",
-      "Build the adjacency lists, then two-colour every component with BFS or DFS. A conflict means false.",
+      "Each dislike is a link between two people. Can you split people into two groups so that no link stays inside a group?",
+      "Think about whether the dislike graph can be coloured with two colours, and what would block that.",
+      "Build the adjacency lists, then colour each component with a walk, giving neighbours the opposite colour. A clash means the answer is false.",
+      "Every person must get a colour, including people with no dislikes. The graph may be disconnected.",
     ],
     solution: {
       idea: [
@@ -912,9 +927,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "A bridge is an edge that is not on any cycle.",
-      "In a DFS tree, give each node a discovery time and a low-link: the earliest discovery time reachable from its subtree using at most one back edge.",
-      "A tree edge (u, v) is a bridge when low[v] > disc[u]: nothing below v can climb back to u or above. Use an iterative DFS for 100000 nodes if recursion is risky.",
+      "Some cables are the only link between two parts of the network. How can a walk through the network reveal such a cable?",
+      "A cable is critical when no other route, through a cycle, connects its two ends. What does a walk that finds a back-link tell you?",
+      "Run a depth-first walk that records each node's visit time and the earliest time reachable from its subtree. A tree edge whose child cannot reach above its parent is a bridge.",
+      "The network can have 100000 nodes, so an iterative stack is safer than deep recursion. Skip only the edge you came in on.",
     ],
     solution: {
       idea: [
@@ -988,9 +1004,10 @@ public:
       { input: [[["JFK","ATL"],["ATL","JFK"],["JFK","SFO"],["SFO","ATL"],["ATL","SFO"]]], output: ["JFK","ATL","JFK","SFO","ATL","SFO"] },
     ],
     hints: [
-      "You need a path that uses every edge exactly once: an Eulerian path.",
-      "Greedily taking the smallest airport can get stuck at a dead end while tickets remain.",
-      "Hierholzer's algorithm: DFS, always taking the smallest unused destination, and add an airport to the answer only when it has no tickets left. The answer is that list reversed.",
+      "Each ticket must be used exactly once, so the trip is a route through every edge. Why does always picking the smallest airport not always work?",
+      "A walk can get stuck at an airport with no tickets left before the trip is complete. How could you backtrack to fix that?",
+      "Use a depth-first walk that always takes the smallest unused destination. Record each airport when it runs out of tickets, then reverse the record.",
+      "Keep each airport's destinations in a sorted multiset so the smallest is always available. Start from JFK.",
     ],
     solution: {
       idea: [
@@ -1049,9 +1066,10 @@ public:
       { input: [["0201","0101","0102","1212","2002"],"0000"], output: 0 },
     ],
     hints: [
-      "Each lock state is a node; each state has 8 neighbours (4 wheels, 2 directions).",
-      "Breadth-first search from 0000 finds the fewest moves.",
-      "Put the dead ends in a set and treat them as already visited. If 0000 itself is a dead end, the answer is -1 (unless the target is 0000, which is not allowed in the input when it is a dead end).",
+      "Each lock state is a point, and one turn changes one wheel by one step. Which search finds the fewest moves from one point to another?",
+      "There are only 10,000 states, so you can afford to visit each one once. Which search reaches all states one step away before any two steps away?",
+      "Use a breadth-first search from 0000. Each state has eight neighbours, one per wheel and direction, with wrap-around. Put the dead ends in a set and skip them.",
+      "If 0000 is itself a dead end, nothing can move, so return -1. Turning 9 forward gives 0, and turning 0 backward gives 9.",
     ],
     solution: {
       idea: [
@@ -1114,9 +1132,10 @@ public:
       { input: [[[2,3,0],[1,5,4]]], output: -1 },
     ],
     hints: [
-      "There are only 6! = 720 positions, so the whole state space is tiny.",
-      "Turn the board into a string such as \"123450\" and run BFS from the start toward the goal.",
-      "Precompute which positions are next to each index in the flattened board, then swap the 0 with each neighbour to create the next states.",
+      "The board has only six cells and a small number of arrangements. Could you treat each arrangement as a point and find the shortest route to the solved one?",
+      "Any board arrangement can be written as a short string. Which search finds the fewest moves between two such states?",
+      "Use a breadth-first search over strings. From each state, swap the blank with each cell next to it. Precompute the neighbours of each cell position.",
+      "Keep a set of seen states so you do not revisit them. Return -1 if the solved board is never reached.",
     ],
     solution: {
       idea: [
@@ -1175,9 +1194,10 @@ public:
       { input: [[[1,3],[0,2],[1,3],[0,2]]], output: 3 },
     ],
     hints: [
-      "Because n is at most 12, the set of visited nodes fits in a bitmask of 12 bits.",
-      "A state is (current node, set of visited nodes). The goal is any state whose mask has all bits set.",
-      "BFS over these states, starting from every node at once with its own bit set. The first time you reach the full mask, the distance is the answer.",
+      "The graph has at most 12 nodes. Since only the set of visited nodes matters, how could you store that set compactly?",
+      "A state is a current node plus the set of nodes visited so far. What would it mean to reach a state where every node has been visited?",
+      "Use a breadth-first search over states that pair a node with a bit mask of visited nodes. Start from every node at once, with only itself marked.",
+      "Each move costs one edge, and revisiting is allowed. The first time you reach the full set, its distance is the answer.",
     ],
     solution: {
       idea: [
@@ -1234,9 +1254,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "Generate subsets with backtracking: at each position either include the element or not.",
-      "Sort the array first so equal numbers sit next to each other.",
-      "To avoid duplicates, when you loop over choices at one level, skip a number if it equals the previous number at that same level.",
+      "Picture building a subset one element at a time. What goes wrong when the same value appears twice in the input?",
+      "If you sort the input, equal values sit side by side. What does that let you do with the choices at one level?",
+      "Backtrack from a start index. At each level, skip a value that equals the previous value at that same level, unless it is the first choice there.",
+      "Edge case: the empty subset is a valid answer and must be included. Record every path, not only the full-length ones.",
     ],
     solution: {
       idea: [
@@ -1293,9 +1314,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "Build the permutation one position at a time, trying each unused number.",
-      "Sort the array so equal numbers are adjacent, and keep a used[] flag for each position.",
-      "Skip a number if it equals the previous number and that previous copy is not used in the current path. That forces equal numbers to be placed in a fixed left-to-right order.",
+      "Think of the answer as filling slots from left to right. What makes two arrangements look identical?",
+      "If the input is sorted, equal numbers sit side by side. How could you force equal copies to be used in a fixed order?",
+      "Keep a used flag per number. Skip a number equal to the one before it when that earlier copy is not in use, so equal copies stay in left-to-right order.",
+      "Edge case: if every value is equal, there is exactly one arrangement to return.",
     ],
     solution: {
       idea: [
@@ -1356,9 +1378,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "Backtracking: choose numbers one by one while the running sum stays at or below the target.",
-      "Sort first. Once a candidate is larger than the remaining target, every later one is too, so you can stop that loop.",
-      "To avoid duplicate combinations, at one level of the recursion skip a number equal to the one just tried. Pass i + 1 to the next level because each element is used once.",
+      "Think of the candidates as items that can each be taken at most once. Which order of picking lets you stop early and avoid repeats?",
+      "If the candidates are sorted, what can you say about the rest of the list once one candidate is bigger than what remains of the target?",
+      "Pick from a start index and move forward. At one level, skip a value equal to the previous one, so the same combination is not built twice.",
+      "Edge case: a value that appears several times may be used as many times as it appears, but no more.",
     ],
     solution: {
       idea: [
@@ -1415,9 +1438,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "Place the queens row by row; each row holds exactly one queen, so you only choose a column.",
-      "A square (row, col) is attacked if its column, its diagonal (row - col) or its anti-diagonal (row + col) is already used.",
-      "Keep three boolean arrays for columns and the two diagonals. Place, recurse to the next row, and undo (backtrack).",
+      "Place one queen per row. Given that, what is the only decision you make for each row?",
+      "Which squares are attacked by the queens already placed? Think about the column and the two diagonals each queen blocks.",
+      "Use three lookup arrays for columns and the two diagonals, so each safety check is quick. Place, recurse to the next row, then undo the placement.",
+      "Edge case: n = 1 has one solution, while n = 2 and n = 3 have none. Build the board strings only when a full placement is found.",
     ],
     solution: {
       idea: [
@@ -1487,9 +1511,10 @@ public:
       { input: [[["C","A","A"],["A","A","A"],["B","C","D"]],"AAB"], output: true },
     ],
     hints: [
-      "Try every cell as a possible start of the word.",
-      "From a matching cell, DFS to the four neighbours looking for the next letter. Mark the cell as used while it is on the current path.",
-      "Unmark the cell when the DFS returns (backtrack) so other paths can use it. Stop at once when the whole word is matched.",
+      "Think of the word as a path through the grid. Where could the path start, and what must it do at each step?",
+      "Once a cell matches the first letter, how should the search explore the next letters? What must it remember about cells already used?",
+      "Mark the current cell as used while exploring from it, then unmark it when that branch fails. Stop as soon as one path finds the whole word.",
+      "Edge case: a word longer than the number of cells cannot match, and a one-letter word needs no special handling.",
     ],
     solution: {
       idea: [

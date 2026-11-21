@@ -3,6 +3,7 @@ id: c-atc-abc086-a
 pattern: cses-atcoder
 difficulty: easy
 optimal: "O(1) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

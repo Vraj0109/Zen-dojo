@@ -27,9 +27,9 @@ export const LEETCODE_SPECS_3: ProblemSpec[] = [
       { input: [[7, 7, 7, 7], 1], output: [7] },
     ],
     hints: [
-      "First you need to know how many times each value occurs. What structure gives you that in one pass?",
-      "A hash map from value to count. Now you need the k values with the biggest counts.",
-      "Either keep a min-heap of size k over (count, value) pairs, or use bucket sort: make a list of lists indexed by count (a count can be at most n) and read the buckets from the highest count down until you have k values.",
+      "First you need to know how often each value occurs. Once you have the counts, which values do you need?",
+      "The k values with the largest counts. Sorting all the counts works, but you can do better because the counts are small whole numbers.",
+      "Put values into buckets by their count, since a count can be at most the list length. Read the buckets from the highest count downwards until you have k values.",
     ],
     solution: {
       idea: [
@@ -84,9 +84,9 @@ public:
       { input: [[100, -100, 100, -100], 0], output: 4 },
     ],
     hints: [
-      "A subarray from i to j has sum prefix[j] - prefix[i-1]. What must the earlier prefix be, if the sum is k?",
-      "For each position j, you need the number of earlier positions whose prefix sum equals prefix[j] - k.",
-      "Keep a hash map from prefix-sum value to how many times it has been seen. Start with {0: 1} for the empty prefix. At each element, add map[prefix - k] to the answer, then record the current prefix.",
+      "A subarray sum is the difference of two running totals. What running total must come before the subarray if its sum is k?",
+      "For each position, count how many earlier running totals are exactly the current total minus k. Negative numbers rule out a sliding window.",
+      "Keep a table counting how often each running total has appeared, starting with zero once. At each step add the count for the current total minus k, then record the current total.",
     ],
     solution: {
       idea: [
@@ -141,9 +141,9 @@ public:
       { input: [[1, 0, 1, 0, 1]], output: 2 },
     ],
     hints: [
-      "Look at one bar. How much water sits directly above it?",
-      "The water level above bar i is min(tallest bar to its left, tallest bar to its right), minus the height of bar i (and never negative).",
-      "You can precompute leftMax and rightMax arrays. To use O(1) space, keep two pointers moving inward and track the max seen from each side; always advance the side with the smaller max, because that side's water level is already decided.",
+      "Look at one bar. How high can water stand above it, and what decides that height?",
+      "The water level above a bar is limited by the shorter of the tallest bars on its left and on its right, minus the bar's own height, and never below zero.",
+      "Use two pointers from both ends with running maximums. Always move the side with the smaller maximum, since its water level is already known.",
     ],
     solution: {
       idea: [
@@ -199,9 +199,9 @@ public:
       { input: ["xxabxcxxbaxx", "abc"], output: "abxc" },
     ],
     hints: [
-      "Try to grow a window from the left to the right until it contains everything in t. Then what?",
-      "Once it is valid, shrink it from the left as far as it stays valid; that gives the shortest window ending at the current right edge.",
-      "Keep a count of what t still needs per character and a single number 'missing' for how many characters are still short. Add on the right (decrement need; if it was positive, missing--). When missing hits 0, move the left edge while the character leaving is not needed, then record the window.",
+      "Grow a window to the right until it contains everything needed. Once it is valid, what can you try next?",
+      "Shrink the window from the left as long as it stays valid. Each valid window is a candidate answer.",
+      "Track how many needed characters are still missing, plus how many of each letter the window still needs. When the missing count hits zero, shrink from the left and record the shortest result.",
     ],
     solution: {
       idea: [
@@ -260,9 +260,9 @@ public:
       { input: [[4, 4, 4, 4]], output: 4 },
     ],
     hints: [
-      "Restate it: find the longest contiguous stretch that has at most two distinct values.",
-      "Use a window [left, right]. Extend right; if the window then has three distinct values, move left forward until it has two again.",
-      "Track the count of each type inside the window in a small map. When a count drops to zero, remove that type so the map size equals the number of distinct types.",
+      "Restate it: which is the longest run of consecutive trees that contains at most two kinds of fruit?",
+      "A sliding window. Extend it to the right, and when it holds three kinds, move the left end forward until only two remain.",
+      "Count each fruit type in the window. When a count falls to zero, remove that type, so the number of types can be read from the table size.",
     ],
     solution: {
       idea: [
@@ -318,9 +318,9 @@ public:
       { input: [[0, 0]], output: 0 },
     ],
     hints: [
-      "With sums you only needed the best block ending here. Why is that not enough for products?",
-      "A very negative product can become very positive after multiplying by another negative number. So you also need the smallest (most negative) product ending here.",
-      "Keep both curMax and curMin ending at the current element. For each x, the new max is max(x, curMax * x, curMin * x) and the new min is min(x, curMax * x, curMin * x). Compute both from the old values.",
+      "With sums, the best block ending here was enough. Why is that not enough for products?",
+      "A negative number can turn a very negative product into a very large positive one. So the smallest product ending here matters too.",
+      "Track both the largest and the smallest product ending at the current number. Compute both new values from the old ones before overwriting either.",
     ],
     solution: {
       idea: [
@@ -374,9 +374,9 @@ public:
       { input: [[3, 2, 1, 5, 4]], output: 6 },
     ],
     hints: [
-      "For a list of length n, the answer is between 1 and n + 1. Why?",
-      "Only values in 1..n matter. Ideally value v would sit at index v - 1.",
-      "Use the list itself as a hash table: for each position, while nums[i] is in 1..n and is not already at its home position (nums[nums[i] - 1] != nums[i]), swap it home. Afterwards the first index i with nums[i] != i + 1 gives the answer i + 1.",
+      "For a list of length n, the missing number must lie in a small known range. What range is it, and why?",
+      "The answer is between 1 and n+1. Only values in that range matter, and each value v ideally sits at position v minus 1.",
+      "Use the list itself as a table: swap each value into its home position while it is in range and not already there. Then the first position with the wrong value gives the answer.",
     ],
     solution: {
       idea: [
@@ -427,9 +427,9 @@ public:
       { input: ["aabaaabaaac", "aabaaac"], output: 4 },
     ],
     hints: [
-      "The direct way is to try every starting position and compare. How slow is that, and when?",
-      "It can be O(n * m) on inputs like 'aaaa...ab' searching for 'aaab', because you restart the comparison from scratch.",
-      "KMP avoids it: precompute for the needle, for each prefix, the length of its longest proper prefix that is also a suffix (the failure table). When a mismatch happens, jump back using the table instead of restarting. The simple double loop is fine at these sizes if you can explain the trade-off.",
+      "The direct approach tries every starting position. When can that become slow?",
+      "When a partial match keeps failing near the end, such as a long run of one letter followed by a different one. Each try restarts from scratch.",
+      "KMP avoids the restart: precompute, for the pattern, how far a partial match can fall back. On a mismatch, jump back using that table instead of restarting. A simple double loop is fine at small sizes.",
     ],
     solution: {
       idea: [
@@ -485,9 +485,9 @@ public:
       { input: [[[1, 2], [3, 4], [5, 6]]], output: [1, 2, 4, 6, 5, 3] },
     ],
     hints: [
-      "Think of the grid as layers, like an onion. Walk the outer layer, then the layer inside it.",
-      "Keep four boundaries: top, bottom, left, right. Walk the top row, then shrink top; walk the right column, shrink right; and so on.",
-      "After walking the top row and right column, check that rows and columns remain (top <= bottom, left <= right) before walking the bottom row and left column. Without the checks, a single row or column gets visited twice.",
+      "Think of the grid as rings, like the layers of an onion. What do you walk first, and what comes next?",
+      "Keep four boundaries: top, bottom, left, right. Walk one edge, then move that boundary inward, and repeat for the next edge.",
+      "After walking the top and right edges, check that a row and a column still remain before walking the bottom and left edges. Otherwise a single row gets visited twice.",
     ],
     solution: {
       idea: [
@@ -540,17 +540,20 @@ public:
     ],
     tests: [
       { input: [[1], 1], output: 1 },
-      { input: [[1000000000], 2], output: 500000000 },
-      { input: [[312884470], 312884469], output: 2 },
       { input: [[5, 5, 5], 3], output: 5 },
       { input: [[2, 2], 4], output: 1 },
       { input: [[4, 9, 3], 5], output: 4 },
       { input: [[10, 10], 3], output: 10 },
+      { input: [[3, 6, 7, 11], 8], output: 4 },
+    ],
+    stress: [
+      { label: "pile = 1000000000", make: () => [[1000000000], 2] },
+      { label: "pile = 312884470", make: () => [[312884470], 312884469] },
     ],
     hints: [
-      "If a speed k works, does a faster speed also work? What does that tell you about searching for the answer?",
-      "Yes: more speed never takes more hours. So feasibility is false, false, ..., true, true, which is exactly the shape binary search needs.",
-      "Binary search k between 1 and the biggest pile. To test a k, add up ceil(pile / k) over all piles and compare with h. Use 64-bit arithmetic for the hour total.",
+      "If a speed works, does a faster speed also work? What does that tell you about searching for the smallest speed?",
+      "Yes, a faster speed never takes longer. So the answers go no, no, ..., yes, yes, which is the shape binary search needs.",
+      "Binary search the speed between 1 and the largest pile. For each guess, add up the hours each pile needs, rounding up, and compare with the limit. Use a large integer for the total.",
     ],
     solution: {
       idea: [
@@ -603,9 +606,9 @@ public:
       { input: [[9, 3, 2, 4, 8], 3], output: 4 },
     ],
     hints: [
-      "Sorting works in O(n log n). What do you really need to know about the other elements?",
-      "Only whether they are in the top k. A min-heap of size k holds exactly the k largest seen so far, and its top is the k-th largest.",
-      "Push each number; when the heap grows past k, pop the smallest. After the last number, the heap's top is the answer. Quickselect gets O(n) on average if you want to go further.",
+      "Sorting works but does more than you need. What do you really need to know about the other elements?",
+      "Only which ones are among the k largest. A small heap of size k holds exactly those, and its smallest item is the answer.",
+      "Push each number into a min-heap; when it holds more than k items, remove the smallest. Quickselect can average linear time if you want to go further.",
     ],
     solution: {
       idea: [
@@ -654,9 +657,9 @@ public:
       { input: [[3, 6, 5, 7, 4, 8, 1, 0]], output: 20 },
     ],
     hints: [
-      "For each bar, imagine the widest rectangle whose height is exactly that bar. How far can it extend left and right?",
-      "Until it meets a bar that is shorter than it. So for each bar you need the nearest shorter bar on each side.",
-      "A stack of indices with increasing heights finds those. When a new bar is shorter than the top, pop the top: its right limit is the new bar, its left limit is the new top of the stack. Add a sentinel bar of height 0 at the end to flush the stack.",
+      "For each bar, imagine the widest rectangle whose height equals that bar. How far can it stretch to the left and to the right?",
+      "Until it meets a bar shorter than itself. So for each bar you need the nearest shorter bar on each side.",
+      "A stack of positions with increasing heights finds those. When a shorter bar arrives, pop the taller bars and compute their rectangles. Add a bar of height zero at the end to empty the stack.",
     ],
     solution: {
       idea: [

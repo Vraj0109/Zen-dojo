@@ -53,9 +53,10 @@ export const PROBLEMS_LOGIC_D: ProblemSpec[] = [
       { input: [["++X", "X++", "++X", "X++", "++X"]], output: 5 },
     ],
     hints: [
-      "Notice that every increment statement contains a '+' character and every decrement contains a '-'.",
-      "Checking whether '+' is present in the statement string is enough to decide whether to add or subtract 1.",
-      "Start with a variable at 0, loop over each statement, and return the accumulated total.",
+      "Each statement is short and has one of two effects. Which single character tells you which effect it has?",
+      "Every increment statement contains a plus sign and every decrement contains a minus sign, so checking for one character is enough.",
+      "Start a counter at 0, add one or subtract one for each statement depending on that character, and return the counter.",
+      "Check whether the statement contains a plus sign anywhere, rather than matching the exact four spellings.",
     ],
     solution: {
       idea: ["Iterate through all statements. If the string contains '+', increment x; otherwise decrement x."],
@@ -134,9 +135,10 @@ public:
       { input: ["xyz", "XYA"], output: 1 },
     ],
     hints: [
-      "Convert each character to lowercase before comparing.",
-      "Compare corresponding characters from left to right.",
-      "At the first differing character, return -1 or 1. If all match, return 0.",
+      "Think about how letter case should affect the comparison. What is the usual way to compare two strings letter by letter?",
+      "Compare the letters at each position after converting both to the same case. The first difference decides the answer.",
+      "Walk both strings from left to right. Return -1 or 1 at the first mismatch, and 0 if you reach the end without one.",
+      "Both strings have the same length, so one loop over that length is enough.",
     ],
     solution: {
       idea: ["Iterate character by character, converting each to lowercase. Compare values and return immediately on mismatch."],
@@ -217,9 +219,10 @@ public:
       { input: ["alreadyCapital"], output: "AlreadyCapital" },
     ],
     hints: [
-      "Inspect the character at index 0.",
-      "Use toupper(s[0]) to convert the initial character to uppercase.",
-      "Return the modified string.",
+      "Only one letter changes. Which position is it?",
+      "Only the first character is affected. The rest of the word must stay exactly as it is.",
+      "Convert the first character to uppercase with a character function, then return the word.",
+      "A first character that is already uppercase is left unchanged by the conversion, so no extra check is needed.",
     ],
     solution: {
       idea: ["Convert the first character of the string to uppercase using toupper() and return the result."],
@@ -290,9 +293,10 @@ public:
       { input: ["banana"], output: "IGNORE HIM!" },
     ],
     hints: [
-      "Insert all characters into a hash set or boolean array to count distinct letters.",
-      "Check the parity of the set's size using size % 2 == 0.",
-      "Return 'CHAT WITH HER!' if even, 'IGNORE HIM!' if odd.",
+      "Ignore repeats for a moment. What does the username tell you once every letter is counted only once?",
+      "Only the number of different letters matters, so you never need to know how often each letter appears.",
+      "Gather the distinct letters with a set or a table of seen letters, then check whether that count is even or odd.",
+      "Count distinct letters, not total letters. A name like aaa has one distinct letter, which is odd.",
     ],
     solution: {
       idea: ["Collect unique letters into an unordered_set. If the size of the set is even, return 'CHAT WITH HER!', else 'IGNORE HIM!'."],
@@ -364,9 +368,10 @@ public:
       { input: [3, 8], output: 3 },
     ],
     hints: [
-      "Since initial weights are at most 10, the loop will run at most a handful of times.",
-      "Multiply a by 3 and b by 2 in each iteration and increment a year counter.",
-      "Terminate as soon as a > b.",
+      "Forget the years for a moment. How does each weight change, and which one overtakes the other first?",
+      "The two weights grow at different rates, so there is a fixed number of years before the faster-growing one wins.",
+      "Simulate the growth year by year: triple one weight, double the other, and count years until the first is strictly larger.",
+      "Use strictly larger, not larger or equal. The starting weights can already be equal, and that still needs a year.",
     ],
     solution: {
       idea: ["Simulate year by year: multiply a by 3, b by 2, and increment the year counter until a > b."],
@@ -447,9 +452,10 @@ public:
       { input: ["coDe"], output: "code" },
     ],
     hints: [
-      "Count how many letters are uppercase and how many are lowercase.",
-      "If uppercase count > lowercase count, convert every letter with toupper().",
-      "Otherwise, convert every letter with tolower().",
+      "Look at the word as a whole. Which single case would need the fewest letters changed?",
+      "Counting capital and small letters tells you which case the word mostly uses.",
+      "Count uppercase and lowercase letters in one pass, then convert the whole word to whichever case has more letters.",
+      "A tie goes to lowercase. The word switches to uppercase only when capitals are strictly more numerous.",
     ],
     solution: {
       idea: ["Count uppercase letters in the string. If count > length / 2 (or count > lowercase count), convert all to upper; else to lower."],
@@ -535,9 +541,10 @@ public:
       { input: [109, 1], output: 108 },
     ],
     hints: [
-      "Use a loop running k times.",
-      "Check n % 10. If not zero, subtract 1; else divide n by 10.",
-      "Return the accumulated n.",
+      "Simulate exactly what the rule says, one step at a time. What decides which operation to apply?",
+      "At each step only the last digit matters: it either drops by one or is removed by dividing by ten.",
+      "Repeat the rule k times in a simple loop, checking whether the number ends in zero before choosing the operation.",
+      "A number that ends in zero loses that zero when divided by ten. Check the zero case before the other one.",
     ],
     solution: {
       idea: ["Iterate k times: check the last digit with n % 10. If it is 0, divide by 10, otherwise subtract 1."],
@@ -614,9 +621,10 @@ public:
       { input: [14], output: 3 },
     ],
     hints: [
-      "To minimize steps, greedily take the largest possible step (size 5).",
-      "If the remaining distance is not a multiple of 5, one final smaller step covers the rest.",
-      "The formula is ceil(x / 5), which in integer division is (x + 4) / 5.",
+      "Suppose the elephant wants as few jumps as possible. Which jump size should it prefer whenever it can?",
+      "Taking the largest jump each time leaves only a short remainder, and one final jump can cover that remainder.",
+      "The answer is x divided by 5, rounded up. Integer arithmetic does this by adding 4 to x and then dividing by 5.",
+      "Zero needs zero jumps, and the rounding formula gives zero for x = 0, so no special case is needed.",
     ],
     solution: {
       idea: ["Greedily use step size 5 as much as possible. The minimum steps is ceiling division of x by 5: (x + 4) / 5."],
@@ -685,9 +693,10 @@ public:
       { input: [8999], output: 9012 },
     ],
     hints: [
-      "Increment year starting from y + 1.",
-      "Extract the four digits of the year (a, b, c, d) using modulo 10 and division.",
-      "Check that a != b && a != c && a != d && b != c && b != d && c != d. Return the first matching year.",
+      "The year has only four digits. What is the simplest search you could run, starting from the year after y?",
+      "Any year after y is a candidate, and you need the first one whose four digits are all different.",
+      "Try y + 1, y + 2 and so on, splitting each year into its thousands, hundreds, tens and units digits and comparing all pairs.",
+      "The answer must be strictly greater than y, so the first year you test is y + 1, not y.",
     ],
     solution: {
       idea: ["Iterate year by year starting from y + 1. Decompose into four digits and test for pairwise inequality."],
@@ -774,9 +783,10 @@ public:
       { input: [[0, 0]], output: "EASY" },
     ],
     hints: [
-      "Scan the opinions array.",
-      "If you see a 1, you can immediately return 'HARD'.",
-      "If the loop finishes without seeing 1, return 'EASY'.",
+      "Do you need to know how many people said hard, or only whether anyone did?",
+      "One hard vote decides the answer, so you can stop reading as soon as you see one.",
+      "Scan the list and return the hard answer at the first 1. If the scan finishes without a 1, the answer is easy.",
+      "A list of all zeros must still give the easy answer, not an error or a count.",
     ],
     solution: {
       idea: ["Linearly search for 1. If found, return 'HARD', else return 'EASY'."],
@@ -851,9 +861,10 @@ public:
       { input: ["hello", "olleh"], output: true },
     ],
     hints: [
-      "First check whether the lengths of s and t match.",
-      "Reverse s and compare with t.",
-      "Return true if they match, false otherwise.",
+      "For one word to be the translation of another, what should the letters look like when read from the end?",
+      "Read the first word backwards and compare it letter by letter with the second word.",
+      "Check the lengths first. Then compare the first letter of one word with the last letter of the other, moving inward with two indices.",
+      "Different lengths mean the answer is no straight away. Equal lengths still need a full comparison, since one mismatch fails.",
     ],
     solution: {
       idea: ["Check length equality, reverse s, and check if it equals t."],
@@ -924,9 +935,10 @@ public:
       { input: ["DDDD"], output: "Danik" },
     ],
     hints: [
-      "Count the occurrences of 'A' and 'D'.",
-      "Compare the two counts.",
-      "Return the corresponding string.",
+      "You only need to know which side won more games. Does the order of the games matter?",
+      "Each game is a single letter, so the order does not matter. What matters is how many of each letter there are.",
+      "Count the A letters, then the D letters, and compare the two counts. The total length gives you one count from the other.",
+      "Equal counts give the tie answer, which is the third option, not either name.",
     ],
     solution: {
       idea: ["Iterate through the string, counting 'A' and 'D'. Return 'Anton', 'Danik', or 'Friendship' based on the comparison."],
@@ -1009,9 +1021,10 @@ public:
       { input: [["10", "01", "01", "10"]], output: 3 },
     ],
     hints: [
-      "A new group starts whenever a magnet's orientation differs from the previous magnet.",
-      "Initialize groups to 1 (for the first magnet).",
-      "Loop from index 1 to the end, incrementing groups when magnets[i] != magnets[i-1].",
+      "Look at neighbouring magnets. When do two of them stay stuck together, and when do they push apart?",
+      "Two neighbours that are different touch like poles and split into separate groups. Two that are the same stay together.",
+      "Start with one group, then add one each time a magnet differs from the magnet before it.",
+      "A single magnet is one group, so the answer is never zero, even for a short list.",
     ],
     solution: {
       idea: ["Count transitions where adjacent magnets differ: groups = 1 + count(magnets[i] != magnets[i-1])."],
@@ -1090,9 +1103,10 @@ public:
       { input: [8], output: 4 },
     ],
     hints: [
-      "Group adjacent numbers in pairs: (-1 + 2) + (-3 + 4) + ... Each pair contributes +1.",
-      "If n is even, there are n / 2 pairs, each giving +1, so the result is n / 2.",
-      "If n is odd, the sum up to n - 1 is (n - 1) / 2, and subtracting n gives -((n + 1) / 2).",
+      "Write out the first few terms and group them in some way. What does each group add up to?",
+      "Each pair of terms starting from 1 adds to the same value, so the result depends on how many pairs there are.",
+      "Use the parity of n. An even n gives n divided by 2. An odd n has one extra term, which gives minus half of n plus one.",
+      "n can be as large as 10 to the power of 15, so use 64-bit integers and do not simulate the terms.",
     ],
     solution: {
       idea: ["If n is even, f(n) = n / 2. If n is odd, f(n) = -(n + 1) / 2. Both computed in O(1) using 64-bit integers."],
@@ -1164,9 +1178,10 @@ public:
       { input: [[[4, 1], [3, 2], [1, 5]]], output: "Mishka" },
     ],
     hints: [
-      "Maintain counters for Mishka's round wins and Chris's round wins.",
-      "For each round [m, c], if m > c increment Mishka; if c > m increment Chris.",
-      "Compare the counters at the end and return the appropriate message.",
+      "Each round is decided by a single comparison. What do you need to keep track of across all rounds?",
+      "You only need the total number of rounds each player won, not the full list of rolls.",
+      "Keep two counters, one per player, and add one to the winner of each round. Draws add to neither counter.",
+      "A draw in a round counts for nobody, and equal totals give the friendship answer.",
     ],
     solution: {
       idea: ["Iterate through each round, compare dice values, increment win counts, and return the winner."],
@@ -1249,9 +1264,10 @@ public:
       { input: [7, 5], output: 3 },
     ],
     hints: [
-      "Calculate the remainder of a divided by b: rem = a % b.",
-      "If rem == 0, a is already divisible by b, so 0 moves are needed.",
-      "Otherwise, you need b - rem additional increments.",
+      "Ask how far a is past the last multiple of b. What does the remainder tell you?",
+      "If the remainder is zero, a is already a multiple. Otherwise you have to climb to the next multiple.",
+      "Subtract the remainder from b to get the gap to the next multiple of b.",
+      "When the remainder is zero, b minus the remainder would give b instead of 0, so handle that case separately.",
     ],
     solution: {
       idea: ["If a % b == 0, return 0. Otherwise, the next multiple of b is at distance b - (a % b)."],
@@ -1323,9 +1339,10 @@ public:
       { input: [[[0, 0]]], output: 0 },
     ],
     hints: [
-      "Loop through each room [p, q].",
-      "Check if q - p >= 2.",
-      "Count and return the matching rooms.",
+      "For each room, what does the question require? How many free beds does it need?",
+      "Two people need two beds, so a room works only if at least two beds are free.",
+      "Loop through the rooms, compare capacity minus occupants with two, and count the rooms that pass.",
+      "Check for at least two free beds, not exactly two. A room with more free beds also works.",
     ],
     solution: {
       idea: ["Iterate through all rooms and count those where the available capacity (q - p) is at least 2."],
@@ -1403,9 +1420,10 @@ public:
       { input: [[2, 4, 1, 3]], output: [3, 1, 4, 2] },
     ],
     hints: [
-      "The input says that giver (i + 1) gave a present to receiver p[i].",
-      "Therefore, the receiver p[i] was given a present by (i + 1).",
-      "Create an answer array of size n, set ans[p[i] - 1] = i + 1, and return ans.",
+      "Think about the reverse question. For a person who received a gift, how could you find out who gave it?",
+      "Each giver appears once in the input, so you can fill the answer in a single pass by writing each giver into their receiver's slot.",
+      "Create an answer array of the same size and, for every giver i, store i at the index of the receiver.",
+      "The input numbers start at 1, but arrays start at 0. Shift the index by one when you store and read.",
     ],
     solution: {
       idea: ["Construct the inverse permutation: for each 0 <= i < n, place i + 1 at index p[i] - 1."],
@@ -1485,9 +1503,10 @@ public:
       { input: [4, 4, 4, 4, 8], output: 2 },
     ],
     hints: [
-      "Since d is up to 100,000, a simple loop from 1 to d easily runs in time.",
-      "For each dragon i from 1 to d, check if (i % k == 0 || i % l == 0 || i % m == 0 || i % n == 0).",
-      "Increment a counter when true and return it.",
+      "The number of dragons is at most 100,000. What is the simplest thing you could do with each of them?",
+      "A dragon is damaged if its number is a multiple of at least one of the four given numbers.",
+      "Loop through the dragons, run the four divisibility tests for each one, and count the ones that pass.",
+      "The numbers are small enough that a plain loop is fast. A formula with overlaps is only needed for huge inputs.",
     ],
     solution: {
       idea: ["Iterate i from 1 to d. If i is divisible by k, l, m, or n, increment the damaged count."],
@@ -1568,9 +1587,10 @@ public:
       { input: ["{m, n, o, p, q, r}"], output: 6 },
     ],
     hints: [
-      "Iterate through the string s.",
-      "Whenever you encounter a character between 'a' and 'z', insert it into a set.",
-      "Return the size of the set.",
+      "The braces, commas and spaces are noise. What is the only thing you need to count?",
+      "You only care about distinct lowercase letters, so a letter that repeats should count once.",
+      "Mark each lowercase letter in a set or a table of 26 true or false slots, then count the marked slots.",
+      "Ignore the braces and spaces. The empty set has no letters, so its answer is zero.",
     ],
     solution: {
       idea: ["Filter characters in the string for lowercase Latin letters 'a' through 'z' and collect them in a set."],
@@ -1652,9 +1672,10 @@ public:
       { input: ["QuickzephyrsblowvexingdaftJim"], output: true },
     ],
     hints: [
-      "If the string length is less than 26, it cannot be a pangram.",
-      "Insert tolower(c) for each alphabetical character into an unordered_set.",
-      "Return true if the set size equals 26, else false.",
+      "What does a pangram need? Which letters must all be present, and how many distinct letters is that?",
+      "Letter case does not matter, so A and a count as the same letter. A short text cannot cover all 26 letters.",
+      "Lowercase each letter as you read it and record it in a set or a table of 26 slots. Then check that all 26 are filled.",
+      "A string of 26 or more letters can still miss one letter if some letters repeat, so check all 26 slots, not the length.",
     ],
     solution: {
       idea: ["Collect unique lowercase letters into a set and check if the set contains all 26 letters."],
@@ -1732,9 +1753,10 @@ public:
       { input: [4], output: 4 },
     ],
     hints: [
-      "Because each denomination divides or cleanly dominates smaller ones, greedy selection is optimal.",
-      "Start with $100 bills: add n / 100 to the bill count, then set n = n % 100.",
-      "Repeat for 20, 10, 5, and 1.",
+      "Imagine paying out money with as few bills as possible. Which bill should you reach for first?",
+      "Each large bill is worth several small ones, so use as many of the largest bill as the amount allows.",
+      "Go through the bill values from largest to smallest, take as many of each as fit, and carry the remainder to the next size.",
+      "Some bill counts will be zero, and the loop should still work for amounts like 100 or 1.",
     ],
     solution: {
       idea: ["Greedily take the largest available bill denominations: 100, 20, 10, 5, and 1 using integer division and modulo."],
@@ -1816,9 +1838,10 @@ public:
       { input: [8], output: "I hate that I love that I hate that I love that I hate that I love that I hate that I love it" },
     ],
     hints: [
-      "Loop from i = 1 to n.",
-      "If i % 2 == 1, append 'I hate'; else append 'I love'.",
-      "If i < n, append ' that '; otherwise append ' it'.",
+      "Write out n = 1, 2 and 3 and look at the pattern. What changes from one layer to the next?",
+      "The verb alternates between hate and love from layer to layer, and the phrase always ends with ' it'.",
+      "Loop from layer 1 to n. Odd layers add I hate, even layers add I love, and ' that ' goes between layers.",
+      "Only the last layer is followed by ' it'. Be careful with spaces so there is no double space at the joins.",
     ],
     solution: {
       idea: ["Construct the sentence by alternating 'I hate' and 'I love' across n layers, joined by ' that ' and ending with ' it'."],
@@ -1902,9 +1925,10 @@ public:
       { input: [1000000000], output: 499999999 },
     ],
     hints: [
-      "Betty must get at least 1 candy, and at most strictly less than half of n.",
-      "Betty can receive any integer number of candies from 1 up to floor((n - 1) / 2).",
-      "Thus the total number of ways is (n - 1) / 2.",
+      "Set up the condition. Betty gets b candies and Alice gets the rest. What is the largest b that is allowed?",
+      "Betty must have at least one candy and strictly less than half of the total, so her count stays below n divided by 2.",
+      "Valid values for Betty run from 1 up to the largest whole number below half of n. Count those values.",
+      "For even n the largest b is n over 2 minus 1, and for odd n it is the rounded-down half. Integer division of n minus 1 by 2 covers both.",
     ],
     solution: {
       idea: ["Betty can take anywhere from 1 to floor((n - 1) / 2) candies, leaving Alice with strictly more. The formula is (n - 1) / 2."],
@@ -1976,9 +2000,10 @@ public:
       { input: [3, 3, 3], output: 27 },
     ],
     hints: [
-      "There are only a few possible parenthesized formulas: a + b + c, a * b * c, (a + b) * c, a * (b + c), a + b * c, a * b + c.",
-      "Compute all of them and take the maximum.",
-      "All three numbers are between 1 and 10, so no overflow occurs.",
+      "There are only three numbers. How many different ways could you combine them with plus, times and brackets?",
+      "The best value comes from one of a small, fixed set of groupings, so you can list them all and compare.",
+      "Evaluate the six possible placements of plus, times and brackets on a, b and c, then return the largest value.",
+      "Include the all-plus and all-times forms. With values from 1 to 10 there is no risk of overflow.",
     ],
     solution: {
       idea: ["Evaluate all 6 possible parenthesized expressions with '+' and '*' and return the maximum."],
@@ -2064,9 +2089,10 @@ public:
       { input: [2, 3, 1], output: ["1"] },
     ],
     hints: [
-      "Loop through each integer i from 1 to n.",
-      "Check (i % x == 0 && i % y == 0) first for 'FizzBuzz'.",
-      "Then check individual divisibility, or append to_string(i).",
+      "What is the same for every number from 1 to n, and what changes depending on divisibility?",
+      "A number divisible by both x and y needs its own answer, so the combined case has to be handled before the single cases.",
+      "Loop through the numbers. Check the both case first, then the single cases, and fall back to printing the number itself.",
+      "Checking divisibility by x first would print Fizz instead of FizzBuzz for a number divisible by both.",
     ],
     solution: {
       idea: ["Iterate 1..n, checking modulo against x and y to push the correct string."],
@@ -2154,9 +2180,10 @@ public:
       { input: [100, 50, 10], output: "do not advertise" },
     ],
     hints: [
-      "Calculate net revenue with advertising: net = e - c.",
-      "Compare net with r.",
-      "Return 'advertise' if net > r, 'does not matter' if net == r, else 'do not advertise'.",
+      "Compare the two options in money. What is the real profit with advertising once its cost is taken off?",
+      "Subtract the advertising cost from the revenue with ads, then compare the result with the revenue without ads.",
+      "Compare that net figure with r. Greater means advertise, smaller means do not, and equal means it does not matter.",
+      "The cost is subtracted from the revenue with ads, not from the revenue without ads.",
     ],
     solution: {
       idea: ["Compute net = e - c and compare with r."],
@@ -2232,9 +2259,10 @@ public:
       { input: [1, -1], output: 4 },
     ],
     hints: [
-      "Check the sign of x and the sign of y.",
-      "If x > 0: quadrant is 1 if y > 0 else 4.",
-      "If x < 0: quadrant is 2 if y > 0 else 3.",
+      "A quadrant is decided by two questions about the point. What are they?",
+      "Only the signs of x and y matter, not their exact values.",
+      "First ask whether x is positive, then ask whether y is positive. Two questions give four possible answers.",
+      "Both coordinates are non-zero, so there is no sign case to handle beyond the two checks.",
     ],
     solution: {
       idea: ["Branch based on the signs of x and y to return 1, 2, 3, or 4."],
@@ -2309,9 +2337,10 @@ public:
       { input: ["mississippi"], output: "hiss" },
     ],
     hints: [
-      "Look for the substring 'ss' in the string.",
-      "In C++, s.find(\"ss\") != string::npos checks substring presence.",
-      "Return 'hiss' when found, 'no hiss' otherwise.",
+      "What pattern in the word would cause a hiss, and where in the word would you look for it?",
+      "A hiss needs two s letters next to each other, so you only need to compare each letter with the one after it.",
+      "Scan the word once, checking each pair of neighbours, and answer hiss at the first matching pair.",
+      "A single s does not hiss, and the last letter has no partner, so do not read past the end of the word.",
     ],
     solution: {
       idea: ["Check whether the substring 'ss' occurs anywhere in s using string search."],
@@ -2380,9 +2409,10 @@ public:
       { input: [[-5, -4, -3, -2, -1, 0]], output: 5 },
     ],
     hints: [
-      "Iterate through the array of temperatures.",
-      "Check if each temperature is strictly less than 0.",
-      "Count and return the total.",
+      "Think about what the question asks. How many readings meet a single condition?",
+      "You do not need to store the temperatures, because each value can be judged the moment it is read.",
+      "Read each value in turn, add one to a counter when it is below zero, and print the counter at the end.",
+      "Zero is not sub-zero, so the test is strictly less than zero.",
     ],
     solution: {
       idea: ["Iterate through the array and count elements strictly less than 0."],
@@ -2460,9 +2490,10 @@ public:
       { input: [10, 1], output: 1 },
     ],
     hints: [
-      "To just reach an impact factor of I, the strict average must exceed I - 1.",
-      "Thus, citations / articles > impact - 1.",
-      "The minimum integer citations is articles * (impact - 1) + 1.",
+      "Work backwards. What is the smallest citation count that still rounds up to the target impact?",
+      "Rounding up to the target means the exact average is above the target minus one but not above the target.",
+      "Multiply the number of articles by one less than the target impact, then add one citation to step just above that edge.",
+      "The lower edge itself is excluded, which is why exactly one citation is added at the end.",
     ],
     solution: {
       idea: ["The threshold for ceiling division to reach impact is articles * (impact - 1) + 1."],
@@ -2532,9 +2563,10 @@ public:
       { input: [541, 145], output: 541 },
     ],
     hints: [
-      "Write a helper function to reverse the digits of a number: r = (x % 10)*100 + ((x / 10) % 10)*10 + (x / 100).",
-      "Reverse both a and b.",
-      "Return max(reverse(a), reverse(b)).",
+      "What does it mean to read a number backwards? Which digit is read first?",
+      "Reading backwards makes the last digit come first, so reversing a three-digit number swaps its ones and hundreds digits.",
+      "Reverse each number digit by digit, either as text or with arithmetic, then print the larger of the two reversed values.",
+      "Leading zeros disappear after reversing, so 100 reversed is 1. Compare the numbers the reversed digits form.",
     ],
     solution: {
       idea: ["Reverse the digits of both numbers using modulo and division, then return their maximum."],
@@ -2620,9 +2652,10 @@ public:
       { input: [20, 20, [28, 29]], output: [true, false] },
     ],
     hints: [
-      "The longest match that fits lies along the box's diagonal.",
-      "The maximum length squared is w * w + h * h.",
-      "For each match length m, test m * m <= w * w + h * h.",
+      "What is the longest straight stick that could lie flat inside a rectangle of width w and height h?",
+      "The corner-to-corner line is longer than any side, so the longest match that fits is the rectangle's diagonal.",
+      "Compare the square of each match length with the sum of the squares of w and h. This avoids square roots.",
+      "Use less than or equal to, since a match exactly as long as the diagonal still fits.",
     ],
     solution: {
       idea: ["A match of length m fits if m^2 <= w^2 + h^2. Compute the diagonal squared and compare."],
@@ -2701,9 +2734,10 @@ public:
       { input: ["NOV", 30], output: "nope" },
     ],
     hints: [
-      "Check if (month == 'OCT' && day == 31) || (month == 'DEC' && day == 25).",
-      "Return 'yup' if true.",
-      "Return 'nope' otherwise.",
+      "Two specific dates count as yes. What are they, and what does each condition check?",
+      "The answer is yes only when the month and the day match one of the two special dates together.",
+      "Check the month and day as a pair for both special dates. Answer yes if either pair matches, otherwise no.",
+      "The month and day must match on the same line: October with 31, or December with 25. October with 25 is a no.",
     ],
     solution: {
       idea: ["Check if the date matches either OCT 31 or DEC 25."],
@@ -2779,9 +2813,10 @@ public:
       { input: [4, 7], output: "Saturday" },
     ],
     hints: [
-      "Store month lengths for 2009: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31].",
-      "Sum the days of previous months plus (d - 1) to get the day offset from Jan 1.",
-      "Jan 1 was Thursday (index 0). Map offset % 7 to Thursday, Friday, Saturday, Sunday, Monday, Tuesday, Wednesday.",
+      "January 1 is a known starting point. How could you count how far a later date is from it?",
+      "Count the days in the months before the given month, then add the day of the month minus one to get the offset from January 1.",
+      "Store the month lengths for 2009 and sum the earlier months. Then take the total offset modulo 7 to index the weekday names, starting from Thursday.",
+      "2009 is not a leap year, so February has 28 days. Using a different length gives the wrong weekday.",
     ],
     solution: {
       idea: ["Calculate total elapsed days from January 1, 2009 and compute day of the week using modulo 7."],
@@ -2863,9 +2898,10 @@ public:
       { input: [10, 10], output: [11] },
     ],
     hints: [
-      "The sum distribution forms a trapezoid (or triangle when n == m).",
-      "The flat top of maximum values extends from min(n, m) + 1 to max(n, m) + 1 inclusive.",
-      "Iterate k from min(n, m) + 1 to max(n, m) + 1 and collect into an array.",
+      "Two dice can be added in many ways. Which sums are reached by the most pairs of faces?",
+      "A band of middle sums is tied for the most ways. Find where that band starts and where it ends, using the smaller and the larger die.",
+      "Find the smaller and larger face counts, then list every sum from one more than the smaller count to one more than the larger count.",
+      "If both dice have the same number of faces, the band is a single sum, so the answer has just one value.",
     ],
     solution: {
       idea: ["The plateau of maximum frequencies for rolling dice of sizes n and m is between min(n, m) + 1 and max(n, m) + 1 inclusive."],
@@ -2947,9 +2983,10 @@ public:
       { input: [[[70, 1], [65, 3], [50, 4]]], output: 250 },
     ],
     hints: [
-      "Keep track of the previous cumulative time, starting at 0.",
-      "For each entry [s, t], the duration of that segment is t - prevTime.",
-      "Add s * (t - prevTime) to total distance and update prevTime = t.",
+      "The times in the log are not segment lengths. What does each time value measure?",
+      "Each time counts from the start of the trip, so you need the gap between consecutive readings to know how long each segment lasted.",
+      "Track the previous time, starting from zero. For each entry, add speed times the gap, then move the previous time forward.",
+      "The first gap is measured from time zero, so the first entry's time is itself the first gap.",
     ],
     solution: {
       idea: ["Iterate through segments, multiplying each speed by the elapsed duration (current time minus previous time) and sum up."],
@@ -3036,9 +3073,10 @@ public:
       { input: ["BAC"], output: 2 },
     ],
     hints: [
-      "Keep track of the ball's current cup in an integer pos, starting at 1.",
-      "When move is 'A': if pos == 1, pos = 2; else if pos == 2, pos = 1.",
-      "Apply the corresponding transitions for 'B' (between 2 and 3) and 'C' (between 1 and 3).",
+      "Rather than tracking three cups, what single thing do you need to know after each move?",
+      "Each move either moves the ball or leaves it where it is, so one number is enough: the cup the ball is under.",
+      "Store the ball's cup number. For each move, check whether the ball sits under one of the two swapped cups, and if so move it to the other.",
+      "A move that does not involve the ball's current cup changes nothing, so do not reset the position on each move.",
     ],
     solution: {
       idea: ["Simulate ball transitions: track the ball's current cup index across each move in the string."],
@@ -3135,9 +3173,10 @@ public:
       { input: [2000, 3000, 5], output: [2003, 2300] },
     ],
     hints: [
-      "Write a helper function to compute the sum of digits of an integer.",
-      "Loop from l upwards to find the first number with digit sum x (this is N).",
-      "Loop from d downwards to find the first number with digit sum x (this is M).",
+      "The range is small. What is the simplest search that is guaranteed to find the answer?",
+      "The first number in the range with the right digit sum is the smallest, and the first one found scanning down is the largest.",
+      "Write a helper that sums the digits of a number. Scan up from the low end for the minimum and down from the high end for the maximum.",
+      "Stop each scan at the first match. The problem guarantees a match exists, so no failure case is needed.",
     ],
     solution: {
       idea: ["Iterate upwards from l to find min N, and downwards from d to find max M with digit sum equal to x."],
@@ -3249,9 +3288,10 @@ public:
       { input: [20, 15, 8], output: 720 },
     ],
     hints: [
-      "The horizontal cut divides length n into parts h and n - h. The larger part is max(h, n - h).",
-      "The vertical cut divides length n into parts v and n - v. The larger part is max(v, n - v).",
-      "The volume is max(h, n - h) * max(v, n - v) * 4.",
+      "Each cut splits one side of the square. For each cut, which of the two pieces is the bigger one?",
+      "The horizontal and vertical choices are independent, so the biggest piece uses the larger part from each cut.",
+      "Find the bigger part for each cut, multiply those two lengths together, then multiply by the thickness of 4.",
+      "A cut near one edge still leaves a big piece on the other side, so always take the larger part of each cut.",
     ],
     solution: {
       idea: ["The largest piece takes the maximal dimension along both axes: max(h, n - h) * max(v, n - v) * 4."],
@@ -3326,9 +3366,10 @@ public:
       { input: [10, 10], output: "Even 20" },
     ],
     hints: [
-      "Check the case where left == 0 && right == 0 first.",
-      "If left == right, return 'Even ' + to_string(left * 2).",
-      "Otherwise, return 'Odd ' + to_string(max(left, right) * 2).",
+      "Think about what zero tines on both sides means before you compare the two sides.",
+      "Equal antlers mean the moose is symmetric. Unequal antlers mean the bigger side tells you the true count.",
+      "Check the zero-and-zero case first, then compare the two sides. The answer is twice the common count, or twice the larger count.",
+      "Test the zero case before the equal case, since zero and zero are equal and would otherwise print Even 0.",
     ],
     solution: {
       idea: ["Check if 0 on both sides. Otherwise check equality: if equal return Even 2*left, else Odd 2*max(left, right)."],

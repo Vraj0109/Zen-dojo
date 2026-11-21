@@ -112,6 +112,20 @@ export function validateInterviewFile(file, knownIds) {
     }
   }
 
+  // brute field can be "same" or omitted/empty
+  const hasBruteFiles =
+    fs.existsSync(path.join(SOLUTIONS_DIR, `${file.id}.brute.cpp`)) ||
+    fs.existsSync(path.join(SOLUTIONS_DIR, `${file.id}.brute.java`)) ||
+    fs.existsSync(path.join(SOLUTIONS_DIR, `${file.id}.brute.py`));
+
+  if (frontmatter.brute !== undefined) {
+    if (frontmatter.brute !== "same") {
+      errors.push(`${file.name}: frontmatter "brute" must be "same" if set`);
+    } else if (hasBruteFiles) {
+      errors.push(`${file.name}: frontmatter has "brute: same" but brute solution files exist`);
+    }
+  }
+
   if (frontmatter.id && frontmatter.id !== file.id) {
     errors.push(`${file.name}: frontmatter id "${frontmatter.id}" does not match file id "${file.id}"`);
   }
@@ -380,6 +394,17 @@ export function generateContext(id, spec, dsaMeta, patternMeta, solutions = {}) 
     parts.push(`## Reference Python Code\n\`\`\`python\n${solutions.python}\n\`\`\``);
   }
 
+  // Brute force solutions if present
+  if (solutions.bruteCpp) {
+    parts.push(`## Brute Force C++ Code\n\`\`\`cpp\n${solutions.bruteCpp}\n\`\`\``);
+  }
+  if (solutions.bruteJava) {
+    parts.push(`## Brute Force Java Code\n\`\`\`java\n${solutions.bruteJava}\n\`\`\``);
+  }
+  if (solutions.brutePython) {
+    parts.push(`## Reference Brute Python Code\n\`\`\`python\n${solutions.brutePython}\n\`\`\``);
+  }
+
   return parts.join("\n\n") + "\n";
 }
 
@@ -462,6 +487,13 @@ async function main() {
       if (fs.existsSync(javaPath)) solutions.java = fs.readFileSync(javaPath, "utf8");
       const pyPath = path.join(SOLUTIONS_DIR, `${id}.py`);
       if (fs.existsSync(pyPath)) solutions.python = fs.readFileSync(pyPath, "utf8");
+
+      const bCpp = path.join(SOLUTIONS_DIR, `${id}.brute.cpp`);
+      if (fs.existsSync(bCpp)) solutions.bruteCpp = fs.readFileSync(bCpp, "utf8");
+      const bJava = path.join(SOLUTIONS_DIR, `${id}.brute.java`);
+      if (fs.existsSync(bJava)) solutions.bruteJava = fs.readFileSync(bJava, "utf8");
+      const bPy = path.join(SOLUTIONS_DIR, `${id}.brute.py`);
+      if (fs.existsSync(bPy)) solutions.brutePython = fs.readFileSync(bPy, "utf8");
 
       const md = generateContext(id, spec, dsaMeta, patternMeta, solutions);
       fs.writeFileSync(path.join(CONTEXT_DIR, `${id}.md`), md);

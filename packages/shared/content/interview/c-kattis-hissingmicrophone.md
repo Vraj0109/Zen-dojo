@@ -3,6 +3,7 @@ id: c-kattis-hissingmicrophone
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(n) time and O(1) space"
+brute: same
 reviewed: false
 ---
 

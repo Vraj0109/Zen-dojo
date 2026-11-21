@@ -3,6 +3,7 @@ id: c-cf-59a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(n) time, O(1) auxiliary space"
+brute: same
 reviewed: false
 ---
 

@@ -3,6 +3,7 @@ id: c-atc-abc085-c
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(n^2) time (about 2 million steps), O(1) space"
+brute: same
 reviewed: false
 ---
 

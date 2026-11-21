@@ -3,6 +3,7 @@ id: c-euler-52
 pattern: cses-euler
 difficulty: medium
 optimal: "O(ans * k * d log d) time, O(d) space"
+brute: same
 reviewed: false
 ---
 

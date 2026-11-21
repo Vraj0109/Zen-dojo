@@ -3,6 +3,7 @@ id: c-euler-4
 pattern: cses-euler
 difficulty: easy
 optimal: "Far less than O((hi - lo)^2) with pruning; bounded by about 5 * 10^7 palindrome checks, O(1) space"
+brute: same
 reviewed: false
 ---
 

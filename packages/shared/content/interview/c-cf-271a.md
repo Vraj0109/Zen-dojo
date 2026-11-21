@@ -3,6 +3,7 @@ id: c-cf-271a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(1) iterations on average, O(1) space"
+brute: same
 reviewed: false
 ---
 

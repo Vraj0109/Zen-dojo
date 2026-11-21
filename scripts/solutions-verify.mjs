@@ -1,7 +1,7 @@
-// pnpm solutions:verify [--group d|e|f] [--lang java|python] [<id> | <id>.java | <id>.py | <path> | <glob like lc-1*>] ...
+// pnpm solutions:verify [--brute] [--group d|e|f] [--lang cpp|java|python] [<id> | <id>.java | <id>.py | <path> | <glob like lc-1*>] ...
 // Runs reference solution files from packages/shared/content/solutions/ through the real judge (examples, tests and
 // large inputs) and prints one line per file:  ok lc-1.java 2.1s   or   FAIL lc-1.py case 3: expected ... got ...
-// Exit code 1 when any file fails. It does not touch the generated bundle. Plan 0063; guide: docs/solutions.md.
+// Exit code 1 when any file fails. It does not touch the generated bundle. Plan 0063, plan 0092; guide: docs/solutions.md.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = path.join(root, "packages/shared/content/solutions");
-const usage = "Usage: pnpm solutions:verify [--group d|e|f] [--lang java|python] [<id> | <id>.java | <id>.py | <path> | <glob>] ...";
+const usage = "Usage: pnpm solutions:verify [--brute] [--group d|e|f] [--lang cpp|java|python] [<id> | <id>.java | <id>.py | <path> | <glob>] ...";
 
 const args = process.argv.slice(2);
 const take = (name) => {
@@ -20,10 +20,22 @@ const take = (name) => {
   args.splice(i, 2);
   return v;
 };
+const hasFlag = (name) => {
+  const i = args.indexOf(name);
+  if (i < 0) return false;
+  args.splice(i, 1);
+  return true;
+};
+
+const isBrute = hasFlag("--brute");
 const group = take("--group");
 const lang = take("--lang");
-if (lang && lang !== "java" && lang !== "python") {
-  console.error(`--lang must be java or python.\n${usage}`);
+if (lang && lang !== "cpp" && lang !== "java" && lang !== "python") {
+  console.error(`--lang must be cpp, java or python.\n${usage}`);
+  process.exit(2);
+}
+if (!isBrute && lang === "cpp") {
+  console.error(`--lang cpp is only valid with --brute (optimal C++ is defined on the problem spec).\n${usage}`);
   process.exit(2);
 }
 if (args.some((a) => a.startsWith("-"))) {
@@ -35,8 +47,10 @@ if (!group && args.length === 0) {
   process.exit(2);
 }
 
-const exts = { java: [".java"], python: [".py"] };
-const wantExts = lang ? exts[lang] : [".java", ".py"];
+const exts = isBrute
+  ? { cpp: [".brute.cpp"], java: [".brute.java"], python: [".brute.py"] }
+  : { java: [".java"], python: [".py"] };
+const wantExts = lang ? exts[lang] : isBrute ? [".brute.cpp", ".brute.java", ".brute.py"] : [".java", ".py"];
 const inFolder = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter((n) => n !== "README.md") : [];
 const files = new Map(); // absolute path -> true (ordered)
 const warnings = [];
@@ -55,23 +69,27 @@ if (group) {
   }
   const ids = new Set(groupIds(group));
   for (const n of inFolder) {
-    const ext = path.extname(n);
-    if (ids.has(n.slice(0, -ext.length)) && wantExts.includes(ext)) files.set(path.join(DIR, n), true);
+    for (const e of wantExts) {
+      if (n.endsWith(e) && ids.has(n.slice(0, -e.length))) {
+        files.set(path.join(DIR, n), true);
+      }
+    }
   }
 }
 
 for (const a of args) {
   const base = path.basename(a);
-  const ext = path.extname(base);
-  if (ext === ".java" || ext === ".py") {
-    // A path or a file name. A path outside the folder is used as it is (handy for trying a solution before it is saved).
+  const matchedExt = wantExts.find((e) => base.endsWith(e));
+  if (matchedExt || base.endsWith(".java") || base.endsWith(".py") || base.endsWith(".cpp")) {
     const abs = path.isAbsolute(a) ? a : fs.existsSync(path.resolve(a)) ? path.resolve(a) : path.join(DIR, base);
-    if (lang && !wantExts.includes(ext)) continue;
     if (fs.existsSync(abs)) files.set(abs, true);
     else warnings.push(`no file ${a}`);
   } else if (a.includes("*")) {
     const re = new RegExp(`^${a.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`);
-    const hits = inFolder.filter((n) => wantExts.includes(path.extname(n)) && re.test(n.slice(0, -path.extname(n).length)));
+    const hits = inFolder.filter((n) => {
+      const e = wantExts.find((ext) => n.endsWith(ext));
+      return e && re.test(n.slice(0, -e.length));
+    });
     if (!hits.length) warnings.push(`nothing matches ${a}`);
     for (const n of hits) files.set(path.join(DIR, n), true);
   } else {
@@ -89,7 +107,7 @@ const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "solutions-verify-")
 const vitest = path.join(root, "node_modules/vitest/vitest.mjs");
 const run = spawnSync(process.execPath, [vitest, "run", "apps/web/lib/judge/solutions-verify.test.ts", "--reporter=dot", "--silent"], {
   cwd: root,
-  env: { ...process.env, SOLUTIONS_FILES: [...files.keys()].join("|"), SOLUTIONS_OUT: out },
+  env: { ...process.env, SOLUTIONS_FILES: [...files.keys()].join("|"), SOLUTIONS_OUT: out, SOLUTIONS_BRUTE: isBrute ? "1" : "0" },
   encoding: "utf8",
   maxBuffer: 64 * 1024 * 1024,
 });

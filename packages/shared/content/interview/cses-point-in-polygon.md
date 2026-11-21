@@ -4,6 +4,7 @@ pattern: cses-misc
 difficulty: medium
 optimal: "O(n) time per point and O(1) space"
 reviewed: false
+brute: same
 ---
 
 ## Clarify first

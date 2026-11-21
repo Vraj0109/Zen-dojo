@@ -3,6 +3,7 @@ id: c-euler-16
 pattern: cses-euler
 difficulty: medium
 optimal: "O(exponent * exponent / 30) time, O(exponent) space"
+brute: same
 reviewed: false
 ---
 

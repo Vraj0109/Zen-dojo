@@ -3,6 +3,7 @@ id: c-euler-36
 pattern: cses-euler
 difficulty: medium
 optimal: "O(H * log(limit)) time, O(log(limit)) space"
+brute: same
 reviewed: false
 ---
 

@@ -3,6 +3,7 @@ id: c-euler-21
 pattern: cses-euler
 difficulty: medium
 optimal: "O(n log n) time (the sieve), O(n) space"
+brute: same
 reviewed: false
 ---
 

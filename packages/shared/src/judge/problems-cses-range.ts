@@ -35,9 +35,10 @@ export const CSES_RANGE_SPECS: ProblemSpec[] = [
       { input: [[1,2],[[1,1,5],[1,2,4],[2,1,2]]], output: [4] },
     ],
     hints: [
-      "Recomputing each range from scratch costs O(n) per query, which is too slow for 200000 queries.",
-      "A segment tree stores the minimum of every block of a binary-style partition of the array. Changing one element only touches the O(log n) blocks that contain it.",
-      "Build a bottom-up tree of size 2n: leaves at n..2n-1, node i = min(node 2i, node 2i+1). To update, write the leaf and walk to the root. To query [l, r) walk both borders upward and take the nodes they leave behind.",
+      "Scanning the whole range for each question is too slow when the array keeps changing. What could you store so a single change touches only a few stored values?",
+      "Store the minimum of each block of a balanced binary split of the array. A single change then affects only the blocks that contain that position, one per level.",
+      "Use an iterative segment tree: leaves hold the values and each parent holds the minimum of its two children. Update a leaf and walk up; for a range, walk both ends upward and combine the nodes you pick.",
+      "The input is 1-based but the tree is 0-based, so convert both ends of each range before you start.",
     ],
     solution: {
       idea: [
@@ -106,9 +107,10 @@ public:
       { input: [[536870912,536870911,1],[[1,2],[1,3],[3,3]]], output: [1073741823,1073741822,1] },
     ],
     hints: [
-      "Looping over each range is O(n) per query. Think about how prefix sums answer range sums, and whether xor has the same property.",
-      "Xor is its own inverse: x ^ x = 0. So if pref[i] is the xor of the first i elements, then pref[b] ^ pref[a - 1] cancels the first a - 1 elements.",
-      "Build pref with pref[0] = 0, then every query is pref[b] ^ pref[a - 1] in O(1).",
+      "Recomputing the xor of each range from scratch is wasteful. Could you compute the xor of any range from values stored in advance?",
+      "Xor cancels itself: a xor a is 0. If you know the xor of everything up to position a-1 and up to position b, the part in between is what remains when the two are combined.",
+      "Build a running xor array once, then answer each query with one xor of two stored entries.",
+      "Use an empty prefix with value 0 at index 0, so queries that start at position 1 need no special case.",
     ],
     solution: {
       idea: [
@@ -164,9 +166,10 @@ public:
       { input: [[2,4,6,8,10,12],[[1,1,3,5],[1,3,6,5],[2,3],[2,6],[2,1]]], output: [16,17,7] },
     ],
     hints: [
-      "Adding u to a whole range element by element costs O(n). Instead record only where the added amount starts and where it stops.",
-      "Keep a difference array d: adding u to [a, b] becomes d[a] += u and d[b + 1] -= u. The extra value at position k is then the prefix sum d[1] + ... + d[k].",
-      "Store d in a Fenwick tree so each update and each prefix sum takes O(log n). The answer for k is arr[k - 1] plus that prefix sum, in 64-bit.",
+      "Adding a value to every element of a range one by one is slow. Could you record only where the change starts and where it stops?",
+      "Store each change as a difference: an add at the start and a matching subtract just after the end. The value at a position is the running total of those differences plus the original value.",
+      "Keep the differences in a Fenwick tree so that each change and each running total takes logarithmic time.",
+      "Values can grow large, so use 64-bit numbers for the tree and for the answers.",
     ],
     solution: {
       idea: [
@@ -229,9 +232,10 @@ public:
       { input: [["***","...","***"],[[1,1,3,3],[2,1,2,3],[1,2,3,2],[3,1,3,1]]], output: [6,0,2,1] },
     ],
     hints: [
-      "Counting the trees in each rectangle cell by cell costs up to n^2 per query. Precompute something that answers any rectangle at once.",
-      "Let pref[i][j] be the number of trees in the rectangle from (1,1) to (i,j). Fill it with pref[i][j] = tree(i,j) + pref[i-1][j] + pref[i][j-1] - pref[i-1][j-1].",
-      "A query rectangle is pref[y2][x2] - pref[y1-1][x2] - pref[y2][x1-1] + pref[y1-1][x1-1]: take the big corner rectangle and remove the two strips, adding back the doubly removed corner.",
+      "Counting the cells of each rectangle one by one is too slow. Can you precompute counts that describe every rectangle that starts at the top-left corner?",
+      "Let each cell hold the number of trees in the rectangle from the top-left corner down to that cell. Each such cell can be built from its upper and left neighbours and itself.",
+      "Build the table once with the inclusion-exclusion recurrence. Then answer each query by subtracting two strips and adding back the overlap at the corner.",
+      "Add an extra row and column of zeros at the top and left, so border queries need no special cases.",
     ],
     solution: {
       idea: [
@@ -292,9 +296,10 @@ public:
       { input: [[".*.","*.*",".*."],[[1,2,2],[2,1,1,3,3],[2,1,2,3,2],[1,1,2],[2,1,2,3,2]]], output: [5,3,2] },
     ],
     hints: [
-      "A prefix-sum table answers rectangles fast but a single flip would force rebuilding it. You need a structure that supports both operations in logarithmic time.",
-      "A Fenwick tree (binary indexed tree) handles point update and prefix sum in 1D. Nest one inside another to get 2D: update(y, x, v) loops i over y's Fenwick chain and j over x's chain.",
-      "Prefix(y, x) counts trees in rows 1..y and columns 1..x. A rectangle is prefix(y2,x2) - prefix(y1-1,x2) - prefix(y2,x1-1) + prefix(y1-1,x1-1). Keep the current grid so a flip knows whether to add +1 or -1.",
+      "A precomputed table breaks as soon as one square flips. What structure can take a single change and still answer rectangle counts quickly?",
+      "Use a two-dimensional Fenwick tree: a Fenwick tree over rows whose entries are Fenwick trees over columns.",
+      "A point update walks a chain of rows and, inside each row, a chain of columns. A prefix count uses the same two chains, and a rectangle combines four prefixes.",
+      "Keep a separate copy of the grid, so each flip knows whether it adds one tree or removes one.",
     ],
     solution: {
       idea: [
@@ -374,9 +379,10 @@ public:
       { input: [[4,3,2,1],[1,2,3,4,4]], output: [1,1,2,0,0] },
     ],
     hints: [
-      "Scanning hotels left to right for each group costs O(n) per group, too slow in the worst case.",
-      "Store the number of free rooms of every hotel in a segment tree where each node keeps the maximum of its range. The root tells you immediately whether any hotel fits.",
-      "To find the leftmost fit, start at the root and go to the left child if its maximum is at least r, otherwise to the right child. At the leaf, subtract r and recompute the maximums on the way back up.",
+      "Scanning all hotels from the left for each group is too slow. Could a tree that remembers the largest free room count of each range let you jump to a hotel that fits?",
+      "The root of a maximum tree says at once whether any hotel can take the group. If one can, walk down, going left whenever the left side still has enough rooms.",
+      "Use a segment tree of maximums. Descend to the leftmost leaf with at least the group size, subtract the group size there, and refresh the maximums on the way back up.",
+      "If no hotel has enough rooms, print 0 and change nothing. A tree size that is a power of two keeps the walk down simple.",
     ],
     solution: {
       idea: [
@@ -441,9 +447,10 @@ public:
       { input: [[9,8,7,6,5,4],[2,4,1,2,2,1]], output: [8,5,9,6,4,7] },
     ],
     hints: [
-      "Deleting from the middle of an array costs O(n) per removal. You need a way to find the k-th surviving element without shifting anything.",
-      "Keep an array of 1s (present) in a Fenwick tree. The element at current position k is the smallest index whose prefix sum equals k.",
-      "Find it by binary descent: for step = highest power of two down to 1, if pos + step <= n and tree[pos + step] < k then pos += step and k -= tree[pos]. The answer index is pos + 1. Then add -1 at that index.",
+      "Removing from the middle of a list shifts everything after it. Can you find the k-th surviving element without moving anything?",
+      "Mark each original position as present (1) or removed (0). The current position of an element is the number of present marks up to and including it.",
+      "Keep the marks in a Fenwick tree and search for the smallest position where the running count reaches k. Descend the tree in steps of powers of two.",
+      "After finding an element, clear its mark. Build the starting tree directly from all ones instead of adding n values one by one.",
     ],
     solution: {
       idea: [
@@ -509,9 +516,10 @@ public:
       { input: [[7,7],[[1,1,3],[1,2,3],[2,3,3],[2,4,7],[2,1,2]]], output: [2,0,0] },
     ],
     hints: [
-      "For one query, counting the salaries in a range by looping costs O(n). A Fenwick tree counts well, but it needs small indices to work with.",
-      "Read all queries first. Collect every salary value that ever occurs (initial ones and the x of each update), sort them and remove duplicates. A salary then has a compressed index in 1..m.",
-      "Keep a Fenwick tree of counts over compressed indices. An update decrements the old index and increments the new one. A range [a, b] is prefix(upper_bound(b)) - prefix(lower_bound(a)) over the sorted values.",
+      "Salaries go up to a billion, so you cannot index an array by salary. What can you do with only the values that actually appear?",
+      "Only the initial salaries and the new salaries from updates ever matter, so each distinct value can be mapped to a small rank.",
+      "Sort the collected values and keep a Fenwick tree of counts by rank. A range [a, b] becomes the difference of two prefix counts found by binary search.",
+      "An update removes one count at the old rank and adds one at the new rank.",
     ],
     solution: {
       idea: [
@@ -584,9 +592,10 @@ public:
       { input: [[-1000000000,1000000000,-1000000000,1000000000],[[2,1,4],[2,2,4],[1,1,1000000000],[2,1,4]]], output: [0,1000000000,2000000000] },
     ],
     hints: [
-      "For one range, a single pass keeping a running sum and its maximum answers the question in O(b - a). The updates make precomputed prefix sums useless, so use a tree.",
-      "A segment tree node can store two numbers for its range: the total sum and the maximum prefix sum (never below 0 here). Merging a left part L and right part R gives sum = L.sum + R.sum and pref = max(L.pref, L.sum + R.pref).",
-      "A leaf with value x has sum = x and pref = max(0, x). Answer a query by combining the O(log n) covering nodes from left to right, because the merge is not commutative.",
+      "A single pass over the range answers one query, but the array keeps changing. Which structure answers range questions and also takes point updates?",
+      "For a range, keep two numbers: its total and its best prefix sum. Two neighbouring ranges combine in a simple way, but the left one must come first.",
+      "Use a segment tree whose nodes store the total and the best prefix. Combine the covering nodes from left to right, because the order matters.",
+      "The empty prefix is allowed, so every stored best prefix is at least 0, even for a single negative value.",
     ],
     solution: {
       idea: [
@@ -666,9 +675,10 @@ public:
       { input: [[0,0,0],[[2,0],[2,1],[2,-1]]], output: [0,1,0] },
     ],
     hints: [
-      "Without updates this is Kadane's algorithm. With 200000 updates you cannot afford O(n) per update, so split the array into a tree of blocks.",
-      "For each block store four values: total sum, best prefix, best suffix and best subarray inside it (all allowing the empty choice, so at least 0). A single element x gives (x, max(0,x), max(0,x), max(0,x)).",
-      "Merge(L, R): sum = L.sum + R.sum; pref = max(L.pref, L.sum + R.pref); suf = max(R.suf, R.sum + L.suf); best = max(L.best, R.best, L.suf + R.pref). The root's best is the answer after each update.",
+      "Kadane's method solves one static array quickly. With many updates, what could you store for each block so that an update only re-merges a few blocks?",
+      "Each block needs four numbers: its total, best prefix, best suffix and best subarray. Merging two neighbouring blocks uses only these numbers.",
+      "Use a segment tree of these four values. After each update, re-merge the changed leaf up to the root. The root's best value is the answer.",
+      "Empty subarrays are allowed, so every stored value is at least 0.",
     ],
     solution: {
       idea: [
@@ -745,9 +755,10 @@ public:
       { input: [[9,8,7,6,5,4,3],[[2,1],[1,7,100],[2,1],[2,7],[1,1,1],[2,7]]], output: [9,9,5,5] },
     ],
     hints: [
-      "Trying every pizzeria for each query costs O(n). Look at how the distance behaves: it depends on whether i is left or right of k.",
-      "For i <= k the cost is (prices[i] - i) + k, and for i >= k it is (prices[i] + i) - k. So you need the minimum of prices[i] - i over a prefix and the minimum of prices[i] + i over a suffix.",
-      "Keep two segment trees (point update, range minimum) over prices[i] - i and prices[i] + i. The answer for k is min(minLeft(1..k) + k, minRight(k..n) - k). Use 64-bit values inside the trees to be safe.",
+      "Checking every pizzeria for each query is too slow. Split the pizzerias into those left of the customer and those right of it, and look at how the distance behaves in each part.",
+      "On the left, the cost is the price minus the position, plus the customer's position. On the right, it is the price plus the position, minus the customer's position.",
+      "Keep two minimum segment trees: one over price minus position and one over price plus position. Query a prefix of the first and a suffix of the second.",
+      "A price change updates one leaf in each tree. Use 64-bit values to be safe.",
     ],
     solution: {
       idea: [
@@ -828,9 +839,10 @@ public:
       { input: [[2,4],[[2,1,1,2],[2,1,2,2],[1,1,2,10],[2,1,1,2]]], output: [6,4,12] },
     ],
     hints: [
-      "Copying an array of 200000 elements for every copy query is far too much work and memory. Find a way to copy in O(1) or O(log n).",
-      "Store each array as a persistent segment tree. Changing a position creates only O(log n) new nodes (the path to that leaf) and reuses all other nodes from the old version.",
-      "Keep root[i] for array i. A copy query just does root.push_back(root[k]). An update replaces root[k] with a new root. A range sum query walks root[k] like a normal segment tree.",
+      "Copying an array of 200000 numbers for every copy query is far too much. Could a copy share most of its data with the original?",
+      "Use persistent segment trees: an update creates new nodes only along the path to the changed position and reuses every other node from the old version.",
+      "Keep a list of roots, one per array. A copy adds the same root again. An update makes a new root for that array, and a range sum walks down from that root.",
+      "Each update creates about log n new nodes, so the node storage must be sized for all updates, not just the initial tree.",
     ],
     solution: {
       idea: [
@@ -920,9 +932,10 @@ public:
       { input: [[1,3,1,3,1,3],[[1,6],[2,5],[1,2],[3,4]]], output: [13,9,2,2] },
     ],
     hints: [
-      "For one set of coins the known greedy is: sort ascending, keep s (all sums 0..s reachable, start s = 0); if the next coin is at most s + 1, add it to s, otherwise s + 1 is the answer.",
-      "Equivalent form: repeat s' = (sum of all coins with value <= s + 1); if s' == s stop, else set s = s'. The answer is s + 1. Each round at least roughly doubles s until s passes 10^9, so only about 30 to 40 rounds happen.",
-      "You need 'sum of coins in positions [a, b] with value <= v' quickly. Sort coins by value and build a persistent segment tree over positions: version c contains the c smallest coins. Count the coins <= v with upper_bound, then take the range sum from that version.",
+      "For one set of coins, sorting and extending a reachable total from zero solves it. Doing that for every range is too slow, so think about which coins matter at each step.",
+      "Let s be the largest total such that every amount from 0 to s is reachable. Coins of value at most s + 1 can extend it, and the total of those coins is the next candidate for s.",
+      "Use a persistent segment tree over positions, with versions by coin value. For threshold s + 1, take the version holding all coins up to that value; the range sum over positions a to b gives the new s.",
+      "Stop when the total no longer grows and answer s + 1. Only about 40 rounds happen, since the total roughly doubles each time.",
     ],
     solution: {
       idea: [
@@ -1009,9 +1022,10 @@ public:
       { input: [[4,3,2,1,1,2,3,4],[[1,8],[1,4],[4,5],[3,6],[2,7]]], output: [4,4,1,2,3] },
     ],
     hints: [
-      "Putting every element of a range into a set costs O(range length) per query. Think of answering all queries together instead.",
-      "Sweep a right end r from left to right. For each value, keep a 1 only at its latest position so far. Then the number of distinct values in [a, r] equals the count of 1s at positions a..r.",
-      "Sort queries by b. When you move to position i, if value arr[i] appeared before at position p, subtract 1 at p, then add 1 at i, and remember last[arr[i]] = i. A Fenwick tree gives each count in O(log n). Compress the values first.",
+      "Looking at each range separately repeats a lot of work. Could you sort the queries so that one sweep serves many of them?",
+      "Sweep the right end from left to right. For each value, keep a mark only at its latest position. The marks inside a range then count its distinct values.",
+      "Sort the queries by right end and keep the marks in a Fenwick tree. When a value repeats, remove its old mark and add a mark at the new position.",
+      "Map the values to small indexes first, and print the answers in the original query order at the end.",
     ],
     solution: {
       idea: [
@@ -1083,9 +1097,10 @@ public:
       { input: [[[1,4],[2,5],[3,6],[4,7],[5,8],[6,9]],[[1,9],[1,7],[2,8],[3,6],[1,4]]], output: [2,2,2,1,1] },
     ],
     hints: [
-      "For one window, the classic greedy works: among movies starting no earlier than the current time, take the one that ends first, then move the current time to its end.",
-      "Order movies by start. For each movie i let next[i] be the movie that greedy would take right after i finishes: the movie with the smallest end among those starting at or after end[i]. Precompute the best movie of every suffix of the sorted list, then each next[i] is one binary search.",
-      "Binary lifting: up[k][i] is the movie reached after 2^k greedy steps. For a query, start with the first greedy movie at or after a (if its end is beyond b the answer is 0), then jump greedily with large k first while the landing movie's end is at most b, counting the jumped movies.",
+      "For one time window, a greedy rule chooses movies well. Which movie should you pick next once you finish one?",
+      "After a movie ends, the best next choice is the movie that ends earliest among those starting at or after that end time. So each movie has exactly one fixed successor.",
+      "Precompute each movie's successor, then use binary lifting to jump many successors at once. Count the jumps while the landing movie still ends by the end of the window.",
+      "A movie may start exactly when another ends, so the search for the next start must include equal times.",
     ],
     solution: {
       idea: [

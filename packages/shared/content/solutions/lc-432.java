@@ -1,42 +1,85 @@
 import java.util.*;
 
 class AllOne {
-    private final Map<String, Integer> count = new HashMap<>();
-    private final TreeMap<Integer, Set<String>> byCount = new TreeMap<>();
-
-    private void move(String key, int from, int to) {
-        if (from > 0) {
-            Set<String> s = byCount.get(from);
-            s.remove(key);
-            if (s.isEmpty()) byCount.remove(from);
-        }
-        if (to > 0) {
-            byCount.computeIfAbsent(to, k -> new LinkedHashSet<>()).add(key);
-            count.put(key, to);
-        } else {
-            count.remove(key);
-        }
+    private static class Bucket {
+        int count;
+        Set<String> keys = new HashSet<>();
+        Bucket prev, next;
+        Bucket(int c) { count = c; }
     }
 
-    public AllOne() {}
+    private final Map<String, Bucket> keyToBucket = new HashMap<>();
+    private final Bucket head = new Bucket(0);
+    private final Bucket tail = new Bucket(0);
+
+    public AllOne() {
+        head.next = tail;
+        tail.prev = head;
+    }
+
+    private Bucket insertAfter(Bucket prev, int count) {
+        Bucket b = new Bucket(count);
+        b.next = prev.next;
+        b.prev = prev;
+        prev.next.prev = b;
+        prev.next = b;
+        return b;
+    }
+
+    private void removeBucket(Bucket b) {
+        b.prev.next = b.next;
+        b.next.prev = b.prev;
+    }
 
     public void inc(String key) {
-        int c = count.getOrDefault(key, 0);
-        move(key, c, c + 1);
+        Bucket cur = keyToBucket.get(key);
+        if (cur == null) {
+            Bucket first = head.next;
+            if (first == tail || first.count != 1) {
+                first = insertAfter(head, 1);
+            }
+            first.keys.add(key);
+            keyToBucket.put(key, first);
+        } else {
+            Bucket next = cur.next;
+            if (next == tail || next.count != cur.count + 1) {
+                next = insertAfter(cur, cur.count + 1);
+            }
+            next.keys.add(key);
+            keyToBucket.put(key, next);
+            cur.keys.remove(key);
+            if (cur.keys.isEmpty()) {
+                removeBucket(cur);
+            }
+        }
     }
 
     public void dec(String key) {
-        int c = count.get(key);
-        move(key, c, c - 1);
+        Bucket cur = keyToBucket.get(key);
+        if (cur == null) return;
+        if (cur.count == 1) {
+            keyToBucket.remove(key);
+        } else {
+            Bucket prev = cur.prev;
+            if (prev == head || prev.count != cur.count - 1) {
+                prev = insertAfter(cur.prev, cur.count - 1);
+            }
+            prev.keys.add(key);
+            keyToBucket.put(key, prev);
+        }
+        cur.keys.remove(key);
+        if (cur.keys.isEmpty()) {
+            removeBucket(cur);
+        }
     }
 
     public String getMaxKey() {
-        if (byCount.isEmpty()) return "";
-        return byCount.lastEntry().getValue().iterator().next();
+        if (tail.prev == head) return "";
+        return tail.prev.keys.iterator().next();
     }
 
     public String getMinKey() {
-        if (byCount.isEmpty()) return "";
-        return byCount.firstEntry().getValue().iterator().next();
+        if (head.next == tail) return "";
+        return head.next.keys.iterator().next();
     }
 }

@@ -30,9 +30,10 @@ export const CSES_SPECS: ProblemSpec[] = [
       { input: [16], output: [16, 8, 4, 2, 1] },
     ],
     hints: [
-      "Just do what the statement says in a loop. There is no trick in the algorithm itself.",
-      "Use a 64-bit type for the running value: 3n + 1 can pass the range of a 32-bit int for large n.",
-      "Push n into the result first, then loop while n != 1, updating n and pushing it each time.",
+      "Read the statement carefully. Is there any trick to find before you start, or is it just a rule to follow?",
+      "The running value can grow well beyond 32 bits even when the start is modest. Which type should hold it?",
+      "Record the starting value first, then repeat the two rules until the value is one, recording each new value as you go.",
+      "Edge case: if the start is already 1, the output is just that single value.",
     ],
     solution: {
       idea: [
@@ -81,10 +82,10 @@ public:
       { input: [7, [7, 6, 5, 3, 2, 1]], output: 4 },
     ],
     hints: [
-      "Careful: the list holds n - 1 numbers, so valid indexes are 0 to n - 2. Looping to n reads one past the end.",
-      "If you add up 1 through n, what do you get? And what would the list add up to without the missing number?",
-      "The difference between the two sums is the missing number.",
-      "Sum of 1..n is n * (n + 1) / 2. Use a 64-bit type: for n = 200000 it is about 2 * 10^10.",
+      "The list is one shorter than you might expect. Which indexes are valid, and which range of values should you consider?",
+      "What is the sum of all numbers from 1 to n? How does it compare with the sum of the list you were given?",
+      "The difference between the two sums is the missing number. A formula for the full sum avoids needing a loop over 1 to n.",
+      "Edge case: the full sum can be large, so do the calculation in a 64-bit type.",
     ],
     solution: {
       idea: [
@@ -126,9 +127,10 @@ public:
       { input: ["AATTGGCCAAAAA"], output: 5 },
     ],
     hints: [
-      "Compare each letter with the one before it.",
-      "Keep the length of the current run: add one when the letter matches the previous one, otherwise reset it to 1.",
-      "Track the maximum run length while you scan. Remember the string has at least one letter, so the answer is at least 1.",
+      "Look at each letter together with the one before it. What does a run look like from those comparisons?",
+      "Keep the length of the current run and the best length seen so far. What happens to the current run when the letters differ?",
+      "Scan once: extend the run when the letter matches the previous one, otherwise restart it at one. Keep the maximum across the scan.",
+      "Edge case: the string has at least one letter, so the answer is at least one.",
     ],
     solution: {
       idea: ["One pass with a counter for the current run and a variable for the best run seen."],
@@ -172,9 +174,10 @@ public:
       { input: [[4, 5, 4, 5, 4, 5]], output: 2 },
     ],
     hints: [
-      "Only increasing is allowed, so a smaller element has to rise up to the one before it. Never lower anything.",
-      "Go left to right. If x[i] is smaller than x[i - 1], you must raise it by exactly the difference, and no more.",
-      "Add up those differences in a 64-bit variable, and use the raised value (not the original) as x[i - 1] for the next comparison.",
+      "You may only raise values, never lower them. If a value is smaller than the one before it, how far must it rise?",
+      "Walk from left to right. Should the next comparison use the original value or the value after raising it?",
+      "Add up each needed rise in a 64-bit total, and carry the raised value forward so later comparisons use it.",
+      "Edge case: equal neighbours need no moves, and the total of moves can exceed 32 bits.",
     ],
     solution: {
       idea: [
@@ -226,9 +229,10 @@ public:
       { input: [8], output: [2, 4, 6, 8, 1, 3, 5, 7] },
     ],
     hints: [
-      "Separate even and odd numbers: adjacent even numbers differ by 2, and adjacent odd numbers differ by 2.",
-      "Place all even numbers first (2, 4, 6, ...), then all odd numbers (1, 3, 5, ...).",
-      "For n = 1, [1] is valid. For n = 2 and n = 3, no beautiful permutation is possible. For n >= 4, the boundary difference between the last even number (at least 4) and 1 is at least 3, never 1.",
+      "Adjacent values differ by one only when they are consecutive numbers. How could you arrange the numbers so that consecutive entries are never consecutive values?",
+      "Think about parity. Two neighbouring numbers of the same parity differ by at least two. Where is the only junction that could cause trouble?",
+      "List all the even numbers in increasing order, then all the odd numbers. Only one junction is left to check.",
+      "Edge case: n = 2 and n = 3 have no valid arrangement, so return an empty list. n = 1 returns just that one number.",
     ],
     solution: {
       idea: [
@@ -291,9 +295,10 @@ public:
       { input: [1000000000, 1000000000], output: 999999999000000001 },
     ],
     hints: [
-      "Find the layer z = max(y, x). The previous square of size z - 1 contains numbers up to (z - 1)^2.",
-      "If layer z is even, numbers increase down along column z then left along row z: row z ends with z^2.",
-      "If layer z is odd, numbers increase right along row z then down along column z: column z ends with z^2.",
+      "Each cell belongs to a square layer set by the larger of its row and its column. What do you know about the numbers used before that layer starts?",
+      "Within the layer, the path runs along one edge and then the other. Which edge comes first depends on something simple about the layer. What is it?",
+      "Find the layer's number, then the offset along the layer's edge. The layer ends at the square of its number, and the direction alternates with whether the layer is odd or even.",
+      "Edge case: the corner cell lies on both edges, so check which case a cell falls in before computing its offset.",
     ],
     solution: {
       idea: [
@@ -350,9 +355,10 @@ public:
       { input: [6], output: [0, 6, 28, 96, 252, 550] },
     ],
     hints: [
-      "On a k x k board, total ways to choose 2 arbitrary squares is (k^2) * (k^2 - 1) / 2.",
-      "Knights attack each other if and only if they form opposite corners of a 2 x 3 or 3 x 2 rectangle.",
-      "Each 2 x 3 and 3 x 2 block contains 2 attacking pairs. A k x k board has (k - 1)(k - 2) blocks of size 2 x 3 and (k - 2)(k - 1) of size 3 x 2, giving 4 * (k - 1) * (k - 2) attacking pairs in total.",
+      "Forget the attacks for a moment. How many ways are there to pick any two different squares on the board?",
+      "Two knights attack each other only in one special shape. Can you describe that shape as a small rectangle?",
+      "Subtract the attacking pairs from all pairs. Count attacking pairs through the 2 x 3 and 3 x 2 rectangles on the board, since each rectangle holds two of them.",
+      "Boards of size 1 and 2 have no attacking pairs at all, and the counts grow large, so use 64-bit integers.",
     ],
     solution: {
       idea: [
@@ -426,9 +432,10 @@ public:
       { input: [12], output: [[6, 10, 11, 12], [1, 2, 3, 4, 5, 7, 8, 9]] },
     ],
     hints: [
-      "The total sum 1 + 2 + ... + n is n * (n + 1) / 2. If this sum is odd, it is impossible to divide into two equal sets.",
-      "The sum is even when n is a multiple of 4 or when n = 4k + 3.",
-      "To construct the sets, compute target = total / 2. Work backwards from n to 1: take element k into set 1 if target >= k, updating target -= k; otherwise put k into set 2.",
+      "Add up the numbers from 1 to n. When can that total be split into two equal halves at all?",
+      "Check which n make the total even. Try small cases by hand: n = 3, 4, 7 and 8 work, while n = 1, 2, 5 and 6 do not.",
+      "Go greedily from n down to 1: put each number into group one if it still fits the remaining target, otherwise into group two. Then sort both groups ascending.",
+      "If the total is odd, return an empty list. The greedy fills the groups from the top down, so the sorting at the end matters.",
     ],
     solution: {
       idea: [
@@ -484,9 +491,10 @@ public:
       { input: [100], output: 976371285 },
     ],
     hints: [
-      "Each position in the string can be either 0 or 1, so for length n there are 2^n possible bit strings.",
-      "Since 2^n is too large for standard integer types, compute the power modulo 10^9 + 7.",
-      "You can use a loop multiplying by 2 modulo 10^9 + 7, or modular binary exponentiation in O(log n) time.",
+      "Each position has two choices, independent of the others. How many strings is that in total?",
+      "The count is 2 to the power n, far too big to store. What can you do with each step so the numbers stay small?",
+      "Double a running value n times, reducing it modulo 1000000007 after every doubling. Repeated squaring of the base does the same in about 20 steps for large n.",
+      "Reduce after every doubling. If you only reduce at the end, the number overflows long before n reaches a million.",
     ],
     solution: {
       idea: [
@@ -537,9 +545,10 @@ public:
       { input: [1000000000], output: 249999998 },
     ],
     hints: [
-      "A trailing zero in decimal corresponds to a factor of 10 = 2 * 5.",
-      "In n!, factors of 2 are strictly more numerous than factors of 5, so the count of trailing zeros equals the power of 5 in the prime factorization of n!.",
-      "Use Legendre's formula: count = floor(n / 5) + floor(n / 25) + floor(n / 125) + ... Repeat while n >= 5.",
+      "A trailing zero comes from a factor of 10. Which two primes make 10, and which of them is rarer in n factorial?",
+      "Every factor of 10 needs one 2 and one 5. Twos are plentiful in n factorial, so what limits the count?",
+      "Count the factors of 5 in n factorial by adding n divided by 5, then n divided by 25, then n divided by 125, and so on. This is Legendre's formula.",
+      "The loop stops quickly. If n is below 5, the answer is 0.",
     ],
     solution: {
       idea: [
@@ -599,9 +608,10 @@ public:
       { input: [1000000000, 499999999], output: false },
     ],
     hints: [
-      "Each move removes exactly 3 coins in total (1 + 2 or 2 + 1). What does that say about (a + b)?",
-      "(a + b) must be divisible by 3.",
-      "Furthermore, the larger pile cannot have more than twice the smaller pile: max(a, b) <= 2 * min(a, b). If both conditions hold, the piles can always be emptied.",
+      "Each move removes exactly 3 coins in total. What must be true of a + b for both piles to empty?",
+      "Let x and y count how often each move is used. Solve a = x + 2y and b = 2x + y. Can x and y both be non-negative?",
+      "The piles empty exactly when a + b is divisible by 3 and neither pile is more than twice the other. Both checks take constant time.",
+      "Use 64-bit numbers so that doubling a pile cannot overflow.",
     ],
     solution: {
       idea: [

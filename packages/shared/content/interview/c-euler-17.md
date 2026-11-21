@@ -3,6 +3,7 @@ id: c-euler-17
 pattern: cses-euler
 difficulty: medium
 optimal: "O(n) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

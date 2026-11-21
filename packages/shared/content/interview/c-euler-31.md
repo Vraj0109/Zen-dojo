@@ -3,6 +3,7 @@ id: c-euler-31
 pattern: cses-euler
 difficulty: medium
 optimal: "O(coins * target) time, O(target) space"
+brute: same
 reviewed: false
 ---
 

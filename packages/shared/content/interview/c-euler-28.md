@@ -3,6 +3,7 @@ id: c-euler-28
 pattern: cses-euler
 difficulty: easy
 optimal: "O(side) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

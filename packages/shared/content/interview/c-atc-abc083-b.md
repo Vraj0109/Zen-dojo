@@ -3,6 +3,7 @@ id: c-atc-abc083-b
 pattern: cses-atcoder
 difficulty: easy
 optimal: "O(n log n) time (about 7 digits per number), O(1) space"
+brute: same
 reviewed: false
 ---
 

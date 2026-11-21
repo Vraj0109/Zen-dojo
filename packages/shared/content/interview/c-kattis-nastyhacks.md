@@ -3,6 +3,7 @@ id: c-kattis-nastyhacks
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(1) time and O(1) space per test case"
+brute: same
 reviewed: false
 ---
 

@@ -3,6 +3,7 @@ id: c-euler-53
 pattern: cses-euler
 difficulty: medium
 optimal: "O(maxN^2) time, O(maxN) space"
+brute: same
 reviewed: false
 ---
 

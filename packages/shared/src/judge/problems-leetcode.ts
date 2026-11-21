@@ -31,9 +31,10 @@ export const LEETCODE_SPECS: ProblemSpec[] = [
       { input: [[1000000000, 7, -1000000000, 3], 0], output: [0, 2] },
     ],
     hints: [
-      "Checking every pair works, but it is slow for 10000 numbers. What do you need to know about the other number when you stand on one?",
-      "If you are at nums[i], the partner must be exactly target - nums[i]. Can you find out quickly whether you have already seen that value?",
-      "Keep a hash map from value to position as you walk left to right. Before storing nums[i], look up target - nums[i]; if it is there you are done.",
+      "Checking every pair works but is slow with many numbers. For one number, what do you need to know about its partner?",
+      "The partner is fixed: it must equal the target minus the current number. Can you find out quickly whether you have already seen that value?",
+      "Keep a lookup table from each value to its position as you walk left to right. For each number, check the table for its partner first, then store the number.",
+      "Store a number only after checking for its partner, so the same element is never paired with itself.",
     ],
     solution: {
       idea: [
@@ -87,9 +88,9 @@ public:
       { input: ["[({})](]"], output: false },
     ],
     hints: [
-      "The bracket you must close next is always the one you opened most recently. Which data structure gives you the most recent item first?",
-      "Push every opening bracket on a stack. When you see a closing bracket, the top of the stack must be its partner.",
-      "Fail if you meet a closing bracket with an empty stack or the wrong partner on top. At the end the stack must be empty, otherwise some bracket was never closed.",
+      "The bracket you must close next is always the one you opened most recently. Which kind of container hands back the most recent item first?",
+      "Push each opening bracket onto a pile. When a closing bracket arrives, the top of the pile must be its matching partner.",
+      "Use a stack. Fail on a closing bracket with an empty stack or the wrong partner on top. At the end the stack must be empty.",
     ],
     solution: {
       idea: [
@@ -145,9 +146,10 @@ public:
       { input: [[10000, 1, 10000]], output: 9999 },
     ],
     hints: [
-      "For a fixed selling day, which buying day gives the best profit?",
-      "It is the cheapest price seen on any earlier day. You do not need to try every pair.",
-      "Walk once, keeping the lowest price so far. At each day, the best profit ending today is price minus that lowest price. Keep the maximum of those.",
+      "Fix the day you sell. Which earlier day would have been the best day to buy?",
+      "It is the lowest price seen on any earlier day. You do not need to compare every pair of days.",
+      "Walk the prices once, remembering the lowest price so far. At each day, the profit if you sell today is today's price minus that low. Keep the best profit.",
+      "If prices only fall, the answer is 0, not negative. Start the best profit at 0.",
     ],
     solution: {
       idea: [
@@ -196,9 +198,10 @@ public:
       { input: [[8, -19, 5, -4, 20]], output: 21 },
     ],
     hints: [
-      "Think about the best block that ends exactly at position i.",
-      "Either it is just nums[i], or it is nums[i] added to the best block ending at i - 1. Pick the larger.",
-      "Keep one running value: cur = max(nums[i], cur + nums[i]). The answer is the largest cur you ever see. Start with the first element, not 0, so all-negative lists work.",
+      "Think about the best block that ends exactly at the current position. How does it relate to the best block that ended at the position before?",
+      "For each position you either start a new block here or extend the best block that ended just before. Which choice is better depends on whether that old sum is helping.",
+      "Keep one running value for the best block ending here, and a separate best overall. If the running value drops below the current number, start fresh from the current number.",
+      "Start from the first element, not from 0, so that lists with only negative numbers still give the right answer.",
     ],
     solution: {
       idea: [
@@ -238,17 +241,20 @@ public:
     ],
     tests: [
       { input: [1], output: 1 },
+      { input: [3], output: 3 },
       { input: [4], output: 5 },
       { input: [5], output: 8 },
       { input: [10], output: 89 },
       { input: [20], output: 10946 },
-      { input: [30], output: 1346269 },
-      { input: [45], output: 1836311903 },
+    ],
+    stress: [
+      { label: "n = 30", make: () => [30] },
+      { label: "n = 45", make: () => [45] },
     ],
     hints: [
-      "Think about the very last move. How many different last moves are there?",
-      "The last move was 1 step (from n-1) or 2 steps (from n-2). So ways(n) = ways(n-1) + ways(n-2).",
-      "That is the Fibonacci recurrence. Keep only the last two values in a loop. Recursion without caching is too slow for n = 45.",
+      "Think about the very last move. How many different last moves could there be?",
+      "The last move was 1 step or 2 steps. So the number of ways to reach a step is the sum of the ways to reach the two steps before it.",
+      "That is the Fibonacci pattern. You only need the last two values, so a loop with two variables works and avoids the slow plain recursion.",
     ],
     solution: {
       idea: [
@@ -298,9 +304,9 @@ public:
       { input: [[1, 3, 2, 5, 25, 24, 5]], output: 24 },
     ],
     hints: [
-      "Start with the widest container: the first and last lines. What limits its height?",
-      "The shorter line. Moving the taller line inward can only make the width smaller and cannot raise the height limit, so it never helps.",
-      "Use two pointers at both ends. Compute the area, then move the pointer that points at the shorter line inward. Repeat until they meet.",
+      "Start with the widest container, using the two outside lines. What limits how much water it can hold?",
+      "The shorter of the two lines sets the height. Moving the taller line inward makes the container narrower without raising the height limit, so it can never help.",
+      "Put one pointer at each end. Measure the area, then move the pointer at the shorter line inward. Repeat until the pointers meet, and keep the largest area.",
     ],
     solution: {
       idea: [
@@ -350,9 +356,9 @@ public:
       { input: ["aab"], output: 2 },
     ],
     hints: [
-      "A window of consecutive characters with no repeats: when does it stop being valid?",
-      "When the next character is already inside the window. Then the window's left edge must move past the earlier copy.",
-      "Store the last position of every character. Keep a left edge; for each right position, if the character was last seen at or after left, set left to that position plus one. The answer is the largest right - left + 1.",
+      "Think of a stretch of consecutive characters with no repeats. When does a stretch stop being valid as you extend it to the right?",
+      "When the new character already appears inside the stretch. Then the left end must jump past the earlier copy.",
+      "Remember the last position of each character. Keep a left end; when a repeat appears inside the window, move the left end to just after the old copy. Track the longest window.",
     ],
     solution: {
       idea: [

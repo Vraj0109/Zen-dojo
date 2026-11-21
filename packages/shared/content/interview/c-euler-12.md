@@ -3,6 +3,7 @@ id: c-euler-12
 pattern: cses-euler
 difficulty: medium
 optimal: "About O(k * sqrt k) time where k is a few thousand for the largest input, O(1) space"
+brute: same
 reviewed: false
 ---
 

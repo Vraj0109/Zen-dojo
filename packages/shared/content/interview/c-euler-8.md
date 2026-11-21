@@ -3,6 +3,7 @@ id: c-euler-8
 pattern: cses-euler
 difficulty: easy
 optimal: "O(n * k) time, O(n * k) space"
+brute: same
 reviewed: false
 ---
 

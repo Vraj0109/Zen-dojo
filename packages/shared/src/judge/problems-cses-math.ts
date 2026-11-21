@@ -45,9 +45,10 @@ export const CSES_SPECS_MATH: ProblemSpec[] = [
       { input: [[[1000000000, 1], [1000000000, 500000000]]], output: [2, 1000000000] }
     ],
     hints: [
-      "In the first round around the circle, all even-indexed children 2, 4, 6, ... are removed.",
-      "If 2 * k <= n, then child 2 * k is removed during this first round.",
-      "If 2 * k > n, reduce the problem recursively to a circle of size n / 2. Pay close attention to whether n is odd or even to properly remap the child indices after wrapping around."
+      "Think about the first trip around the circle. Which children leave on that trip?",
+      "On the first lap every even-numbered child leaves. If the step falls within that lap, the answer is simply twice the step.",
+      "Otherwise the rest of the process is a smaller problem of about half the size. Solve that, then map its answer back to the original numbering, depending on whether n is odd.",
+      "When n is odd, child 1 leaves right after the last even child of the first lap. Handle that case separately.",
     ],
     solution: {
       idea: [
@@ -127,9 +128,10 @@ public:
       { input: [[[2, 10, 9]]], output: [140625001] }
     ],
     hints: [
-      "You cannot simply compute (b^c) modulo 10^9 + 7 because the modulus in the exponent behaves differently.",
-      "By Fermat's Little Theorem, if p is prime and gcd(a, p) = 1, then a^(p - 1) = 1 (mod p).",
-      "Therefore, compute the exponent e = b^c modulo (p - 1), where p = 10^9 + 7. Then compute a^e modulo p."
+      "The exponent itself can be huge. Do you need its full value, or only its value modulo something?",
+      "The modulus is prime, so exponents repeat with a period one less than the modulus. The inner power only needs to be taken modulo that period.",
+      "Compute b to the power c modulo the period, then raise a to that result modulo the prime. Use fast binary exponentiation for both steps.",
+      "Reducing the exponent can turn a positive power into zero, which matters when a is 0. Treat the case a = 0 separately.",
     ],
     solution: {
       idea: [
@@ -211,9 +213,10 @@ public:
       { input: [1000000000000], output: 146462362 }
     ],
     hints: [
-      "Instead of summing divisors per number, change the perspective: count how many times each divisor d in [1, n] divides a number <= n.",
-      "The divisor d divides exactly floor(n / d) numbers. Therefore, the total sum is sum_{d=1}^n d * floor(n / d).",
-      "Since n <= 10^12, looping up to n is impossible. However, floor(n / d) only takes at most 2 * sqrt(n) distinct values. Group values of d where floor(n / d) is constant and compute their sum with an arithmetic progression formula."
+      "Instead of summing the divisors of each number, count how often each divisor appears across all numbers up to n.",
+      "A divisor d divides exactly n divided by d (rounded down) of the numbers. So the total is the sum over all d of d times that count.",
+      "Many consecutive values of d share the same count, and there are only about twice the square root of n distinct counts. Group them into blocks and sum each block with the arithmetic formula.",
+      "Do the arithmetic modulo the prime, and use the modular inverse of 2 for the halving in the formula.",
     ],
     solution: {
       idea: [
@@ -288,9 +291,10 @@ public:
       { input: [1000000000000000000, [2]], output: 500000000000000000 }
     ],
     hints: [
-      "The number of primes k is very small (at most 20). This suggests an exponential approach in k.",
-      "Use the Principle of Inclusion-Exclusion (PIE) over all 2^k - 1 non-empty subsets of primes.",
-      "For each subset of primes, compute their product P. The number of multiples <= n is floor(n / P). Beware of 64-bit integer overflow when multiplying primes together: check if p > n / P before multiplying."
+      "Counting numbers divisible by at least one prime is a union problem. How do you count a union when the sets overlap?",
+      "Inclusion and exclusion: add the multiples of each single prime, subtract the multiples of each pair, add the triples, and so on.",
+      "Loop over all non-empty subsets with bitmasks. A subset's product gives the number of multiples up to n as n divided by the product. Odd-sized subsets add, even-sized subtract.",
+      "Before multiplying, check that the product will not exceed n, to avoid overflow. If it would, that subset contributes nothing.",
     ],
     solution: {
       idea: [
@@ -374,9 +378,10 @@ public:
       { input: [[7, 11, 13, 17, 19]], output: 10 }
     ],
     hints: [
-      "Directly testing all pairs takes O(n^2) GCD checks, which will time out for n = 10^5.",
-      "Use Möbius inversion. For any pair (a, b), sum_{d | gcd(a, b)} mu(d) equals 1 if gcd(a, b) == 1, and 0 otherwise.",
-      "Therefore, the total number of coprime pairs is sum_{d >= 1} mu(d) * (cnt[d] * (cnt[d] - 1) / 2), where cnt[d] is the number of elements in arr that are multiples of d."
+      "Checking every pair with a gcd is far too slow. Could you count the pairs that share a factor and remove them from the total?",
+      "Use Mobius inversion: summing a special weight over all divisors of a gcd gives 1 exactly when the gcd is 1, and 0 otherwise.",
+      "For each d, count the pairs whose values are both multiples of d, then combine these counts with the Mobius values of d. Compute the Mobius values with a sieve.",
+      "Count how often each value occurs first, then sum the frequencies of multiples of each d. Pair counts can be large, so use 64-bit integers.",
     ],
     solution: {
       idea: [
@@ -477,9 +482,10 @@ public:
       { input: ["zzzzzzzzzz"], output: 1 }
     ],
     hints: [
-      "By the multinomial formula, the number of distinct anagrams of a string of length n with character frequencies c_1, c_2, ..., c_26 is n! / (c_1! * c_2! * ... * c_26!).",
-      "Compute n! modulo 10^9 + 7 iteratively in O(n) time.",
-      "Multiply the denominator factorials together modulo 10^9 + 7, and use modular inverse via Fermat's Little Theorem to divide by the denominator."
+      "Arrangements of letters with repeats count the same string several times. How many orderings give the same string?",
+      "Divide the total number of arrangements by the arrangements within each group of equal letters, since swapping equal letters changes nothing.",
+      "Count the letters, precompute factorials modulo the prime, multiply the inverse factorials of the counts, and multiply by n factorial.",
+      "Division modulo a prime uses the modular inverse, which you can compute with fast exponentiation to the power of the prime minus 2.",
     ],
     solution: {
       idea: [
@@ -566,9 +572,10 @@ public:
       { input: [1000000, 1000000], output: 96075800 }
     ],
     hints: [
-      "This is a classic Stars and Bars combinatorics problem.",
-      "Distributing m indistinguishable items among n distinguishable bins is equivalent to placing n - 1 dividers among m items.",
-      "The formula is binom(n + m - 1, m) = binom(n + m - 1, n - 1) modulo 10^9 + 7."
+      "The apples are identical but the children are distinct. Picture the apples in a row with separators between children. How many separators do you need, and how many positions are there in total?",
+      "Placing n minus 1 separators among the m apples gives every distribution, so count the ways to choose the positions of the separators among all of them.",
+      "The count is a binomial coefficient: total length choose the number of apples, computed with factorials and modular inverses.",
+      "Make the factorial table reach n plus m minus 1. With a single child there is exactly one way.",
     ],
     solution: {
       idea: [
@@ -648,9 +655,10 @@ public:
       { input: [1000000], output: 102701088 }
     ],
     hints: [
-      "A permutation where no element appears in its original position is called a derangement D_n.",
-      "Consider child 1: they can receive any of the other n - 1 gifts (say child 2's gift). Now consider who receives child 1's gift.",
-      "If child 2 receives child 1's gift, the remaining n - 2 children form a derangement (D_{n-2} ways). If child 2 does not receive child 1's gift, this is equivalent to a derangement of n - 1 children (D_{n-1} ways). Thus D_n = (n - 1) * (D_{n-1} + D_{n-2})."
+      "Count the arrangements in which nobody gets their own gift. Can you relate this count to smaller versions of the same problem?",
+      "Look at child 1 and the gift that child receives. Either the gift's owner swaps back, which leaves a smaller problem, or the chain continues, which also gives a smaller problem.",
+      "Use the recurrence: the count for n is n minus 1 times the sum of the counts for n minus 1 and n minus 2. Compute it with two rolling variables.",
+      "Start from the small base cases: with 1 child there are no valid arrangements, and with 2 children there is exactly one.",
     ],
     solution: {
       idea: [
@@ -721,9 +729,10 @@ public:
       { input: [1000000], output: 213941567 }
     ],
     hints: [
-      "If n is odd, can opening and closing brackets ever be balanced?",
-      "If n is even, let k = n / 2 be the number of pairs of parentheses. The number of valid bracket sequences with k pairs is given by the Catalan number C_k.",
-      "The formula for the k-th Catalan number is C_k = binom(2k, k) / (k + 1) = (2k)! / (k! * (k + 1)!). Compute this modulo 10^9 + 7 using factorials and modular inverse."
+      "Brackets can only balance if the length is even. What do the counts look like for the lengths that can work?",
+      "Valid sequences with k pairs are counted by the Catalan numbers, which have a closed form using factorials.",
+      "If n is even, the answer is the Catalan number for half of n. Compute it with factorials and a modular inverse.",
+      "An odd length gives 0, and a length of 0 gives 1.",
     ],
     solution: {
       idea: [
@@ -805,9 +814,10 @@ public:
       { input: [1000, 1000], output: 376317251 }
     ],
     hints: [
-      "Use Burnside's Lemma. The number of orbits under the cyclic group C_n is (1 / n) * sum_{k=0}^{n-1} |Fix(r^k)|.",
-      "A rotation by k positions has gcd(k, n) cycles. For a configuration to remain invariant, all pearls in the same cycle must have the same color. Thus |Fix(r^k)| = m^{gcd(k, n)}.",
-      "Summing over all divisors d of n, the formula simplifies to (1 / n) * sum_{d | n} phi(n / d) * m^d mod 10^9 + 7."
+      "Rotations make many colorings look the same. Is there a counting tool that handles this by averaging over the symmetries?",
+      "Burnside's lemma: for each rotation, count the colorings it leaves unchanged, then average over all n rotations.",
+      "A rotation splits the positions into cycles that must each be a single color. Group the rotations by their number of cycles, which is a divisor of n, and use Euler's totient to count how many rotations give each divisor.",
+      "Compute the totient of each divisor-related value, and divide by n using a modular inverse.",
     ],
     solution: {
       idea: [
@@ -912,9 +922,10 @@ public:
       { input: [[1000000000, 1000000000, 1]], output: "first" }
     ],
     hints: [
-      "This is the standard game of Nim under normal play convention.",
-      "By the Bouton theorem, a Nim position is losing (a P-position) if and only if the XOR sum (Nim-sum) of all heap sizes is 0.",
-      "If the XOR sum is non-zero, the first player can always make a move that leaves an XOR sum of 0, forcing a win."
+      "Think about which positions are winning for the player to move. Is there a simple rule for the heap sizes?",
+      "Combine the heap sizes with exclusive or. If the combined value is zero, the player to move is losing.",
+      "Compute the xor of all heap sizes. A non-zero result means the first player wins, and zero means the second player wins.",
+      "An empty heap contributes nothing to the xor, so it does not change the answer.",
     ],
     solution: {
       idea: [

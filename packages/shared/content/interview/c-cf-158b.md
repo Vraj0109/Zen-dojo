@@ -3,6 +3,7 @@ id: c-cf-158b
 pattern: cses-codeforces
 difficulty: medium
 optimal: "O(n) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

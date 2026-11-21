@@ -3,6 +3,7 @@ id: c-euler-45
 pattern: cses-euler
 difficulty: hard
 optimal: "O(sqrt(ans)) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

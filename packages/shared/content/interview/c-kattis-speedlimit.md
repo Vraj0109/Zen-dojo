@@ -3,6 +3,7 @@ id: c-kattis-speedlimit
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(n) time and O(1) space per test case"
+brute: same
 reviewed: false
 ---
 

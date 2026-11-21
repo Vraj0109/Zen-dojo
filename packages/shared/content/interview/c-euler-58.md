@@ -3,6 +3,7 @@ id: c-euler-58
 pattern: cses-euler
 difficulty: hard
 optimal: "O(ans * log^2(ans)) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

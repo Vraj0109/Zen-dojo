@@ -3,6 +3,7 @@ id: c-kattis-pieceofcake2
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(1) time and O(1) space"
+brute: same
 reviewed: false
 ---
 

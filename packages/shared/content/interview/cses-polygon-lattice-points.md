@@ -4,6 +4,7 @@ pattern: cses-misc
 difficulty: medium
 optimal: "O(n log(max_coord)) time and O(1) space"
 reviewed: false
+brute: same
 ---
 
 ## Clarify first

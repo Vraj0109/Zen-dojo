@@ -33,9 +33,10 @@ export const CSES_SPECS_MISC: ProblemSpec[] = [
       { input: [[100,200,300,400,500,600,700,800,900,1000],[[1,10],[5,5],[2,9],[3,7]]], output: [5500,500,4400,2500] },
     ],
     hints: [
-      "Calculating each query by summing from index a to b in a loop takes O(n) per query, which is too slow.",
-      "Precompute a prefix sum array pref where pref[k] is the sum of the first k elements (with pref[0] = 0).",
-      "The sum in range [a, b] (1-based) is then simply pref[b] - pref[a - 1], answered in O(1) time. Remember to use 64-bit integers to prevent overflow.",
+      "Adding up each range from scratch is slow when there are many queries. What could you prepare once, before reading the queries?",
+      "If you know the running total up to every position, how can a range total be written using two of those totals?",
+      "Build a prefix sum array in a single pass, then answer each query with one subtraction.",
+      "Use 64-bit integers for sums. The queries are 1-based, so the left boundary must be shifted by one in the array.",
     ],
     solution: {
       idea: [
@@ -96,9 +97,10 @@ public:
       { input: [[6,6,6,6,6],[[1,5],[2,3],[4,4]]], output: [6,6,6] },
     ],
     hints: [
-      "Because the array values never change, you can precalculate range minimums.",
-      "Use a Sparse Table: precompute table[k][i], which stores the minimum value in the interval of length 2^k starting at index i.",
-      "For any range [L, R] of length len = R - L + 1, let k = floor(log2(len)). The minimum is min(table[k][L], table[k][R - 2^k + 1]), which answers each query in O(1) time.",
+      "The array never changes, so spending some time up front on preparation could make every query cheap.",
+      "Could any range be covered by two overlapping blocks of power-of-two length? Does overlap matter when you take a minimum?",
+      "Build a sparse table: for each power-of-two length and start, store the minimum. A query uses two overlapping blocks of the largest fitting length.",
+      "Convert the 1-based query bounds to 0-based before computing the length and which power of two to use.",
     ],
     solution: {
       idea: [
@@ -170,9 +172,10 @@ public:
       { input: [[3,1,4,1,5,9,2,6],[[2,1,8],[1,4,7],[2,3,6],[1,1,10],[2,1,3]]], output: [31,25,15] },
     ],
     hints: [
-      "Static prefix sums cannot easily support updates because each update takes O(n) time.",
-      "Use a Fenwick tree (Binary Indexed Tree) or Segment Tree, which supports both point updates and range sum queries in O(log n) time.",
-      "When arr[k - 1] is updated to u, the difference delta = u - arr[k - 1] is added to the Fenwick tree at index k, and arr[k - 1] is set to u.",
+      "Prefix sums are quick to read but slow to change. Is there a structure where both reading and changing take a few steps?",
+      "A Fenwick tree stores partial sums over blocks whose size is set by the lowest set bit of an index. Updates and reads both hop between indexes.",
+      "A point update adds the change at its position and hops upward. A range sum is the prefix at b minus the prefix at a - 1.",
+      "Keep a copy of the current values so each update can compute its change (new value minus old value).",
     ],
     solution: {
       idea: [
@@ -251,9 +254,10 @@ public:
       { input: [8,[1,2,1,4,2,6,1]], output: [7,3,0,1,0,1,0,0] },
     ],
     hints: [
-      "The reporting hierarchy forms a tree rooted at employee 1. The number of subordinates of node u is the size of its subtree minus 1.",
-      "You can traverse the tree from the root using BFS to compute a topological order of employees.",
-      "Processing the topological order in reverse (from leaves up to the root) allows you to accumulate subtree sizes: for each child v of u, add 1 + subordinates[v] to subordinates[u].",
+      "Think of the bosses as a tree. How many people sit below each employee, counting everyone further down the chain?",
+      "Each direct report and everyone under that report are subordinates, so the total for a boss is built from the totals of its reports.",
+      "Compute these totals bottom-up: process each employee only after all of their reports, for example by a BFS order read backwards.",
+      "A boss number may be larger than the employee it manages, so build the full tree first and then traverse it from the root.",
     ],
     solution: {
       idea: [
@@ -326,9 +330,10 @@ public:
       { input: [8,[[1,2],[2,3],[2,4],[1,5],[5,6],[6,7],[6,8]]], output: 5 },
     ],
     hints: [
-      "The diameter is the length of the longest shortest path between any two nodes in the tree.",
-      "A standard technique is two breadth-first searches (BFS). Start at an arbitrary node (say node 1) and find the furthest node u.",
-      "The node u is guaranteed to be one endpoint of a diameter. Run a second BFS from u to find the furthest node v. The distance between u and v is the diameter.",
+      "The diameter is the longest path between any two nodes. Could you find one end of such a path starting from any node?",
+      "Start anywhere and find the farthest node. Is that node always one end of some longest path in a tree?",
+      "Run BFS twice: from node 1 to find the farthest node u, then from u. The largest distance found in the second run is the diameter.",
+      "Count distances in edges, not nodes. A tree with a single node has diameter 0.",
     ],
     solution: {
       idea: [
@@ -406,9 +411,10 @@ public:
       { input: [1000000000,1000000000], output: 312556845 },
     ],
     hints: [
-      "Multiplying a by itself b times takes O(b) operations, which times out for b up to 10^9.",
-      "Use binary exponentiation: if b is even, a^b = (a^2)^(b / 2); if b is odd, a^b = a * a^(b - 1).",
-      "Multiply using 64-bit integers and reduce modulo 10^9 + 7 after each multiplication to avoid overflow.",
+      "Multiplying a by itself b times is too slow when b is a billion. Can you build the power out of powers that double in size?",
+      "Write the exponent in binary. Each set bit contributes one power of a, and repeated squaring reaches each of those powers quickly.",
+      "Square the base each step, and multiply it into the result when the lowest bit of the exponent is set, then shift the exponent right.",
+      "Use 64-bit numbers and reduce modulo 1000000007 after each multiplication. The result starts at 1, so 0 to the power 0 comes out as 1.",
     ],
     solution: {
       idea: [
@@ -466,9 +472,10 @@ public:
       { input: [999983], output: 2 },
     ],
     hints: [
-      "Divisors come in pairs: if d divides x, then x / d is also a divisor.",
-      "You only need to loop d from 1 up to floor(sqrt(x)).",
-      "For each divisor d: if d * d == x, count 1; otherwise count 2 (both d and x / d).",
+      "Divisors do not need to be tested all the way up to x. Think about how small divisors pair with large ones.",
+      "If d divides x, what else divides x? How does that partner compare in size with d?",
+      "Loop d up to the square root of x and count the pair d and x divided by d together, counting once when they are equal.",
+      "Compare d times d with x instead of taking a square root, so no rounding error can appear.",
     ],
     solution: {
       idea: [
@@ -523,9 +530,10 @@ public:
       { input: [[21,35,15,20,28]], output: 7 },
     ],
     hints: [
-      "Checking all pairs takes O(n^2) time, which is too slow.",
-      "Instead of checking pairs of numbers, iterate over the potential common divisor g from the maximum value down to 1.",
-      "Count how many numbers in arr are multiples of g: multiples = count[g] + count[2g] + count[3g] + ... If multiples >= 2, then g is a common divisor of at least two numbers. The first such g is the maximum!",
+      "Trying every pair is too slow. For a candidate g, how many numbers in the array are multiples of g?",
+      "If two numbers share a divisor g, both are multiples of g. Could you test candidates from large to small and stop at the first that works?",
+      "Count how many values are multiples of each g with a frequency table, adding counts at g, 2g, 3g and so on, and stop at the first g with at least two.",
+      "Two equal values are a pair, so a repeated number can be the answer. Return 1 if no larger candidate works.",
     ],
     solution: {
       idea: [
@@ -586,9 +594,10 @@ public:
       { input: [[[1000000,500000],[1000000,1]]], output: [996692777,1000000] },
     ],
     hints: [
-      "Precompute factorials modulo 10^9 + 7 up to the maximum a value (at most 10^6).",
-      "Division modulo prime p = 10^9 + 7 can be computed using modular inverse: 1 / x = x^(p - 2) mod p by Fermat's Little Theorem.",
-      "Precompute inverse factorials in O(M): compute invFact[M] = (fact[M])^(p - 2) mod p, then iteratively invFact[i - 1] = invFact[i] * i mod p. Then each query takes O(1) time.",
+      "Computing a choose b from huge factorials overflows. Could you prepare tables once and reuse them for every query?",
+      "Division modulo a prime is multiplication by an inverse. Could a single inverse, computed once, let you get all the others?",
+      "Precompute factorials up to the largest a. Invert the largest one with fast power (Fermat's little theorem), then fill inverse factorials going down.",
+      "Answer 0 when b is below 0 or above a. Build the tables only up to the largest a that appears in the queries.",
     ],
     solution: {
       idea: [
@@ -674,9 +683,10 @@ public:
       { input: [1000000000000000000], output: 209783453 },
     ],
     hints: [
-      "Linear iteration is O(n), which is far too slow when n reaches 10^18.",
-      "Write the Fibonacci transition in matrix form: [[F_{k+1}, F_k], [F_k, F_{k-1}]] = [[1, 1], [1, 0]]^k.",
-      "Use matrix exponentiation by repeated squaring to raise the 2x2 matrix to the power n in O(log n) multiplications, taking all arithmetic modulo 10^9 + 7.",
+      "A loop that counts up to n is far too slow for n this large. Can a recurrence like this be jumped ahead instead of stepped through?",
+      "Each new Fibonacci pair comes from the previous pair by one fixed transformation. Can that transformation be written as a 2 by 2 table of numbers?",
+      "Raise the 2 by 2 table with ones in the top row and 1 and 0 in the bottom row to the power n with fast exponentiation. Its corner entry is F_n.",
+      "Reduce modulo 1000000007 after every multiplication. Handle n = 0 and n = 1 directly.",
     ],
     solution: {
       idea: [
@@ -747,9 +757,10 @@ public:
       { input: ["a","a"], output: 1 },
     ],
     hints: [
-      "A naive search takes O(|s| * |pattern|) time, which will time out for strings of length up to 10^6.",
-      "Use the Knuth-Morris-Pratt (KMP) algorithm to achieve linear O(|s| + |pattern|) time.",
-      "Compute the prefix function (pi table) for the pattern. Then scan string s while maintaining the length of the longest matched prefix. Whenever the matched length equals the pattern length, increment your match count and use pi to shift the matching window.",
+      "Restarting the search at every position is too slow for long strings. When a partial match fails, do you really have to start over?",
+      "After a partial match fails, the part you already matched may contain the start of the pattern. Can you know in advance how much to keep?",
+      "Build the prefix function of the pattern, then scan the text once, falling back with it on mismatches and counting each full match.",
+      "Overlapping matches count. After a full match, fall back with the prefix function instead of resetting to zero.",
     ],
     solution: {
       idea: [

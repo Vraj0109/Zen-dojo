@@ -3,6 +3,7 @@ id: c-cf-791a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(log(b/a)) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

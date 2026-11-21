@@ -3,6 +3,7 @@ id: c-cf-443a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(n) time and O(1) space"
+brute: same
 reviewed: false
 ---
 

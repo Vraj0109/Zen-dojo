@@ -26,9 +26,10 @@ export const LEETCODE_SPECS_6: ProblemSpec[] = [
       { input: [[2,2,3,3,3,3,4,4,5,5,5]], output: [2,3,4,5] },
     ],
     hints: [
-      "Because the array is sorted, equal values sit next to each other.",
-      "Keep a write position. Walk through the array and copy a value only if it differs from the last value you kept.",
-      "Compare with the last kept value (at write - 1). The first element is always kept.",
+      "The list is sorted, so where do equal values sit?",
+      "Keep a second position where the next unique value will be written, and read the list one step at a time from the front.",
+      "Use two pointers: a reader moves through every element, and a writer advances only when the value differs from the one before the write position.",
+      "The first element is always kept. The result must contain only the kept values, so cut the array to the written length.",
     ],
     solution: {
       idea: [
@@ -76,9 +77,10 @@ public:
       { input: ["abc","abcabcabc"], output: 3 },
     ],
     hints: [
-      "How many copies of a are needed just to be at least as long as b?",
-      "Only that count, ceil(b.length / a.length), and that count plus one can ever be the answer. More copies never help.",
-      "Build the repeated string for those two counts and search for b with the built-in find.",
+      "Why would the string need repeating at all? Ask how long the repeated string must be before b could possibly fit inside it.",
+      "How many copies does a string of b's length need? Could b need one more copy, but never more than that?",
+      "Build the repeated string for the minimum count and search for b, then try one more copy if that fails.",
+      "Check the lengths before building anything. A very long b with a short a would make a huge string, so keep the build to the two counts.",
     ],
     solution: {
       idea: [
@@ -126,9 +128,10 @@ public:
       { input: [[10,20,30,40,50,60,70]], output: [10,70,20,60,30,50,40] },
     ],
     hints: [
-      "The back half has to be read in reverse order. A singly linked list cannot walk backwards, so change that.",
-      "Find the middle with slow and fast pointers, then reverse the second half in place.",
-      "Weave the two halves: take a node from the first half, then one from the reversed second half, until the second half runs out.",
+      "The new order alternates between the front and the back. Which part of a singly linked list is hard to walk from the end?",
+      "The second half must be read backwards. Where could you split the list in the middle, and how could you turn the second half around?",
+      "Find the middle with a slow and a fast pointer, reverse the second half in place, then interleave the two halves one node at a time.",
+      "Cut the list before reversing so the two halves do not link into each other. The last node must end with a null link.",
     ],
     solution: {
       idea: [
@@ -188,9 +191,10 @@ public:
       { input: [[10000,-10000,10000],10000], output: 1 },
     ],
     hints: [
-      "Use prefix sums P: the sum of nums[i..j-1] is P[j] - P[i]. You want the closest pair i < j with P[j] - P[i] >= k.",
-      "Keep candidate starting indices in a deque with increasing prefix sums. If P[j] is not larger than the prefix at the back, that back index is useless: drop it.",
-      "While P[j] - P[front] >= k, record the length j - front and pop the front; a later j can only give a longer subarray with that start.",
+      "Work with running totals rather than the numbers themselves. A subarray sum is the difference of two running totals. Which pairs of positions do you want?",
+      "If an earlier start already reaches the target, can a later start ever beat it? If an earlier start has a running total no smaller than a later one, which is better for future ends?",
+      "Keep a double-ended queue of candidate start positions with increasing running totals. Pop from the front when the target is met, and from the back when a newer total is not larger.",
+      "Running totals can exceed 32 bits, so use a 64-bit type. Return -1 if no window meets the target.",
     ],
     solution: {
       idea: [
@@ -246,9 +250,10 @@ public:
       { input: ["- (3 + (4 + 5))"], output: -12 },
     ],
     hints: [
-      "Without brackets it is a running total with a current sign. What changes when a bracket opens?",
-      "A minus before a bracket flips the sign of everything inside it. Remember the sign in force when you enter.",
-      "Keep a stack. On '(' push the total so far and the current sign, and start a fresh total. On ')' finish the inner total, multiply by the pushed sign and add the pushed total.",
+      "Without brackets you just keep a running total. A bracket adds a layer: what must you remember when you enter one?",
+      "The sign in front of a bracket applies to everything inside it. What must you save before entering so you can restore it on leaving?",
+      "Use a stack that keeps the running total and sign from before each opening bracket. On a closing bracket, combine the inner total with the saved values.",
+      "Watch for a leading minus sign and for multi-digit numbers. Apply a number's sign only once the next operator or bracket shows up.",
     ],
     solution: {
       idea: [
@@ -316,9 +321,10 @@ public:
       { input: [[[1,1,1],[1,1],[1]]], output: [1,1,1,1,1,1] },
     ],
     hints: [
-      "Merging two sorted lists is easy. What if you merged them pairwise, over and over?",
-      "Or look only at the current head of each list: the next output value is the smallest of those k heads.",
-      "Keep the heads in a min-heap (priority queue). Pop the smallest, append it, and push that list's next element. Each element is pushed and popped once, so O(N log k) overall.",
+      "Merging two sorted lists is easy. Could you compare many lists at once, looking only at the front of each one?",
+      "At each step the next output node is the smallest among the current fronts of the lists. How do you find that smallest quickly as the fronts change?",
+      "Keep one front node per list in a min-heap of at most k items. Pop the smallest, append it, and push the next node from that same list.",
+      "Do not push empty lists. A dummy head node makes it simpler to build the result.",
     ],
     solution: {
       idea: [
@@ -372,9 +378,10 @@ public:
       { input: [10,0,[1,1,1,1],[0,1,2,3]], output: 4 },
     ],
     hints: [
-      "At every step, among the projects you can afford, which one should you pick?",
-      "The one with the highest profit: it never hurts, because more money only unlocks more projects.",
-      "Sort projects by capital. For each of the k rounds, push all newly affordable projects' profits into a max-heap, then pop the largest and add it to w. Stop early if the heap is empty.",
+      "You can finish at most k projects. Which affordable project should you pick first, and why?",
+      "Finishing a project only adds money, so it never closes doors. Among the affordable projects, does the one with the most profit always help most?",
+      "Sort projects by the capital they need. Each round, move everything you can now afford into a max-heap of profits, and take the top one.",
+      "Stop early when no project is affordable. The total can exceed 32 bits, so use a 64-bit type.",
     ],
     solution: {
       idea: [
@@ -429,9 +436,10 @@ public:
       { input: [[[9,8],[7,6]]], output: [[7,9],[6,8]] },
     ],
     hints: [
-      "Where does the cell in row i, column j end up after a clockwise turn?",
-      "It moves to row j, column n - 1 - i. Following one cell around gives a cycle of four cells.",
-      "Alternatively: transpose the matrix (swap a[i][j] with a[j][i]), then reverse every row.",
+      "Follow one cell as the grid turns a quarter. Where does the cell in row i and column j end up?",
+      "The new column depends on the row the cell started in. After four quarter turns each cell is back where it began, so the cells move in loops of four.",
+      "Try swapping across the main diagonal first, then reversing each row. Each of these moves keeps cells within the same loop of four.",
+      "Swap each pair only once, and do not allocate a second matrix.",
     ],
     solution: {
       idea: [
@@ -478,9 +486,10 @@ public:
       { input: [[[2147483647,0],[-2147483648,1]]], output: [[0,0],[-2147483648,0]] },
     ],
     hints: [
-      "Do not zero anything while you are still looking for zeros: the new zeros would be mistaken for old ones.",
-      "First pass: remember which rows and which columns contain a zero.",
-      "Second pass: zero every cell whose row or column is remembered. For O(1) space, use the first row and first column as the memory (and keep two flags for whether they themselves had a zero).",
+      "If you zero a row as soon as you find a zero, you may wrongly zero other cells later. What should you finish before changing anything?",
+      "Which rows and which columns contain a zero in the original matrix? Could you record that without copying the whole grid?",
+      "Mark rows and columns in two small boolean arrays during a first pass, then fill in the zeros in a second pass.",
+      "For constant extra space, the first row and first column can hold those marks, plus two flags for whether they held zeros themselves.",
     ],
     solution: {
       idea: [
@@ -532,9 +541,10 @@ public:
       { input: [[-2147483648,2147483647,-2147483648]], output: 1 },
     ],
     hints: [
-      "Compare nums[mid] with nums[mid + 1]. What does it tell you about which side must contain a peak?",
-      "If nums[mid] < nums[mid + 1], the sequence is still climbing, so a peak exists to the right. Otherwise one exists at mid or to the left.",
-      "Binary search with lo < hi, moving hi = mid or lo = mid + 1. The loop ends when lo == hi.",
+      "A peak is higher than its neighbours. Look at a middle position and its right neighbour. Which direction must a peak lie in?",
+      "If the value rises from the middle to its right, can the climb stop before the end? If it falls, where could a peak be?",
+      "Binary search on the slope: keep a low and a high bound, test the middle against its right neighbour, and move one bound toward the rising side.",
+      "Make sure the search stops when the two bounds meet. The ends act as minus infinity, so the rising test is enough.",
     ],
     solution: {
       idea: [
@@ -585,9 +595,10 @@ public:
       { input: [[-1000000],[1000000]], output: 0 },
     ],
     hints: [
-      "Think of cutting both arrays so that the left parts together hold half of all elements.",
-      "A cut is right when every element on the left side is at most every element on the right side. Only the four elements next to the two cuts need checking.",
-      "Binary search the cut in the shorter array. The cut in the longer one follows from the half size. Use sentinels of plus or minus infinity for cuts at an end.",
+      "The median is about splitting all values into two equal halves. Could you find that split without merging the arrays?",
+      "A split is valid when everything on its left is at most everything on its right. Which values next to the split must you compare?",
+      "Binary search for how many elements to take from the shorter array. The count from the longer array follows from the half size.",
+      "Use infinity sentinels for cuts at either end. For an even total, average the two values around the split.",
     ],
     solution: {
       idea: [
@@ -645,9 +656,10 @@ public:
       { input: [[2,1,2,1,2]], output: [1,1,2,2,2] },
     ],
     hints: [
-      "Counting how many 0s, 1s and 2s there are and rewriting the array works in two passes. Can you do one?",
-      "Keep three zones: finished 0s on the left, finished 2s on the right, and an unknown middle.",
-      "Use pointers lo, i, hi. If nums[i] is 0, swap it to lo; if 2, swap it to hi (and do not advance i yet, since the swapped-in value is unknown); if 1, move on.",
+      "The three values could be sorted by one sweep. What if you kept three regions and moved their boundaries as you read?",
+      "While scanning, the front region should hold only zeros and the back region only twos. How do you move a value into the right region?",
+      "Use three pointers: one for the next zero slot, one for the scan, and one for the next two slot. Swap a two to the back without advancing the scan.",
+      "After swapping a zero forward, the scan can advance, since the value that comes back is a one or a zero. Do not advance after swapping a two.",
     ],
     solution: {
       idea: [
@@ -695,9 +707,10 @@ public:
       { input: [[[9,0],[8,1],[7,2],[6,3]]], output: [[9,0],[8,1],[7,2],[6,3]] },
     ],
     hints: [
-      "Place the tallest people first: nobody shorter can change the k of a taller person.",
-      "Sort by height descending, and for equal heights by k ascending.",
-      "Then insert each person at index k of the answer list. People already placed are all at least as tall, so index k is exactly right.",
+      "A person's height is affected only by people at least as tall. Which people are least affected by the others?",
+      "A shorter person is invisible to the count of a taller person. In what order should you place people, and what do ties need?",
+      "Sort by height from tallest down, with ties by count ascending. Insert each person into a list at the index equal to their count.",
+      "Inserting into a list shifts later elements, but that is fine here because the list is built from the tallest people first.",
     ],
     solution: {
       idea: [
@@ -746,9 +759,10 @@ public:
       { input: [[-1,-2,-3,0,3]], output: 3 },
     ],
     hints: [
-      "Counting every pair is O(n^2), too slow for 50000 elements in the worst case.",
-      "Merge sort splits the array and compares the halves. Before merging two sorted halves, you can count the cross pairs with two pointers.",
-      "For each element on the left half, advance a pointer on the right half while left > 2 * right. Use long long for the doubling.",
+      "Checking every pair is too slow for large inputs. Could you borrow the way merge sort splits a list in two and counts pairs across the halves?",
+      "Once each half is sorted, a single pointer on the right half can move only forward as the left values grow. What does that let you count?",
+      "Use merge sort, and count the pairs across the halves with a two-pointer sweep before the normal merge.",
+      "Doubling a value near the 32-bit limit overflows, so compare using 64-bit numbers.",
     ],
     solution: {
       idea: [
@@ -805,9 +819,10 @@ public:
       { input: [[7,1,2,3,4,5,6,7]], output: 7 },
     ],
     hints: [
-      "Sorting works but changes the array; a hash set works but uses O(n) space.",
-      "Treat i -> nums[i] as a pointer. Since two indices point to the same value, following pointers must eventually enter a cycle.",
-      "The duplicate is the entrance of that cycle. Find it with Floyd's tortoise and hare: meet inside the cycle, then restart one pointer from index 0 and move both one step at a time.",
+      "Sorting or a set would work, but the array must stay unchanged and the extra memory must be constant. What structure does the index-to-value mapping create?",
+      "Each index points to the index named by its value. Starting from index 0, must the walk repeat? Why must two indices lead to the same place?",
+      "Use two pointers moving at different speeds to find a repeated point in the walk. Then restart one from the beginning and step both at the same speed.",
+      "Values run from 1 to n, so index 0 is never a target. The point where the second meeting happens is the duplicate.",
     ],
     solution: {
       idea: [
@@ -861,9 +876,10 @@ public:
       { input: [[0,-1,1],-1,1], output: 0 },
     ],
     hints: [
-      "If a node's left subtree contains one of the values and its right subtree contains the other, that node is the answer.",
-      "A recursive function can return a found value (p or q) upward, or null when neither is in the subtree.",
-      "At each node: if it equals p or q, return it. Otherwise ask both children. If both reply, this node is the LCA; if only one replies, pass that reply up.",
+      "Think about each node and what its two subtrees report. When is a node the first place where p and q split apart?",
+      "A node can be the answer if p and q are found on different sides, or if it is itself one of them and the other lies below. What must a subtree tell its parent?",
+      "Search recursively and return the node found, or nothing when the subtree holds neither value. Stop descending once you hit p or q and pass the result upward.",
+      "A missing child returns nothing. A node that is p or q counts as found even when the other value sits below it.",
     ],
     solution: {
       idea: [
@@ -915,9 +931,10 @@ public:
       { input: [[0]], output: 0 },
     ],
     hints: [
-      "Any path has a highest node, the one closest to the root. Solve for each node as that top point.",
-      "For a node, the best path through it is its value plus the best downward arm on the left plus the best downward arm on the right. A negative arm is better dropped (use 0).",
-      "A DFS returns to its parent only a single downward arm: value + max(left arm, right arm, 0). Update a global best with the two-armed total at every node.",
+      "A path can start and end anywhere, so every best path has a highest point. Could you solve the problem for each node as that highest point?",
+      "At a node, the best path through it uses the node plus a downward branch on each side. When is a branch worth taking at all?",
+      "Use a recursion that returns the best one-sided chain from each node to its parent, and record the two-sided total at every node in a best-so-far variable.",
+      "Values can be negative, so the answer can be negative too. Start the best value at the smallest possible number, not zero.",
     ],
     solution: {
       idea: [
@@ -970,9 +987,10 @@ public:
       { input: [[5,1,9,0,3,4,7]], output: [[0],[1],[5,3,4],[9],[7]] },
     ],
     hints: [
-      "First collect every node together with its row and column.",
-      "A DFS or BFS that carries (row, column) down to the children does it in one pass.",
-      "Then sort the triples by column, then row, then value, and cut the sorted list into columns.",
+      "Each node gets a row and a column from its position. If you wrote out every node's coordinates and value, what would sorting them give you?",
+      "A walk that carries a running row and column is enough to label every node. Which traversal does that cleanly?",
+      "Collect (column, row, value) for every node, then sort. Cut the sorted list into groups each time the column changes.",
+      "Ties on both row and column are broken by the smaller value, which the sort order already handles. Make sure an empty tree returns an empty list.",
     ],
     solution: {
       idea: [
@@ -1030,9 +1048,10 @@ public:
       { input: [[-2147483648,2147483647]], output: [2147483647,-2147483648] },
     ],
     hints: [
-      "An inorder walk of a valid BST gives increasing values. What does the walk look like after a swap?",
-      "There are one or two places where a value is smaller than the one before it. The first such 'drop' marks the larger swapped node, and the last drop marks the smaller one.",
-      "During an inorder walk remember the previous node. At the first drop keep prev as the first culprit; at every drop keep the current node as the second. Swap their values at the end.",
+      "The in-order walk of a valid search tree gives a steadily growing sequence. What does the walk look like if two values are out of place?",
+      "Compare each visited value with the one before it. Where do you see a drop, and how many drops can two swapped values create?",
+      "Do an in-order walk with a pointer to the previous node. Record the first node at the first drop and the last node at the last drop.",
+      "If the two swapped nodes sit next to each other, there is only one drop, and both picks come from it. Swap the two recorded values at the end.",
     ],
     solution: {
       idea: [
@@ -1089,9 +1108,10 @@ public:
       { input: [8,[[0,1],[1,2],[2,3],[3,4],[2,5],[5,6],[5,7]]], output: [21,15,11,15,21,13,19,19] },
     ],
     hints: [
-      "Root the tree at node 0. The sum of distances from the root is easy: add up the depths of all nodes.",
-      "Count, for every node, how many nodes are in its subtree (cnt). Moving the viewpoint from a parent to a child brings cnt[child] nodes one step closer and the other n - cnt[child] nodes one step farther.",
-      "So answer[child] = answer[parent] - cnt[child] + (n - cnt[child]). Compute the subtree sizes and the root's answer in one DFS, then push the answers down in a second one.",
+      "Computing each node's total separately would repeat most of the work. How does the total change when you move from a parent to one of its children?",
+      "Root the tree at node 0 and count the nodes below each node. Moving to a child brings some nodes closer and pushes the rest farther. How many of each?",
+      "Do one bottom-up pass to get the subtree sizes and the root's total, then one top-down pass that adjusts each parent's total for its child.",
+      "A deep tree can overflow a recursive call stack, so an explicit stack or an ordered list of nodes is safer.",
     ],
     solution: {
       idea: [
@@ -1155,9 +1175,10 @@ public:
       { input: [[1,2,4,8,16]], output: 24 },
     ],
     hints: [
-      "To get the biggest XOR, you want the highest bit to differ if at all possible, then the next bit, and so on.",
-      "Build the answer one bit at a time from bit 30 down. Suppose you want to test whether the answer has this bit set, given the bits already decided.",
-      "Store the prefixes (the numbers shifted right) in a set. A candidate answer c is reachable if some prefix a and prefix b satisfy a XOR b == c, i.e. b == c XOR a. Or insert the numbers in a binary trie and for each number walk the opposite bits greedily.",
+      "The highest bit matters most. Could you decide the answer one bit at a time, starting from the top?",
+      "To keep a bit set, you need two numbers whose higher bits already match the answer so far and whose next bit differs. How can you check that for a candidate?",
+      "For each bit, store the shifted prefixes of all numbers in a hash set. Check whether a candidate XOR some prefix is in the set, or walk a binary trie greedily.",
+      "Start from the highest bit a value can use, about bit 30 for 32-bit inputs.",
     ],
     solution: {
       idea: [
@@ -1213,9 +1234,10 @@ public:
       { input: [[[2,1,0,2,1],[1,0,1,2,1],[1,0,0,2,1]]], output: 2 },
     ],
     hints: [
-      "All rotten oranges spread at the same time, like a wave.",
-      "That is a multi-source BFS: start with every rotten orange in the queue, and process the queue one level (minute) at a time.",
-      "Count the fresh oranges first. When BFS ends, if fresh oranges remain return -1; otherwise return the number of levels that actually rotted something.",
+      "Every fresh orange rots when a rotten neighbour reaches it. If all rotten oranges spread at the same speed, what does that look like?",
+      "The spread is a wave starting from many places at once and moving one step per minute. Which way of exploring a grid visits cells in order of distance?",
+      "Put every rotten orange in a queue at the start, process the queue one layer at a time, and count the layers. Track how many fresh oranges remain.",
+      "Return 0 if there were no fresh oranges at the start, and -1 if some are still fresh at the end.",
     ],
     solution: {
       idea: [
@@ -1282,9 +1304,10 @@ public:
       { input: ["aaa","bbb",["aab","abb","bbb"]], output: 4 },
     ],
     hints: [
-      "Think of each word as a node, and connect two words that differ in exactly one letter. The question is a shortest path.",
-      "Breadth-first search from the begin word finds the fewest steps. Mark words visited as you queue them (or remove them from the set).",
-      "To find the neighbours of a word, try changing each position to each of the 26 letters and check whether the result is in the set. That costs L * 26 lookups instead of comparing with every word.",
+      "Treat each word as a point and link two words that differ by one letter. Then the question becomes finding the shortest route between two points.",
+      "For a route where every step costs one, which search explores all words one step away before any two steps away?",
+      "Instead of comparing every pair of words, change each letter of the current word to each letter of the alphabet and check whether the result is in the set.",
+      "Remove a word from the set when you first visit it, so it is never queued twice. The count includes both the start and the end.",
     ],
     solution: {
       idea: [
@@ -1345,9 +1368,10 @@ public:
       { input: [[[1,0,1],[1,1,1],[1,0,1]]], output: [[1,0,1],[2,1,2],[1,0,1]] },
     ],
     hints: [
-      "Doing a BFS from every 1 is too slow. Flip the question: from where does distance spread out?",
-      "Start BFS from all the 0 cells at once, with distance 0. Each step outward adds 1.",
-      "Initialise every 1 as unvisited (-1 or infinity), queue all 0s, and when you reach an unvisited neighbour set its distance to the current cell's distance plus 1.",
+      "Searching from every 1 for its nearest 0 repeats work. Could you reverse the direction and let something spread outward from the zeros?",
+      "If every zero starts spreading at the same time, the first time a cell is reached gives its distance. Which search does that?",
+      "Put all zero cells in a queue with distance 0, then expand layer by layer, giving each unvisited neighbour one more than the current cell.",
+      "Mark the cells not yet reached with a sentinel value so you can tell which cells were filled. Every cell gets reached because at least one zero exists.",
     ],
     solution: {
       idea: [
@@ -1407,9 +1431,10 @@ public:
     ],
     unordered: true,
     hints: [
-      "Checking every cell with its own search is slow. Reverse the direction of the flow.",
-      "Start at the ocean edges and walk uphill: from a cell, move to neighbours that are at least as high. Everything reached this way can flow down to that ocean.",
-      "Run the uphill search once from all Pacific border cells and once from all Atlantic border cells. The answer is the cells marked in both.",
+      "Testing each cell against both oceans is slow. Could you reverse the flow and ask which cells the ocean can reach by going uphill?",
+      "Water flows downhill, so start at the ocean edges and move to neighbours that are equal or higher. What do the cells you can reach have in common?",
+      "Run one search from each ocean's edge cells, moving only to neighbours at least as high. Then intersect the two sets of marked cells.",
+      "Corner cells border both oceans, so they appear in both starting sets. Keep one visited grid per ocean.",
     ],
     solution: {
       idea: [

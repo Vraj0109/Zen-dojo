@@ -113,9 +113,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Consider the last throw of the die. It could be any number d from 1 to 6 as long as d <= n.",
-      "If the last roll was d, the previous rolls must have summed to n - d.",
-      "Define dp[i] as the number of ways to reach sum i. Then dp[i] = dp[i-1] + dp[i-2] + ... + dp[i-6], taking modulo 10^9 + 7 at each addition. Base case: dp[0] = 1."
+      "Look at the last roll that reaches the total. What values could it have, and what total came before it?",
+      "The total before the last roll is the target minus that roll. What would the six possible previous totals be?",
+      "Count the ways to reach each total from 0 up to n. Each total adds the counts of the six totals just below it, taking the modulo at each step. Total 0 has one way.",
+      "Totals below 6 can only use the faces that fit, so do not read past the start of the table.",
     ],
     "solution": {
       "idea": [
@@ -266,9 +267,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Let dp[x] be the minimum number of coins needed to produce sum x.",
-      "For each sum x from 1 to target, try ending the sum with each coin c: dp[x] = min(dp[x], dp[x - c] + 1) whenever x >= c.",
-      "Initialize dp[0] = 0 and all other dp[x] = infinity. If dp[target] is still infinity at the end, return -1."
+      "Suppose you already know the fewest coins for every smaller total. Which coin should be the last one added?",
+      "The last coin is one of the given denominations. If you know the fewest coins for each smaller total, how can you pick the best last coin?",
+      "Fill a table from 0 up to the target. For each total, try every coin that fits and use one more than the best count for the total left after that coin. Use a large value for unreachable totals.",
+      "If the target stays unreachable, return -1. Use a sentinel that cannot overflow when one is added.",
     ],
     "solution": {
       "idea": [
@@ -419,9 +421,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Because order matters, consider which coin is placed last in the sequence.",
-      "If the last coin placed is c, the preceding coins must have formed a sum of target - c.",
-      "Iterate through sum s from 1 to target in the outer loop, and iterate over all coins c in the inner loop: dp[s] = (dp[s] + dp[s - c]) % MOD."
+      "Order matters here, so 2 then 3 is a different answer from 3 then 2. What is the last coin in each ordering?",
+      "If the last coin is c, what must the earlier coins sum to? Does that suggest a table of counts by total?",
+      "Count ordered sequences for each total from 1 to the target. For each total, add the counts for each total obtained by subtracting one coin, taking the modulo at each step.",
+      "Put the totals in the outer loop and the coins in the inner loop, so each order is counted separately. The empty sequence reaches total 0.",
     ],
     "solution": {
       "idea": [
@@ -574,9 +577,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "To avoid counting different permutations of the same coins, consider the coins one by one in a fixed order.",
-      "Process each coin type in an outer loop. When processing coin c, update all sums from c up to target.",
-      "dp[s] represents the number of ways to form sum s using only the coin types processed so far: dp[s] = (dp[s] + dp[s - c]) % MOD."
+      "Now the order does not matter. How could you add coin kinds one at a time, so each set is built in one fixed order?",
+      "Process the coin kinds one after another. When you handle a kind, which totals can it extend, and can it be used more than once?",
+      "Keep a table of counts by total. For each coin kind, sweep totals upward from that coin's value, adding the count from the total one coin lower. This lets each kind repeat.",
+      "Looping over coin kinds in the outer loop prevents counting the same set twice. Total 0 has one way, the empty set.",
     ],
     "solution": {
       "idea": [
@@ -676,9 +680,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "For any number x, check every non-zero digit d that appears in x.",
-      "The subproblem dp[x] represents the minimum steps to reach 0 from x: dp[x] = 1 + min(dp[x - d]) over all digits d in x.",
-      "Alternatively, observe that greedily subtracting the largest digit in x is always optimal and runs even faster!"
+      "Each step subtracts one digit of the current number. Would you ever gain by subtracting a smaller digit when a bigger one is available?",
+      "Consider the largest digit of the current number. What happens if you always subtract it?",
+      "Repeatedly subtract the largest digit of the current number until it reaches zero, counting the steps. Extracting digits by repeated division by ten is enough.",
+      "The number of steps stays small for the given limits, so a plain loop is fast enough.",
     ],
     "solution": {
       "idea": [
@@ -818,9 +823,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "If grid[0][0] or grid[n-1][n-1] is '*', you immediately have 0 paths.",
-      "To reach cell (r, c), you can only come from (r - 1, c) or (r, c - 1).",
-      "Maintain a DP table dp[r][c] = (dp[r-1][c] + dp[r][c-1]) % MOD for non-trap cells. You can optimize space to a single 1D array of size n."
+      "Every path reaches a cell from above or from the left. How can that help you count the paths to each cell?",
+      "The ways to reach a cell depend only on its upper and left neighbours. Could you fill the grid in order from the top left?",
+      "Count ways cell by cell in reading order. A trap cell has zero ways, and any other cell sums the counts from above and from the left, taking the modulo at each addition.",
+      "If the start or the destination is a trap, the answer is zero. One row of counts is enough to save memory.",
     ],
     "solution": {
       "idea": [
@@ -1029,9 +1035,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "This is the classic 0/1 knapsack problem where prices are the item weights and pages are the values.",
-      "Let dp[w] be the maximum pages you can get with total cost at most w.",
-      "For each book, iterate backwards from maxPrice down to its price: dp[w] = max(dp[w], dp[w - price] + pages)."
+      "Treat each book as an item with a cost and a value. With a limited budget, what do you want to maximise?",
+      "Think about the best total pages you can buy with a budget of j. How does that answer change when a new book is added?",
+      "Use a one-dimensional table indexed by budget. For each book, sweep budgets downward from the maximum to the book's price, taking the better of skipping and buying it.",
+      "Sweeping downward stops the same book being used twice. Budgets below a book's price keep their old values.",
     ],
     "solution": {
       "idea": [
@@ -1189,9 +1196,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Notice that each element only constraints its immediate neighbors. This naturally suggests processing from left to right.",
-      "Let dp[v] be the number of valid prefixes ending at index i with value v, for 1 <= v <= m.",
-      "For the next element, if arr[i] == 0, v can take any value in 1..m; otherwise v must equal arr[i]. Then new_dp[v] = dp[v - 1] + dp[v] + dp[v + 1]."
+      "Each element only affects its neighbours. Could you go from left to right while remembering something small?",
+      "For the next position, what matters is how many ways the prefix can end at each value. How does a value at the next position connect to the values just before it?",
+      "Keep a count for each value from 1 to m of the ways the prefix can end there. The next counts sum the counts for the value below, the same value and the value above. A fixed value allows only one choice.",
+      "Only values one apart can sit next to each other. Take the total at the end, modulo 1000000007.",
     ],
     "solution": {
       "idea": [
@@ -1308,9 +1316,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Let dp[i][j] denote the edit distance between s1[0..i-1] and s2[0..j-1].",
-      "If s1[i-1] == s2[j-1], the characters match without any cost: dp[i][j] = dp[i-1][j-1].",
-      "Otherwise, consider the three operations: delete (dp[i-1][j] + 1), insert (dp[i][j-1] + 1), or replace (dp[i-1][j-1] + 1)."
+      "Compare prefixes of the two strings. For a fixed pair of prefix lengths, what is the cheapest way to make them match?",
+      "If the last characters already match, what does that tell you about the rest? If they differ, which of the three operations could be the last step?",
+      "Fill a table of best costs for each pair of prefixes. A matching last pair copies the diagonal value; otherwise add one to the cheapest of delete, insert or replace.",
+      "Only the previous row is needed, so two short arrays can replace the full table. An empty string needs as many insertions as the other string has characters.",
     ],
     "solution": {
       "idea": [
@@ -1426,9 +1435,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "If the rectangle is already a square (a == b), 0 cuts are needed.",
-      "Otherwise, any first cut must split either the width into k and a - k (for 1 <= k < a), or the height into k and b - k (for 1 <= k < b).",
-      "Because a and b are at most 500, compute dp[w][h] = min(horizontal cuts, vertical cuts) + 1. Note that dp[w][h] = dp[h][w] by symmetry."
+      "A square needs no cuts. For a rectangle that is not a square, what must the first cut look like?",
+      "Every cut splits the rectangle into two smaller ones. Could the best answer for a rectangle be built from the best answers for its two pieces?",
+      "Compute the answer for every width and height. Try every straight cut in both directions, and add one to the cuts needed for the two pieces. Symmetry halves the work.",
+      "Sides are at most 500, so a full table over all widths and heights is affordable. Start the minimum from a large value.",
     ],
     "solution": {
       "idea": [
@@ -1656,9 +1666,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Let dp[s] be a boolean indicating whether sum s is reachable using a subset of coins.",
-      "For each coin c, update reachable sums from maximum sum down to c: if dp[s - c] is true, then dp[s] becomes true.",
-      "A bitset allows performing this transition for all sums simultaneously with bs |= (bs << c), running in microseconds."
+      "Which sums can be formed with the coins so far? When you add a new coin, what new sums appear?",
+      "Adding a coin of value c gives new sums exactly c more than each reachable sum. Can you update all of them at once?",
+      "Keep a yes or no flag for each sum up to the total. For each coin, mark a sum reachable if the sum minus the coin was reachable, going from high sums to low. A bitset shift does this in one step.",
+      "Sum zero comes only from the empty set, which is excluded. Output the reachable positive sums in ascending order.",
     ],
     "solution": {
       "idea": [
@@ -1808,9 +1819,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Instead of tracking both players' scores, track the difference: (current player score) - (opponent score).",
-      "For a subarray arr[i..j], the current player can pick arr[i] or arr[j]. The remaining subarray will be played optimally by the opponent.",
-      "Let dp[i][j] = max(arr[i] - dp[i+1][j], arr[j] - dp[i][j-1]). Once dp[0][n-1] is known, P1 - P2 = dp[0][n-1] and P1 + P2 = sum(arr), so P1 = (sum + dp[0][n-1]) / 2."
+      "Instead of tracking two totals, track how far ahead the player to move is over the other player for a range of cards.",
+      "On a range, the player who takes one end leaves the opponent the rest. What does the opponent's advantage on that rest tell you?",
+      "For every range, take the better of: the end card minus the opponent's gap on the rest, for either end. Fill ranges by increasing length, then get player one's score from the total and the gap.",
+      "Use 64-bit numbers. The final division by two is exact, because the total and the gap have the same parity.",
     ],
     "solution": {
       "idea": [
@@ -1912,9 +1924,10 @@ export const CSES_SPECS_DP: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "The total sum of 1 through n is n * (n + 1) / 2. If this sum is odd, no equal partition is possible, so return 0.",
-      "If total sum is even, each set must sum to target = total / 2.",
-      "To avoid counting each pair of sets twice, fix the number n to always belong to the second set. Then find how many subsets of {1, 2, ..., n - 1} sum to target using 0/1 knapsack."
+      "Count partitions, not ordered pairs. How do you avoid counting each split twice?",
+      "The number n must go into one of the two groups. If you decide in advance which group holds n, does each split get counted exactly once?",
+      "Count the subsets of 1 to n minus 1 that sum to half the total, using a table of ways per sum. Add each number once, sweeping sums from high to low.",
+      "Return 0 when the total is odd. Take the modulo 1000000007 at each addition. The table only needs sums up to half the total.",
     ],
     "solution": {
       "idea": [

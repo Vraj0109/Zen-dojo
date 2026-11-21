@@ -29,9 +29,10 @@ export const LOGIC_SPECS_EULER: ProblemSpec[] = [
       { input: [1000,1000000,999999], output: 0 },
     ],
     hints: [
-      "The multiples of a below limit are a, 2a, 3a, ... up to a * m where m = (limit - 1) / a. Their sum has a closed form.",
-      "The sum of the first m multiples of a is a * m * (m + 1) / 2. Compute it for a, for b, and add them.",
-      "A number divisible by both was added twice. Subtract the sum of the multiples of lcm(a, b) once (inclusion-exclusion). Use 64-bit integers: the answer can reach 3 * 10^15.",
+      "Adding every multiple one by one is slow when the limit is large. Is there a formula for the sum of the multiples of a number?",
+      "The multiples of d below the limit can be summed with a formula for the first m whole numbers, scaled by d.",
+      "Add the sums for a and for b, then subtract the sum for their least common multiple, because numbers divisible by both were counted twice.",
+      "Find m as the largest multiple count below the limit, and use 64-bit numbers for the products.",
     ],
     solution: {
       idea: [
@@ -81,9 +82,10 @@ public:
       { input: [4000000000000000], output: 2763969850442378 },
     ],
     hints: [
-      "Generate the sequence with two variables, a = 1 and b = 2, and stop when the next number would exceed limit.",
-      "Add a number to the total only when it is even. You can test with x % 2 == 0.",
-      "Be careful that the next Fibonacci number may overflow 32 bits (use long long), and do not add a number larger than limit.",
+      "You need the even Fibonacci numbers below a bound. How fast does the sequence grow, and how many terms can there be?",
+      "Look at the parity pattern of the sequence. Do the even terms follow a regular rule that lets you skip the odd ones?",
+      "Generate terms with two running values and add the even ones up to the limit. Every third term is even, so the work is small.",
+      "The next term can exceed the limit before you stop, so use 64-bit values.",
     ],
     solution: {
       idea: [
@@ -137,9 +139,10 @@ public:
       { input: [70000000000000], output: 7 },
     ],
     hints: [
-      "Try the divisors d = 2, 3, 4, ... in order. Each time d divides n, divide n by d as long as it still divides.",
-      "Because you divide out every smaller factor first, any d that divides the current n is a prime.",
-      "Stop the loop when d * d > n. If n is still larger than 1 at that point, what remains is a prime and it is the largest factor.",
+      "The number is too big to sieve and too big to test every divisor. Do you need all the factors, or only the small ones?",
+      "If you remove each small factor as soon as you find it, could a divisor you find later be composite?",
+      "Divide n by d as long as d divides it, moving d upward. Stop when d times d exceeds what is left; the leftover is a prime.",
+      "Track the last factor you removed, and remember that the leftover itself can be the largest prime.",
     ],
     solution: {
       idea: [
@@ -191,9 +194,10 @@ public:
       { input: [40], output: 5342931457063200 },
     ],
     hints: [
-      "If x is divisible by both p and q, it is divisible by lcm(p, q). So the answer is lcm(1, 2, ..., n).",
-      "lcm(a, b) = a / gcd(a, b) * b. Fold it over 1..n: result = lcm(result, i).",
-      "Divide before you multiply (a / gcd * b) to avoid an overflow in the intermediate product.",
+      "A number divisible by every value from 1 to n must cover the requirements of each value together. Could you combine the numbers one at a time?",
+      "Two divisibility requirements combine into the least common multiple of the two numbers. How could you fold that over 1 to n?",
+      "Start at 1 and replace the running value with its least common multiple with the next number, using the greatest common divisor for each step.",
+      "Divide first and multiply second when computing the least common multiple, to avoid overflow in the intermediate product.",
     ],
     solution: {
       idea: [
@@ -239,9 +243,10 @@ public:
       { input: [10000], output: 2500166641665000 },
     ],
     hints: [
-      "You can loop from 1 to n and keep two running totals, one for the sum and one for the sum of squares.",
-      "Or use formulas: the sum is n(n + 1) / 2 and the sum of squares is n(n + 1)(2n + 1) / 6.",
-      "Check the size of the intermediate values: n(n + 1)(2n + 1) is about 2 * 10^12 for n = 10000, and the squared sum about 2.5 * 10^15. Both fit in a signed 64-bit integer.",
+      "Is there a shortcut for adding up consecutive whole numbers and their squares, instead of adding them one by one?",
+      "There are known closed forms for the sum of the first n whole numbers and for the sum of their squares.",
+      "Square the sum of 1 to n and subtract the sum of the squares, both from closed forms, using 64-bit integers.",
+      "Check that intermediate products fit in 64 bits before dividing, such as n times n plus 1 times 2n plus 1.",
     ],
     solution: {
       idea: [
@@ -287,9 +292,10 @@ public:
       { input: [1000000], output: 15485863 },
     ],
     hints: [
-      "A prime is a number greater than 1 with no divisor other than 1 and itself. The sieve of Eratosthenes marks all multiples of each prime as not prime.",
-      "How far must the sieve go? The n-th prime is below n * (ln n + ln ln n) for n >= 6. For n = 10^6 a limit of 16,000,000 is enough.",
-      "Sieve up to max(100, n * (ln n + ln ln n)), count primes in order and return the n-th one.",
+      "Testing each number for primality one at a time is slow. Can you find all primes up to some bound in one pass?",
+      "You need a safe upper bound that is sure to contain the n-th prime. How do primes thin out as numbers grow?",
+      "Use a sieve of Eratosthenes up to a bound such as n times (ln n + ln ln n) plus a margin, then count the primes in order.",
+      "Use a fixed bound for small n, and stop as soon as the count reaches n.",
     ],
     solution: {
       idea: [
@@ -342,9 +348,10 @@ public:
       { input: ["31415926535897932384626433832795028841971693993751",7], output: 340200 },
     ],
     hints: [
-      "Slide a window of k digits along the string and multiply the digits in it. Doing that from scratch for every position costs O(n * k), which is fine here.",
-      "Convert a character to its digit with c - '0'. Keep the product in a 64-bit integer.",
-      "A faster way keeps the product and divides out the digit that leaves the window, but a zero breaks that: restart the window after every zero.",
+      "Each block of k adjacent digits needs its own product. Is recomputing every product too slow at this size?",
+      "The string has at most 1000 digits and k at most 13, so the total work is small. Do you need a clever trick at all?",
+      "Compute each window's product directly and keep the maximum seen. Zeros make sliding with division unreliable, so direct computation is simplest.",
+      "Convert each character to its digit value by subtracting the zero character, and use 64-bit integers for the product.",
     ],
     solution: {
       idea: [
@@ -395,9 +402,10 @@ public:
       { input: [29999], output: -1 },
     ],
     hints: [
-      "With c = p - a - b the equation a^2 + b^2 = c^2 becomes a relation between a, b and p only.",
-      "Expanding gives b = p * (p - 2a) / (2 * (p - a)). For each a from 1 up to p / 3, check if that fraction is a whole number.",
-      "Then c = p - a - b. Check a < b < c and keep the largest product. Use 64-bit integers for p * (p - 2a).",
+      "Trying every pair a and b is slow for a large perimeter. Could you reduce the problem to a single unknown?",
+      "Substitute c as the perimeter minus a minus b into a squared plus b squared equals c squared. What does the equation become in terms of a, b and the perimeter?",
+      "Solve that relation for b in terms of a and the perimeter, then only try values of a up to a third of the perimeter.",
+      "Check that the division is exact and that a < b < c, and use 64-bit numbers for the products. Return -1 if no triplet exists.",
     ],
     solution: {
       idea: [
@@ -448,9 +456,10 @@ public:
       { input: [20000000], output: 12272577818052 },
     ],
     hints: [
-      "Make a boolean table of size limit. Cross out multiples of each number starting at 2.",
-      "For a prime i, you can start crossing out at i * i because smaller multiples were crossed out by smaller primes. You only need i up to sqrt(limit).",
-      "Add every number that is never crossed out to a 64-bit total.",
+      "Testing each number for primality is slow when the limit is 20 million. What structure finds all primes at once?",
+      "When you cross off multiples of a prime, which multiples are new? Do you need to start crossing out earlier than the square?",
+      "Use a sieve of Eratosthenes: for each prime, start crossing out at its square. Add each unmarked number to a 64-bit total as you go.",
+      "Return 0 when the limit is 2 or less, and remember that the sum is far beyond 32 bits.",
     ],
     solution: {
       idea: [
@@ -500,9 +509,10 @@ public:
       { input: [499], output: 76576500 },
     ],
     hints: [
-      "The k-th triangle number is k(k + 1) / 2. Generate them in order and count divisors of each.",
-      "Counting divisors by checking every number up to sqrt(T) works but is slow when T is large. Count them with the prime factorisation instead: if T = p1^e1 * p2^e2 * ..., it has (e1 + 1)(e2 + 1)... divisors.",
-      "k and k + 1 have no common factor, so the divisor count of k(k + 1) / 2 is the product of the divisor counts of the two halves (divide the even one of k, k + 1 by 2 first). Count each with trial division up to its square root.",
+      "Counting divisors of huge triangle numbers by brute force is slow. What does the number of divisors depend on?",
+      "The number of divisors depends on the prime factorisation: add one to each prime's exponent and multiply those results together.",
+      "Since k and k+1 share no factor, their divisor counts multiply. Halve the even one first, then count each part's divisors by trial division.",
+      "Stop at the first triangle number whose divisor count is more than the minimum asked for.",
     ],
     solution: {
       idea: [
@@ -560,9 +570,10 @@ public:
       { input: [3000000], output: 2298025 },
     ],
     hints: [
-      "Simulating every chain from scratch repeats lots of work: many chains merge into a chain you already computed.",
-      "Store the length of chains for numbers below limit in an array. When a walk reaches a number below its own start (or any stored number), stop and add the stored length.",
-      "Keep the walking value in a 64-bit integer, because 3n + 1 can pass 2^31. Update the best start only when the length is strictly bigger, so the smallest start wins ties.",
+      "Walking each chain from scratch repeats work, because chains run into each other. Which numbers have you already worked out?",
+      "Once a walk drops below its starting number, the rest of its length is already known from an earlier start.",
+      "Keep a table of chain lengths for numbers below the limit. Walk until the value falls below the start, then add the stored length.",
+      "Use 64-bit values while walking, since 3n+1 can exceed 32 bits. Replace the best start only on a strictly longer chain, so the smallest start wins ties.",
     ],
     solution: {
       idea: [
@@ -620,9 +631,10 @@ public:
       { input: [99999,100000], output: 939733670 },
     ],
     hints: [
-      "Every path has exactly h downs and w rights, in some order. So you choose which of the h + w moves are downs.",
-      "The answer is C(h + w, h) modulo p. Compute factorials up to h + w and use modular division.",
-      "Divide using the modular inverse: since 1000000007 is prime, inverse(x) = x^(p - 2) mod p (fast exponentiation). So C = fact[h + w] * inv(fact[h]) * inv(fact[w]).",
+      "Think of a path as a sequence of moves. What do all valid paths have in common, whatever their shape?",
+      "Every path uses exactly h down moves and w right moves. A path is decided by which of its moves are down.",
+      "The count is the number of ways to choose h positions among h + w moves, a binomial coefficient. Compute it modulo the prime with factorials and inverses.",
+      "Get the modular inverse with fast power, using the prime minus 2 as the exponent, and precompute factorials up to h + w.",
     ],
     solution: {
       idea: [
@@ -675,9 +687,10 @@ public:
       { input: [50000], output: 67585 },
     ],
     hints: [
-      "No built-in integer type holds 2^50000. Keep the number as a list of digits, least significant first.",
-      "Doubling a number digit by digit: multiply each digit by 2, add the carry from the previous digit, keep the last digit and carry the rest.",
-      "To make 50000 doublings fast, store nine decimal digits per array cell (base one billion) instead of one. Then add up the digits of every cell at the end.",
+      "2 to the power 50000 is far too big for any built-in integer. How could you store and double a number this large yourself?",
+      "A large number can be kept as an array of parts. Doubling each part and passing a carry along gives the doubled number.",
+      "Store the number in base one billion, doubling each part with a carry, then add up the decimal digits of every part at the end.",
+      "Doubling about 50000 times over a few thousand parts is fast. Check small cases such as 2 to the power 15, which is 32768, to test your code.",
     ],
     solution: {
       idea: [
@@ -736,9 +749,10 @@ public:
       { input: [10,1000000], output: "2783915460" },
     ],
     hints: [
-      "There are (n - 1)! arrangements that start with each fixed first digit. So the first digit can be found by division.",
-      "Make k zero-based (k - 1). The index of the first digit among the unused digits is k / (n - 1)!, then k becomes k % (n - 1)!.",
-      "Repeat with the remaining digits and the next smaller factorial. Remove each used digit from a sorted list as you take it.",
+      "Listing all arrangements and sorting them is too much work when n is large. How many arrangements start with each digit?",
+      "Each choice of first digit leaves a block of arrangements of equal size. Which block does the k-th one fall in, and what remains inside it?",
+      "Use factorials to pick each digit in turn: the block size is the factorial of the remaining positions, found by integer division. Then drop the used digit.",
+      "Make k zero-based first by subtracting one, and remove each chosen digit from the available list so it cannot repeat.",
     ],
     solution: {
       idea: [
@@ -794,9 +808,10 @@ public:
       { input: [99999], output: 666651666899997 },
     ],
     hints: [
-      "Look at the corners of each ring. The ring with side s ends at s * s in its top right corner (or bottom right, depending on how you draw it).",
-      "The other three corners of that ring are s * s - (s - 1), s * s - 2(s - 1) and s * s - 3(s - 1): they are spaced s - 1 apart.",
-      "Add the four corners for every odd side s = 3, 5, ..., side, and add the 1 in the middle. A loop is fine for this size; the sum of the four is 4 s^2 - 6 (s - 1).",
+      "Building the whole spiral is far too large. Instead, look at the numbers that sit on the diagonals of each ring.",
+      "What is the biggest number in each ring, and how far apart are the other corners of that ring?",
+      "Each ring's four diagonal corners are side minus 1 apart and the largest is at one corner, so their sum has a simple formula. Add all rings and the centre.",
+      "Loop over odd ring sides from 3 up to the given side, add the four corners each time, and start the total at 1 for the centre.",
     ],
     solution: {
       idea: [
@@ -841,9 +856,10 @@ public:
       { input: [1000], output: 977358 },
     ],
     hints: [
-      "Two powers a^b and c^d are equal only when a and c are powers of a common base. Otherwise they are different.",
-      "Write every a as r^k where r is not itself a perfect power (so 4 = 2^2, 8 = 2^3, 9 = 3^2, 5 = 5^1). Then a^b = r^(k * b).",
-      "Count distinct pairs (r, k * b). Put them into a set, or count, for each r, how many different products k * b occur.",
+      "Comparing the huge numbers directly is impossible. Can you write each base in a shared form so that equal powers reveal themselves?",
+      "Two powers can only be equal if their bases come from the same underlying base. Think about writing each base as a base raised to some power.",
+      "Write each base as r to the power k, where r is not itself a perfect power, so that a to the power b becomes r to the power k times b.",
+      "Count distinct pairs of r and k times b, for example by storing them in a set. Remember that a prime base has k = 1.",
     ],
     solution: {
       idea: [

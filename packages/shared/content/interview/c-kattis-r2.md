@@ -3,6 +3,7 @@ id: c-kattis-r2
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(1) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

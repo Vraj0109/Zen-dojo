@@ -3,6 +3,7 @@ id: c-kattis-pot
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(n * 9) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

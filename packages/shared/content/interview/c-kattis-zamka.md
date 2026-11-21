@@ -3,6 +3,7 @@ id: c-kattis-zamka
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(D - L) time and O(1) space"
+brute: same
 reviewed: false
 ---
 

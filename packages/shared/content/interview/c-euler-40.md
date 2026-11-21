@@ -3,6 +3,7 @@ id: c-euler-40
 pattern: cses-euler
 difficulty: medium
 optimal: "O(log k) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

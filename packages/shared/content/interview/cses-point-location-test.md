@@ -4,6 +4,7 @@ pattern: cses-misc
 difficulty: medium
 optimal: "O(1) time per query and O(1) space"
 reviewed: false
+brute: same
 ---
 
 ## Clarify first

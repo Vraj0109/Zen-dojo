@@ -3,6 +3,7 @@ id: c-euler-7
 pattern: cses-euler
 difficulty: easy
 optimal: "O(L log log L) time, O(L) space, where L is about n ln n"
+brute: same
 reviewed: false
 ---
 

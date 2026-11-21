@@ -3,6 +3,7 @@ id: c-euler-15
 pattern: cses-euler
 difficulty: medium
 optimal: "O(h + w + log p) time, O(h + w) space"
+brute: same
 reviewed: false
 ---
 

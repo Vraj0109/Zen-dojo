@@ -3,6 +3,7 @@ id: c-cf-281a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(1) time beyond copy, O(1) space"
+brute: same
 reviewed: false
 ---
 

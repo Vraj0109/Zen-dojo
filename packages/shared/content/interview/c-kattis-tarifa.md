@@ -3,6 +3,7 @@ id: c-kattis-tarifa
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(n) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

@@ -27,9 +27,10 @@ export const LOGIC_SPECS_ATCODER: ProblemSpec[] = [
       { input: [5,3], output: "Odd" },
     ],
     hints: [
-      "You do not need to multiply anything. Think about when a product of two numbers is odd.",
-      "a * b is odd only when both a and b are odd.",
-      "Check (a % 2 == 1 && b % 2 == 1): if it is true return Odd, otherwise Even.",
+      "Do you really need to multiply the numbers to know whether the product is even or odd?",
+      "When is the product of two whole numbers odd? Think about the parity of each factor.",
+      "The product is odd only when both numbers are odd. Check that once, and return Even otherwise.",
+      "Test parity with the remainder after dividing by two. Return exactly the words Even or Odd.",
     ],
     solution: {
       idea: [
@@ -71,9 +72,10 @@ public:
       { input: [[6,10,14,18]], output: 1 },
     ],
     hints: [
-      "You can simulate: while all numbers are even, halve all and count. How many times can that loop run at most?",
-      "A number below 2^30 can be halved fewer than 30 times, so a simulation is quick.",
-      "A neat alternative: the answer is the smallest number of trailing zero bits (factors of 2) among all the numbers.",
+      "Think about what happens each time all the numbers are halved. What stops the process first?",
+      "A number can be halved only while it is even. What property of each number decides how many halvings it allows?",
+      "Count how many times each number can be halved, which is its number of factors of two, then take the smallest count across the list.",
+      "A count of zero means no halving is possible at all, so you can stop early. Simulating the halvings also works, since the values are small.",
     ],
     solution: {
       idea: [
@@ -123,9 +125,10 @@ public:
       { input: [4,0,40,2000], output: 5 },
     ],
     hints: [
-      "There are at most 51 choices for each kind of coin, so about 51^3 combinations in total.",
-      "Try every number i of 500-coins (0..a), every j of 100-coins (0..b) and every k of 50-coins (0..c).",
-      "Count the triples with 500 * i + 100 * j + 50 * k == x. About 132000 checks: fast enough.",
+      "How many combinations of coins are there, given that each kind has at most 50 coins?",
+      "With such small limits, you can try every count of each coin kind and check the total.",
+      "Use three nested loops over the counts of 500, 100 and 50 yen coins, and count the combinations whose total equals x.",
+      "Break out of a loop early once the running total exceeds x. This is optional, since the bounds are small.",
     ],
     solution: {
       idea: [
@@ -173,9 +176,10 @@ public:
       { input: [999999,54,54], output: 999999 },
     ],
     hints: [
-      "n is at most a million, so you can look at every number one at a time.",
-      "Compute the digit sum of a number by repeatedly taking x % 10 and dividing x by 10.",
-      "If the digit sum is in [a, b], add the number (not its digit sum!) to a total. Use a 64-bit total: the sum can reach about 5 * 10^11.",
+      "The limit is one million. Is it reasonable to check every number one at a time?",
+      "For each number, what is its digit sum, and how can you get its digits?",
+      "Loop from 1 to n, compute each digit sum by repeatedly taking the last digit and removing it, and add the number when its digit sum is in range.",
+      "Add the numbers, not the digit sums, and use a 64-bit total, since the answer can be around 5 * 10^11.",
     ],
     solution: {
       idea: [
@@ -224,9 +228,10 @@ public:
       { input: [[1,1,1,1,1,100]], output: 99 },
     ],
     hints: [
-      "Taking the biggest card is the best move for both, so you only need to simulate that.",
-      "Sort the cards from biggest to smallest. Alice takes positions 0, 2, 4, ... and Bob takes positions 1, 3, 5, ...",
-      "Add Alice's cards and subtract Bob's: result += (i % 2 == 0 ? card : -card).",
+      "Both players always take the largest card left. What does that make the whole game?",
+      "If you line the cards up from largest to smallest, which positions does each player get?",
+      "Sort the cards from largest to smallest, then give alternate positions to Alice (added) and Bob (subtracted) and sum the signed values.",
+      "Alice starts, so position 0 is hers. After sorting, a single pass is enough.",
     ],
     solution: {
       idea: [
@@ -272,9 +277,10 @@ public:
       { input: [[2,2]], output: 1 },
     ],
     hints: [
-      "Only the sizes matter, so ask what limits the stack: two cakes of the same size can never both be used.",
-      "Any set of distinct diameters can be stacked from biggest to smallest.",
-      "So the answer is the number of distinct diameters. Use a set, or sort and count the changes.",
+      "What limits how many cakes you can stack? Does each cake's exact size matter, or only which sizes are different?",
+      "Could every distinct size be stacked one on top of another, from largest to smallest?",
+      "The answer is the count of distinct diameters. Put them in a set, or sort them and count the changes.",
+      "Two cakes of the same size cannot both be used, so duplicates count once.",
     ],
     solution: {
       idea: [
@@ -318,9 +324,10 @@ public:
       { input: [2000,8000000], output: 167 },
     ],
     hints: [
-      "If you know how many 10000-yen bills (x) and 5000-yen bills (y) there are, the number of 1000-yen bills is forced: z = n - x - y.",
-      "So loop x from 0 to n and y from 0 to n - x. That is at most about 2 million pairs.",
-      "For each pair check 10000 * x + 5000 * y + 1000 * z == total. Count the pairs that work.",
+      "There are three bill types and a fixed number of bills. Are all three counts free to choose?",
+      "Once you fix two of the counts, is the third already determined by the total number of bills?",
+      "Loop over the counts of 10000-yen and 5000-yen bills. The 1000-yen count is whatever is left of the n bills, so check the money total.",
+      "Skip pairs where the leftover count would be negative. The answer is a count of valid combinations, not a single one.",
     ],
     solution: {
       idea: [
@@ -371,9 +378,10 @@ public:
       { input: [[[1000000000,100000,100000]]], output: true },
     ],
     hints: [
-      "Check one leg at a time: from the previous point (and time) to the next. Which two numbers describe a leg?",
-      "A leg takes dt time units and covers a Manhattan distance of d = |dx| + |dy|. You need d <= dt.",
-      "Extra time must be burned in pairs of steps (step away and come back), so dt - d must also be even. Check both conditions for every leg, starting from (0, 0) at time 0.",
+      "Each step of the plan is a jump between two checkpoints. What two facts must hold for a jump to be possible?",
+      "Compare how far you must travel with how much time you have. Think about how spare time can be used up.",
+      "For each leg, the distance must not exceed the time, and the spare time must be even, because you can only waste time by stepping back and forth.",
+      "Start at the origin at time zero and check each consecutive pair of checkpoints in order. Any failure means false.",
     ],
     solution: {
       idea: [
@@ -426,9 +434,10 @@ public:
       { input: ["dreamdreamerdream"], output: true },
     ],
     hints: [
-      "A simple loop that checks 'does the text start with dream?' can go wrong when both dream and dreamer fit. A greedy choice from the front needs care.",
-      "A known trick: reverse the text and the four words. In reversed form no word is the start of another one, so matching greedily from the front can never choose wrongly.",
-      "Or use dynamic programming: ok[i] is true when the first i characters can be built. ok[0] = true, and ok[i] is true if some word w ends at i and ok[i - len(w)] is true.",
+      "Matching greedily from the front can pick the wrong word, since one word can start another. Is there a way to keep both options open?",
+      "Ask a yes or no question for each prefix of the text: can this prefix be built from the words?",
+      "Use a DP where a position is reachable if some word ends there and the text before that word's start is reachable. Check the four words at each position.",
+      "The four words are short, so each position takes constant work. Return whether the full length is reachable.",
     ],
     solution: {
       idea: [

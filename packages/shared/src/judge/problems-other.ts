@@ -45,9 +45,10 @@ export const OTHER_SPECS: ProblemSpec[] = [
       { input: ["zzzzz"], output: [0, 4, 3, 2, 1] },
     ],
     hints: [
-      "A naive comparison takes O(n^2) time. Maintain a match segment (Z-box) [l, r) that extends furthest to the right, where r = max(j + z[j]).",
-      "For position i, if i < r, initialize z[i] with min(r - i, z[i - l]) using previously computed values inside the current Z-box.",
-      "After initializing z[i], expand it while characters s[z[i]] and s[i + z[i]] match. Whenever i + z[i] exceeds r, update l = i and r = i + z[i].",
+      "Comparing each suffix with the start of the string from scratch is quadratic. Could earlier matches tell you about later positions?",
+      "If a stretch of the string already matches the beginning, the same stretch elsewhere must match the same way. Can you reuse that?",
+      "Keep the rightmost matching block seen so far. For a position inside it, start from the value at its mirror position, then extend by comparing.",
+      "Set z[0] to 0 as defined. The block boundaries only move forward, so each character is compared only a bounded number of times.",
     ],
     solution: {
       idea: [
@@ -132,9 +133,10 @@ public:
       { input: ["ba", "abacaba"], output: [1, 5] },
     ],
     hints: [
-      "Compute a polynomial rolling hash for pattern and compare it against the hashes of all substrings of text with length equal to pattern.length.",
-      "With base p and modulus m, the hash of a substring can be extracted from prefix hashes in O(1) time: (h[i + len] - h[i]) / p^i mod m.",
-      "When hashes match, compare the actual substring to pattern to rule out hash collisions.",
+      "Comparing the pattern with every window character by character is slow. Could you compare short fingerprints of the windows first?",
+      "A fingerprint of a window can be read from prefix values in constant time if you scale them by powers of a base. What does that give for each window?",
+      "Use a polynomial rolling hash for the pattern and for every window, then check each matching hash with a direct comparison to rule out collisions.",
+      "Use a large prime modulus and add the modulus before taking a remainder after subtracting. Return an empty list when the pattern is longer than the text.",
     ],
     solution: {
       idea: [

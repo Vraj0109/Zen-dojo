@@ -3,6 +3,7 @@ id: c-atc-arc065-a
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(n) time (4 comparisons of at most 7 letters per position), O(n) space"
+brute: same
 reviewed: false
 ---
 

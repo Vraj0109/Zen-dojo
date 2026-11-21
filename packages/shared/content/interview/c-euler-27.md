@@ -3,6 +3,7 @@ id: c-euler-27
 pattern: cses-euler
 difficulty: hard
 optimal: "O(P * aMax * L * sqrt(V)) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

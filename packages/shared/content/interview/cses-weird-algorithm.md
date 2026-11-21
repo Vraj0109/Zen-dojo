@@ -3,6 +3,7 @@ id: cses-weird-algorithm
 pattern: cses-introductory
 difficulty: medium
 optimal: "O(k) time and O(k) space, where k is the number of steps in the sequence"
+brute: same
 reviewed: false
 ---
 

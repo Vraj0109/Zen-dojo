@@ -35,9 +35,10 @@ export const CSES_SPECS_GRAPH: ProblemSpec[] = [
       { input: [["#"]], output: 0 },
     ],
     hints: [
-      "This is a standard connected components problem on a 2D grid. Each room is a maximal connected component of '.' cells.",
-      "Iterate over every cell. When you encounter an unvisited '.' cell, increment your room count and traverse all floor cells in that room using BFS or iterative DFS.",
-      "Mark visited cells by replacing '.' with '#' directly in the grid, or maintain a visited array. Iterative BFS or an explicit stack avoids call stack overflow on large grids.",
+      "Think of each floor cell as a point linked to its side neighbours. How many separate clusters of points are there?",
+      "Walk through the grid in order. When you meet a floor cell you have not visited, what can you say about the whole room it belongs to?",
+      "For each unvisited floor cell, count a new room and flood out to every connected floor cell with a queue, marking each one as visited.",
+      "Use a queue rather than recursion, to avoid overflow on large grids.",
     ],
     solution: {
       idea: [
@@ -117,9 +118,10 @@ public:
       { input: [["###.###","#A...B#","###.###"]], output: 4 },
     ],
     hints: [
-      "Because every step has uniform cost 1, Breadth-First Search (BFS) is guaranteed to find the shortest path first.",
-      "Locate the starting coordinates of 'A' and the target 'B'. Initialize a queue with 'A' at distance 0.",
-      "Track distances or visited cells in a 2D array (or flattened 1D array). The moment 'B' is popped or reached, return that distance. If the queue becomes empty without reaching 'B', return -1.",
+      "Every move costs the same. Think about which way of exploring the grid reaches each cell in the fewest moves first.",
+      "Expand outward from the start: which cells are reached after one move, after two moves, and so on?",
+      "Run a breadth-first search from A with a queue, storing the distance to each cell, and stop as soon as B is reached. If the queue runs out, print -1.",
+      "Mark walls as blocked and record each cell only once. Find the positions of A and B before you search.",
     ],
     solution: {
       idea: [
@@ -202,9 +204,10 @@ public:
       { input: [8,[[1,2],[3,4],[5,6],[7,8]]], output: 3 },
     ],
     hints: [
-      "Consider the cities and roads as an undirected graph. Two cities are already reachable if they belong to the same connected component.",
-      "If a graph has C connected components, connecting them all into a single component requires at least C - 1 edges.",
-      "Count the number of connected components C using Disjoint Set Union (DSU) or BFS/DFS, and return C - 1.",
+      "Cities joined by roads form groups that are already connected. How many separate groups are there at the start?",
+      "To join C separate groups into one, how many new roads are needed at least? Think of each new road as joining two groups.",
+      "Count the connected groups with union-find, or with a search from each unvisited city. The answer is the number of groups minus one.",
+      "With union-find, start with every city in its own group and lower the count each time a road joins two different groups.",
     ],
     solution: {
       idea: [
@@ -278,9 +281,10 @@ public:
       { input: [7,[[1,2],[2,3],[4,5],[5,7]]], output: -1 },
     ],
     hints: [
-      "Since every network connection has unit length, Breadth-First Search (BFS) finds the path with the fewest hops.",
-      "Run BFS starting at computer 1. Maintain a distance array recording the number of hops from computer 1.",
-      "If computer n is reached at distance d, the route consists of d + 1 computers. If BFS completes without reaching n, return -1.",
+      "Each connection is one hop. How can you explore the network so that every computer is reached by the fewest hops first?",
+      "Expand outward level by level from computer 1. Which computers are reached after one hop, after two hops, and so on?",
+      "Run a breadth-first search from computer 1, recording the hop count of each computer. When computer n is reached, the route has that many hops plus one computers.",
+      "The answer counts computers, including the first and the last, not hops. Return -1 if computer n is never reached.",
     ],
     solution: {
       idea: [
@@ -352,9 +356,10 @@ public:
       { input: [4,[[1,2],[2,3],[3,4],[4,1],[1,3]]], output: false },
     ],
     hints: [
-      "Dividing pupils into two teams with no edges between members of the same team is graph 2-coloring (testing if the graph is bipartite).",
-      "A graph is bipartite if and only if it contains no odd cycles.",
-      "Traverse each connected component using BFS or DFS. Assign alternating colors (1 and 2). If an adjacent pupil is already colored with the same color, return false.",
+      "Friends must be on opposite teams. Could you think of the teams as two colours, with friends always getting different colours?",
+      "If a group of friends forms a loop with an odd number of links, can it be split into two teams? What about an even loop?",
+      "Colour each connected group by walking outward with a queue. A new neighbour gets the opposite colour, and a neighbour that already has the same colour means no split is possible.",
+      "Start each uncoloured pupil with a fresh colour, because separate groups can be coloured independently.",
     ],
     solution: {
       idea: [
@@ -431,9 +436,10 @@ public:
       { input: [1,[]], output: false },
     ],
     hints: [
-      "In a simple undirected graph without multi-edges or self-loops, any cycle must have length at least 3.",
-      "You can detect cycles using Disjoint Set Union (DSU) or Depth-First Search (DFS).",
-      "With DSU: iterate through each road [u, v]. If find(u) == find(v), adding this edge completes a cycle! Otherwise, unite the two components.",
+      "A round trip is a loop of roads that returns to its start. If you add roads one at a time, when does the first loop appear?",
+      "A new road closes a loop exactly when its two cities are already connected by earlier roads. How can you check that quickly?",
+      "Use union-find. For each road, if its two cities already share a group, answer yes. Otherwise merge the two groups and continue.",
+      "There are no self-loops or repeated roads, so a loop always uses at least three roads. If no loop appears, answer no.",
     ],
     solution: {
       idea: [
@@ -508,10 +514,10 @@ public:
       { input: [["#####","#A#M#","#.#.#","..#.."]], output: 2 },
     ],
     hints: [
-      "Monsters take optimal shortest paths. A monster's arrival time at any cell is the minimum BFS distance from all monsters.",
-      "First, run a multi-source BFS starting with all monster positions at time 0 to compute mdist[r][c].",
-      "Next, run BFS for the player starting at 'A' at time 0. The player can step into neighbor (nr, nc) at time t + 1 only if t + 1 < mdist[nr][nc].",
-      "If 'A' is already on a boundary cell, 0 steps are needed. The first time player BFS reaches any boundary cell, return that step count.",
+      "The monsters spread out from their starting cells. For each cell, how soon could a monster reach it?",
+      "If you knew the earliest monster arrival time for every cell, what simple test would tell you whether you can step onto that cell in time?",
+      "Run a breadth-first search from all monsters at once to get their times. Then run a second one from you, entering a cell only if your step count is below its monster time.",
+      "If you start on the boundary, the answer is zero. Print -1 when no escape is reachable.",
     ],
     solution: {
       idea: [
@@ -621,9 +627,10 @@ public:
       { input: [3,[[1,2,3],[2,1,3],[2,3,4],[3,2,1]]], output: [0,3,7] },
     ],
     hints: [
-      "All edge costs are positive, so Dijkstra's algorithm is optimal.",
-      "Use a min-priority queue storing pairs of (distance, city).",
-      "Flight costs can sum up to 2 * 10^14, which exceeds 32 bits: use 64-bit integers (long long) for distance calculations.",
+      "Costs are never negative. If you always extend the cheapest route found so far, will you ever need to revisit a city?",
+      "Once the cheapest route to a city is known, could a later path beat it? What if you always work from the cheapest unfinished city?",
+      "Use Dijkstra's algorithm with a priority queue of cities keyed by tentative distance. Skip stale entries, and relax each outgoing flight.",
+      "Total costs can reach about 2 times 10 to the 14th, so use 64-bit distances and a large starting value for unvisited cities.",
     ],
     solution: {
       idea: [
@@ -699,9 +706,10 @@ public:
       { input: [5,[[1,2,-10],[2,3,-20],[3,4,-30],[4,5,-40]]], output: false },
     ],
     hints: [
-      "The Bellman-Ford algorithm detects negative cycles in directed graphs.",
-      "The graph may be disconnected, so initialize all vertex distances to 0 (equivalent to adding an imaginary source node connected to all vertices with weight 0).",
-      "Perform n iterations of edge relaxation. If any distance is still reduced on the n-th pass, a negative cycle must exist.",
+      "A negative cycle lets you keep lowering costs forever. If there is no negative cycle, how many edges can a shortest route ever use?",
+      "If there is no negative cycle, a shortest route uses at most n minus 1 edges. What happens if you still find improvements after that many rounds?",
+      "Relax every edge in rounds, starting all distances at zero, which acts like a virtual source. If an update still happens in the n-th round, a negative cycle exists.",
+      "Start all distances at zero, not infinity, so disconnected parts are covered. Stop early if a full round changes nothing, and use 64-bit distances.",
     ],
     solution: {
       idea: [
@@ -767,9 +775,10 @@ public:
       { input: [6,[[1,3],[2,3],[3,4],[2,5],[4,6],[5,6]]], output: true },
     ],
     hints: [
-      "This is topological sorting on a directed graph.",
-      "Compute the in-degree of each course. Courses with in-degree 0 can be taken immediately.",
-      "Use Kahn's algorithm: maintain a queue of courses with in-degree 0. As courses are removed from the queue, decrement the in-degree of dependent courses. If all n courses are processed, return true; otherwise, a cycle exists.",
+      "Think about whether all courses could be finished one after another, without ever needing a course that is still waiting on you.",
+      "Which courses have no unmet prerequisites right now? What happens to the others once those are taken?",
+      "Repeatedly take courses with no unmet prerequisites, using a queue and a count of unmet prerequisites per course (Kahn's topological sort).",
+      "If some courses never get taken, they must be stuck in a cycle. Compare the number of courses you took with n.",
     ],
     solution: {
       idea: [
@@ -842,9 +851,10 @@ public:
       { input: [4,[[1,2],[2,3]]], output: -1 },
     ],
     hints: [
-      "While longest paths are NP-hard in general graphs, the longest path in a DAG can be computed in linear time using dynamic programming.",
-      "Obtain a topological ordering of the vertices using Kahn's algorithm or DFS.",
-      "Let dp[u] be the maximum number of cities on a path from city 1 to city u. Set dp[1] = 1 and dp[u] = -1 for all u != 1. Iterate through vertices in topological order and relax outgoing edges.",
+      "Think about how a longest route behaves in a network with no loops. Could you process cities in some sensible order?",
+      "If every flight goes forward in some order of the cities, is every flight into a city already accounted for when you reach it?",
+      "Process cities in topological order and keep, for each city, the most cities on a route from city 1 to it (a DP along that order).",
+      "Cities that city 1 cannot reach must stay unreachable, and if city n stays unreachable the answer is -1.",
     ],
     solution: {
       idea: [
@@ -928,9 +938,10 @@ public:
       { input: [6,[[1,2],[2,3],[3,4],[4,5],[5,6]]], output: 1 },
     ],
     hints: [
-      "Since the network has no cycles (DAG), path counts can be accumulated in topological order.",
-      "Let ways[u] be the number of paths from level 1 to level u modulo 10^9 + 7. Set ways[1] = 1 and all other ways[i] = 0.",
-      "Iterate in topological order: for each outgoing edge u -> v, add ways[u] to ways[v] modulo 10^9 + 7.",
+      "Instead of finding the best route, count the routes. How many ways lead into each level from level 1?",
+      "The routes into a level are the routes into its predecessors, passed along. What order lets every predecessor be finished first?",
+      "Process levels in topological order (Kahn's sort) and pass each level's count along its outgoing teleporters, taking the total modulo 1000000007.",
+      "Start level 1 with one way. The answer is the count at level n, and it must be reduced modulo 1000000007 at every addition.",
     ],
     solution: {
       idea: [
@@ -1006,10 +1017,10 @@ public:
       { input: [5,[[1,2,4],[2,3,8],[3,4,16],[4,5,32]]], output: 44 },
     ],
     hints: [
-      "Model this as a shortest path problem on an expanded graph with states (city, discount_used), where discount_used is 0 or 1.",
-      "From state (u, 0) through an edge (u, v, c), you can either transition to (v, 0) at cost c (saving the discount), or to (v, 1) at cost floor(c / 2).",
-      "From state (u, 1), the discount has already been used, so you can only transition to (v, 1) at cost c.",
-      "Run Dijkstra's algorithm over the 2n states. The answer is dist[n][1].",
+      "Think of each city in two versions: one before the coupon is used and one after. What does a flight look like in each version?",
+      "Once the coupon is used, the rest of the trip is a plain shortest path. Before that, each flight can be paid in full or at half price.",
+      "Build a graph with states (city, coupon used or not) and run Dijkstra's shortest path over these 2n states with a priority queue.",
+      "Halve prices with integer division and use 64-bit numbers. The answer is the best of the two states at city n.",
     ],
     solution: {
       idea: [

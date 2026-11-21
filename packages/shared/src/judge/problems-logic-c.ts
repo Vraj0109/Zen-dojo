@@ -28,7 +28,12 @@ export const LOGIC_SPECS_C: ProblemSpec[] = [
       { input: [[[55],[57,88]]], output: 143 },
       { input: [[[50],[50,50],[50,50,50],[50,50,50,50]]], output: 200 },
     ],
-    hints: ["Think of the last row first. For a number in the row above, which of the two numbers below it is the better continuation?","Let best[i][j] be the largest total from position (i, j) to the bottom. Then best[i][j] = triangle[i][j] + max(best[i+1][j], best[i+1][j+1]).","Start from the second to last row and overwrite one array of row values in place, going upward. The answer is best[0][0]. Time O(rows^2)."],
+    hints: [
+      "Instead of trying every path from the top, think about the bottom row. For each cell above, what is the best you can do from the cells below it?",
+      "The best total from a cell depends only on the best totals of the two cells directly below it. That suggests building the answer from the bottom up.",
+      "Use dynamic programming: start with the bottom row in a single array and move upward, replacing each entry with its value plus the larger of the two entries below.",
+      "Once you reach the top row, the one value left is the answer. Work row by row so you do not overwrite values you still need.",
+    ],
     solution: {
       idea: ["Dynamic programming from the bottom: keep an array equal to the last row, then for each row above replace entry j by triangle[i][j] + max(d[j], d[j+1]).","After the top row is processed d[0] holds the best total."],
       complexity: "O(n^2) time for n rows, O(n) extra space.",
@@ -73,7 +78,12 @@ public:
       { input: [1000], output: 10539 },
       { input: [2999], output: 37656 },
     ],
-    hints: ["Keep the product as a list of small chunks (least significant first) and multiply the whole list by k for each k = 2..n, carrying as you go.","Using chunks of 10^9 in a 64-bit integer makes it about nine times faster than single digits. The carry fits easily because chunk * k stays below 4 * 10^12.","At the end, add the decimal digits of every chunk (leading zeros add nothing). 0! is 1."],
+    hints: [
+      "The factorial is far too large for a standard number type. How could you store a huge number and still multiply it by a small number?",
+      "Store the number as a list of digits or as larger blocks. Multiplying by a small number only needs carries passed from one block to the next.",
+      "Multiply the big number by each k from 2 to n with carries, then add up the decimal digits of all the blocks.",
+      "Blocks of 10^9 are fast and their products still fit in 64 bits. Start the list at 1, since 0! is 1.",
+    ],
     solution: {
       idea: ["Big-number multiplication by a small number: store base 10^9 chunks, multiply each by k and carry the overflow upward.","Sum the digits of all chunks at the end."],
       complexity: "O(n * D) time where D is the number of chunks (about 1000 for n = 3000), O(D) space.",
@@ -128,7 +138,12 @@ public:
       { input: [100000], output: 4179871 },
       { input: [1000000000], output: 4179871 },
     ],
-    hints: ["Only numbers up to 28123 can fail. Use L = min(limit, 28123) and ignore the rest.","Sieve the sum of proper divisors for every number up to L (add d to every multiple of d), and collect the abundant ones in a list.","For every pair of abundant numbers a <= b with a + b <= L, mark a + b. The answer is the sum of unmarked numbers from 1 to L."],
+    hints: [
+      "Only a limited set of numbers can fail to be a sum of two abundant numbers. Is there a point after which every number is covered?",
+      "Every number above 28123 is a sum of two abundant numbers, so you only need to look up to that bound, or to the limit if it is smaller.",
+      "Compute the divisor sums up to the bound with a sieve, list the abundant numbers, mark every sum of two of them, and add up the unmarked numbers.",
+      "A number can be paired with itself, so the inner loop must start at the same index as the outer loop.",
+    ],
     solution: {
       idea: ["Cap the range at 28123 because above it every integer is a sum of two abundant numbers.","Sieve divisor sums, list abundant numbers, mark every pair sum, then add up the unmarked numbers up to the capped limit."],
       complexity: "About O(L log L + A^2) with L = 28123 and A about 7000 abundant numbers (~25 million pair checks).",
@@ -180,7 +195,12 @@ public:
       { input: [1999], output: 9563 },
       { input: [2000], output: 9567 },
     ],
-    hints: ["Keep two big numbers as arrays of digits (least significant first) and add them like on paper.","Repeat: next = a + b, shift a = b, b = next, k = k + 1, until the number of digits of b reaches d.","d = 1 is already true for F1, so answer 1. Adding digit arrays costs O(digits) per step and there are about 4.8 * d steps."],
+    hints: [
+      "The term you want has far too many digits for normal integers. How could you add very large numbers one digit at a time?",
+      "Each Fibonacci number is the sum of the previous two. Keeping the big numbers as digit lists lets you add them the way you would on paper.",
+      "Keep the last two terms as digit lists, add them with carry, and move on until the newest term has d digits. Count the index as you go.",
+      "If d is 1 or less, the answer is index 1. The index grows roughly in step with the number of digits, so the loop stays manageable.",
+    ],
     solution: {
       idea: ["Simulate the sequence with digit-array addition and stop at the first term with d digits.","Start with F1 and F2 both equal to 1 and count the index."],
       complexity: "O(d^2) time (about 5d steps of O(d) work), O(d) space.",
@@ -237,7 +257,12 @@ public:
       { input: [300,1000], output: -59231 },
       { input: [1000,1000], output: -59231 },
     ],
-    hints: ["At n = 0 the value is just b, so b itself has to be prime and positive. That removes most of the b values.","Write a small primality test (trial division up to the square root works) and loop n upward until the value is not prime.","Remember to try negative a. Keep the best run length and its product; on equal length keep the larger product."],
+    hints: [
+      "The formula at n = 0 is just b. What does that tell you about which values of b can work at all?",
+      "Only primes can be b. Then the value at n = 1 must also be prime, which narrows down the choices for a.",
+      "Loop over the primes for b and over a in the allowed range. Count how many consecutive n give primes, and keep the longest run, with the larger product on ties.",
+      "Negative a is allowed, and the run length is what counts, so a simple trial division test for primes is enough.",
+    ],
     solution: {
       idea: ["Only primes b can start a run, so loop over primes b <= bMax and every a, extending n while the value stays prime.","Track the longest run, breaking ties with the larger product."],
       complexity: "Roughly O(P * aMax * runLength * sqrt(value)) with P the primes up to bMax; runs are short so this is fast.",
@@ -291,7 +316,12 @@ public:
       { input: [6], output: 548834 },
       { input: [7], output: 40139604 },
     ],
-    hints: ["A k-digit number is at least 10^(k-1) but its digit power sum is at most k * 9^p. Find the largest k where the first can still be at most the second.","A safe search limit is (p + 1) * 9^p (for p = 7 that is about 38 million).","Loop n from 10 to that limit, compute the digit power sum with a precomputed table pw[digit], and add n when they match."],
+    hints: [
+      "A number with many digits is much larger than its digit power sum. At what point can a match no longer exist?",
+      "Each digit contributes at most 9 raised to the power p. So a number with k digits has a power sum that is limited, and the digit count cannot grow forever.",
+      "Pick a safe upper bound, such as p plus one times 9 to the power p, and test every number up to it. Precompute the powers of the digits 0 to 9.",
+      "Start from 10, since one digit numbers are not counted. Use 64-bit integers for the sums.",
+    ],
     solution: {
       idea: ["Bound the search at (p + 1) * 9^p and brute force every number from 10 upward with a table of digit powers.","Add up the numbers that equal their digit power sum."],
       complexity: "O(limit * digits), at most about 3 * 10^8 simple steps for p = 7, which runs within a second or so in C++.",
@@ -341,7 +371,12 @@ public:
       { input: [1000000], output: 40730 },
       { input: [1000000000], output: 40730 },
     ],
-    hints: ["Precompute the factorials of 0 to 9. For a k-digit number the digit factorial sum is at most k * 9! = k * 362880.","An 8-digit number is at least 10^7 but the sum is at most 8 * 362880 (about 2.9 million), so no 8-digit number works. A safe cap is 7 * 9! = 2540160.","Loop n from 10 to min(limit, cap), compute the sum of digit factorials, and add n on a match."],
+    hints: [
+      "Digit factorials have a small maximum. For numbers with many digits, can the digit factorial sum keep up with the number itself?",
+      "A number with eight or more digits is always far larger than the sum of its digit factorials, so the search can stop well before the limit.",
+      "Precompute the factorials of 0 to 9, cap the search at seven times 9!, and test each number's digit factorial sum against the number.",
+      "Single digit numbers do not count, and 0! and 1! are both 1, so handle the small digits carefully.",
+    ],
     solution: {
       idea: ["Show that no number above 7 * 9! can match, then brute force up to min(limit, 7 * 9!).","Use a table of factorials for the digits."],
       complexity: "O(cap * digits), about 2 * 10^7 steps.",
@@ -392,7 +427,12 @@ public:
       { input: [1000000000,16], output: 1336916440 },
       { input: [1000000000,10], output: 50045045045040 },
     ],
-    hints: ["A palindrome is determined by its first half. Take h, write h followed by h reversed (even length), or h followed by h without its last digit reversed (odd length).","Loop h from 1 to 99999 and build both an even and an odd palindrome for each; skip those at or above limit.","To test the other base, extract digits with repeated division by the base and compare to the reversed list. Add the number to the sum when both pass."],
+    hints: [
+      "Checking every number up to a billion is too slow. Could you list only the numbers that are palindromes in base 10?",
+      "A palindrome is set by its first half. Writing that half again in reverse, with or without its middle digit, gives the whole number.",
+      "Generate palindromes from first halves, both the even and odd length kinds. For each one below the limit, check whether it reads the same in the other base.",
+      "Neither base may have leading zeros, so check the digits the way they are written, with no padding.",
+    ],
     solution: {
       idea: ["Enumerate base 10 palindromes from their halves, then test the second base with a digit array.","Every palindrome is produced exactly once: by its half and by its parity (length)."],
       complexity: "O(H * log limit) where H is about 10^5 halves.",
@@ -447,7 +487,12 @@ public:
       { input: [800000], output: 748317 },
       { input: [10000000], output: 748317 },
     ],
-    hints: ["Sieve the primes below limit once so every check is a table lookup.","For each prime of two or more digits, strip digits from the right (divide by 10) and from the left (take the remainder by 10^k) and check every result is prime. A left piece that starts with 0 is not allowed.","Add up those that pass. There are only 11 truncatable primes in total, so the sum stops growing after 739397."],
+    hints: [
+      "Think about what happens to a prime when a digit is removed from either end. What must be true of each result?",
+      "Every truncation must itself be prime, so you can check the pieces of each candidate. A table of primes built once makes each check cheap.",
+      "Sieve the primes below the limit. For each prime with two or more digits, remove digits from the right by division and from the left by taking remainders, and check each piece.",
+      "A left piece that starts with a zero is not allowed, so a remainder that is too small for its length fails. Single digit primes are not counted.",
+    ],
     solution: {
       idea: ["Sieve of Eratosthenes up to limit, then for each prime test all right and left truncations in the sieve.","Sum the passing primes."],
       complexity: "O(limit log log limit) for the sieve plus O(digits) per prime.",
@@ -504,7 +549,12 @@ public:
       { input: [1000000], output: 720720 },
       { input: [5000000], output: 4084080 },
     ],
-    hints: ["Every Pythagorean triple is k times a primitive one. Primitive triples come from m > n > 0 with gcd(m, n) = 1 and m - n odd: sides m^2 - n^2, 2mn, m^2 + n^2.","The primitive perimeter is 2m(m + n). Loop over (m, n) while that is at most maxP.","For each primitive perimeter q, add 1 to count[q], count[2q], count[3q], ... up to maxP. Then take the p with the largest count, smallest p on ties."],
+    hints: [
+      "Rather than trying every set of sides for each perimeter, is there a formula that produces every right triangle?",
+      "Every right triangle with whole sides is a multiple of a basic one that comes from a known formula. Those basic ones have perimeters you can list directly.",
+      "Generate basic triples from pairs of coprime numbers of opposite parity, then add one to every multiple of each basic perimeter up to the limit.",
+      "Ties go to the smaller perimeter, so search upward from the smallest value and replace the best only on a strictly larger count.",
+    ],
     solution: {
       idea: ["Generate primitive triples with Euclid's formula, and add each one to all of its multiples in a count array.","Return the perimeter with the highest count, taking the smallest on ties."],
       complexity: "About O(maxP log maxP) time, O(maxP) space.",
@@ -556,7 +606,12 @@ public:
       { input: [123456789012345], output: 3 },
       { input: [1000000000000000], output: 2 },
     ],
-    hints: ["There are 9 one-digit numbers (9 digits), 90 two-digit numbers (180 digits), 900 three-digit numbers (2700 digits), and so on.","Subtract the size of each group from k while k is larger than the group. Now k points into the group of numbers with len digits.","The number is first + (k - 1) / len where first = 10^(len-1); the digit is at index (k - 1) % len of that number written out."],
+    hints: [
+      "The digit string is endless, so you cannot build it. How many digits do the groups of one, two and three digit numbers each take up?",
+      "Skip whole groups while the position is beyond them. Then you are inside one group, and you only need one number from it.",
+      "Subtract group sizes until the position falls inside a group of numbers with len digits. Find the number at that offset and read the right digit inside it.",
+      "The position can reach 10^15, so use 64-bit numbers. Positions start at 1, so convert to a zero based offset first.",
+    ],
     solution: {
       idea: ["Skip whole digit-length groups by subtracting their sizes, then locate the exact number as first + (k - 1) / len.","Read the digit at offset (k - 1) % len."],
       complexity: "O(log k) time, O(1) space.",
@@ -605,7 +660,12 @@ public:
       { input: [8], output: 0 },
       { input: [9], output: 0 },
     ],
-    hints: ["Start with the digits n, n-1, ..., 1 (the largest arrangement) and step to the previous permutation each time (std::prev_permutation).","Test each with trial division up to the square root; stop at the first prime.","If the digits 1..n add up to a multiple of 3, every arrangement is divisible by 3, so n = 8 and n = 9 give 0 (the loop finds that too, just more slowly)."],
+    hints: [
+      "The largest candidates come from arranging the digits 1 to n. Which arrangements do you need to try, and in what order?",
+      "Digit sums give a shortcut: for some values of n, every arrangement of the digits is divisible by 3, so none of them can be prime.",
+      "Check whether the sum of the digits 1 to n is divisible by 3. If not, generate arrangements from largest to smallest and stop at the first prime found by trial division.",
+      "If no arrangement is prime, the answer is 0. Watch out for n = 1, where the only arrangement is 1, which is not prime.",
+    ],
     solution: {
       idea: ["Walk the permutations of 1..n in decreasing order and return the first prime.","Return 0 if none is prime."],
       complexity: "O(n! * sqrt(10^n)) in the worst case; primes turn up quickly for n = 4 to 7, and for n = 8, 9 a digit sum check can end it at once.",
@@ -659,7 +719,12 @@ public:
       { input: [1533776805], output: 57722156241751 },
       { input: [999999999999], output: 57722156241751 },
     ],
-    hints: ["Show that H(n) = T(2n - 1), so the hexagonal numbers are a subset of the triangular ones: you need only check pentagonality.","x is pentagonal exactly when (1 + sqrt(1 + 24x)) / 6 is a whole number. Compute an integer square root and confirm with a multiplication.","Loop n = 1, 2, ... computing H(n); return the first one greater than after that passes the check. Use 64-bit integers: values reach 10^14."],
+    hints: [
+      "The hexagonal numbers are a subset of the triangular numbers. What does that mean for which of the three conditions you actually need to test?",
+      "Every hexagonal number is also triangular, so you only need to check whether a candidate is pentagonal. Pentagonal numbers have a special quadratic form.",
+      "Test pentagonality by checking whether 1 plus 24 times the number is a perfect square whose root plus one is divisible by 6, then walk the hexagonal numbers upward.",
+      "The values grow large, so use 64-bit integers and compute the integer square root carefully so rounding cannot give a wrong answer.",
+    ],
     solution: {
       idea: ["Iterate hexagonal numbers (they are triangular automatically) and test pentagonality with an integer square root check.","Return the first one above the given bound."],
       complexity: "O(sqrt(answer)) iterations, about 5 * 10^6 at most.",
@@ -711,7 +776,12 @@ public:
       { input: [4,3], output: 37960 },
       { input: [4,4], output: 134043 },
     ],
-    hints: ["Make an array omega[x] = the number of different primes dividing x, by looping over primes p and adding 1 to every multiple of p.","A prime p is one where omega[p] is still 0 when you reach it. Use a safe limit such as 5 million.","Scan upward keeping a running length of numbers whose omega equals k; when it reaches count, return the start of the run."],
+    hints: [
+      "Factoring each number on its own is slow. Could you count the different prime factors of all the numbers in a range at once?",
+      "Each prime p adds one distinct factor to every multiple of p. If you visit each prime and add to its multiples, you learn the count for every number.",
+      "Use a sieve that adds 1 to every multiple of each prime, then scan upward keeping a run length of numbers whose count equals k.",
+      "Reset the run whenever a number does not match, and return the start of the run when its length reaches count.",
+    ],
     solution: {
       idea: ["Compute omega (number of distinct prime factors) for all numbers up to a limit with a sieve.","Scan for the first run of count values equal to k."],
       complexity: "O(N log log N) time, O(N) space, with N = 5 * 10^6.",
@@ -759,7 +829,12 @@ public:
       { input: [5], output: 142857 },
       { input: [6], output: 142857 },
     ],
-    hints: ["Two numbers have the same digits when their digits, sorted, are the same string.","Try x = 1, 2, 3, ... and for each x compare the sorted digits of x with those of 2x, ..., kx; stop at the first that matches all.","You can skip x quickly: x and kx must have the same number of digits, so x cannot be above 10^len / k."],
+    hints: [
+      "When are two numbers made of exactly the same digits? Is there a simple way to compare them?",
+      "Two numbers have the same digits when their digits, sorted, give the same sequence. The multiples must keep the same number of digits too, which limits the search.",
+      "Try x from 1 upward. Compare the sorted digits of x with those of each multiple up to k, and stop at the first x that matches for all of them.",
+      "A multiple that gains an extra digit cannot match, so x must be small enough that k times x keeps the same length.",
+    ],
     solution: {
       idea: ["Brute force x upward; for each, build the sorted-digit signature of x and compare it with those of its multiples up to kx.","The first x passing every comparison is the answer."],
       complexity: "O(answer * k * digits log digits); the answers here are below 150000.",
@@ -810,7 +885,12 @@ public:
       { input: [1000,500], output: 498415 },
       { input: [5000,1000000000000000], output: 12447418 },
     ],
-    hints: ["Pascal's rule: C(n, r) = C(n-1, r-1) + C(n-1, r). You need the whole triangle row by row.","Replace every entry by min(entry, threshold + 1) after adding; the entry is then exact when small and just 'too big' when large. A sum of two capped values stays below 2 * 10^15 + 2, fine in 64 bits.","Keep one row at a time (update from right to left), and for every row count the entries above the threshold."],
+    hints: [
+      "Pascal's triangle grows fast, so the exact values get huge. But you only care whether each value is above a threshold. Could you cap the values?",
+      "Once a value is far above the threshold, its exact size does not matter. Storing at most one more than the threshold is enough.",
+      "Build Pascal's triangle one row at a time, updating from right to left, capping each entry at the threshold plus one, and count the entries above the threshold in each row.",
+      "Capping keeps every sum inside 64-bit integers, since two capped values add up to a number that still fits.",
+    ],
     solution: {
       idea: ["Build Pascal's triangle with entries capped at threshold + 1 so nothing overflows.","Count entries (including the 1s at the ends) greater than the threshold, row by row."],
       complexity: "O(maxN^2) time (12.5 million additions for 5000), O(maxN) space.",
@@ -859,7 +939,12 @@ public:
       { input: [100000,30], output: 6697 },
       { input: [100000,60], output: 6091 },
     ],
-    hints: ["Represent the current number as a string. The reverse is just the reversed string, and the sum is a digit-by-digit addition with carry.","For each start n below limit: repeat up to `iterations` times: s = s + reverse(s); if s is a palindrome the number is not counted.","Count the starts for which no palindrome appeared after all iterations."],
+    hints: [
+      "A reverse and add step quickly produces numbers far beyond 64 bits. How can you represent them so they stay exact?",
+      "Treat each number as a string of digits. Reversing it just reads the digits backward, and adding can be done digit by digit with a carry.",
+      "For each start below the limit, repeat up to the iteration count: add the reversed digits, check for a palindrome, and count the starts that never produce one.",
+      "The starting number itself is not tested, only the sums. Stop early as soon as a palindrome appears.",
+    ],
     solution: {
       idea: ["For every n below limit, run up to `iterations` rounds of string reverse-and-add, checking for a palindrome after each.","Count those that never produce one."],
       complexity: "O(limit * iterations * digits), about 10^8 simple operations at the top of the range.",
@@ -928,7 +1013,12 @@ public:
       { input: [8], output: 238733 },
       { input: [9], output: 74373 },
     ],
-    hints: ["For side s the three new corner values (the fourth, s*s, is a perfect square) are s*s - (s-1), s*s - 2(s-1) and s*s - 3(s-1). Only these can be prime.","Keep a running count of primes found and the total diagonal count 2s - 1. Stop when primes * 100 < percent * total (integer arithmetic, no floating point).","Numbers can reach about 10^12 or more, so trial division is too slow for the large answers; use deterministic Miller-Rabin with __int128 multiplication."],
+    hints: [
+      "Look at the corners of each new ring of the spiral. Which of the four corners could be prime, and why?",
+      "The bottom-right corner is always a perfect square, so it can never be prime. The other three corners are the only candidates in each ring.",
+      "Track the number of primes among the diagonal numbers and the total count. Test each new corner with a fast method for large numbers, such as Miller-Rabin.",
+      "Compare with integer cross-multiplication instead of a percentage, so floating point errors cannot change the answer.",
+    ],
     solution: {
       idea: ["Walk rings s = 3, 5, 7, ...; test the three non-square corners with Miller-Rabin and update the prime count.","Return the first ring where primes * 100 < percent * (2s - 1)."],
       complexity: "O(answer * log^2 n) time with Miller-Rabin; the answers in range stay under about 250000.",
@@ -998,7 +1088,12 @@ public:
       { input: [10000000], output: 8581146 },
       { input: [100000000], output: 85744333 },
     ],
-    hints: ["A start's next value is its digit square sum, at most 81 * 9 = 729 for fewer than 10^9. Decide the ending of every value up to 729 by following the chain.","Compute the digit square sum of every start quickly: precompute the sum for every number below 10^4 and combine the high and low halves, n / 10^4 and n % 10^4.","Count the starts n < limit for which the end of their digit square sum is 89."],
+    hints: [
+      "Each step replaces a number with a much smaller one. After the first step, what range of values could you be dealing with?",
+      "After one step a value is small, so its ending can be decided once for each small value. Then each starting number needs only one quick step.",
+      "Precompute the digit square sums for chunks of four digits and the ending for each small value. Each start is then checked with table lookups on two halves.",
+      "Make sure the table covers every value that can appear after the first step, and test for 89 as the ending.",
+    ],
     solution: {
       idea: ["Precompute the end (1 or 89) for every value up to 729 by following chains.","For each start, get its digit square sum with two lookups into a 10^4 table and count those that end at 89."],
       complexity: "O(limit) time with a couple of table lookups per start.",
@@ -1052,7 +1147,12 @@ public:
       { input: [999999999,999999999999999,15], output: 684647106445313 },
       { input: [2,62,15], output: 372036854775809 },
     ],
-    hints: ["Let M = 10^k. You want ((a % M) * (2^e mod M) + 1) % M.","Compute 2^e mod M by repeated squaring: if the lowest bit of e is set multiply into the result, square the base, shift e right.","Multiply with unsigned __int128 so values up to 10^15 never overflow; M fits in 64 bits for k <= 15."],
+    hints: [
+      "The number is far too large to build, but you only need its last digits. What arithmetic keeps only the remainder?",
+      "Doubling e times gives a power of 2. Repeated doubling can be sped up the same way as fast powers, by squaring the base.",
+      "Use fast exponentiation with remainders modulo 10 to the power k, multiply by a, add 1, and take the remainder once more.",
+      "Products of two numbers below 10^15 need 128-bit arithmetic, so use a wider type for the multiplications.",
+    ],
     solution: {
       idea: ["Fast modular exponentiation of 2 with modulus 10^k, using 128-bit intermediates for the products.","Multiply by a modulo M and add 1."],
       complexity: "O(log e) multiplications, O(1) space.",
@@ -1102,7 +1202,11 @@ public:
       { input: ["n"], output: "o" },
       { input: ["q"], output: "r" },
     ],
-    hints: ["Letters have consecutive character codes: 'a' + 1 is 'b'.","Take the first character of the string and add 1 to it.","Build a one-character string from the result and return it."],
+    hints: [
+      "The answer is the next letter in the alphabet. Letters are stored as numbers, so what can you do to the code of a letter to move it forward?",
+      "Consecutive letters have consecutive codes, so adding one to the code of the input gives the next letter.",
+      "Take the first character, add one to its code, and turn the result back into a one character string.",
+    ],
     solution: {
       idea: ["Add one to the character code of c and return it as a string."],
       complexity: "O(1) time and space.",
@@ -1140,7 +1244,12 @@ public:
       { input: [9,2], output: 5 },
       { input: [100,33], output: 4 },
     ],
-    hints: ["This is a division, but you need to round up.","Rounding up h / a is the same as (h + a - 1) / a in integer arithmetic.","Return (h + a - 1) / a."],
+    hints: [
+      "Think about how many whole attacks you need. If the last attack leaves some health, does that health still need an attack?",
+      "Any leftover health needs one more attack. So you need the number of attacks that rounds up, not down.",
+      "Use integer arithmetic: add the damage minus one to h, then divide by the damage per attack.",
+      "The formula avoids floating point, and it works because both values are positive integers.",
+    ],
     solution: {
       idea: ["The answer is ceil(h / a), computed as (h + a - 1) / a."],
       complexity: "O(1) time and space.",
@@ -1177,7 +1286,12 @@ public:
       { input: ["xx","x",7,9,"x"], output: [7,8] },
       { input: ["abc","abd",2,3,"abd"], output: [2,2] },
     ],
-    hints: ["Compare u with s. If they are equal the thrown ball was one of the first kind.","Subtract 1 from the matching count and leave the other alone.","Return the pair [a, b] after the subtraction."],
+    hints: [
+      "A ball is thrown away, and you know its word. Which of the two counts should change?",
+      "Compare the thrown word with the first word. If they match, the first count drops, otherwise the second count drops.",
+      "Check whether u equals s, subtract one from the matching count, and return both counts as a pair.",
+      "The two words are guaranteed to be different, so comparing with s alone is enough.",
+    ],
     solution: {
       idea: ["If u equals s, decrease a, otherwise decrease b. Return both counts."],
       complexity: "O(1) time and space.",
@@ -1218,7 +1332,12 @@ public:
       { input: [100,99,100], output: "Yes" },
       { input: [7,8,9], output: "No" },
     ],
-    hints: ["Look at the three pairs (a, b), (a, c) and (b, c). How many of them are equal?","If exactly two numbers are equal, exactly one of the three pairs is equal. If all three are equal, all three pairs are.","Count the equal pairs and answer Yes when the count is exactly 1."],
+    hints: [
+      "Look at all the ways two of the three numbers can be compared. How many of those comparisons come out equal in each case?",
+      "Exactly two equal numbers means exactly one pair matches. All three equal gives three matching pairs, so counting the matches tells the cases apart.",
+      "Add up the three equality checks, counting 1 for each match, and answer Yes only when the total is exactly 1.",
+      "All three distinct also gives No, so a count of exactly 1 is the only Yes.",
+    ],
     solution: {
       idea: ["Count how many of the pairs (a, b), (b, c), (a, c) are equal. Exactly one equal pair means exactly two equal numbers."],
       complexity: "O(1) time and space.",
@@ -1259,7 +1378,12 @@ public:
       { input: [100,0], output: 0 },
       { input: [1,4111], output: 5011 },
     ],
-    hints: ["Split into two cases: n at least 10 and n below 10.","For n at least 10 the shown rating is the true one, so return r.","For n below 10 the true rating is r + 100 * (10 - n)."],
+    hints: [
+      "The shown rating is lower only for people with few contests. What is the condition for the shown rating being the true one?",
+      "Each missing contest below 10 lowers the shown rating by 100. So you need to add back the penalty for the missing contests.",
+      "Split into two cases: if n is at least 10, return r. Otherwise, add 100 times the number of missing contests to r.",
+      "The adjustment goes in the direction that makes the true rating higher than the shown one.",
+    ],
     solution: {
       idea: ["If n >= 10 return r, otherwise r + 100 * (10 - n)."],
       complexity: "O(1) time and space.",
@@ -1296,7 +1420,12 @@ public:
       { input: [100], output: 50 },
       { input: [57], output: 29 },
     ],
-    hints: ["Each sheet holds two pages.","With an odd number of pages the last sheet is only half used, so round up.","Return (n + 1) / 2."],
+    hints: [
+      "Each sheet has two sides. How many pages can one sheet hold, and what happens to an odd leftover page?",
+      "A leftover page still needs a whole sheet, so the count must round up rather than down.",
+      "Use integer division of n plus one by two, which rounds up for every n.",
+      "Check small values: one page needs one sheet, and two pages also need one sheet.",
+    ],
     solution: {
       idea: ["The answer is ceil(n / 2) = (n + 1) / 2."],
       complexity: "O(1) time and space.",
@@ -1333,7 +1462,12 @@ public:
       { input: ["BAB"], output: "Yes" },
       { input: ["BAA"], output: "Yes" },
     ],
-    hints: ["A bus exists only if the stations are not all run by the same company.","That means s has at least one A and at least one B.","Check whether s contains 'A' and also contains 'B'."],
+    hints: [
+      "A bus runs between two stations only when they belong to different companies. When would every station belong to the same company?",
+      "If all three letters are the same, no two stations differ. So the answer is yes exactly when both letters appear.",
+      "Check whether the string contains an A and also contains a B.",
+      "The string always has length three, so the two letter check is enough and no loop is needed.",
+    ],
     solution: {
       idea: ["Return Yes when both letters occur in s."],
       complexity: "O(1) time and space.",
@@ -1375,7 +1509,12 @@ public:
       { input: [100,100], output: 9900 },
       { input: [3,5], output: 13 },
     ],
-    hints: ["The sum of two numbers is even when both are even or both are odd.","The number of ways to pick two of x balls is x * (x - 1) / 2.","Add that for the even balls and for the odd balls."],
+    hints: [
+      "Think about when the sum of two numbers is even. What must be true of the two numbers in the pair?",
+      "Even plus even and odd plus odd both give an even sum. An even plus an odd is odd, so only pairs of the same kind count.",
+      "Count the pairs chosen from the even balls and the pairs from the odd balls separately, using x times x minus 1, divided by 2, for each count.",
+      "A count below two gives zero pairs, and the formula handles that without a special case.",
+    ],
     solution: {
       idea: ["Pairs of two evens plus pairs of two odds: n(n-1)/2 + m(m-1)/2."],
       complexity: "O(1) time and space.",
@@ -1413,7 +1552,12 @@ public:
       { input: ["abcdee"], output: "No" },
       { input: ["zzzzzz"], output: "Yes" },
     ],
-    hints: ["Strings are indexed from 0, so the 3rd, 4th, 5th and 6th letters are s[2], s[3], s[4], s[5].","Both conditions must hold: s[2] == s[3] and s[4] == s[5].","Return Yes if both are true, otherwise No."],
+    hints: [
+      "Positions in the problem are counted from 1, but the code counts from 0. Which indices correspond to the 3rd to 6th letters?",
+      "The string has two pairs that must match: the pair at positions three and four, and the pair at positions five and six.",
+      "Compare the characters at those two pairs of indices, and answer Yes only if both comparisons are equal.",
+      "Remember that indices start at zero, so the 3rd letter is at index 2, not 3.",
+    ],
     solution: {
       idea: ["Compare s[2] with s[3] and s[4] with s[5]."],
       complexity: "O(1) time and space.",
@@ -1450,7 +1594,12 @@ public:
       { input: [100,1,2], output: [2,100,1] },
       { input: [3,3,8], output: [8,3,3] },
     ],
-    hints: ["Follow the values step by step on an example, say x = 1, y = 2, z = 3.","After the first swap the boxes hold (y, x, z). After the second they hold (z, x, y).","Return {z, x, y}."],
+    hints: [
+      "Trace the boxes on a small example, such as 1, 2, 3, and write down the contents after each swap.",
+      "Two swaps move each value to a new box in a fixed pattern. After tracing, you may see that the result is a simple reordering.",
+      "The final order is the third value, then the first, then the second. Return that as the list without actually swapping anything.",
+      "Check the final order against the traced example before you return it.",
+    ],
     solution: {
       idea: ["Two swaps rotate the values: the result is [z, x, y]."],
       complexity: "O(1) time and space.",
@@ -1493,7 +1642,12 @@ public:
       { input: [976], output: "Yes" },
       { input: [345], output: "No" },
     ],
-    hints: ["You can turn the number into a string, or extract digits with % 10 and / 10.","Check the hundreds, tens and ones digit one by one.","Return Yes as soon as one of them equals 7."],
+    hints: [
+      "The number has three digits. How could you look at each digit without caring about the rest of the number?",
+      "The last digit is the remainder after dividing by ten, and removing it is dividing by ten.",
+      "Repeatedly take the last digit and check whether it is seven, dividing by ten each time. Checking the characters of the string works too.",
+      "Stop when the remaining number is zero, not when a digit is zero.",
+    ],
     solution: {
       idea: ["Loop over the digits (n % 10, then n / 10, ...) and look for a 7."],
       complexity: "O(1) time and space.",
@@ -1534,7 +1688,12 @@ public:
       { input: [29,[10,10,10]], output: -1 },
       { input: [1000000,[10000,10000]], output: 980000 },
     ],
-    hints: ["The homework takes a fixed total number of days, the sum of the a[i].","You can play on all the other days: n minus that sum.","If the sum is larger than n the answer is -1; otherwise n - sum."],
+    hints: [
+      "The homework takes a fixed total number of days. What is that total, whatever the order of the tasks?",
+      "Homework and play use the same days. So anything left over after the homework total is free for playing.",
+      "Add up all the homework days. If the sum is bigger than the holiday length, answer -1. Otherwise subtract the sum from the holiday length.",
+      "The homework total can be large, so use a 64-bit sum.",
+    ],
     solution: {
       idea: ["Add up all a[i] (it can reach 10^8, but a 64-bit sum is safe). If it exceeds n return -1, else n - sum."],
       complexity: "O(m) time, O(1) space.",
@@ -1577,7 +1736,12 @@ public:
       { input: [9000000000000000], output: 3287 },
       { input: [8999999999999999], output: 3287 },
     ],
-    hints: ["Simulate year by year: balance = balance + balance / 100 using integer division.","Count the years until balance >= x.","The number of years stays small (a few thousand) because the balance grows 1 percent per year once it is large, so a plain loop is fast. Use a 64-bit integer."],
+    hints: [
+      "Each year the balance grows by a percentage. Without a formula, how many years would a loop need to reach the target?",
+      "Simulate year by year. Since the interest is rounded down to whole yen, each year's interest is an integer division by 100.",
+      "Start at 100 and repeat: add the balance divided by 100 using integer arithmetic, counting years, until the balance reaches the target.",
+      "The balance grows by at least a yen each year and by a percentage once it is large, so the loop is short. Use 64-bit integers.",
+    ],
     solution: {
       idea: ["Simulate the yearly interest with integer arithmetic until the balance reaches x."],
       complexity: "O(answer) iterations, a few thousand at most.",
@@ -1622,7 +1786,12 @@ public:
       { input: [[31622777,31622777]], output: -1 },
       { input: [[1000000,1000000,1000]], output: 1000000000000000 },
     ],
-    hints: ["If any element is 0 the answer is 0 no matter what else is there, so check that first.","Multiply step by step in a 64-bit integer and compare before you multiply: if cur > limit / x the product will exceed the limit.","Use cur > limit / a[i] (integer division, a[i] > 0). Once you have exceeded the limit, answer -1 (after confirming there is no zero)."],
+    hints: [
+      "A product of many numbers can become huge very fast. What single value would make the answer 0 regardless of the others?",
+      "A zero anywhere makes the product zero. Once that is ruled out, the product only gets bigger as you multiply in each number.",
+      "Scan for zeros first. Then multiply one number at a time, and before each multiplication check whether it would pass the limit, using division instead of multiplying.",
+      "Compare the current product with the limit divided by the next number, so the check itself cannot overflow.",
+    ],
     solution: {
       idea: ["Scan once for a zero. Otherwise multiply while keeping cur <= 10^15, using the division test to avoid overflow, and return -1 if the limit is passed."],
       complexity: "O(n) time, O(1) space.",
@@ -1668,7 +1837,12 @@ public:
       { input: [4,[4,3,2,1,10]], output: 10 },
       { input: [5,[10,9,8,7,6,5]], output: 35 },
     ],
-    hints: ["Which fruits would you buy if you only wanted the cheapest?","The k cheapest ones, so the order of the prices does not matter.","Sort the prices ascending and add up the first k."],
+    hints: [
+      "You want the cheapest set of k distinct fruits. Which fruits would you pick if you only care about the total price?",
+      "The order of the prices in the list does not matter, only which values are the smallest.",
+      "Sort the prices from smallest to largest and add up the first k of them.",
+      "Each kind can be chosen only once, so the k cheapest distinct prices are the ones to add.",
+    ],
     solution: {
       idea: ["Sort ascending and sum the first k prices."],
       complexity: "O(n log n) time.",
@@ -1712,7 +1886,12 @@ public:
       { input: ["abab","baba"], output: 4 },
       { input: ["zyx","xyz"], output: 2 },
     ],
-    hints: ["Each operation fixes at most one position, and positions are independent of each other.","A position needs a change exactly when s[i] != t[i].","Count the positions where the two strings differ (the Hamming distance)."],
+    hints: [
+      "Each position is compared on its own. Does a change at one position ever fix or break another position?",
+      "Positions are independent, so you need one change for each place where the letters do not match.",
+      "Count the positions where the two strings have different letters, going through them once.",
+      "The strings have the same length, so one loop over that length covers every position without extra checks.",
+    ],
     solution: {
       idea: ["The answer is the number of indices where s and t differ."],
       complexity: "O(n) time, O(1) space.",
@@ -1754,7 +1933,12 @@ public:
       { input: [[1000000000,999999999,999999998]], output: 1 },
       { input: [[1,2,3,4,5,6,7,8,9,10]], output: 50 },
     ],
-    hints: ["With n at most 100 you can try every triple i < j < k: about 160 thousand of them.","For each triple first check the lengths are pairwise different.","Then sort the three (or take the maximum) and check max < sum of the other two. Beware of overflow in the sum: use long long."],
+    hints: [
+      "Think about what stops three sticks from forming a triangle: a repeated length, or one stick that is too long compared with the other two.",
+      "Once the three lengths are distinct, ask which one is the longest and how it compares with the sum of the other two.",
+      "With n at most 100, try every triple of positions i < j < k, check that the lengths differ, and apply the triangle rule to each triple.",
+      "Use 64-bit integers for the sum of the three lengths so the comparison cannot overflow.",
+    ],
     solution: {
       idea: ["Brute force over all triples, test distinctness and the triangle inequality (using 64-bit sums)."],
       complexity: "O(n^3) time, O(1) space.",
@@ -1804,7 +1988,12 @@ public:
       { input: ["zzzz","z"], output: 0 },
       { input: ["abcdefgh","gh"], output: 0 },
     ],
-    hints: ["After the changes t will sit at some starting position i of s. Try every starting position.","For a fixed start, the number of changes is the number of positions j where s[i + j] != t[j].","Take the minimum over all starts i from 0 to |s| - |t|. The total work is |s| * |t| at most 10^6."],
+    hints: [
+      "Imagine sliding t along s one position at a time. How many characters would you have to change at each position?",
+      "At a fixed starting position, the cost is the number of places where s and t disagree. You want the start with the fewest disagreements.",
+      "Compare t with every window of s of the same length and keep the smallest mismatch count. Two nested loops are fast enough here.",
+      "Only starting positions from 0 to |s| - |t| are valid, so the last window must still fit inside s.",
+    ],
     solution: {
       idea: ["Slide t over s and count mismatches at each offset; return the smallest count."],
       complexity: "O(|s| * |t|) time, O(1) space.",
@@ -1850,7 +2039,12 @@ public:
       { input: [[1,1,2,3,3,5,6,6,6]], output: [2,1,2,0,1,3,0,0,0,0] },
       { input: [[1,2,3,4,5,6,7,8,9]], output: [1,1,1,1,1,1,1,1,1,0] },
     ],
-    hints: ["The size of the answer is one more than the size of a: there is an extra employee, number 1, who is not in a.","Each entry a[i] says 'employee a[i] has one more direct report'.","Keep a counter array of size n and add 1 to counter[a[i] - 1] for every i; return it."],
+    hints: [
+      "Each value in a describes one employee. What would you count if you asked how many times each boss number appears?",
+      "Each entry a[i] means that employee a[i] gains one direct report, so the answer for an employee is how often their number appears in a.",
+      "Use an array of counts indexed by employee. Add one for each entry of a, then return the array. Remember that employees are numbered from 1.",
+      "Employee 1 may appear in a never, so its count can be zero. The result must still have length n.",
+    ],
     solution: {
       idea: ["Count how many times each employee number appears in a."],
       complexity: "O(n) time, O(n) space.",
@@ -1891,7 +2085,12 @@ public:
       { input: [["zzzzzzzzzz","zzzzzzzzzy","zzzzzzzzzz"]], output: 2 },
       { input: [["x","y","z","x","y","z","w"]], output: 4 },
     ],
-    hints: ["You only need to know whether a name has been seen before.","A set stores each distinct value once; inserting a repeat changes nothing.","Put all names in a set (or sort them and count changes) and return its size."],
+    hints: [
+      "You only care how many different names appear, not how often each one appears. What kind of structure keeps only unique items?",
+      "A set keeps each distinct value once, so after inserting all the names its size equals the number of distinct kinds.",
+      "Insert every name into a hash set and return its size. Sorting the names and counting the changes between neighbours also works.",
+      "Names are short, so hashing each string is cheap even with 200000 draws.",
+    ],
     solution: {
       idea: ["Insert every name into a hash set and return the set size."],
       complexity: "O(n) expected time with a hash set, O(n) space.",

@@ -147,7 +147,8 @@ describe("filterProblems", () => {
   it("searches by number or title, listing each problem once with all its patterns", async () => {
     expect(ids(await run({ q: "560" }))).toEqual(["lc-560"]);
     expect(ids(await run({ q: "#1" }))).toEqual(["lc-1"]);
-    const sw = await run({ q: "sliding window maximum" });
+    // Search also reads hints, so other problems may match these words; the problem itself is listed once.
+    const sw = (await run({ q: "sliding window maximum" })).filter((r) => r.problem.id === "lc-239");
     expect(sw).toHaveLength(1);
     expect(sw[0].patterns.length).toBeGreaterThan(1);
   });

@@ -3,6 +3,7 @@ id: c-cf-71a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(n) time, O(1) extra space"
+brute: same
 reviewed: false
 ---
 

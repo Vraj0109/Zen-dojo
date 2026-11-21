@@ -3,6 +3,7 @@ id: c-euler-34
 pattern: cses-euler
 difficulty: medium
 optimal: "O(cap * digits) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

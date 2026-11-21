@@ -31,9 +31,10 @@ export const LOGIC_SPECS_BATCH2: ProblemSpec[] = [
       { input: [9990,9999], output: 0 },
     ],
     hints: [
-      "Write a helper that tests whether a number is a palindrome by reversing its digits.",
-      "Let a go down from hi and b go down from a. Each product is a * b with a >= b, so you do not repeat pairs.",
-      "Keep the best palindrome so far. As soon as a * b is not larger than the best, stop the inner loop: smaller b only gives smaller products. Also stop the outer loop when a * hi cannot beat the best.",
+      "Think about the biggest possible products first. If you test the largest factors first, what can you say about the products that come after?",
+      "Products get smaller as the second factor goes down. Once a product is no bigger than the best palindrome you already have, do the smaller ones matter?",
+      "Search the factors from hi downward and pair them so each pair is counted once. Stop an inner loop as soon as its product cannot beat the best, and stop the outer loop when a times hi cannot.",
+      "The answer is 0 when no product is a palindrome, so start the best value at 0 and use 64-bit integers.",
     ],
     solution: {
       idea: [
@@ -95,9 +96,10 @@ public:
       { input: [12345], output: 400954 },
     ],
     hints: [
-      "Build a function that counts the letters of one number, then add it up for 1 to n.",
-      "Keep two small tables: the names of 0 to 19 and the names of the tens (twenty, thirty ...). Counting only needs the lengths of the words.",
-      "Split n into thousands (n / 1000, which is below 100) and the rest (n % 1000). Remember 'hundred' has 7 letters, 'thousand' has 8, 'and' has 3, and that 'and' is added when the rest is not 0 and the number is above 100.",
+      "Instead of writing the words out, ask how long each number's name is. Could you count letters in pieces, such as ones, tens and hundreds, and add them up?",
+      "Only a few names are needed: the words for 0 to 19 and the tens. Once those lengths are known, every number is a sum of a few pieces.",
+      "Count one number at a time with a small helper, then add the counts from 1 to n in a loop. Remember the extra letters from hundred, thousand and the word and.",
+      "The word and comes after a hundred or a thousand only when something smaller follows, so 100 and 1000 get no and.",
     ],
     solution: {
       idea: [
@@ -168,9 +170,10 @@ public:
       { input: [1900,1904], output: 9 },
     ],
     hints: [
-      "Work out the weekday of 1 January startYear first, by adding up the days of every year since 1900 (365 or 366), modulo 7.",
-      "Walk month by month: if the current weekday is Sunday count one, then move the weekday forward by the number of days in that month.",
-      "Remember February has 29 days in leap years. For a very long range the walk is still only 12 steps per year, so it is fast enough.",
+      "Instead of counting days between dates, what would it take to know only the weekday on the first of each month?",
+      "Moving from the first of one month to the first of the next only shifts the weekday by the length of the month. Which months need a leap year check?",
+      "Work out the weekday of 1 January of the start year by stepping year by year from 1900, then walk month by month, counting each time the weekday is Sunday.",
+      "The leap year rule has exceptions: years divisible by 100 are not leap years unless they are also divisible by 400.",
     ],
     solution: {
       idea: [
@@ -229,9 +232,10 @@ public:
       { input: [20000], output: 115818 },
     ],
     hints: [
-      "Computing d(n) for one n by trial division is fine, but you need d for every number below limit.",
-      "Use a sieve: for every i from 1 up, add i to d[j] for every multiple j = 2i, 3i ... below limit. Then d[n] holds the proper divisor sum of n.",
-      "For each a, set b = d[a]. If b is below limit, b is different from a and d[b] equals a, add a to the total.",
+      "To find the partner of each number you need the divisor sum of every number below the limit. Is it faster to compute one number at a time or to fill a table for all of them?",
+      "A number i divides each of its multiples. If you add i to every multiple, what does each slot end up holding?",
+      "Use a sieve: for each i, add it to all its multiples below the limit. Then each a has partner b equal to its table value, and you check whether that partner points back to a.",
+      "Skip a when its partner is a itself or is not below the limit. Sum the amicable numbers in 64-bit integers.",
     ],
     solution: {
       idea: [
@@ -286,9 +290,10 @@ public:
       { input: [20000], output: 19993 },
     ],
     hints: [
-      "Remove all factors of 2 and 5 from d. They only make the decimal terminate or delay the cycle, so they do not change its length. Call the rest m.",
-      "If m is 1 the cycle length is 0. Otherwise the cycle length is the smallest k >= 1 with 10^k mod m = 1 (the multiplicative order of 10 modulo m).",
-      "Find k by repeated multiplication: r = 10 % m, then r = r * 10 % m until r is 1, counting steps. Keep the best length and the smallest d that reached it.",
+      "A decimal repeats because of the remainders you get when you divide by d. What happens to those remainders, and which denominators can never repeat?",
+      "Factors of 2 and 5 only affect the start of the decimal, so set them aside. What is left of the denominator decides the length of the repeat.",
+      "Find the smallest power of 10 that leaves remainder 1 when divided by what is left, using repeated multiplication. That power is the cycle length.",
+      "After removing 2s and 5s, a denominator of 1 gives no cycle. Keep the smallest d among ties by using a strict comparison.",
     ],
     solution: {
       idea: [
@@ -347,9 +352,10 @@ public:
       { input: [[1,2,5,10,20,50,100],10000], output: 285342956 },
     ],
     hints: [
-      "Let ways[s] be the number of ways to make the sum s. Start with ways[0] = 1 (pay nothing).",
-      "To avoid counting the same coins in different orders, process one coin at a time (outer loop over coins).",
-      "For each coin c, loop s from c up to target and add ways[s - c] to ways[s], modulo 1000000007. The answer is ways[target].",
+      "Think of paying as building up a total. If you know how many ways there are to make every smaller amount, how do you get to the target?",
+      "The order of the coins should not matter, so count coin types one at a time instead of counting sequences of payments.",
+      "Keep a table of ways for each amount. For each coin, add the ways for the amount minus the coin into every amount from the coin value upward, taking the result modulo 1000000007.",
+      "A target of 0 has one way: pay nothing. Keep the additions reduced so values never overflow.",
     ],
     solution: {
       idea: [
@@ -401,9 +407,10 @@ public:
       { input: [1000001], output: 55 },
     ],
     hints: [
-      "Sieve of Eratosthenes first, so you can ask 'is x prime' in O(1). Sieve up to the next power of ten above limit, because a rotation can be larger than limit but never has more digits.",
-      "A rotation of x moves the first digit to the end: x = d * 10^(k - 1) + rest becomes rest * 10 + d, where k is the number of digits.",
-      "For every prime p below limit, rotate it (number of digits) times and check that each result is prime.",
+      "Rotating the digits gives other numbers. Which numbers would you need to check quickly, and can one table answer many of those questions at once?",
+      "A rotation keeps the same number of digits, so any rotation of a number below the limit stays below the next power of ten. A table up to that power covers every case.",
+      "Sieve primes up to the next power of ten. Then, for each prime below the limit, rotate its digits as many times as it has digits and check each result in the table.",
+      "Rotations can be larger than the limit, which is why the table must go further than the limit itself.",
     ],
     solution: {
       idea: [
@@ -469,9 +476,10 @@ public:
       { input: [7,15], output: 873612 },
     ],
     hints: [
-      "Do not compute the full powers. You only need the sum modulo 10^digits.",
-      "Compute k^k modulo m by repeated squaring (fast exponentiation) and add it to a running total modulo m.",
-      "With m up to 10^15 a product of two residues reaches 10^30, which overflows 64 bits. Multiply with a 128-bit intermediate (__int128 in C++) or a mulmod routine.",
+      "The whole sum is huge, but you only need its last digits. Does arithmetic on remainders still give the right last digits?",
+      "Computing k to the power k by multiplying k by itself k times is slow. Is there a faster way to raise a number to a power?",
+      "Use fast exponentiation for each term, keeping every value reduced by the modulus, and add each term to a running total that is also reduced.",
+      "Multiplying two reduced values can exceed 64 bits when the modulus is large, so use a 128-bit intermediate for the products.",
     ],
     solution: {
       idea: [
@@ -530,9 +538,10 @@ public:
       { input: [1000000000], output: 909090909 },
     ],
     hints: [
-      "Numbers with a given digit count form a block: 1 to 9, 10 to 99, 100 to 999, and so on.",
-      "Only the blocks with 1, 3, 5, 7 or 9 digits matter. For a block from lo to hi, if n >= lo it contributes min(n, hi) - lo + 1 numbers.",
-      "Add the contributions of the five blocks. No loop over the numbers is needed.",
+      "Look at the numbers grouped by how many digits they have. Which of those groups have an odd number of digits?",
+      "Each digit count forms a range: 1 to 9, 10 to 99, 100 to 999 and so on. If n reaches into a range, how many of its numbers count?",
+      "Add up the counts for the ranges with 1, 3, 5, 7 and 9 digits, each taking the smaller of n and the top of the range. No loop over the numbers is needed.",
+      "A range that starts above n contributes nothing, so check the start of each range before adding anything.",
     ],
     solution: {
       idea: [
@@ -584,9 +593,10 @@ public:
       { input: [[1,100]], output: 100 },
     ],
     hints: [
-      "Two nested loops over i < j and adding d[i] * d[j] work for 50 numbers.",
-      "For a faster way, expand (sum of all)^2: it equals the sum of squares plus twice the sum of all pair products.",
-      "So the answer is ((sum)^2 - (sum of squares)) / 2. The result is at most about 1.2 * 10^7, which fits an int.",
+      "Imagine pairing every takoyaki with every other one. Is there a way to get the total of all the products without listing each pair?",
+      "Think about the square of the sum of all the values. What extra terms does it contain compared with the pair products?",
+      "Track the sum and the sum of the squares in one pass. The answer is half of the square of the sum minus the sum of the squares.",
+      "The division by 2 is always exact, so integer arithmetic is fine. Use a 64-bit value for the square of the sum.",
     ],
     solution: {
       idea: [
@@ -633,9 +643,10 @@ public:
       { input: [3,"ZZZZZZ"], output: "CCCCCC" },
     ],
     hints: [
-      "Treat a letter as a number from 0 (A) to 25 (Z): c - 'A'.",
-      "Add n, then wrap around with a modulo 26, and turn it back into a letter.",
-      "Build the answer one character at a time: 'A' + (c - 'A' + n) % 26.",
+      "Each letter has a position in the alphabet. If you move a letter forward, how does its position number change, and what happens after Z?",
+      "Going forward and wrapping after the last letter is the same as adding the shift and then taking the remainder after dividing by the alphabet size.",
+      "Turn each letter into a number from 0 to 25, add the shift, take the remainder after 26, and turn the result back into a letter.",
+      "The shift can be larger than 26, so always take the remainder, even for big shifts.",
     ],
     solution: {
       idea: [
@@ -679,9 +690,10 @@ public:
       { input: ["a","a"], output: "aa" },
     ],
     hints: [
-      "Loop i from 0 to the length minus one.",
-      "In each step append s[i] and then t[i] to the result.",
-      "Reserving the result size is optional; plain concatenation is fine for 100 characters.",
+      "The output alternates between the two inputs. What links position i in the output to the positions in s and t?",
+      "Each step takes one character from s and then one from t at the same index, so one loop over the index covers everything.",
+      "Loop the index from zero to the length minus one, and append the character of s at that index followed by the character of t at that index.",
+      "Both strings have the same length, so a single loop over that length is enough and needs no extra checks.",
     ],
     solution: {
       idea: [
@@ -731,9 +743,10 @@ public:
       { input: [0,8,3], output: [0,5] },
     ],
     hints: [
-      "Do it in two phases. First he eats from his own pile: he can eat min(a, k) of them.",
-      "Subtract that from a and from k. Whatever is left of k is spent on Aoki's pile.",
-      "He eats min(b, remaining k) of Aoki's cookies. Any actions still left do nothing. Use 64-bit integers.",
+      "Takahashi eats his own cookies first. Can you work out how many actions go to his pile without simulating each action one by one?",
+      "Once his own pile is empty, the actions left over go to Aoki's pile. The number of actions is only limited by how many cookies each pile holds.",
+      "Use min to find how many he eats from his own pile, subtract that from k, then use min again for Aoki's pile. That is two steps in constant time.",
+      "The counts can be large, so use 64-bit integers. The min function also keeps results from going below zero.",
     ],
     solution: {
       idea: [
@@ -782,9 +795,10 @@ public:
       { input: ["ZZABCZZABCZZABC"], output: 3 },
     ],
     hints: [
-      "Look at every window of three consecutive characters.",
-      "For each start index i from 0 to length - 3 compare s[i], s[i + 1], s[i + 2] with A, B, C.",
-      "Increase the count for each window that matches.",
+      "The pattern ABC is three letters long. How many places could it start in the string?",
+      "Each start position only needs three letters checked. A window of three letters moving across the string covers every possible start.",
+      "Slide a window of length three from the first position to the last valid start, and count the windows that read A, B and C in order.",
+      "A string shorter than three letters has no windows, so the count is zero. Stop the loop before reading past the end.",
     ],
     solution: {
       idea: [
@@ -830,9 +844,10 @@ public:
       { input: ["zzzzzzzzzzz"], output: "z9z" },
     ],
     hints: [
-      "Check the length first: 10 or fewer, return the word unchanged.",
-      "For longer words the middle count is length - 2.",
-      "Build the answer from the first character, the number as text (to_string) and the last character.",
+      "What decides whether a word needs changing, and what do you need to know about it to write the short form?",
+      "Only the length matters for the check, and the middle count is simply the number of letters between the first and the last.",
+      "Check the length first. For longer words, join the first letter, the middle count as text, and the last letter.",
+      "A word of exactly 10 letters stays unchanged, so the threshold is more than 10, not 10 or more.",
     ],
     solution: {
       idea: [
@@ -878,9 +893,10 @@ public:
       { input: ["Qwerty"], output: ".q.w.r.t" },
     ],
     hints: [
-      "Go through the characters one by one and lowercase each of them first.",
-      "If the lowercase letter is one of a, o, y, e, u, i, skip it.",
-      "Otherwise append a dot and then the letter to the result.",
+      "Think about the result one letter at a time. What do you need to know about each letter before you decide what to write?",
+      "Lowercasing each letter first makes the check simpler. A letter is removed exactly when its lowercase form is one of the six vowel letters.",
+      "Walk through the string once, lowercase each letter, skip the vowels, and for every other letter add a dot followed by the letter.",
+      "Remember that y counts as a vowel here, and check the letter only after it has been lowercased.",
     ],
     solution: {
       idea: [
@@ -932,9 +948,10 @@ public:
       { input: ["RBBR"], output: 1 },
     ],
     hints: [
-      "Think of the row as runs of equal colour. What has to happen inside a run of length 4?",
-      "In a run of length L, you must remove L - 1 stones: one stone of the run can stay.",
-      "That is the same as counting positions i where s[i] equals s[i - 1]. Count those.",
+      "Look at the row as groups of stones of the same colour. Which stones have to go in each group?",
+      "Two stones of the same colour that touch must not both stay. Inside one group of touching stones, how many can remain?",
+      "Count each place where a stone has the same colour as the stone just before it. That count is the number of removals.",
+      "Stones from different groups never end up next to a stone of the same colour, so you only need to look at neighbours.",
     ],
     solution: {
       idea: [
@@ -981,9 +998,10 @@ public:
       { input: [[7,7,7],7], output: 3 },
     ],
     hints: [
-      "Each friend contributes independently: 1 or 2 to the total width.",
-      "A friend adds 2 when their height is greater than h, otherwise 1.",
-      "Sum the contributions in one pass.",
+      "Each friend affects the width separately. What decides how much width one friend uses?",
+      "A friend taller than the fence height has to bend down, which makes them take more width than a friend who does not.",
+      "Loop over the heights once, add 2 for each height above h and 1 otherwise, and keep a running total.",
+      "One pass is enough, so no sorting is needed.",
     ],
     solution: {
       idea: [
@@ -1030,9 +1048,10 @@ public:
       { input: [[50,50]], output: 2 },
     ],
     hints: [
-      "To use as few coins as possible, take the most valuable ones first.",
-      "Sort the coins in descending order.",
-      "Add coins to your total one by one until your total is greater than the sum of the rest (total sum minus yours). Return how many you took.",
+      "You want as few coins as possible, but more than half of the total value. Which coins should you pick first to get past half quickly?",
+      "Taking the most valuable coins first reaches more than half of the total with the fewest coins. The order you take them in matters for the count.",
+      "Sort the coins from largest to smallest, add them to your sum one by one, and stop once twice your sum is more than the total.",
+      "Compare twice your sum with the total, not your sum with the rest, so you avoid division.",
     ],
     solution: {
       idea: [
@@ -1085,9 +1104,10 @@ public:
       { input: [[[1,1,1],[-1,1,-1],[0,-2,0]]], output: true },
     ],
     hints: [
-      "Forces add up component by component: the x parts together, the y parts together, the z parts together.",
-      "Keep three running sums, one for each axis.",
-      "Return true exactly when all three sums are 0.",
+      "Each force is a vector with three parts. Equilibrium means the forces cancel out. How can you check cancellation along each direction separately?",
+      "A sum of vectors is the zero vector exactly when the sums of each of the three parts are all zero.",
+      "Keep three running totals, one for each part. Add each force's parts into them, then check at the end whether all three are zero.",
+      "The answer is true only if all three totals are zero, not just some of them.",
     ],
     solution: {
       idea: [
@@ -1136,9 +1156,10 @@ public:
       { input: ["4000000000000000"], output: false },
     ],
     hints: [
-      "First count the digits equal to 4 or 7 in the string.",
-      "Zero lucky digits is not a lucky number (a lucky number needs at least one digit).",
-      "Check that the count itself, written in decimal, contains only 4s and 7s (the count is at most 18).",
+      "Count the digits first. Once you have that count, what check must it pass to make the number nearly lucky?",
+      "A lucky number has only 4s and 7s. The count itself must have that property, so the same digit check applies to the count.",
+      "Count the 4s and 7s in the string, then check each digit of that count. A count of zero is not lucky, so return false in that case.",
+      "Only the digits of the count matter for the second check, not the digits of the original number.",
     ],
     solution: {
       idea: [
@@ -1191,9 +1212,10 @@ public:
       { input: ["3+2+1+3+2+1"], output: "1+1+2+2+3+3" },
     ],
     hints: [
-      "The plus signs are only separators. Collect the digits first.",
-      "Since the digits are only 1, 2 and 3, you can sort them, or count how many of each there are.",
-      "Join the sorted digits with '+' between them.",
+      "The plus signs are only separators. Do you need to keep the order of the terms, or only their values?",
+      "Since there are only three possible values, you can count how many of each you have instead of sorting them.",
+      "Count the ones, twos and threes, then write them out in that order joined by plus signs. Sorting the digits works too.",
+      "Put the plus signs only between terms, not at the start or the end.",
     ],
     solution: {
       idea: [
@@ -1246,9 +1268,10 @@ public:
       { input: [123,456], output: 789 },
     ],
     hints: [
-      "Write the equation: (r1 + r2) / 2 = s.",
-      "Multiply both sides by 2, then move r1 to the other side.",
-      "r2 = 2 * s - r1.",
+      "Write down what the mean of two numbers means. Which unknown do you need to get on its own?",
+      "If the mean is S, the two numbers add up to twice S. Once you know one of them, the other is what is left over.",
+      "Compute twice S minus R1 directly with integer arithmetic.",
+      "Use 64-bit integers if the inputs are large, since doubling can overflow a 32-bit int.",
     ],
     solution: {
       idea: [
@@ -1293,9 +1316,10 @@ public:
       { input: [23,40], output: [22,55] },
     ],
     hints: [
-      "Convert the time to minutes since midnight: h * 60 + m.",
-      "Subtract 45 and add 24 * 60 so the value cannot be negative, then take the remainder modulo 24 * 60.",
-      "Convert back: hour = total / 60, minute = total % 60.",
+      "Think about the time as a count of minutes rather than hours and minutes. How do you move back a fixed number of minutes?",
+      "A day has a fixed number of minutes, so subtracting from the start can go below zero. Adding a whole day before taking the remainder fixes that.",
+      "Convert the time to minutes since midnight, subtract 45 with a full day added, take the remainder for the day, then split back into hours and minutes.",
+      "Times just after midnight, such as 00:30, wrap to the previous day, so check that case in particular.",
     ],
     solution: {
       idea: [
@@ -1339,9 +1363,10 @@ public:
       { input: ["Ab-Cd"], output: "AC" },
     ],
     hints: [
-      "Which characters of the string are initials: the first character and the ones right after a hyphen.",
-      "Walk through the string. Take the character at index 0, and every character whose previous character is '-'.",
-      "Append those to the result in order.",
+      "Which characters in a long name stand out as the first letter of each word?",
+      "The first character of the whole name starts a word, and so does any character that comes right after a hyphen.",
+      "Walk through the name once and keep each character that is at the start or directly follows a hyphen, building the result in order.",
+      "Check the first position on its own, so you never look at the character before index 0.",
     ],
     solution: {
       idea: [

@@ -3,6 +3,7 @@ id: c-kattis-dicecup
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(n + m) time and O(1) space"
+brute: same
 reviewed: false
 ---
 

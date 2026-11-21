@@ -148,9 +148,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "If the numbers were arranged in sorted order, where would identical numbers end up?",
-      "Sorting brings duplicate values adjacent to each other. You can count how many elements differ from their predecessor.",
-      "Sort the array in O(n log n) time, initialize the count to 1, and increment whenever arr[i] != arr[i - 1]."
+      "If identical values were lined up in order, where would they sit relative to each other?",
+      "Once the values are sorted, equal values sit next to each other. How could you tell where a new value starts?",
+      "Sort the list, then count the positions where a value differs from the one just before it. That count is the number of distinct values.",
+      "An empty list has zero distinct values. Sorting takes n log n time, which is fine here.",
     ],
     "solution": {
       "idea": [
@@ -333,9 +334,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Consider sorting both the applicants' desired sizes and the available apartment sizes.",
-      "Process the smallest applicant and the smallest apartment. If the apartment is too small for the applicant, can it ever be useful to any larger applicant?",
-      "Use a two-pointer approach: if an apartment is too small, advance to the next apartment. If it is too large, advance to the next applicant. Otherwise, match them and advance both."
+      "Sort both lists by size. Which applicant and which apartment should you look at first?",
+      "If the smallest apartment is too small for the smallest applicant, can any larger applicant ever use it?",
+      "Walk both sorted lists with two pointers. Skip an apartment that is too small for the current applicant, skip an applicant who is too big for the apartment, otherwise match and advance both.",
+      "The limit is inclusive: an apartment exactly k below or above the desired size is acceptable.",
     ],
     "solution": {
       "idea": [
@@ -487,9 +489,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Sort the weights in ascending order.",
-      "Consider the heaviest remaining child. If they can pair with anyone, they can definitely pair with the lightest available child.",
-      "Use two pointers: if weights[lightest] + weights[heaviest] <= x, put both in one gondola (increment left pointer). Regardless, the heaviest child takes that gondola (decrement right pointer)."
+      "Sort the weights. Consider the heaviest child who still needs a seat. Who could share a gondola with them?",
+      "If the heaviest child cannot share with the lightest remaining child, can they share with anyone else?",
+      "Use two pointers at the ends of the sorted weights. If the lightest and heaviest fit together, seat them both. The heaviest child always uses a gondola, so move the right pointer each time.",
+      "A single child left over still needs its own gondola.",
     ],
     "solution": {
       "idea": [
@@ -710,9 +713,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Since tickets are removed when purchased, you need a dynamic data structure that supports predecessor queries.",
-      "A balanced binary search tree, such as std::multiset in C++, allows finding the largest element <= target using upper_bound and decrementing the iterator.",
-      "Remember to erase by iterator (ms.erase(it)) instead of value so that only one copy of duplicate ticket prices is removed."
+      "Each customer wants the most expensive ticket they can afford. Which data structure gives the largest value at most a limit, while values are being removed?",
+      "You need the largest price not above the limit, and then you delete it. Which sorted structure supports both steps?",
+      "Keep prices in a sorted multiset. Find the first price above the limit, step back one, and erase that exact element. If nothing is at or below the limit, answer -1.",
+      "Erase by position, not by value, or you may remove every copy of a duplicated price.",
     ],
     "solution": {
       "idea": [
@@ -937,9 +941,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Each customer arrival increases the count of people by 1, and each departure decreases it by 1.",
-      "Create two events for each customer: (arrival, +1) and (departure, -1).",
-      "Sort all events by time. Sweep through the sorted events while maintaining a running counter of currently present customers, tracking the maximum value."
+      "Instead of following each customer, think about the moments when the crowd changes. What happens at an arrival, and what happens at a departure?",
+      "Each arrival adds one person and each departure removes one. If you list all those changes in time order, what do you need to track?",
+      "Turn each customer into two events: arrival adds one and departure subtracts one. Sort all events by time, sweep through them with a running count, and keep the maximum.",
+      "If times tie, process departures before arrivals.",
     ],
     "solution": {
       "idea": [
@@ -1200,9 +1205,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "This is the classic interval scheduling problem.",
-      "Which greedy choice leaves the most remaining time for future movies?",
-      "Sort movies by their end times in ascending order. Pick the movie that ends earliest, then among the remaining movies that start at or after that movie's end, pick the one that ends earliest, and repeat."
+      "This is about choosing as many non-overlapping intervals as possible. What should you prefer to leave for later movies?",
+      "Finishing early leaves the most room for the rest. Should you pick first the movie that starts first or the one that ends first?",
+      "Sort movies by end time. Repeatedly take the earliest-ending movie that starts at or after the time you finish the last one. This is the greedy interval scheduling rule.",
+      "A movie may start at the exact moment another ends, so compare with greater than or equal.",
     ],
     "solution": {
       "idea": [
@@ -1380,9 +1386,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "For each element arr[i - 1], the required matching value is target - arr[i - 1].",
-      "You need to find a position j > i where arr[j - 1] == target - arr[i - 1].",
-      "Sort pairs of (value, 1-based index). For each 1-based index i from 1 to n, binary search for (target - arr[i - 1], i + 1) to find the smallest j > i."
+      "For each value, what partner value would complete the sum? How could you find that partner quickly?",
+      "If you sort the values together with their positions, can each partner lookup become a search in sorted order?",
+      "Sort the (value, position) pairs. For each position i in order, binary search for the partner with a position after i. The first hit gives the smallest i and its smallest j.",
+      "Output 1-based positions. If no pair works, output -1 and -1, and use 64-bit sums.",
     ],
     "solution": {
       "idea": [
@@ -1525,9 +1532,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "This is Kadane's algorithm.",
-      "As you move through the array, maintain the maximum subarray sum ending at the current position.",
-      "At element i, either extend the previous subarray (cur + arr[i]) or start a new subarray with arr[i] alone. Track the maximum seen. Remember to use 64-bit integers to prevent overflow."
+      "For each position, what is the best subarray that ends right there?",
+      "A best subarray ending here either extends the best one ending at the previous position, or starts fresh. When is starting fresh better?",
+      "Carry the best sum ending at the current element forward. At each step take the larger of starting fresh and extending, and track the best total seen.",
+      "The values can all be negative, so start from the first element rather than from zero, and use 64-bit integers.",
     ],
     "solution": {
       "idea": [
@@ -1668,9 +1676,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "The function to minimize is the sum of absolute differences: sum |lengths[i] - x|.",
-      "The value x that minimizes the sum of absolute distances to a set of points is the median.",
-      "Sort the lengths, find the element at index n / 2, and sum the absolute differences."
+      "You want the total change in length to be as small as possible. Which target length gives the smallest sum of distances?",
+      "Think of a point on a line with sticks on it. Where should it sit so that the sticks are balanced on both sides?",
+      "Sort the lengths and take the middle one as the target. Then add up the absolute differences between each stick and that target.",
+      "Total cost can exceed the range of 32-bit integers, so use 64-bit sums.",
     ],
     "solution": {
       "idea": [
@@ -1804,9 +1813,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Sort the coin values in ascending order.",
-      "Suppose using a subset of the coins seen so far, you can form every integer sum from 1 up to reach - 1. What happens when you consider the next coin c?",
-      "If c <= reach, you can now form all sums up to reach + c - 1. If c > reach, reach can never be formed, so it is the answer."
+      "Suppose you can already make every sum from 1 up to some value. What is the smallest sum you cannot make yet?",
+      "Call the smallest unreachable sum X. If the next coin is at most X, what range of sums becomes reachable?",
+      "Sort the coins and track the smallest unreachable sum, starting at 1. Each coin no larger than it extends the reachable range, and the first coin larger than it stops the scan.",
+      "The answer can exceed the sum of small coins, so use 64-bit values.",
     ],
     "solution": {
       "idea": [
@@ -1948,9 +1958,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Track the index where each number from 1 to n appears in the array.",
-      "Can you collect number x in the same round as number x - 1?",
-      "Number x can be collected in the same round as x - 1 if and only if position[x] > position[x - 1]. Whenever position[x] < position[x - 1], a new round must be started."
+      "In one left-to-right pass, what makes it impossible to collect two numbers in a row?",
+      "If 2 sits to the left of 1, what happens when the scan reaches 2? Compare the positions of consecutive values.",
+      "Record where each value sits. Count how often value x sits to the left of value x minus 1. Each such break needs a new round, and you start with one round.",
+      "The first round always exists, so the answer is at least 1.",
     ],
     "solution": {
       "idea": [
@@ -2103,9 +2114,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Use a sliding window defined by two pointers, left and right.",
-      "Maintain a map or hash table storing the most recent index where each song was seen.",
-      "When expanding the window at right, if songs[right] was seen at index last >= left, jump left to last + 1. The window size is right - left + 1."
+      "Think of a window of songs with no repeats. How does the window change when its right end moves?",
+      "When a new song repeats one already in the window, where must the left end move to drop the old copy?",
+      "Slide a window with two ends. Remember the last position of each song, and when a repeat appears, jump the left end past its previous spot.",
+      "The left end only moves forward. Keep the longest window seen, and use a hash map for song IDs.",
     ],
     "solution": {
       "idea": [
@@ -2250,9 +2262,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "When placing a cube, which tower top should you choose if multiple tops are strictly greater than the cube?",
-      "Greedily place the cube on the tower with the smallest top that is strictly greater than the cube.",
-      "Maintain the list of tower tops in a sorted vector. Use std::upper_bound to find the best tower top in O(log k) time and update it."
+      "Each tower's top matters for the cubes that come later. If several towers could take a cube, which one should it go on?",
+      "A cube can go on any tower whose top is bigger. Which choice keeps the most options open for future cubes?",
+      "Keep the tower tops in a sorted list. For each cube, binary search for the smallest top greater than it and replace that top. If there is none, start a new tower.",
+      "The list stays sorted after each replacement, and the answer is the number of towers. Use a strict comparison, since equal tops cannot take a cube.",
     ],
     "solution": {
       "idea": [
@@ -2438,9 +2451,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Maintain the set of current light positions (including 0 and streetLength).",
-      "When a light is placed at position p, it splits an existing passage [left, right] into [left, p] and [p, right].",
-      "Use a std::set to track the boundaries and a std::multiset to track the passage lengths so you can remove the old length and insert the two new lengths in O(log n) time."
+      "Each new light splits exactly one existing passage. Which passage is it, and how could you find it quickly?",
+      "Once the light is placed, the old passage is replaced by two smaller ones. Which lengths must you keep track of?",
+      "Keep the light positions in a sorted set and the passage lengths in a sorted multiset. Find the neighbours of the new light, swap the old length for the two new ones, and read the largest length.",
+      "Include the two ends of the street as lights from the start, and read the largest passage after each step.",
     ],
     "solution": {
       "idea": [
@@ -2583,9 +2597,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Use a sliding window [l, r] where all elements within the window are distinct.",
-      "For each position r from 0 to n - 1, adjust l so that arr[r] appears only once in [l, r].",
-      "The number of valid subarrays ending at index r is r - l + 1. Accumulate this count into a 64-bit integer."
+      "Count subarrays by their right end. For a fixed right end, which left ends are valid?",
+      "For each right end, the valid left ends form a range that starts at some point. What moves that starting point forward as the right end grows?",
+      "Use a sliding window whose left end jumps past the last place a repeated value was seen. Each right end adds the window length as new valid subarrays.",
+      "The total can be as large as n squared over two, so accumulate it in a 64-bit integer.",
     ],
     "solution": {
       "idea": [
@@ -2788,9 +2803,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "This problem is a classic application of a monotonic stack.",
-      "Maintain a stack of pairs (value, 1-based index) for elements seen so far.",
-      "Before processing arr[i], pop elements from the stack that are greater than or equal to arr[i], since they cannot be the nearest smaller value for arr[i] or any future element. The top of the stack is then the nearest smaller value."
+      "For each position, you look left for a smaller value. Which earlier elements could still matter for later positions?",
+      "If an earlier value is at least as big as the current one, can it ever be the nearest smaller value for anything after the current element?",
+      "Keep a stack of candidates. Before adding each element, pop the candidates that are at least as big. The top left over is the answer, and then you push the new element.",
+      "Answers are 1-based positions, and 0 means no smaller value exists to the left. Each element is pushed and popped at most once.",
     ],
     "solution": {
       "idea": [
@@ -2949,9 +2965,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Since all numbers are strictly positive, any subarray sum increases monotonically as the right endpoint expands and decreases as the left endpoint advances.",
-      "Use a two-pointer sliding window to maintain a running sum.",
-      "Expand right by adding arr[right]. While the sum exceeds target, subtract arr[left] and increment left. Whenever sum == target, increment the answer."
+      "All numbers are positive. How does a window's sum change when its right end moves to the right?",
+      "The sum grows when the right end moves and shrinks when the left end moves. Could both ends simply move forward only?",
+      "Slide a window with two ends. Grow the right end, shrink the left end while the sum is above the target, and count each time the sum equals the target.",
+      "Each element enters and leaves the window once, so the work is linear. Use 64-bit sums.",
     ],
     "solution": {
       "idea": [
@@ -3105,9 +3122,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Because elements can be negative or zero, the two-pointer approach does not work.",
-      "A subarray arr[i..j] has sum pref[j + 1] - pref[i]. Setting this equal to target gives pref[i] = pref[j + 1] - target.",
-      "Maintain a map of prefix sum frequencies. Initialize with count of 0 being 1. For each prefix sum, add freq[pref - target] to the total."
+      "Zero and negative values break the sliding window idea. What other way is there to express a subarray sum?",
+      "If you know the running totals at two positions, the subarray between them has the difference of those totals. What earlier total would you need to hit the target?",
+      "Keep a count of earlier running totals. At each step, add how many times the current running total minus the target has appeared before, then record the current total.",
+      "Start the count with an empty prefix of sum zero, which covers subarrays starting at index 0. Use 64-bit totals and a hash map.",
     ],
     "solution": {
       "idea": [
@@ -3316,9 +3334,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Total reward is sum(deadline_i - finish_time_i) = sum(deadline_i) - sum(finish_time_i).",
-      "The sum of deadlines is independent of the order in which tasks are executed.",
-      "To minimize the sum of finish times, order tasks by shortest processing time first (duration ascending)."
+      "The reward for each task is its deadline minus its finish time. Which part of the total depends on the order?",
+      "The sum of deadlines is fixed, so maximising the reward means minimising the sum of finish times. Which order keeps finish times small?",
+      "Process tasks by shortest duration first. Keep a running clock, and add each task's deadline minus the clock to the total.",
+      "Rewards can be negative, so the total can be negative too. Use 64-bit totals.",
     ],
     "solution": {
       "idea": [
@@ -3509,9 +3528,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Pair each element with its original 1-based index and sort the array by value.",
-      "Fix the first element of the triplet by iterating through the sorted array.",
-      "For each fixed first element, use two pointers (left and right) on the remaining suffix to find two elements that sum to target - arr[first]."
+      "This is the two-value problem with one extra number. What could you fix first to reduce it to that problem?",
+      "If you fix the first number, what remains is a two-value problem on the rest. Does sorting help there?",
+      "Sort the values while keeping their original positions. Fix the first number, then use two pointers from both ends of the rest to find a pair that makes the right sum.",
+      "Map the sorted values back to their original 1-based positions and output the three positions in increasing order. Use 64-bit sums.",
     ],
     "solution": {
       "idea": [
@@ -3653,9 +3673,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "If you are given a fixed time limit T, can you easily determine how many products the factory can produce?",
-      "In time T, machine i produces floor(T / machines[i]) products. The total count is sum(floor(T / machines[i])).",
-      "Since the total number of products increases monotonically with T, binary search for the minimum time T such that total products >= t."
+      "Instead of asking how long t products take, ask how many products the factory makes in a fixed time T. Can you count that?",
+      "A machine that takes m time units makes T divided by m products by time T. That count never shrinks as T grows. What search does that suggest?",
+      "Binary search the time between 1 and the fastest machine's time multiplied by t. For each guess, add up the products every machine makes and narrow the range.",
+      "Stop counting once the total reaches t, to avoid overflow. Use 64-bit numbers.",
     ],
     "solution": {
       "idea": [
@@ -3808,9 +3829,10 @@ export const CSES_SPECS_SORTING: ProblemSpec[] = [
       }
     ],
     "hints": [
-      "Consider the decision problem: can the array be divided into at most k subarrays such that no subarray exceeds a given maximum sum M?",
-      "To check a sum M, greedily pack elements into the current subarray until adding the next element would exceed M, then start a new subarray. Count how many subarrays are formed.",
-      "Binary search on M between max(arr) and sum(arr)."
+      "Rather than finding the best split directly, ask a yes or no question: can the array be split into at most k parts, each with sum at most M?",
+      "If a limit M works, does every larger limit work too? How would you test a single limit quickly?",
+      "Binary search the limit between the largest single number and the total sum. For each limit, greedily fill parts and count them, and keep the smallest limit that needs at most k parts.",
+      "The limit can never be below the largest element, since every element sits in some part. Use 64-bit sums.",
     ],
     "solution": {
       "idea": [

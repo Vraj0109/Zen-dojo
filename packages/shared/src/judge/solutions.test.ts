@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { SKIP_STRESS_LINE, checkFiles, generatedIsCurrent, groupStatus, readSolutionFiles, renderGenerated, type SolutionFile } from "../../../../scripts/solutions.mjs";
-import { SOLUTIONS } from "./generated/solutions";
+import { INTERVIEW } from "./generated/interview";
+import { BRUTE, SOLUTIONS } from "./generated/solutions";
 import { JUDGE_PROBLEMS } from "./index";
 import { SOLUTION_GROUP_IDS, groupIds, groupOf } from "./solution-groups";
-import { hasBundledSolutions, solutionCode, solutionLangs } from "./solutions";
+import { bruteCode, bruteLangs, hasBundledSolutions, solutionCode, solutionLangs } from "./solutions";
 import type { ProblemSpec } from "./types";
 
 const FORBIDDEN = ["Runtime.getRuntime().exec", "ProcessBuilder", "subprocess", "os.system", "socket", "urllib", "java.net"];
@@ -48,10 +49,10 @@ describe("solution groups", () => {
 });
 
 describe("solution files", () => {
-  const { files, errors } = readSolutionFiles();
+  const { files, bruteFiles, errors } = readSolutionFiles();
 
-  it("have only .java and .py files named after problem ids", () => {
-    expect(checkFiles(files, errors, new Set(Object.keys(JUDGE_PROBLEMS)))).toEqual([]);
+  it("have only .java, .py, and .brute.cpp|.java|.py files named after problem ids", () => {
+    expect(checkFiles([...files, ...bruteFiles], errors, new Set(Object.keys(JUDGE_PROBLEMS)))).toEqual([]);
   });
 
   it("follow the structural rules", () => {
@@ -147,5 +148,32 @@ describe("solutionCode and solutionLangs", () => {
     expect(hasBundledSolutions(over)).toBe(false);
     expect(hasBundledSolutions(two)).toBe(true);
     expect(solutionCode(over, "java")).toBeNull();
+  });
+
+  it("checks BRUTE coverage and problem ids", () => {
+    for (const id of Object.keys(BRUTE)) {
+      expect(JUDGE_PROBLEMS[id], `${id} in BRUTE is a valid problem id`).toBeDefined();
+    }
+    // Verify every problem in JUDGE_PROBLEMS has complete brute solutions in cpp, java, py OR brute: same in interview walkthrough
+    const allIds = Object.keys(JUDGE_PROBLEMS);
+    const missing: string[] = [];
+    for (const id of allIds) {
+      const b = BRUTE[id];
+      const hasAllLangs = b && b.cpp && b.java && b.python;
+      if (!hasAllLangs) {
+        const entry = INTERVIEW[id];
+        const isSame = entry && entry.md && entry.md.includes("brute: same");
+        if (!isSame) {
+          missing.push(id);
+        }
+      }
+    }
+    expect(missing, `Problems missing brute force or brute: same: ${missing.join(", ")}`).toEqual([]);
+
+    expect(BRUTE["lc-1"]?.cpp).toBeDefined();
+    expect(BRUTE["lc-1"]?.java).toBeDefined();
+    expect(BRUTE["lc-1"]?.python).toBeDefined();
+    expect(bruteCode(two, "cpp")).toBe(BRUTE["lc-1"]?.cpp);
+    expect(bruteLangs(two)).toEqual(["cpp", "java", "python"]);
   });
 });

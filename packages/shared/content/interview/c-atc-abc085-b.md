@@ -3,6 +3,7 @@ id: c-atc-abc085-b
 pattern: cses-atcoder
 difficulty: easy
 optimal: "O(n log n) time with sorting or a set, O(n) space"
+brute: same
 reviewed: false
 ---
 

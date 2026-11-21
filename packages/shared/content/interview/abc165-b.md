@@ -3,6 +3,7 @@ id: abc165-b
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(years) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

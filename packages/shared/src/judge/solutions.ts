@@ -1,7 +1,7 @@
 // Reference solutions in C++, Java and Python (plan 0063). C++ lives on the spec; Java and Python are plain files in
 // packages/shared/content/solutions/ compiled into generated/solutions.ts. Import this from SERVER code only (the
 // generated file is large): the problem page passes the chosen strings to the client.
-import { SOLUTIONS } from "./generated/solutions";
+import { BRUTE, SOLUTIONS } from "./generated/solutions";
 import { JUDGE_PROBLEMS } from "./index";
 import type { ProblemSpec } from "./types";
 
@@ -24,3 +24,15 @@ export function solutionCode(spec: ProblemSpec, lang: SolutionLang): string | nu
 export function solutionLangs(spec: ProblemSpec): SolutionLang[] {
   return SOLUTION_LANGS.filter((l) => solutionCode(spec, l) !== null);
 }
+
+/** The brute force solution in one language, or null when there is none. */
+export function bruteCode(spec: ProblemSpec, lang: SolutionLang): string | null {
+  return (hasBundledSolutions(spec) && BRUTE[spec.id]?.[lang]) || null;
+}
+
+/** The languages that have a brute force solution for this problem. */
+export function bruteLangs(spec: ProblemSpec): SolutionLang[] {
+  return SOLUTION_LANGS.filter((l) => bruteCode(spec, l) !== null);
+}
+
+export { BRUTE, SOLUTIONS };

@@ -28,9 +28,10 @@ export const LEETCODE_SPECS_8: ProblemSpec[] = [
     ],
     unordered: true,
     hints: [
-      "Choose where the first piece ends, then solve the rest of the string the same way.",
-      "Only continue when the piece you just cut is a palindrome. That prunes most of the search.",
-      "Backtrack with a start index and a current list of pieces. Precompute isPal[i][j] with a table so each check is O(1).",
+      "Think about the first piece of the string. How many choices are there for where it ends, and what is left after that?",
+      "Only a piece that reads the same both ways is allowed. Checking this again and again is wasteful, so what could you compute once up front?",
+      "Precompute which substrings are palindromes, using smaller inner substrings first. Then backtrack from a start index, cutting only at palindromic ends.",
+      "Edge case: a single character is always a palindrome, and the whole string may be one piece.",
     ],
     solution: {
       idea: [
@@ -95,9 +96,10 @@ public:
       { input: [[4,4,4,6,6,6,1]], output: 1 },
     ],
     hints: [
-      "Add up the values of one bit across all numbers. What is that sum modulo 3 for the lonely number's bit?",
-      "For each of the 32 bits, count how many numbers have it set. Numbers that appear three times contribute a multiple of 3, so the remainder is the single number's bit.",
-      "Without counting per bit, two variables ones and twos can act as a base-3 counter per bit, updated with a few bit operations.",
+      "Each number appears three times except one. Instead of looking at whole numbers, what could you examine for each bit position separately?",
+      "For a bit that the lonely number does not have, how many times can it appear among the others? What does that say about the count modulo 3?",
+      "Count the ones in each bit position and take that count modulo 3. The leftover bit tells you what the lonely number has in that position.",
+      "Edge case: negative numbers have bits too. Count bits as unsigned values and convert the result back at the end.",
     ],
     solution: {
       idea: [
@@ -146,9 +148,10 @@ public:
       { input: [[3,3,3,3],3], output: false },
     ],
     hints: [
-      "If the total is not divisible by k, the answer is immediately false. Otherwise each group must sum to total / k.",
-      "Fill the groups one at a time. Each number is either already used or goes into the current group.",
-      "Use a bitmask of used numbers and the current group's sum; memoise failed masks. Sorting in descending order makes the search prune faster.",
+      "If the total cannot be split into k equal parts, nothing else matters. What must each group sum to when it can?",
+      "Think of filling the groups one after another. For a given set of numbers already used, what does the current group's partial sum depend on?",
+      "Use a bitmask of used numbers, since the partial sum follows from the mask. Remember which masks already failed so you never explore them again.",
+      "Edge case: a number larger than the target makes the answer false at once. Trying large numbers first makes failures show up sooner.",
     ],
     solution: {
       idea: [
@@ -207,9 +210,10 @@ public:
       { input: [[[1,0,0,1],[0,1,1,0],[1,1,0,0],[0,0,1,1]]], output: 7 },
     ],
     hints: [
-      "The way back is the same as another walk from the top-left to the bottom-right. So think of two people walking at the same time.",
-      "After t steps both people are on the anti-diagonal r + c = t. State: (t, row of person 1, row of person 2).",
-      "If both stand on the same cell, count its cherry once. Take the best of the four ways the two people could have arrived (each moved right or down).",
+      "The walk back is a walk in reverse. Can you turn the return trip into a second walk that moves the same way as the first?",
+      "If two walkers move one step at a time, where can both be after t steps? What do they share on every step?",
+      "Track only the row of each walker, since the column follows from the step count. Choose the best of the four moves the two walkers could have come from.",
+      "Edge case: when both walkers stand on the same cell, count its cherry only once, and never step onto a thorn.",
     ],
     solution: {
       idea: [
@@ -280,9 +284,10 @@ public:
       { input: ["ab",".*c"], output: false },
     ],
     hints: [
-      "Define match(i, j): does s[i..] match p[j..]?",
-      "If p[j + 1] is '*', either skip the starred part (match(i, j + 2)) or, when s[i] fits p[j], consume one character and stay on the star (match(i + 1, j)).",
-      "Otherwise the next characters must fit one to one. Memoise on (i, j) or fill a table from the back.",
+      "Instead of matching the whole strings at once, think about matching their ends. What is the smallest question you can ask?",
+      "When a pattern character is followed by a star, what are its two choices at the current position in the string?",
+      "Solve the suffix questions from the back, storing each answer in a table or memo. Each state depends only on states further along.",
+      "Edge case: a star can match zero characters, so a pattern made only of starred characters can match the empty string.",
     ],
     solution: {
       idea: [
@@ -337,9 +342,10 @@ public:
       { input: ["abcabczzzde","*abc???de*"], output: true },
     ],
     hints: [
-      "Like regular expressions, but the star stands alone and matches anything.",
-      "dp[i][j]: do the first i characters of s match the first j of p? A '*' is either empty (dp[i][j-1]) or swallows one more character (dp[i-1][j]).",
-      "A greedy two-pointer version remembers the last star and how far it has consumed, and backs up to it on a mismatch: O(|s| * |p|) worst case but usually fast.",
+      "This is like the regex problem, but the star stands alone and matches any run of characters. What question do you ask about prefixes of the two strings?",
+      "Think of a star as matching nothing, or as swallowing one more character of the string while staying on the star.",
+      "A table over prefixes solves this in quadratic time. A greedy version that backs up to the last star is often faster.",
+      "Edge case: leading stars can match the empty string, and several stars in a row behave like one.",
     ],
     solution: {
       idea: [
@@ -393,9 +399,10 @@ public:
       { input: ["aabb","ab"], output: 4 },
     ],
     hints: [
-      "Let f(i, j) be the number of ways the first j letters of t appear in the first i letters of s.",
-      "If s[i-1] != t[j-1], the letter cannot be used: f(i, j) = f(i-1, j).",
-      "If they are equal you may use it or skip it: f(i, j) = f(i-1, j-1) + f(i-1, j). The base cases are f(i, 0) = 1.",
+      "Count the ways, not the distinct strings. When you look at the next letter of s, you may use it or skip it. How does the count for a prefix of t relate to a shorter prefix?",
+      "If the current letters of s and t differ, the letter of s can only be skipped. What changes when they match?",
+      "When they match, add the count from using the letter to the count from skipping it. Keep one row of counts and update it from the back so it can be reused in place.",
+      "Edge case: the empty target appears in any string in exactly one way, which is the starting count.",
     ],
     solution: {
       idea: [
@@ -446,9 +453,10 @@ public:
       { input: ["cdd"], output: 1 },
     ],
     hints: [
-      "Let cut[i] be the fewest cuts for the first i characters.",
-      "cut[i] = min over j < i of cut[j] + 1 where s[j..i-1] is a palindrome (or 0 if the whole prefix is a palindrome).",
-      "You need fast palindrome checks: precompute isPal[j][i] with a DP, or expand around every centre and update cut[] from there.",
+      "Instead of listing all cuts, ask for the fewest cuts needed for each prefix. How does a prefix's answer depend on shorter prefixes?",
+      "If the last piece of a prefix is a palindrome, the cut count is one more than the best for the part before it. How can you know which last pieces are palindromes quickly?",
+      "Precompute a palindrome table over substrings, then fill the cut counts from left to right, taking the minimum over the possible last pieces.",
+      "Edge case: a prefix that is already a palindrome needs zero cuts, so check the whole prefix first.",
     ],
     solution: {
       idea: [
@@ -504,9 +512,10 @@ public:
       { input: [[2,3,5,7,11,13],2], output: 97 },
     ],
     hints: [
-      "Each merge removes k - 1 piles. When is it possible at all? Check (n - 1) % (k - 1).",
-      "Interval DP: dp[i][j] is the best cost to merge piles i..j as far as possible; the result of the best split gives piles that can still be merged.",
-      "dp[i][j] = min over split points m (stepping by k - 1) of dp[i][m] + dp[m+1][j]. If (j - i) % (k - 1) == 0, the whole range collapses to one pile for an extra sum(i..j).",
+      "Each merge removes a fixed number of piles. From the pile count alone, can you tell whether all piles can end as one?",
+      "Think of the best cost to merge a run of consecutive piles into as few piles as possible. How can such a run be split into two smaller runs?",
+      "Split a run at points that keep the left part mergeable into one pile. If the whole run can end as one pile, add the total stones in it once.",
+      "Edge case: check feasibility first so impossible inputs return -1, and use prefix sums for run totals.",
     ],
     solution: {
       idea: [
@@ -565,9 +574,10 @@ public:
       { input: [[1,4,2,7,3,9]], output: 12 },
     ],
     hints: [
-      "Think of four states: after the first buy, after the first sell, after the second buy, after the second sell.",
-      "Keep the best profit (or best balance) for each state while scanning the prices once.",
-      "buy1 = max(buy1, -p); sell1 = max(sell1, buy1 + p); buy2 = max(buy2, sell1 - p); sell2 = max(sell2, buy2 + p). The answer is sell2.",
+      "Picture a day-by-day walk where you hold a share or hold cash, and track how many sales are finished. How many situations do you need to describe?",
+      "Track the best value for each situation as you scan the prices once. Which situation's value depends on which other one?",
+      "Each day, update the holding states from the cash states before them and today's price. The answer is the best cash state after the second sale.",
+      "Edge case: prices that only fall must give 0, so start the cash states at zero and the holding states at a very negative value.",
     ],
     solution: {
       idea: [
@@ -617,9 +627,10 @@ public:
       { input: [2,[1,2,4,2,5,7,2,4,9,0]], output: 13 },
     ],
     hints: [
-      "Generalise the two-transaction solution: keep a pair of states for each transaction number.",
-      "buy[t] is the best balance while holding during transaction t, sell[t] the best balance after finishing it.",
-      "For each price and each t from 1 to k: buy[t] = max(buy[t], sell[t-1] - p); sell[t] = max(sell[t], buy[t] + p). If k >= n / 2, just add up all positive differences.",
+      "Generalise the two-sale idea. How many states per transaction number do you need, and how many transactions can help at all?",
+      "For each transaction count, keep the best value while holding a share and the best profit after selling. How does one transaction's state depend on the previous one?",
+      "Scan the prices once and update every transaction count from the one before it. If k is at least half the number of days, every rising step can be taken, so just add them up.",
+      "Edge case: k can be zero or larger than the number of days, and both must be handled without going out of range.",
     ],
     solution: {
       idea: [
@@ -676,9 +687,10 @@ public:
       { input: [["1","2","3"],321], output: 34 },
     ],
     hints: [
-      "First count all numbers that are shorter than n: with d digits available, there are d^len of each length len.",
-      "Then count the numbers with the same length as n and at most n, digit by digit from the left.",
-      "At each position count the allowed digits smaller than n's digit (each gives d^(remaining) numbers). If n's digit itself is allowed, move on to the next position; otherwise stop. Reaching the end means n itself is buildable: add 1.",
+      "Count the numbers by length first. For lengths shorter than n, does the bound n matter at all?",
+      "For numbers with the same length as n, compare digit by digit from the left. At each position, how many allowed digits make the number smaller, and how many positions are left after it?",
+      "Each smaller choice leaves a fixed number of free positions with the same number of options each, so count them with powers. Continue only while the digit of n is allowed.",
+      "Edge case: if every digit of n is in the set, n itself counts, so add one at the end.",
     ],
     solution: {
       idea: [
@@ -737,9 +749,10 @@ public:
       { input: [8], output: 2345851 },
     ],
     hints: [
-      "Count by length: how many k-digit numbers have all distinct digits?",
-      "The first digit has 9 choices (1 to 9), the second has 9 (0 to 9 except the first), the third 8, and so on.",
-      "Add up the counts for lengths 1 to n, plus 1 for the number 0. For n above 10 nothing new appears, because digits would have to repeat.",
+      "Group the numbers by how many digits they have. Can a number with many digits still have all of its digits different?",
+      "For a k-digit number, how many choices are there for the first digit, then for each later digit? Each choice removes a digit that is already used.",
+      "Multiply the counts as the length grows, then add them up over all lengths. Once you pass ten digits, no new numbers appear.",
+      "Edge case: n = 0 gives only the number 0, and the single-digit numbers include 0 as well.",
     ],
     solution: {
       idea: [
@@ -789,9 +802,10 @@ public:
       { input: [[0,0,0,null,0,null,0]], output: 2 },
     ],
     hints: [
-      "Decide greedily from the leaves up. A leaf should not hold a camera; its parent should.",
-      "Give each node one of three states: covered by a camera below, has a camera itself, or not covered yet.",
-      "A node must get a camera if any child is not covered. A node is covered for free if some child has a camera. Count cameras as you place them; if the root ends up uncovered, add one more.",
+      "Think about the leaves first. Where would a camera do the most good, on a leaf or on its parent?",
+      "Each node can be covered by a child's camera, hold a camera itself, or be uncovered so far. What does a node need to know from its children to decide?",
+      "Process children before the parent. An uncovered child forces a camera on the node; a child with a camera covers the node for free. Count placements and check the root at the end.",
+      "Edge case: an empty tree needs no cameras, and a root still uncovered after the walk needs one more.",
     ],
     solution: {
       idea: [
@@ -845,9 +859,10 @@ public:
       { input: [[1,2,3,4,5,6,7,8,9,10,1,2,3,4],15], output: 5 },
     ],
     hints: [
-      "With at most 14 tasks you can describe the set of finished tasks as a bitmask.",
-      "dp[mask] is the minimum number of sessions to do exactly the tasks in mask, and among those the least time used in the last session.",
-      "From a mask add one more task: if it fits in the current session, add its hours; otherwise start a new session. Keep the better pair (sessions, time in last session).",
+      "With at most 14 tasks, the set of finished tasks is small enough to describe completely. How could you name a set of tasks with one number?",
+      "For each set of finished tasks you care about two things: how many sessions are used and how full the last one is. Which pair is better?",
+      "Build up the sets one task at a time. A task fits if the current session has room; otherwise start a new session. Keep the best pair for each set.",
+      "Edge case: the starting state is one open session with no hours used, so an empty set of tasks still uses that session.",
     ],
     solution: {
       idea: [
@@ -905,9 +920,10 @@ public:
       { input: [[5,1,5,1,5]], output: 8 },
     ],
     hints: [
-      "Each child has two constraints: one from the left neighbour and one from the right neighbour.",
-      "Do a left-to-right pass: if a child rates higher than the one on the left, give one more than that child; otherwise 1.",
-      "Then a right-to-left pass: if a child rates higher than the one on the right, make sure it has at least one more than that child (take the max with the first pass). Sum the result.",
+      "Each child has a rule with the left neighbour and a rule with the right neighbour. Can you handle the two sides separately?",
+      "Walk from left to right. If a child rates higher than the child on its left, what is the least candy that satisfies that side?",
+      "Walk from right to left with the same idea, take the larger of the two values for each child, and add up the result.",
+      "Edge case: every child starts with at least one candy, so children with equal ratings still get one each.",
     ],
     solution: {
       idea: [
@@ -957,9 +973,10 @@ public:
       { input: ["zzzyyxw"], output: "wxzyzyz" },
     ],
     hints: [
-      "When is it possible at all? Look at the most frequent letter: it can fill at most every second position.",
-      "It is possible exactly when the highest count is at most (n + 1) / 2.",
-      "To find the smallest answer, build it position by position: try letters from 'a' up, skip the previous letter, and accept a letter only if the rest can still be arranged (the rest's highest count must not exceed what fits, and the last letter placed cannot be reused at the start).",
+      "When is it possible at all to arrange letters so no two equal ones touch? Think about the letter that appears most often.",
+      "The most frequent letter can fill at most every second position. How does that limit compare with the total length?",
+      "Build the answer one position at a time, trying the smallest letters first. Accept a letter only if the rest can still be arranged, and never repeat the previous letter.",
+      "Edge case: a string with only one kind of letter and length above one is impossible, so return an empty string.",
     ],
     solution: {
       idea: [
@@ -1029,12 +1046,15 @@ public:
       { input: [20], output: 8 },
       { input: [100], output: 25 },
       { input: [1000], output: 168 },
-      { input: [49979], output: 5130 },
+    ],
+    stress: [
+      { label: "n = 49979", make: () => [49979] },
     ],
     hints: [
-      "A number is composite if it is a multiple of a smaller prime.",
-      "Keep a boolean array. For each prime p, mark p * p, p * p + p, p * p + 2p, ... as not prime.",
-      "You only need to start crossing out from p * p, and only for p with p * p < n. Then count the unmarked numbers from 2 up.",
+      "Testing every number by division is slow. Instead of asking whether each number is prime, what could you do once you know a prime?",
+      "A composite number has a smaller prime factor, so something already marked it. When you process a prime p, which of its multiples still need marking?",
+      "Use a boolean array and cross out multiples of each prime, starting from its square. Stop the outer loop once the square reaches n.",
+      "Edge case: n below 3 has no primes, so check this before setting up the array.",
     ],
     solution: {
       idea: [
@@ -1088,9 +1108,10 @@ public:
       { input: [1.0001,1000], output: 1.1051653926 },
     ],
     hints: [
-      "x^n = (x^(n/2))^2 when n is even, and x * (x^((n-1)/2))^2 when n is odd.",
-      "Do it iteratively: square the base each step and multiply it into the result whenever the current bit of n is 1.",
-      "For negative n, compute with |n| and invert at the end. Use a 64-bit variable for n so that -2^31 can be negated.",
+      "Multiplying x by itself n times is too slow for a large n. Can you halve the work at each step?",
+      "Think of x to the power n as squaring the base while using the bits of n. What does each bit of the exponent tell you?",
+      "Walk through the bits of n from low to high: square the base at each step, and multiply it into the result when the bit is 1.",
+      "Edge case: a negative n means one over the positive power, and the most negative 32-bit int cannot be negated, so store n in a 64-bit variable.",
     ],
     solution: {
       idea: [
@@ -1143,9 +1164,10 @@ public:
       { input: [10,[1,0,0,0,0,0,0,0,0,0]], output: 221 },
     ],
     hints: [
-      "b is far too big to turn into a number. Process it one digit at a time.",
-      "If b = 10 * b' + d, then a^b = (a^b')^10 * a^d.",
-      "Walk the digits: result = (result^10 mod 1337) * (a^d mod 1337) mod 1337, with a small modular power function. Reduce a modulo 1337 first.",
+      "The exponent is far too big to turn into a number. What can you do with its digits one at a time?",
+      "If the exponent is written as ten times a shorter exponent plus one digit, how does the power split up?",
+      "Process the digits from left to right, raising the running result to the tenth power and multiplying by the base raised to the digit. Reduce modulo 1337 at each step.",
+      "Edge case: reduce the base modulo 1337 first, and remember that the exponent may be given with a leading zero.",
     ],
     solution: {
       idea: [
@@ -1200,9 +1222,10 @@ public:
       { input: [[[2,3],[3,3],[-5,3]]], output: 3 },
     ],
     hints: [
-      "Two points define a line. Fix one point and look at all the others.",
-      "Group the other points by the direction (dx, dy) from the fixed point. Points with the same direction are on the same line through it.",
-      "Normalise each direction: divide dx and dy by their gcd and fix the sign (for example make dx positive). Use a map from the pair to a count, and take the largest group plus 1.",
+      "Two points define a line, so ask which other points line up with a given pair. Could you fix one point and look at everything else from it?",
+      "Points on the same line through the fixed point all lie in the same direction from it. How could you group them by direction?",
+      "Describe each direction by its slope as a reduced pair of whole numbers, so no floating-point values are needed. Count the most common direction and add the fixed point.",
+      "Edge case: a vertical line has no horizontal step, so normalise signs carefully. Inputs with at most two points are trivially on one line.",
     ],
     solution: {
       idea: [
@@ -1258,9 +1281,10 @@ public:
       { input: [0,0,5,1,2,-3,3,4], output: 11 },
     ],
     hints: [
-      "Total = area of A + area of B - area of the overlap.",
-      "The overlap, if there is one, is itself a rectangle. Its width is min(ax2, bx2) - max(ax1, bx1).",
-      "If the width or the height is zero or negative the rectangles do not overlap, so use max(0, width) * max(0, height).",
+      "Adding the two areas counts the overlap twice. How could you correct for that?",
+      "The overlap is itself a rectangle. What are its left and right edges along the x-axis?",
+      "Take the larger of the two left edges and the smaller of the two right edges, and do the same for height. If either length is negative, the overlap is zero.",
+      "Edge case: rectangles that only touch along an edge have zero overlap, and the same arithmetic still works.",
     ],
     solution: {
       idea: [
@@ -1307,9 +1331,10 @@ public:
       { input: [[3,-2,4,-1,2],0,4], output: 10 },
     ],
     hints: [
-      "Use prefix sums P. The sum of a subarray (i, j] is P[j] - P[i], and you want lower <= P[j] - P[i] <= upper.",
-      "For each j count the earlier prefixes P[i] in [P[j] - upper, P[j] - lower]. A plain double loop is O(n^2).",
-      "Use merge sort on the prefix sums: before merging two sorted halves, count pairs (i in left, j in right) with two moving pointers. A Fenwick tree over compressed prefix sums also works.",
+      "A range sum is a difference of two prefix sums. Can you turn the question about ranges into a question about pairs of prefix values?",
+      "For each right end, which earlier prefix values fall inside a window set by lower and upper? A plain double loop would be too slow.",
+      "Use merge sort over the prefix sums. While merging two sorted halves, count the pairs that cross the middle with two moving pointers.",
+      "Edge case: prefix sums can exceed 32 bits, so use 64-bit values, and remember the empty prefix at index zero is 0.",
     ],
     solution: {
       idea: [
@@ -1372,9 +1397,10 @@ public:
       { input: [[10,100,11,9,100,10],1,1], output: false },
     ],
     hints: [
-      "Only the last indexDiff numbers matter at any moment: a sliding window.",
-      "For the new number x you need to know whether the window holds a value in [x - valueDiff, x + valueDiff].",
-      "An ordered set answers it: lower_bound(x - valueDiff) gives the smallest candidate; check that it is at most x + valueDiff. Or use buckets of width valueDiff + 1 so each bucket holds at most one value.",
+      "Only numbers close together in position matter. What does the set of recent numbers look like as you scan?",
+      "For a new number, you need to know whether a number close in value sits in the window. Is there an ordered structure that finds the nearest value quickly?",
+      "Keep the window in an ordered set. Find the smallest value at least x minus valueDiff, and check it is no larger than x plus valueDiff. Remove numbers that leave the window.",
+      "Edge case: the number leaving the window is the one indexDiff places back, and sums of values can exceed 32 bits.",
     ],
     solution: {
       idea: [
@@ -1424,9 +1450,10 @@ public:
       { input: [[[1,1],[2,1],[3,1],[1,3]]], output: [1,1,1,4] },
     ],
     hints: [
-      "Keep every square already placed with its x-range and the height of its top.",
-      "A new square [l, l + s) lands on the highest top among the squares whose x-range overlaps it strictly.",
-      "With 1000 squares an O(n^2) scan is enough: new top = s + max(top of overlapping squares), then update the running maximum. A segment tree with range assignment is the way to scale it.",
+      "Each square lands on top of whatever it overlaps. For a new square, which earlier squares could it touch?",
+      "Only squares that overlap strictly in x matter, and the new square rests on the highest top among them. What is its own top then?",
+      "With at most 1000 squares, a scan over the earlier squares is fast enough. Keep a running maximum of the height after each landing.",
+      "Edge case: squares that only touch at a side do not overlap, so use strict comparisons.",
     ],
     solution: {
       idea: [

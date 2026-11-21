@@ -3,6 +3,7 @@ id: c-kattis-bijele
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(1) (six entries) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

@@ -30,9 +30,10 @@ export const DESIGN_SPECS_C: ProblemSpec[] = [
       { input: [[1,2,3],0], output: 0 },
     ],
     hints: [
-      "Detecting a cycle is the easy part: one pointer moves one step at a time, another two steps. If they ever meet, there is a cycle.",
-      "Let the cycle start at distance a from the head, and let the two pointers meet at distance b past the start of the cycle. The fast one has walked twice as far as the slow one.",
-      "That gives a = (cycle length) - b modulo the cycle length. So after they meet, put one pointer back at the head and move both one step at a time: they meet at the start of the cycle.",
+      "Picture two runners on a circular track, one of them twice as fast. What does it tell you if they meet?",
+      "A meeting proves a loop exists. Where the loop starts is linked to where they meet: the distance from the head to the loop start matches the distance from the meeting point going round.",
+      "Find a meeting point with a fast and a slow pointer. Then move one pointer back to the head and advance both one step at a time until they meet again.",
+      "If the fast pointer reaches the end of the list, there is no loop, so return -1 instead of looping forever.",
     ],
     solution: {
       idea: [
@@ -97,9 +98,10 @@ public:
       { input: [[0,0,0,1,-1,1,-1],3], output: [0,0,0,2,-2] },
     ],
     hints: [
-      "Sorting every window costs O(k log k) per step, which is too slow for large k. You need to keep the window sorted while it moves.",
-      "A balanced structure that allows insert, erase and 'give me the middle element' works: for example a multiset plus an iterator that always points at the middle.",
-      "When a number enters or leaves, move the middle iterator one step if the number landed on its left or right side. Take care with numbers equal to the middle value, and use 64-bit integers: two middle numbers of an even window can add up past 32 bits.",
+      "Each step changes only one value in the window. Does it help to recompute the median from scratch every time?",
+      "The window changes by one value per step, so you can keep the window in order and update the middle as values come in and go out.",
+      "Keep the window in a balanced ordered multiset with an iterator on the middle element, and shift that iterator by at most one step when values come in or out.",
+      "Use 64-bit integers, since two middle values added together can overflow 32 bits. The doubled median of an even window is just their sum.",
     ],
     solution: {
       idea: [
@@ -154,9 +156,10 @@ public:
       seq("MedianFinder() addNum(6) addNum(10) addNum(2) addNum(6) addNum(5) addNum(0) addNum(6) addNum(3) findMedian() addNum(1) findMedian()", [null,null,null,null,null,null,null,null,null,5.5,null,5]),
     ],
     hints: [
-      "Keeping all numbers in a sorted list makes the median easy to read, but inserting into a sorted list costs O(n).",
-      "The median only needs the middle: split the numbers into a lower half and an upper half, where every number in the lower half is at most every number in the upper half.",
-      "Keep the lower half in a max-heap and the upper half in a min-heap, with sizes equal or the lower one bigger by one. Push the new number through one heap into the other to keep both halves correct, then rebalance the sizes. The median is the top of the lower heap, or the average of both tops.",
+      "You do not need every number in order, only the middle. How could you split the numbers into a lower half and an upper half?",
+      "If the lower half's largest value and the upper half's smallest value sit at the boundary, the median is found right there.",
+      "Keep the lower half in a max-heap and the upper half in a min-heap, moving values between them so the sizes differ by at most one.",
+      "The lower heap is one larger when the count is odd, so its top is the median. When the count is even, average the two tops.",
     ],
     solution: {
       idea: [
@@ -212,54 +215,73 @@ public:
       seq("AllOne() inc(\"x\") inc(\"x\") inc(\"y\") inc(\"y\") inc(\"y\") dec(\"y\") dec(\"y\") getMaxKey() getMinKey() dec(\"y\") getMaxKey() getMinKey()", [null,null,null,null,null,null,null,null,"x","y",null,"x","x"]),
     ],
     hints: [
-      "A hash map from key to count gives inc and dec in O(1), but finding the biggest count would need a scan.",
-      "Group keys by count: keep the distinct counts in an ordered chain (a doubly linked list of buckets sorted by count), each bucket holding the set of keys with that count.",
-      "inc moves a key from its bucket to the bucket with count + 1 (creating it right after if missing); dec moves it to the bucket before (or removes it at 0). Empty buckets are unlinked. The first bucket holds the minimum keys and the last one the maximum keys.",
+      "The question is about the most and least counted keys. Could you keep the keys sorted by count without re-sorting them each time?",
+      "Counts only change by one per call, so keys with the same count can share a group, and the groups sit next to each other in count order.",
+      "Keep a chain of count buckets in increasing order, each holding its keys. Move a key to the next or previous bucket on each change.",
+      "Remove a bucket as soon as it becomes empty, and make sure a new bucket is created in the right place.",
     ],
     solution: {
       idea: [
-        "Keep a map key -> count and a sorted map count -> set of keys (or a linked list of buckets, which gives true O(1) because neighbours are found by pointer).",
-        "inc and dec update both structures and delete a bucket when it becomes empty. getMaxKey takes any key of the last bucket and getMinKey any key of the first bucket.",
+        "Maintain a doubly linked list of frequency buckets ordered by count ascending, where each bucket holds a set of strings with that count.",
+        "A hash map maps each key to its corresponding bucket node. inc moves the key to the next bucket (count + 1), creating a new bucket node if needed. dec moves the key to the previous bucket (count - 1), or removes it if count reaches 0. Empty buckets are unlinked in O(1).",
+        "getMaxKey reads from the back bucket and getMinKey reads from the front bucket, both in strictly O(1) time.",
       ],
-      complexity: "O(log n) per call with the ordered map used in the reference; O(1) with a linked list of buckets.",
+      complexity: "O(1) time per operation, O(n) space.",
       cpp: `class AllOne {
-    unordered_map<string, int> count;
-    map<int, set<string>> byCount;
-
-    void move(const string& key, int from, int to) {
-        if (from > 0) {
-            byCount[from].erase(key);
-            if (byCount[from].empty()) byCount.erase(from);
-        }
-        if (to > 0) {
-            byCount[to].insert(key);
-            count[key] = to;
-        } else {
-            count.erase(key);
-        }
-    }
+    struct Bucket {
+        int count;
+        unordered_set<string> keys;
+    };
+    list<Bucket> buckets;
+    unordered_map<string, list<Bucket>::iterator> keyToBucket;
 
 public:
     AllOne() {}
 
     void inc(string key) {
-        int c = count.count(key) ? count[key] : 0;
-        move(key, c, c + 1);
+        if (!keyToBucket.count(key)) {
+            if (buckets.empty() || buckets.front().count != 1) {
+                buckets.push_front({1, {}});
+            }
+            buckets.front().keys.insert(key);
+            keyToBucket[key] = buckets.begin();
+        } else {
+            auto cur = keyToBucket[key];
+            auto nxt = next(cur);
+            if (nxt == buckets.end() || nxt->count != cur->count + 1) {
+                nxt = buckets.insert(nxt, {cur->count + 1, {}});
+            }
+            nxt->keys.insert(key);
+            keyToBucket[key] = nxt;
+            cur->keys.erase(key);
+            if (cur->keys.empty()) buckets.erase(cur);
+        }
     }
 
     void dec(string key) {
-        int c = count[key];
-        move(key, c, c - 1);
+        auto cur = keyToBucket[key];
+        if (cur->count == 1) {
+            keyToBucket.erase(key);
+        } else {
+            auto prv = (cur == buckets.begin()) ? buckets.end() : prev(cur);
+            if (prv == buckets.end() || prv->count != cur->count - 1) {
+                prv = buckets.insert(cur, {cur->count - 1, {}});
+            }
+            prv->keys.insert(key);
+            keyToBucket[key] = prv;
+        }
+        cur->keys.erase(key);
+        if (cur->keys.empty()) buckets.erase(cur);
     }
 
     string getMaxKey() {
-        if (byCount.empty()) return "";
-        return *byCount.rbegin()->second.begin();
+        if (buckets.empty()) return "";
+        return *buckets.back().keys.begin();
     }
 
     string getMinKey() {
-        if (byCount.empty()) return "";
-        return *byCount.begin()->second.begin();
+        if (buckets.empty()) return "";
+        return *buckets.front().keys.begin();
     }
 };
 `,

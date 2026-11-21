@@ -3,6 +3,7 @@ id: c-atc-arc089-a
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(n) time, O(1) extra space"
+brute: same
 reviewed: false
 ---
 

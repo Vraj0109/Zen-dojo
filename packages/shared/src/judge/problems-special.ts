@@ -42,9 +42,10 @@ export const SPECIAL_SPECS: ProblemSpec[] = [
       { input: [[0, 0, 0, null, null, 0]], output: [0, 0, 0, null, null, 0] },
     ],
     hints: [
-      "You can use pre-order traversal (DFS) or level-order traversal (BFS) to represent the tree as a string.",
-      "When serializing with pre-order traversal, record a special delimiter (like '#') for null nodes and commas between values.",
-      "Deserialization can then read tokens one by one: if a token is '#', return null; otherwise construct a TreeNode and recursively deserialize its left and right subtrees.",
+      "Two different trees can have the same values in the same order. What extra information would let you rebuild exactly one tree?",
+      "Record the empty spots as well as the values, so the shape of the tree is stored along with its contents.",
+      "Use a depth-first walk that writes each node's value and a marker for each empty child. Read the same way back to rebuild the tree.",
+      "Separate values with a delimiter, since numbers can have several digits or a minus sign, and make sure the marker cannot be mistaken for a value.",
     ],
     solution: {
       idea: [
@@ -126,9 +127,10 @@ private:
       seq("BSTIterator([3,1,4,null,2]) next() hasNext() next() hasNext() next() hasNext() next() hasNext()", [null, 1, true, 2, true, 3, true, 4, false]),
     ],
     hints: [
-      "An in-order traversal of a binary search tree visits nodes in ascending order.",
-      "Instead of flattening the entire tree into an array in O(n) space, simulate the call stack of the recursion using an explicit stack to achieve O(h) memory where h is the tree height.",
-      "Push the root and all its left descendants onto the stack in the constructor. In next(), pop the top node, push all left descendants of its right child, and return the popped node's value.",
+      "Does the iterator need to know every value up front, or only the next value to return?",
+      "A sorted tree can be walked one step at a time while remembering only the path you are on, not all the values.",
+      "Keep a stack of nodes. Push the leftmost path when you start, then on each step pop a node and push the leftmost path of its right child.",
+      "hasNext is simply whether the stack still has something on it.",
     ],
     solution: {
       idea: [
@@ -212,9 +214,10 @@ public:
       { input: [[[2, 3, 4], [1, 3, 4], [1, 2, 4], [1, 2, 3]]], output: [[2, 3, 4], [1, 3, 4], [1, 2, 4], [1, 2, 3]] },
     ],
     hints: [
-      "Traverse the original graph using DFS or BFS starting from the given node.",
-      "Keep a hash map from original node pointers to their cloned counterparts to avoid cycles and redundant cloning.",
-      "For each neighbor of the current node, if it has not been cloned yet, clone it and recurse. Add the clone to the current node's cloned neighbor list.",
+      "You need copies of every node with the same links. What goes wrong if one node can be reached along two different paths?",
+      "Each original node should map to exactly one copy. Once a copy exists, anything that points back to the original should reuse it.",
+      "Walk the graph with a depth-first or breadth-first search, storing a table from each original node to its copy, and create each copy only once.",
+      "Create and record the copy before visiting its neighbours. Otherwise a cycle sends the search around forever.",
     ],
     solution: {
       idea: [
@@ -274,9 +277,10 @@ public:
       seq("Solution([999]) pickIndex() pickIndex()", [null, 0, 0]),
     ],
     hints: [
-      "Think of the weights as contiguous intervals on a line from 1 to sum(w).",
-      "Compute prefix sums of w: prefix[i] is the sum of weights up to index i.",
-      "Generate a random integer in [1, totalSum], then use binary search (std::lower_bound) on the prefix sums array to find the corresponding index in O(log n) time.",
+      "If you picked uniformly from the list, what would each index's chance be? How could the weights change that?",
+      "Lay the weights end to end on a line. Each index owns a piece as long as its weight, so a uniformly random point on the line picks indices by weight.",
+      "Build running totals, pick a random number from one to the total, and binary search the totals for the first one that reaches it.",
+      "Use inclusive ranges so both the number 1 and the total are valid picks, and check the indices at the edges.",
     ],
     solution: {
       idea: [
@@ -340,9 +344,10 @@ public:
       seq("Solution([-500]) getRandom()", [null, -500]),
     ],
     hints: [
-      "If you can store all elements in a dynamic array, you can pick a random index in O(1) time and O(n) memory.",
-      "If the list is extremely large or arriving as a stream, use Reservoir Sampling to achieve O(1) extra space.",
-      "With reservoir sampling: set the reservoir to head->val. For the ith node (1-indexed, i >= 2), replace the reservoir with probability 1/i (e.g. rand() % i == 0). At the end of the list, every node has been chosen with probability exactly 1/n.",
+      "You cannot know the list length without walking it. Can you still pick a node while seeing each node only once?",
+      "If you have seen i nodes so far, the new node should take over the choice with a chance of one in i.",
+      "Reservoir sampling: keep one answer, and for the i-th node replace it with probability one over i. Every node then has an equal chance at the end.",
+      "Start with the first node as the answer, so a single-node list always returns its value.",
     ],
     solution: {
       idea: [
@@ -416,9 +421,10 @@ public:
       seq("HitCounter() hit(1) hit(1) getHits(1) hit(300) getHits(300) getHits(301) getHits(302)", [null, null, null, 2, null, 3, 1, 1]),
     ],
     hints: [
-      "Since timestamps arrive in chronological order, a FIFO queue can store incoming timestamps.",
-      "On getHits(timestamp), pop all timestamps from the front of the queue that are <= timestamp - 300.",
-      "For high concurrency with multiple hits at the same second, you can also use a fixed-size circular buffer of 300 buckets storing pairs of (timestamp, count) to guarantee O(1) memory.",
+      "Hits arrive in time order and old hits stop counting. Where does the oldest hit sit?",
+      "The oldest hit is always the first to leave the window, and new hits always join at the newest end.",
+      "Use a first-in first-out queue. Add each hit at the back, and on each query remove hits from the front that are too old.",
+      "A hit exactly 300 seconds before the query has expired, so the window keeps only hits newer than that.",
     ],
     solution: {
       idea: [

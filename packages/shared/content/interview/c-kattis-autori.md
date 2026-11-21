@@ -3,6 +3,7 @@ id: c-kattis-autori
 pattern: cses-kattis
 difficulty: easy
 optimal: "O(n) time, O(n) space"
+brute: same
 reviewed: false
 ---
 

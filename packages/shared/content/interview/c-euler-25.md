@@ -3,6 +3,7 @@ id: c-euler-25
 pattern: cses-euler
 difficulty: medium
 optimal: "O(d^2) time, O(d) space"
+brute: same
 reviewed: false
 ---
 

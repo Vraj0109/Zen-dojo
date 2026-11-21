@@ -3,6 +3,7 @@ id: c-euler-41
 pattern: cses-euler
 difficulty: medium
 optimal: "O(n! * sqrt(10^n)) time, O(n) space"
+brute: same
 reviewed: false
 ---
 

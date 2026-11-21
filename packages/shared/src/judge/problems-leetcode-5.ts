@@ -28,9 +28,9 @@ export const LEETCODE_SPECS_5: ProblemSpec[] = [
       { input: [[[1, 0, 1000]], 1], output: true },
     ],
     hints: [
-      "The passenger count only changes at the start and end of a trip.",
-      "Add the passengers at kilometre from and remove them at kilometre to, in an array indexed by kilometre.",
-      "Sweep the array keeping a running total. If it ever exceeds capacity, return false.",
+      "The passenger count only changes at the start and end of each trip. Can you record just those changes?",
+      "Add passengers at the pickup point and subtract them at the drop-off point, in an array indexed by kilometre.",
+      "Sweep the array keeping a running total of passengers aboard. If it ever exceeds the capacity, return false.",
     ],
     solution: {
       idea: ["Difference array: +p at from, -p at to (people leave exactly when they arrive at to). A running sum over the kilometres is the load at each point."],
@@ -71,9 +71,9 @@ public:
       { input: [[[2, 2, 1], [2, 2, 1], [2, 2, 1]], 3], output: [0, 3, 0] },
     ],
     hints: [
-      "Adding to every flight in a range one by one is too slow when there are 20000 bookings.",
-      "Record only where a range starts (+seats) and where it ends (-seats at last + 1).",
-      "The answer is the running sum of that difference array.",
+      "Adding seats to each flight in a booking's range one by one is slow with many bookings. What changes only at the ends of each range?",
+      "Record a plus at the first flight of each booking and a minus just after the last flight.",
+      "A running total over the recorded changes gives the seats booked on each flight. Remember to leave room for the position just after the last flight.",
     ],
     solution: {
       idea: ["Difference array. Each booking touches two cells; one prefix-sum pass produces all totals."],
@@ -114,9 +114,9 @@ public:
       { input: [[5, 4, 3, 2, 1], 3], output: [5, 4, 3] },
     ],
     hints: [
-      "Recomputing the maximum of every window costs O(n*k): too slow for the largest input.",
-      "Keep a queue of indices whose values are decreasing. The front is always the maximum of the window.",
-      "Before pushing index i, pop from the back every index whose value is <= nums[i]; pop the front when it has left the window.",
+      "Recomputing the maximum of every window is too slow for the largest inputs. Which earlier values can never be the maximum again?",
+      "A value that is smaller than a newer value can never be the maximum of any later window, because the newer value is larger and stays in the window longer.",
+      "Keep a deque of positions with decreasing values. When adding, drop smaller values from the back; drop the front when it leaves the window. The front is always the maximum.",
     ],
     solution: {
       idea: ["Monotonic deque of indices with decreasing values. A smaller earlier element can never be the maximum once a bigger later one is in the window, so it is discarded. Each index enters and leaves once."],
@@ -163,9 +163,9 @@ public:
       { input: [[-1, -2]], output: -1 },
     ],
     hints: [
-      "A subarray is either in the middle (ordinary Kadane) or wraps around.",
-      "A wrapping subarray is the whole array minus a middle subarray, so you want the minimum middle subarray.",
-      "Answer = max(maxKadane, total - minKadane). If every number is negative, total - minKadane would be 0 (empty), so return maxKadane.",
+      "A best subarray in a circle either sits in the middle of the list or wraps around the end. How could you handle each case?",
+      "The wrapping case is the whole total minus the middle part that was left out. So you want the smallest middle subarray.",
+      "The answer is the larger of the best normal subarray and the total minus the smallest subarray. If all numbers are negative, return the best normal subarray, since the other option would be empty.",
     ],
     solution: {
       idea: ["Two Kadane passes. The best wrapping sum is total minus the smallest subarray. The special case is an all-negative array, where removing everything leaves an empty (not allowed) subarray."],
@@ -208,9 +208,9 @@ public:
       { input: [[[1, 2], [4, 5]], [0, 10]], output: [[0, 10]] },
     ],
     hints: [
-      "Intervals entirely before newInterval can be copied unchanged, and so can intervals entirely after it.",
-      "In the middle, every interval that overlaps newInterval shrinks into it: take the smaller start and the larger end.",
-      "Three passes with one index: copy while end < new.start; merge while start <= new.end; copy the rest.",
+      "The intervals are sorted and do not overlap. Which intervals come clearly before the new one, and which come clearly after?",
+      "Those before can be copied unchanged, and so can those after. Only the intervals that touch the new one need to be combined with it.",
+      "Three passes with one index: copy while the interval ends before the new one starts; merge while it starts at or before the new end; then copy the rest. Touching counts as overlap.",
     ],
     solution: {
       idea: ["The input is already sorted, so one linear scan is enough: left part, merged middle, right part."],
@@ -260,9 +260,9 @@ public:
       { input: [[[0, 5], [1, 2], [3, 4]]], output: 1 },
     ],
     hints: [
-      "Keeping the most intervals is the same as removing the fewest.",
-      "Greedy: among intervals that conflict, keep the one that ends earliest, because it leaves the most room.",
-      "Sort by end. Keep an interval if its start >= the end of the last kept one; otherwise count a removal.",
+      "Keeping the most intervals is the same as removing the fewest. Of two conflicting intervals, which one should you keep?",
+      "The one that ends earlier, because it leaves more room for the intervals that come after.",
+      "Sort by end. Keep an interval if it starts at or after the end of the last kept one; otherwise count a removal. Touching at an end point does not overlap.",
     ],
     solution: {
       idea: ["Classic activity selection. Sorting by end time and always taking the interval that finishes first is optimal (an exchange argument: swapping any chosen interval for the earliest-ending one never hurts)."],
@@ -308,9 +308,9 @@ public:
       { input: [[1, 2, 3, 1, 2, 3]], output: [1, 2, 3] },
     ],
     hints: [
-      "A hash set works but uses O(n) extra memory. The values are 1..n, which are valid indices.",
-      "Use the array itself as a visited table: seeing value v means 'mark index v - 1'.",
-      "Mark by negating nums[v - 1]. If it is already negative when you arrive, v is a duplicate.",
+      "A hash set works but uses extra memory. The values are between 1 and n, so what could the array itself record?",
+      "Each value v can point to position v minus 1. Use that position as a visited mark.",
+      "Mark a visited position by negating the number stored there. If that position is already negative when you reach it, the value is a duplicate. Remember that values may already be negated.",
     ],
     solution: {
       idea: ["Because every value is a valid index, the sign of nums[v-1] can store 'v has been seen'. The second visit finds a negative number and records v."],
@@ -353,9 +353,9 @@ public:
       { input: ["abab"], output: "ab" },
     ],
     hints: [
-      "Comparing every prefix with the suffix of the same length is O(n^2).",
-      "This is exactly the 'failure function' (pi array) of the KMP algorithm.",
-      "pi[i] = length of the longest proper prefix of s[0..i] that is also its suffix. The answer is the first pi[n-1] characters.",
+      "Comparing every prefix with the suffix of the same length works but is slow. Is there a known table that does this in one pass?",
+      "Yes, the KMP failure table, which records for each prefix the longest proper prefix that is also a suffix.",
+      "Build that table. The answer is the value stored at the last position, so return that many leading characters.",
     ],
     solution: {
       idea: ["Build the KMP prefix function. pi[i] extends pi[i-1] if the next character matches, otherwise falls back through pi. The last value is the length of the longest happy prefix."],
@@ -403,9 +403,9 @@ public:
       { input: [[9, 8, 7], 3], output: 9 },
     ],
     hints: [
-      "If a capacity works, any larger one works too. That monotonic yes/no is a binary search signal.",
-      "The capacity is at least max(weights) and at most sum(weights).",
-      "For a candidate capacity, simulate greedily: start a new day whenever the next package does not fit. Count the days.",
+      "If a capacity works, does a larger one also work? What does that let you search for?",
+      "The answer lies between the heaviest package and the total weight, and feasibility only flips once as the capacity grows.",
+      "Binary search the capacity. For each guess, load packages in order and start a new day when the next one does not fit. Compare the number of days with the limit.",
     ],
     solution: {
       idea: ["Binary search on the answer. feasible(c) packs greedily and counts days; the smallest feasible c in [max, sum] is the answer."],
@@ -452,9 +452,9 @@ public:
       { input: [[1, 2, 3], 3], output: 3 },
     ],
     hints: [
-      "Ask the reverse question: can the array be split into at most k parts so that no part exceeds X?",
-      "That answer is monotonic in X, so binary search X between max(nums) and sum(nums).",
-      "Check X greedily: extend the current part until the next number would exceed X, then start a new part.",
+      "Instead of placing the split points, ask the reverse question: for a limit X, how many parts do you need so that no part exceeds X?",
+      "That number of parts falls as X grows, so binary search X between the largest number and the total sum.",
+      "For each X, greedily fill a part until the next number would exceed X, then start a new part. If the parts used are at most k, X is achievable.",
     ],
     solution: {
       idea: ["Same shape as 'ship packages in D days': binary search on the maximum part sum with a greedy feasibility check. A DP over (index, parts) also works in O(n^2 k)."],
@@ -501,9 +501,9 @@ public:
       { input: [[9, 91]], output: "991" },
     ],
     hints: [
-      "Sorting numerically (or alphabetically) does not work: 30 should come after 3, but 9 before 34.",
-      "Decide the order of two numbers a and b by comparing the strings a+b and b+a.",
-      "Sort with that comparison, join, and handle the all-zero case.",
+      "Sorting numbers by value does not work: 30 must come after 3, but 9 must come before 34. What comparison of two numbers does work?",
+      "Compare the two possible joins, one number then the other. Whichever order gives the larger string goes first.",
+      "Sort with that comparison, join the results, and handle the case where everything is zero by returning zero.",
     ],
     solution: {
       idea: ["a should come before b exactly when a+b > b+a as strings. This comparison is a valid total order, so sorting with it gives the largest concatenation."],
@@ -548,9 +548,9 @@ public:
       { input: [[2, 1, 3, 0]], output: [2, 1, 1, 0] },
     ],
     hints: [
-      "Checking every pair is O(n^2), too slow for 100000 numbers.",
-      "Walk from the right and keep a structure that counts how many values smaller than x you have already seen.",
-      "A Fenwick tree (binary indexed tree) over the value range does 'count of values < x' and 'add x' in O(log V). Shift values to make them positive.",
+      "Checking every pair is too slow for 100000 numbers. If you walk from the right, what do you know about the numbers you have already seen?",
+      "They all sit to the right of the current position, so a count of how many smaller values are already stored answers the question.",
+      "Use a Fenwick tree (binary indexed tree) over the value range, shifted to be positive, to count smaller values and add each value in logarithmic time.",
     ],
     solution: {
       idea: ["Process right to left. Before inserting nums[i], query the Fenwick tree for the number of inserted values smaller than it. Merge sort with index tracking is an alternative."],
@@ -598,9 +598,10 @@ public:
       { input: [[1, 5]], output: 7 },
     ],
     hints: [
-      "There are about n^2 / 2 subarrays. Instead of listing them, count how many subarrays each element is the minimum of.",
-      "For arr[i], find how far left (previous smaller) and how far right (next smaller or equal) it stays the minimum. The count is left * right.",
-      "Use a monotonic stack to find both boundaries in O(n). Break ties on one side only, so equal values are not counted twice.",
+      "Instead of looking at every subarray, ask for each single element how many subarrays it decides the answer for.",
+      "Element arr[i] stays the minimum until a smaller value appears on its left or on its right. How far does it reach each way?",
+      "Find the nearest smaller value on each side with a monotonic stack. Count left times right, and treat equal values on one side only.",
+      "Multiply each count by the value and add up modulo 1000000007. Reduce as you go so the numbers stay small.",
     ],
     solution: {
       idea: ["Contribution technique: arr[i] * (i - prevLess) * (nextLessOrEqual - i). Previous strictly smaller on the left and next smaller-or-equal on the right makes every subarray choose exactly one minimum."],
@@ -655,9 +656,10 @@ public:
       { input: ["0-2147483647"], output: -2147483647 },
     ],
     hints: [
-      "Keep a stack of terms that still have to be added together.",
-      "When you read a number, apply the operator that came before it: + pushes it, - pushes its negative, * and / combine it with the top of the stack.",
-      "At the end the answer is the sum of the stack. You can also keep just the last term and a running total, using O(1) space.",
+      "Think of the expression as numbers joined by operators, where some operators bind more tightly than others.",
+      "Multiplication and division act on the number just read. Addition and subtraction can wait. What must you remember while you wait?",
+      "Keep a running total of finished terms and the one open term that still waits for a * or /. Only the open term changes as you read.",
+      "Division truncates toward zero, so use integer division. Read each multi-digit number fully before applying the operator.",
     ],
     solution: {
       idea: ["One pass. Remember the previous operator; when a number ends, apply that operator. Multiplication and division fix the last term immediately, addition and subtraction start a new term."],
@@ -708,9 +710,10 @@ public:
       { input: ["2[ab]2[cd]"], output: "ababcdcd" },
     ],
     hints: [
-      "Nested brackets mean 'finish the inside first'. That is a stack.",
-      "On '[', push the text built so far and the repeat count, then start fresh. On ']', pop and repeat the current text that many times.",
-      "Read multi-digit numbers digit by digit: count = count * 10 + digit.",
+      "Each pair of brackets is a smaller job to finish first. What earlier context must you remember while you work inside one?",
+      "When a bracket opens, remember the text so far and the repeat count before it. When it closes, expand the inside and attach it to what you saved.",
+      "A stack of saved (text, count) pairs handles any depth of nesting. Build each count digit by digit, since it can have several digits.",
+      "Only letters go into the text; digits form counts. The count must reset after each opening bracket.",
     ],
     solution: {
       idea: ["Two stacks (or one of pairs): previous strings and repeat counts. Closing a bracket repeats the current string and appends it to the one on top."],
@@ -762,9 +765,10 @@ public:
       { input: [["A", "A", "B"], 2], output: 4 },
     ],
     hints: [
-      "The most frequent task decides the shape: it needs the biggest gaps.",
-      "If the most frequent task runs f times, there are f - 1 gaps of length n + 1 between them, plus a last slot.",
-      "Answer = max(tasks.length, (f - 1) * (n + 1) + (number of tasks with frequency f)). Other tasks fill the gaps; if there are enough of them no idle time is needed.",
+      "Look at the task that appears most often. What shape does it force on the whole schedule?",
+      "Each run of that task needs a cooling gap after it. Count the gaps and the slots they take, then see where the other tasks can fit.",
+      "Count the letters in a 26-slot array. The frame from the top count and the number of letters tied at that count gives the answer, unless there are more tasks than that.",
+      "The answer can never be less than the number of tasks. If the other tasks fill every gap, no idle time is needed.",
     ],
     solution: {
       idea: ["Lay the most frequent task out first, leaving n slots between copies. Everything else fits into those slots; idle time only appears if the slots outnumber the other tasks. The formula gives that bound, and the total can never be below the number of tasks."],
@@ -805,9 +809,10 @@ public:
       { input: [[2, 2], 0], output: 2 },
     ],
     hints: [
-      "Trying all 2^n sign patterns works for n = 20 but a smarter model is shorter.",
-      "Split the numbers into a '+' group P and a '-' group N. Then P - N = target and P + N = sum, so P = (sum + target) / 2.",
-      "Count subsets of nums that add up to P with a knapsack array. If (sum + target) is odd or negative, the answer is 0. Zeros double the count, which the knapsack handles naturally.",
+      "Each number gets a plus or a minus. Could the question be rewritten as splitting the numbers into two groups?",
+      "Call the plus-signed numbers P and the minus-signed ones N. Given the total and the target, what single number must P equal?",
+      "Count the subsets that add up to that number with a 0/1 counting table over the sums. An impossible parity or a too-large target means zero.",
+      "Zeros in nums double the count, and the table handles that naturally. Loop the sums downward so each number is used once.",
     ],
     solution: {
       idea: ["Reduce to subset-sum counting: dp[s] = number of ways to reach sum s, iterating each number and s downwards. Zeros are handled correctly because dp[s] += dp[s - 0] doubles it."],
@@ -851,9 +856,10 @@ public:
       { input: [[[1, 0], [1, 1]]], output: 1 },
     ],
     hints: [
-      "Let dp[i][j] be the side of the largest all-ones square whose bottom-right corner is (i, j).",
-      "If matrix[i][j] is 0, dp[i][j] = 0. Otherwise it depends on the three neighbours above, left and diagonal.",
-      "dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]). The answer is the largest dp value, squared.",
+      "Instead of searching for squares directly, ask about each cell: what is the biggest square that could end at this cell as its bottom-right corner?",
+      "A square ending at a cell needs squares ending at the cells above, to the left and diagonally above-left to be big too. What limits the size?",
+      "Fill a table cell by cell, where each entry stores the side of the largest all-ones square ending there. The size is one more than the smallest of the three neighbours.",
+      "The answer is an area, so square the best side. Handle the first row and column so you do not read outside the grid.",
     ],
     solution: {
       idea: ["The three neighbours each limit how far the square can grow in one direction; the smallest of them is the safe side length."],
@@ -898,9 +904,10 @@ public:
       { input: [[3, 3, 3]], output: 0 },
     ],
     hints: [
-      "Think of the day as a state machine: holding a share, just sold (cooldown), or resting with no share.",
-      "hold = max(hold, rest - price); sold = hold + price; rest = max(rest, previous sold).",
-      "Update the three values each day, using the previous day's values. The answer is max(sold, rest) on the last day.",
+      "Each day you are in one of a few situations: holding a share, just sold, or free to buy. What do you need to remember from yesterday?",
+      "Being free today means you did not sell yesterday. Holding today means you held yesterday or bought from the free state. What does a sale need?",
+      "Keep three running values, one per situation, and update them in a single pass. Only yesterday's values are needed, so no array.",
+      "Start the holding value at a very negative number that cannot be reached. The answer is the better of the last sold and free values.",
     ],
     solution: {
       idea: ["Three-state DP rolled into three variables. The cooldown is enforced because you can only buy from the 'rest' state, which you reach one day after selling."],
@@ -945,9 +952,10 @@ public:
       { input: ["abcd"], output: [1, 1, 1, 1] },
     ],
     hints: [
-      "If a letter appears in a piece, the piece must reach that letter's last occurrence.",
-      "Record the last index of every letter first.",
-      "Scan left to right keeping the farthest last-index seen; when the scan reaches it, the piece ends.",
+      "Each letter ties its whole group together. If a piece contains a letter, how far to the right must that piece reach?",
+      "When you first see a letter, you cannot tell where its piece ends. What would you need to know about each letter's last appearance?",
+      "Record the last position of each letter in one pass. In a second pass, extend the current piece to the furthest last position seen, and cut when the scan reaches it.",
+      "The output is piece lengths, so record the length each time you cut. Each cut is made at the furthest point reached so far.",
     ],
     solution: {
       idea: ["Greedy with last occurrences. The end of the current piece is the maximum last occurrence of any letter inside it; when i reaches that end, cut."],
@@ -993,9 +1001,10 @@ public:
       { input: [[[1, 2], [3, 4]]], output: 2 },
     ],
     hints: [
-      "Like choosing non-overlapping intervals, but touching balloons can share an arrow.",
-      "Sort by the end of each balloon and shoot at the end of the first one.",
-      "That arrow also bursts every balloon whose start is <= it. Skip those; the next balloon starts a new arrow. Beware overflow when you compare 32-bit extremes: use long long or compare instead of subtracting.",
+      "Each balloon is a range on a line. How few points can touch every range if you choose them carefully?",
+      "Consider the balloon that ends first. An arrow that must hit it is best placed at its right end. Why is shooting there safe?",
+      "Sort the balloons by their right end, then sweep. Keep the position of the last arrow; a balloon that starts after it needs a new arrow.",
+      "Touching counts as a hit, so compare with greater-than and not with subtraction. Subtraction can overflow with large coordinates.",
     ],
     solution: {
       idea: ["Sort by end; shoot at the earliest end. Any balloon starting at or before that point is already burst. This is the same exchange argument as activity selection."],
@@ -1037,9 +1046,10 @@ public:
       { input: [[10, 20, 10]], output: 20 },
     ],
     hints: [
-      "A hash map of counts works but uses O(n) memory.",
-      "XOR has two useful properties: x ^ x = 0 and x ^ 0 = x.",
-      "XOR all numbers together. Pairs cancel and the single number is left.",
+      "Scan the numbers and ask what happens when a value meets its own twin. Is there a simple operation under which a pair vanishes?",
+      "The exclusive-or operation gives back zero when a value is combined with itself, and leaves a value unchanged when combined with zero. Does the order of combining matter?",
+      "Combine all the numbers with exclusive-or into one running value. Pairs cancel out, and only the single number remains.",
+      "Only one variable is needed, so the extra memory is constant. A hash map would also work but uses more memory.",
     ],
     solution: {
       idea: ["XOR is commutative and associative, so the order does not matter and every pair cancels to 0."],
@@ -1078,9 +1088,10 @@ public:
       { input: [4], output: [0, 1, 1, 2, 1] },
     ],
     hints: [
-      "Counting bits of each number separately costs O(log n) each.",
-      "Compare i with i >> 1: it is the same number without its last bit.",
-      "bits[i] = bits[i >> 1] + (i & 1).",
+      "Could you find the answer for each number from a smaller number you have already worked out, instead of starting over?",
+      "Compare a number with the number you get by dropping its last binary digit. How do their counts of ones relate?",
+      "Fill an array from 1 up to n. Each entry equals the entry for half the number plus its lowest bit, so every step is a constant amount of work.",
+      "Use a right shift to drop the last bit and a bitwise AND to read it. The entry for 0 is zero.",
     ],
     solution: {
       idea: ["Dynamic programming over the binary representation: dropping the lowest bit gives a smaller number whose answer is already known."],
@@ -1120,9 +1131,10 @@ public:
       { input: [[5, 6]], output: [5, 6] },
     ],
     hints: [
-      "XOR of everything gives a ^ b, where a and b are the two singles. It is not zero, so a and b differ in some bit.",
-      "Pick any set bit of a ^ b. It splits all numbers into two groups; a and b land in different groups.",
-      "XOR each group separately. Pairs stay together and cancel, so each group leaves one single. Beware overflow when isolating the lowest set bit of INT_MIN: use long long.",
+      "The first combined step mixes the two unknown numbers together. What could separate them into two groups, each holding one unknown?",
+      "Pick a binary digit where the two unknowns differ. Equal values always share that digit, so each pair stays in one group.",
+      "Exclusive-or all the numbers to get the mix of the two singles. Take its lowest set bit, split the numbers by that bit, and combine each group.",
+      "Isolate the lowest set bit with 64-bit arithmetic, since the most negative 32-bit value overflows when negated.",
     ],
     solution: {
       idea: ["Partition by a bit where the singles differ, then apply the XOR trick to each half. The lowest set bit is x & -x (computed in 64 bits to avoid overflow on INT_MIN)."],
@@ -1166,9 +1178,10 @@ public:
       { input: [["1", "1"], 0, 1], output: 1 },
     ],
     hints: [
-      "Each string is an item with two costs (zeros, ones) and value 1: a 0/1 knapsack with two capacities.",
-      "dp[i][j] = the most strings you can take using at most i zeros and j ones.",
-      "For each string with z zeros and o ones, update dp from the bottom-right down to (z, o): dp[i][j] = max(dp[i][j], dp[i-z][j-o] + 1).",
+      "Each string costs some zeros and some ones, and is worth one point. Does this remind you of a known problem with two limits instead of one?",
+      "Track the best count for each pair of remaining zero and one budgets. Taking a string means spending its costs from a smaller budget.",
+      "Use a two-dimensional table of budgets. For each string, update it from the largest budgets downward so each string is used at most once.",
+      "Strings with more zeros or ones than the budget allows are simply skipped at that budget.",
     ],
     solution: {
       idea: ["Two-dimensional 0/1 knapsack. Iterating both dimensions downwards ensures each string is used at most once."],
@@ -1211,9 +1224,10 @@ public:
       { input: [[[1, 1], [1, 2]]], output: 1 },
     ],
     hints: [
-      "Two dimensions are hard; sort by width to remove one of them.",
-      "After sorting by width, the problem is the longest strictly increasing subsequence of heights.",
-      "For equal widths, sort heights in decreasing order so two envelopes of the same width cannot both be chosen. Then use the O(n log n) LIS with binary search.",
+      "There are two sizes to compare, which is awkward. Could you sort on one of them so the other becomes a one-dimensional question?",
+      "Envelopes with the same width cannot nest. Sort by width ascending. For equal widths, which order of heights stops a chain from using two of them?",
+      "After sorting, the question is the longest strictly increasing run of heights. Find it with a list of smallest tails and binary search.",
+      "Equal widths must be sorted by height descending so they cannot both join one chain. Strict comparisons matter here.",
     ],
     solution: {
       idea: ["Sort by width ascending and height descending on ties, then run patience-sorting LIS on the heights. The descending tie-break stops equal widths from chaining."],
@@ -1255,9 +1269,10 @@ public:
       { input: [[5]], output: 1 },
     ],
     hints: [
-      "Track two numbers per index: the length of the longest increasing subsequence ending there, and how many have that length.",
-      "For each j < i with nums[j] < nums[i]: if len[j] + 1 is longer, copy count[j]; if equal, add count[j].",
-      "At the end, sum count[i] over every i whose len[i] is the overall maximum.",
+      "Counting the longest sequences is harder than finding their length. What would you need to remember about each position to count the ways?",
+      "For each position, you want the length of the best run ending there and how many runs reach that length. How do earlier positions feed into it?",
+      "Use two arrays indexed by position and a double loop over earlier positions. A longer extension resets the count; an equal one adds to it.",
+      "The answer adds up the counts of every position whose length equals the overall maximum, not just the last position.",
     ],
     solution: {
       idea: ["O(n^2) DP with a length array and a count array. The count for i is the sum of counts of the best predecessors."],
@@ -1306,9 +1321,10 @@ public:
       { input: [[1, 2, 3]], output: 12 },
     ],
     hints: [
-      "Thinking about which balloon to burst first is hard, because neighbours keep changing.",
-      "Think about the last balloon k to burst inside a range (i, j). When it bursts, its neighbours are the range ends i and j.",
-      "dp[i][j] = max over k in (i, j) of dp[i][k] + dp[k][j] + a[i] * a[k] * a[j], with a padded by 1 on both ends.",
+      "Choosing which balloon to burst first changes the neighbours for everyone else. What if you thought about the order in reverse?",
+      "Think about the last balloon burst inside a stretch between two fixed walls. Its neighbours at that moment are the two walls, and the two sides no longer interact.",
+      "Fill a table over intervals, shorter intervals first. For each interval, try every balloon as its last one and keep the best total.",
+      "Pad the array with a 1 at each end. The totals can be large, so use a 64-bit type.",
     ],
     solution: {
       idea: ["Interval DP choosing the last balloon in each open interval. Each side is independent because k separates them. The recurrence is cubic."],

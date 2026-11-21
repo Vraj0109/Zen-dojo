@@ -31,9 +31,9 @@ export const LEETCODE_SPECS_2: ProblemSpec[] = [
       { input: [[1, 2, 3, 4, 5, 6], 3, 6], output: [1, 2, 6, 5, 4, 3] },
     ],
     hints: [
-      "Reversing the whole list is one loop. Here you only reverse a middle part, so first find the node just before position left.",
-      "A dummy node in front of the head means that node always exists, even when left is 1.",
-      "Standing on that node (prev), take the node after the current one and move it to the front of the section, right - left times. The section reverses in place, one node per step.",
+      "Reversing the whole list is easy. Here only a middle part changes, so what must you locate first?",
+      "The node just before the section. A dummy node placed in front of the head means that node always exists, even when the section starts at the first node.",
+      "Standing on the node before the section, repeatedly pull the node after the current first node of the section and move it to the front of the section. Do this the right number of times.",
     ],
     solution: {
       idea: [
@@ -87,9 +87,10 @@ public:
       { input: [[1, 2, 3], 3], output: [3, 2, 1] },
     ],
     hints: [
-      "Before reversing a group, make sure it has k nodes. How can you check without changing anything?",
-      "Walk k steps from the node before the group. If you fall off the list, stop: the rest stays as it is.",
-      "Reverse the group between its first node and the node after its last, then reconnect: the node before the group now points to the old last node, and the old first node (now last) becomes the new 'node before' for the next group.",
+      "Work on one group at a time. Before reversing a group, what must you know about the nodes ahead?",
+      "Check that a full group of k nodes exists ahead, without changing anything. If the list runs out first, leave the rest as it is.",
+      "Reverse each full group in place, then reconnect it to the end of the previous group. The old first node of the group becomes its end, which is the anchor for the next group.",
+      "A dummy node before the head handles the first group. Count carefully so a partial last group is not reversed.",
     ],
     solution: {
       idea: [
@@ -154,9 +155,9 @@ public:
       { input: [[-2147483648, null, 2147483647]], output: true },
     ],
     hints: [
-      "Checking that each node is bigger than its left child and smaller than its right child is not enough. Look at the second example.",
-      "Every node lives inside a range of allowed values that comes from all its ancestors, not only its parent.",
-      "Recurse with (low, high). The root may be anything. Going left, high becomes the node's value; going right, low becomes the node's value. A node outside (low, high) means invalid. Use 64-bit bounds because node values can be the smallest or largest int.",
+      "Checking each node only against its direct children is not enough. What should a node really be compared against?",
+      "Every node must fall in a range set by all its ancestors, not just its parent. Think about what range a left child and a right child each inherit.",
+      "Pass a lower and an upper bound down with each node. Going left lowers the upper bound to the parent's value; going right raises the lower bound. Use 64-bit bounds for extreme values.",
     ],
     solution: {
       idea: [
@@ -204,9 +205,9 @@ public:
       { input: [[1, 2, 3, 4, null, null, 5, 6, null, null, 7]], output: 6 },
     ],
     hints: [
-      "Look at the highest node on the path. The path goes down its left side and down its right side.",
-      "So the longest path through a node is (height of left) + (height of right). The answer is the best of this over all nodes.",
-      "Compute heights bottom-up with one DFS. At each node, update a global best with leftHeight + rightHeight, and return 1 + max(leftHeight, rightHeight) to the parent. An empty subtree has height 0.",
+      "Look at the highest node on any longest path. Where do the two arms of that path go from there?",
+      "The longest path through a node is the depth of its left side plus the depth of its right side. The answer is the best such value over all nodes.",
+      "Compute depths bottom-up in one depth-first pass. At each node, record left depth plus right depth in a running best, and return one plus the larger depth to the parent. Empty subtrees have depth 0.",
     ],
     solution: {
       idea: [
@@ -259,9 +260,9 @@ public:
       { input: [[5, 4, 8, 11, null, 13, 4, 7, 2, null, null, null, 1]], output: [[5], [4, 8], [11, 13, 4], [7, 2, 1]] },
     ],
     hints: [
-      "You want to visit nodes in order of their distance from the root. Which structure visits things in the order they were discovered?",
-      "A queue. Put the root in, then repeatedly take a node out and put its children in.",
-      "To know where one level ends, take the queue's current size at the start of each round and process exactly that many nodes; they all belong to the same level.",
+      "You want nodes grouped by their distance from the root. Which kind of structure hands out items in the order they were added?",
+      "A queue. Start with the root, then repeatedly remove a node and add its children to the back.",
+      "Before processing a round, note how many nodes are in the queue. Process exactly that many; together they form one level.",
     ],
     solution: {
       idea: [
@@ -321,9 +322,9 @@ public:
       { input: [[1, 2, 3, null, null, 4]], output: [1, 3, 4] },
     ],
     hints: [
-      "What you see on each level is the last node of that level when read left to right.",
-      "Do a level-order traversal and keep only the last value of each level.",
-      "Or run DFS visiting the right child first, tracking depth: the first node you reach at a new depth is the visible one.",
+      "Imagine the tree seen from its right side. Which node on each level would you see?",
+      "The last node of each level when the level is read from left to right.",
+      "Do a level-by-level pass and keep only the last node of each level. A depth-first pass that visits the right child first also works.",
     ],
     solution: {
       idea: [
@@ -380,9 +381,9 @@ public:
       { input: [[4, 2, 6, 1, 3, 5, 7], 5], output: 5 },
     ],
     hints: [
-      "In a binary search tree, which traversal order gives the values sorted?",
-      "In-order: left subtree, node, right subtree. The k-th node you visit is the k-th smallest.",
-      "You can stop early. Do the in-order walk iteratively with a stack, counting visited nodes, and return as soon as the count reaches k.",
+      "In a binary search tree, which order of visiting nodes lists the values from smallest to largest?",
+      "In-order: left subtree, then the node, then right subtree. The k-th node visited is the answer.",
+      "Walk in-order with an explicit stack and count the visited nodes. Stop as soon as the count reaches k, so you never visit more than needed.",
     ],
     solution: {
       idea: [
@@ -437,9 +438,9 @@ public:
       { input: [[1, 2, 3], [1, 2, 3]], output: [1, null, 2, null, 3] },
     ],
     hints: [
-      "The first value of the preorder list is always the root. Where does that value sit in the inorder list?",
-      "Everything left of it in inorder is the left subtree; everything right of it is the right subtree. The sizes tell you how to split the preorder list too.",
-      "Recurse on both parts. Store each value's position in inorder in a hash map so finding the split is O(1). Take the next preorder value as the root each time, and build the left subtree before the right.",
+      "The first preorder value is always a root. Where does it sit in the inorder list, and what does that split tell you?",
+      "Everything left of the root in inorder belongs to the left subtree, and everything right of it belongs to the right subtree. The same sizes split the preorder list too.",
+      "Recurse on each part. Store each value's inorder position in a lookup table so the split point is found quickly. Build the left subtree before the right, taking preorder values in order.",
     ],
     solution: {
       idea: [
@@ -496,9 +497,9 @@ public:
       { input: [[5, 4, 6, 1, 1, null, 10]], output: 17 },
     ],
     hints: [
-      "For every house you have two choices: rob it or skip it. What does each choice allow for its children?",
-      "If you rob a node, its children must be skipped. If you skip it, each child is free to be robbed or skipped, whichever is better.",
-      "Have the DFS return two numbers for each subtree: the best total if its root is robbed, and the best total if its root is skipped. Combine them at the parent.",
+      "For each house you can rob it or skip it. If you rob it, what does that force for the houses directly connected to it?",
+      "Robbing a house forces both of its children to be skipped. Skipping it leaves each child free to be robbed or skipped, whichever is better.",
+      "Return two totals from each subtree: the best if its root is robbed and the best if its root is skipped. Combine the children's pairs at the parent, then take the better of the top pair.",
     ],
     solution: {
       idea: [
@@ -550,9 +551,9 @@ public:
       { input: [[2, 2, 2, 2]], output: [8, 8, 8, 8] },
     ],
     hints: [
-      "answer[i] is (everything to the left of i) times (everything to the right of i).",
-      "Compute the product of everything to the left for every i in one pass, and the product to the right in another pass.",
-      "Write the left products into the answer array, then walk from the right keeping a running product of the suffix and multiply it in. No division and no extra arrays beyond the output.",
+      "The answer at each position is everything to its left multiplied by everything to its right. Can you collect those two parts separately?",
+      "Compute the product of everything to the left of every position in one pass, and the product of everything to the right in another. Division is not allowed.",
+      "Write the left products into the output array. Then walk from the right with one running product of everything to the right, multiplying it into each output value.",
     ],
     solution: {
       idea: [
@@ -609,9 +610,9 @@ public:
       { input: [[-1, -1, -1, 2]], output: [[-1, -1, 2]] },
     ],
     hints: [
-      "Fix one number. What remains is a two-sum problem: find two numbers that add up to its negative.",
-      "Sort the list. For a fixed first number, use two pointers at both ends of the rest: if the sum is too small move the left pointer right, if too big move the right pointer left.",
-      "To avoid duplicate triplets, skip a first number equal to the previous first number, and after finding a triplet skip repeated values for both pointers.",
+      "Fixing one number reduces the problem to one you already know. What is it?",
+      "It is Two Sum on the rest of the list, aiming for the negative of the fixed number. Sorting the list turns this into a two-pointer scan.",
+      "Sort first. Skip repeated first numbers, and after finding a triplet, skip repeated values on both pointers so the same triplet is not reported twice.",
     ],
     solution: {
       idea: [
@@ -675,16 +676,16 @@ public:
       { input: [["cab", "abc", "bca", "xyz", "zyx"]], output: [["cab", "abc", "bca"], ["xyz", "zyx"]] },
     ],
     hints: [
-      "Two words are anagrams exactly when they have the same letters after sorting them.",
-      "Use the sorted version of a word as a key in a hash map, and collect words under their key.",
-      "For long words, a key made of the 26 letter counts avoids sorting each word, but sorting is fine at this size.",
+      "Two words are anagrams exactly when they contain the same letters in the same counts. What could you use as a shared label for each group?",
+      "The sorted letters of a word make a label. Counting the 26 letters is faster than sorting each word.",
+      "Use the label as a key in a lookup table that maps each label to a list of words. Put each word under its label, then output the lists.",
     ],
     solution: {
       idea: [
-        "Map from a canonical form to the list of words that share it. The canonical form of a word is its letters sorted. Walk through the input once, append each word to its list, then return all the lists.",
-        "Sorting costs O(k log k) per word of length k. A 26-count key makes it O(k) per word.",
+        "Map from a canonical count signature to the list of words sharing it. For each string, count the frequencies of characters 'a' through 'z' and format into a delimiter-separated key.",
+        "Grouping by character frequency takes O(k) time per word of length k, achieving an optimal O(n * k) time without sorting.",
       ],
-      complexity: "O(n * k log k) time, O(n * k) space.",
+      complexity: "O(n * k) time, O(n * k) space.",
       cpp: `#include <bits/stdc++.h>
 using namespace std;
 
@@ -693,12 +694,16 @@ public:
     vector<vector<string>> groupAnagrams(vector<string>& strs) {
         unordered_map<string, vector<string>> groups;
         for (const string& s : strs) {
-            string key = s;
-            sort(key.begin(), key.end());
+            int count[26] = {0};
+            for (char c : s) count[c - 'a']++;
+            string key;
+            for (int i = 0; i < 26; i++) {
+                key += to_string(count[i]) + "#";
+            }
             groups[key].push_back(s);
         }
         vector<vector<string>> out;
-        for (auto& g : groups) out.push_back(g.second);
+        for (auto& g : groups) out.push_back(move(g.second));
         return out;
     }
 };
@@ -729,9 +734,9 @@ public:
       { input: [[[1, 10], [2, 3], [4, 5], [6, 7]]], output: [[1, 10]] },
     ],
     hints: [
-      "If the intervals are in order of their start, which intervals can the current one overlap?",
-      "Sort by start. After sorting, an interval can only overlap the last interval you have kept, never an earlier one.",
-      "Walk through the sorted list. If the current start is <= the last kept end, extend the last kept end to max(its end, current end). Otherwise start a new interval.",
+      "If the intervals are ordered by where they start, which earlier intervals can the current one still touch?",
+      "Only the most recent merged interval. Once the intervals are sorted by start, overlaps can be checked against the last result.",
+      "Sort by start. Extend the last merged interval when the next one starts at or before its end; otherwise start a new one. Touching intervals count as overlapping.",
     ],
     solution: {
       idea: [
@@ -781,9 +786,9 @@ public:
       { input: [[55, 38, 53, 81, 61, 93, 97, 32, 43, 78]], output: [3, 1, 1, 2, 1, 1, 0, 1, 1, 0] },
     ],
     hints: [
-      "For each day you want the next day to its right that is strictly warmer.",
-      "Days that are still waiting for a warmer day form a pile; the most recent waiting day is on top.",
-      "Keep a stack of indices with decreasing temperatures. For each new day, pop every index whose temperature is lower than today's and set its answer to today minus that index; then push today.",
+      "For each day, you want to know how far away the next warmer day is. Which earlier days are still waiting for a warmer day?",
+      "The days still waiting form a pile. The most recent waiting day is the one most likely to be resolved next.",
+      "Keep a stack of days still waiting. When a day is warmer than the day on top, pop that waiting day and record the gap. Then push today.",
     ],
     solution: {
       idea: [
@@ -838,9 +843,9 @@ public:
       { input: [[4, 1, 2, 7, 5, 3, 1]], output: 14 },
     ],
     hints: [
-      "Think about the last house. Either you rob it or you do not.",
-      "If you rob house i, you add its money to the best result for houses up to i - 2. If you skip it, the best is the result up to i - 1.",
-      "best[i] = max(best[i-1], best[i-2] + nums[i]). You only need the last two values, so two variables are enough.",
+      "Think about the last house. Either you rob it or you do not. What does each choice allow for the houses before it?",
+      "If you rob it, you add its money to the best total up to two houses back. If you skip it, the best total is the one up to the previous house.",
+      "Only the last two best totals matter, so two variables are enough. Update them as you walk along the row.",
     ],
     solution: {
       idea: [
@@ -891,9 +896,9 @@ public:
       { input: [[2, 5, 10, 1], 27], output: 4 },
     ],
     hints: [
-      "Picking the largest coin first (greedy) does not always work. Try coins 1, 3, 4 and amount 6.",
-      "Define fewest[a] as the fewest coins to make amount a. To make a, the last coin could be any coin c, leaving a - c.",
-      "fewest[a] = 1 + min over coins c <= a of fewest[a - c], with fewest[0] = 0. Use a large value for 'impossible' and convert it to -1 at the end. Beware of overflow when a coin is larger than the amount.",
+      "Taking the biggest coin first is tempting. Does that always give the fewest coins? Try a small example to see.",
+      "Build the fewest-coins answer for an amount from the answers for smaller amounts. The last coin added could be any of the coin values.",
+      "Fill a table from 0 up to the target. For each amount, try each coin and take one plus the table value at the amount minus that coin. Use a large value for impossible amounts and return -1 if the target stays impossible.",
     ],
     solution: {
       idea: [
@@ -946,9 +951,9 @@ public:
       { input: [[2, 3, 4, 5, 6, 7, 8, 9, 1], 9], output: 7 },
     ],
     hints: [
-      "Plain binary search needs a sorted list. Is any part of the list still sorted?",
-      "Pick the middle. At least one of the two halves, [lo..mid] or [mid..hi], is sorted. Compare nums[lo] with nums[mid] to tell which one.",
-      "If the sorted half contains the target (check its two ends), search there; otherwise search the other half. Use <= when comparing nums[lo] and nums[mid] so a half of size one counts as sorted.",
+      "Plain binary search needs a sorted list. After the rotation, is any part of the list still sorted around the middle?",
+      "At least one half around the middle is always in sorted order. Comparing the outer value with the middle tells you which half that is.",
+      "If the target lies within the sorted half's range, search there; otherwise search the other half. Be careful at the boundaries when a range has only one element.",
     ],
     solution: {
       idea: [
@@ -1009,9 +1014,9 @@ public:
       { input: [[["1"], ["0"], ["1"]]], output: 2 },
     ],
     hints: [
-      "When you find a land cell that you have not seen, you have found a new island. How do you avoid counting its other cells again?",
-      "Explore the whole island from that cell (depth-first or breadth-first search) and mark every cell you reach as visited.",
-      "Count one for each unvisited land cell you start a search from. You can mark visited by changing the grid cell to '0' as you go (sink the island), which saves a separate visited array.",
+      "When you find a land cell you have not seen before, you have found a new island. How do you avoid counting the rest of that island again?",
+      "Explore everything connected to it, moving up, down, left and right, and mark every land cell you reach as seen.",
+      "Count each new starting cell once. Marking cells as seen by changing them to water avoids needing a separate visited record.",
     ],
     solution: {
       idea: [

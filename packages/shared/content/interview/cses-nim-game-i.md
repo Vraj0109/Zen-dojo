@@ -3,6 +3,7 @@ id: cses-nim-game-i
 pattern: cses-range-tree-math-string
 difficulty: medium
 optimal: "O(n) time, O(1) space where n is heaps.length"
+brute: same
 reviewed: false
 ---
 

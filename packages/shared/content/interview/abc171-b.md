@@ -3,6 +3,7 @@ id: abc171-b
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(n log n) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

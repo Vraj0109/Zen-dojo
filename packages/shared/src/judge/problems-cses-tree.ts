@@ -39,9 +39,10 @@ export const CSES_TREE_SPECS: ProblemSpec[] = [
       { input: [8,[[2,5],[1,2],[5,4],[7,4],[6,5],[2,8],[6,3]]], output: 3 },
     ],
     hints: [
-      "A leaf can only be matched with its parent. Taking that edge never hurts: any matching that leaves the leaf unmatched can swap its edge for the leaf edge.",
-      "Root the tree and process nodes from the deepest ones up. If a node and its parent are both still free, match them.",
-      "Use a BFS order from node 1 (to avoid deep recursion on long paths) and walk it backwards, counting every match you make.",
+      "Tree problems often start at the leaves. What can you say about a leaf and the one edge that connects it to the rest of the tree?",
+      "A leaf has only one edge, and matching that edge never hurts. Working from the bottom up keeps this choice safe at every level.",
+      "Root the tree and process nodes in reverse BFS order. If a node and its parent are both still free, match them and count the pair.",
+      "Use BFS rather than recursion so that long chains do not overflow the call stack.",
     ],
     solution: {
       idea: [
@@ -119,9 +120,10 @@ public:
       { input: [9,[[6,9],[5,8],[2,8],[1,2],[9,4],[5,7],[4,5],[1,3]]], output: [6,5,7,5,4,7,5,4,6] },
     ],
     hints: [
-      "For any node, the farthest node is one of the two endpoints of a diameter of the tree. This is the key fact.",
-      "Find a diameter with the usual double BFS: from node 1 reach the farthest node a, then from a reach the farthest node b.",
-      "Run BFS from a and from b. The answer for node v is the larger of its two distances.",
+      "For each node you need its farthest node. Could you narrow the search down to just two special nodes?",
+      "In a tree, the farthest node from any node is one of the two ends of a longest path, called the diameter.",
+      "Find a diameter with two BFS passes: from any node to the farthest node a, then from a to the farthest node b. Then run BFS from a and from b.",
+      "For each node, take the larger of its distances to a and to b. That is its answer.",
     ],
     solution: {
       idea: [
@@ -199,9 +201,10 @@ public:
       { input: [9,[[6,1],[2,3],[1,5],[4,8],[5,4],[4,2],[3,7],[9,8]]], output: [23,18,23,15,18,30,30,20,27] },
     ],
     hints: [
-      "First solve it for the root only: the sum of the depths of all nodes.",
-      "When you move the root from a node p to its child c, the nodes in c's subtree get one step closer and all the others get one step farther.",
-      "So ans[c] = ans[p] - size[c] + (n - size[c]). Compute subtree sizes bottom-up, then fill the answers top-down. Use 64-bit integers.",
+      "Summing distances from each node separately is too slow. If you know the total for one node, how does it change when you move to a neighbour?",
+      "Moving from a parent to a child brings the child's subtree one step closer and every other node one step farther.",
+      "Compute subtree sizes and the total depth of the root in one bottom-up pass. Then fill the answers top-down using the change for each child.",
+      "Sums of distances can be large, so use 64-bit integers.",
     ],
     solution: {
       idea: [
@@ -279,9 +282,10 @@ public:
       { input: [7,[1,1,1,1,1,1],[[2,6],[2,4],[2,3],[6,1],[4,1],[2,5]]], output: [-1,-1,-1,1,1,-1] },
     ],
     hints: [
-      "Walking up k steps one at a time is O(n) per query and too slow for 200000 queries.",
-      "Precompute up[j][v], the 2^j-th boss of v (0 meaning none). Each row comes from the previous one: up[j][v] = up[j-1][up[j-1][v]].",
-      "To answer a query, split k into binary digits and jump by 2^j for each set bit. If you reach 0 (no boss), the answer is -1. The bosses need not have smaller numbers than their reports, so build the table one level j at a time.",
+      "Walking up one boss at a time is too slow for many queries. Can you jump up many levels at once?",
+      "Any number of steps can be written as a sum of powers of two, so a table of ancestors at distances that are powers of two can cover any k.",
+      "Precompute the ancestor two to the power j steps above each employee, building each level from the previous one. For a query, jump once for each set bit of k.",
+      "If you reach the sentinel for no boss, stop and answer -1.",
     ],
     solution: {
       idea: [
@@ -353,9 +357,10 @@ public:
       { input: [7,[1,1,1,1,1,1],[[1,7],[6,1],[1,5],[7,5],[4,5],[1,6]]], output: [1,1,1,1,1,1] },
     ],
     hints: [
-      "The answer is the lowest common ancestor (LCA) of a and b in the tree rooted at 1.",
-      "First lift the deeper node up until both have the same depth. If they are now equal, that is the answer.",
-      "Otherwise jump both nodes up together by powers of two, from large to small, whenever their ancestors differ. After the loop the answer is their common parent. Precompute up[j][v] with the table recurrence up[j][v] = up[j-1][up[j-1][v]].",
+      "Both employees have bosses all the way up to the director. Which boss is the lowest one that is above both of them?",
+      "Lift the deeper employee to the depth of the other. If they then meet, that is the answer. Otherwise climb both together while their ancestors still differ.",
+      "Use the binary lifting table: jump both by the largest powers of two whose ancestors differ. Then the answer is the parent of where you stopped.",
+      "An employee counts as their own ancestor, so check first whether one of them is already above the other.",
     ],
     solution: {
       idea: [
@@ -445,9 +450,10 @@ public:
       { input: [10,[[7,2],[2,8],[10,7],[1,2],[5,6],[4,5],[9,3],[9,7],[5,3]],[[5,6],[1,6],[10,4],[10,2],[8,7],[4,8],[8,9],[7,9],[3,7],[6,6]]], output: [1,6,5,2,2,6,3,1,2,0] },
     ],
     hints: [
-      "In a tree there is exactly one path between two nodes, and it goes up to their lowest common ancestor and back down.",
-      "With depths measured from node 1, dist(a, b) = depth[a] + depth[b] - 2 * depth[lca(a, b)].",
-      "Find the LCA with binary lifting: build up[j][v] in a BFS from node 1, lift the deeper node, then jump both up while their ancestors differ.",
+      "The path between two nodes goes up to a meeting point and back down. Which node is that meeting point, and how can depths help you find the length?",
+      "The distance equals the depth of a plus the depth of b, minus twice the depth of their lowest common ancestor.",
+      "Compute depths from the root and find the lowest common ancestor with binary lifting. Then apply the depth formula.",
+      "Lift the deeper node first, and remember that one node may be an ancestor of the other.",
     ],
     solution: {
       idea: [
@@ -536,9 +542,10 @@ public:
       { input: [10,[[9,4],[7,6],[4,2],[3,5],[1,6],[8,6],[7,10],[2,5],[3,7]],[[4,5],[10,6],[9,5],[2,3],[9,6],[7,5],[4,3],[6,3],[2,5],[10,9]]], output: [0,7,6,5,8,3,5,0,3,2] },
     ],
     hints: [
-      "Walking every path costs O(n) per path in the worst case. Count by adding and then summing over subtrees instead.",
-      "Root the tree. For a path from a to b with l = lca(a, b), add 1 to a and to b, and subtract 1 from l and from parent(l) (nothing for the root's parent).",
-      "The number of paths through v is the sum of these marks over the subtree of v. Sum them in reverse BFS order, adding each node's total to its parent.",
+      "Walking every path node by node is too slow. Can you mark only a few special nodes per path and add up the marks later?",
+      "Add one at each endpoint, subtract one at the lowest common ancestor, and subtract one at the parent of that ancestor.",
+      "Sum the marks over each subtree bottom-up in reverse BFS order. A node's subtree total is the number of paths that pass through it.",
+      "Finding the common ancestor needs binary lifting, and the root has no parent, so skip that extra mark there.",
     ],
     solution: {
       idea: [
@@ -633,9 +640,10 @@ public:
       { input: [[557212988,425833888,107673996,579581048,475547347,940436058,525845995,348253129],[[1,4],[7,5],[6,4],[5,4],[5,2],[8,7],[3,7]],[[2,2],[2,6],[2,7],[2,7],[2,6],[1,2,878052971],[2,6],[1,2,367072814],[2,5],[2,6]]], output: [425833888,940436058,981773120,981773120,940436058,940436058,1824393281,940436058] },
     ],
     hints: [
-      "Do a DFS and give each node an entry time tin[v]. The subtree of v is exactly the nodes with entry times from tin[v] to tout[v].",
-      "Place value[v] at position tin[v] of an array. A subtree sum is now a range sum, and an update is a point change.",
-      "Use a Fenwick tree (BIT) of 64-bit integers for the range sums. For an update add (x - old value) at position tin[s]. Use an explicit stack for the DFS so long chains do not overflow the call stack.",
+      "Subtrees are awkward to scan. If you number the nodes in the order a depth-first walk first meets them, what does each subtree look like?",
+      "Each subtree is one unbroken block of that numbering, from its entry time to its exit time. So a subtree sum is a range sum.",
+      "Keep the values by entry time in a Fenwick tree. An update adds the change at one position, and a query takes the range sum over the block.",
+      "Use an explicit stack for the depth-first walk so that deep chains do not overflow recursion.",
     ],
     solution: {
       idea: [
@@ -729,9 +737,10 @@ public:
       { input: [[227545783,656369993,857932603,640357151,638603689,259309268,870290422,603717784],[[1,8],[3,6],[6,2],[3,5],[7,3],[6,8],[4,8]],[[2,8],[2,5],[1,6,482976817],[2,1],[2,4],[2,1],[2,3],[1,7,524496843],[2,1],[2,5]]], output: [831263567,2587109127,227545783,1471620718,227545783,2172172987,227545783,2810776676] },
     ],
     hints: [
-      "The answer for node s is the sum of the values of all its ancestors including itself. Changing a node changes the answer of every node in its subtree.",
-      "Use Euler entry/exit times so the subtree of s is the range tin[s] .. tout[s]. Then 'add d to every node in the subtree of s' is a range add.",
-      "Keep a Fenwick tree for range add and point query (store differences: add d at tin[s], subtract d at tout[s] + 1). Initialise by adding each value over its own subtree range. Query = prefix sum at tin[s].",
+      "The path sum to a node includes all its ancestors. If you change one node's value, which path sums change?",
+      "A change at a node affects the path sum of every node in its subtree and nothing else. Subtrees are contiguous blocks in entry order.",
+      "Use a Fenwick tree for range add and point query. Add the change over the subtree's block, and read a single position to get the answer.",
+      "Track each node's current value so that an update's change is the new value minus the old one.",
     ],
     solution: {
       idea: [
@@ -826,9 +835,10 @@ public:
       { input: [[5,5,3,8,8,9,6,3,2,8,3,6],[[4,12],[12,7],[8,11],[1,5],[12,11],[11,10],[3,5],[4,6],[5,4],[9,10],[2,10]],[[2,7,10],[2,2,8],[1,12,5],[2,7,9],[2,7,9],[1,3,9],[1,10,3],[2,6,3],[1,9,5],[1,11,7],[1,12,3],[2,10,11],[2,8,3],[2,8,10]]], output: [8,8,8,8,9,7,9,7] },
     ],
     hints: [
-      "On a plain path (chain) this is a segment tree with point update and range maximum. The task is to reduce tree paths to chain ranges.",
-      "Heavy-light decomposition: link each node to its child with the largest subtree (the heavy child). Every root-to-node path crosses only O(log n) light edges, so it splits into O(log n) heavy chains.",
-      "Give each heavy chain consecutive positions (head first). For a query, repeatedly take the node whose chain head is deeper, query the segment tree from the head to that node, and jump to the parent of the head. When both are on the same chain, query the last range between them.",
+      "On a plain line this is a segment tree problem. How could you turn paths in a tree into a few ranges on a line?",
+      "Heavy-light decomposition: connect each node to the child with the largest subtree. Any path to the root then switches chains only a few times.",
+      "Number the nodes so that each heavy chain is contiguous, and keep a segment tree of maximums. Query a path by jumping chain by chain from the side whose chain head is deeper.",
+      "When both nodes share a chain, query the range between them in that chain. Update a node by changing its single leaf.",
     ],
     solution: {
       idea: [
@@ -943,9 +953,10 @@ public:
       { input: [[34,56,16,73,2,57,88,1,93],[[2,3],[4,2],[4,6],[6,9],[5,2],[1,6],[4,8],[7,3]]], output: [9,4,2,6,1,8,1,1,1] },
     ],
     hints: [
-      "Merging a set of colors for every node is too slow on a chain unless you merge small sets into large ones. There is a cleaner way with an Euler tour.",
-      "Write the colors in DFS entry order. The subtree of v is a contiguous range [tin[v], tout[v]], so the task is: count distinct values in many ranges.",
-      "Answer the ranges offline: sort them by right end, sweep a pointer over the array, and keep a Fenwick tree with a 1 at the last seen position of each color. The distinct count of [l, r] is the number of 1s in positions l..r.",
+      "Merging the color sets of every node is slow on long chains. Can you flatten the tree so that each subtree becomes one block?",
+      "Once the colors are listed in entry order, the question becomes how many distinct colors each block contains, and all blocks can be answered together.",
+      "Answer the blocks offline: sort them by right end, sweep the positions, and keep a mark on the latest position of each color in a Fenwick tree.",
+      "Each subtree's answer is the number of marks between its left and right ends at the moment the sweep reaches the right end.",
     ],
     solution: {
       idea: [
@@ -1040,9 +1051,10 @@ public:
       { input: [8,[[4,8],[7,5],[6,1],[2,3],[7,8],[3,5],[4,6]]], output: 7 },
     ],
     hints: [
-      "Root the tree at node 1 and compute the size of every subtree. Removing node v leaves its child subtrees and the rest of the tree, of size n - size[v].",
-      "Node v is a centroid when the largest of those pieces is at most n / 2. Check this for every node.",
-      "Take the smallest node number that passes. Compute sizes in reverse BFS order so deep trees do not overflow the stack.",
+      "A centroid is a node whose removal leaves only small pieces. How could subtree sizes tell you the size of the piece above a node?",
+      "When node v is removed, its pieces are its child subtrees and the rest of the tree, which has n minus v's subtree size nodes.",
+      "Root the tree, compute subtree sizes and the largest child size bottom-up, then check each node's largest piece against n divided by 2.",
+      "Return the smallest qualifying node number, and use BFS order rather than recursion so deep trees work.",
     ],
     solution: {
       idea: [
@@ -1121,9 +1133,10 @@ public:
       { input: [8,8,[[8,5],[7,3],[8,2],[6,3],[2,1],[6,4],[5,4]]], output: 0 },
     ],
     hints: [
-      "Counting by pairs is O(n^2). Split the tree at a node c: every path either passes through c or lies completely inside one of the pieces left after removing c.",
-      "Choose c as a centroid so each piece has at most half the nodes: the recursion depth is O(log n). For paths through c, collect the distance to c of each node and count pairs of distances (from different child subtrees) adding up to k.",
-      "Keep an array cnt[d], the number of nodes at distance d seen so far, starting with cnt[0] = 1 for c itself. For each child subtree, first count using cnt[k - d] for every node at depth d, then add that subtree's depths to cnt. Reset cnt before recursing, and avoid deep recursion with BFS and an explicit stack.",
+      "Checking all pairs is too slow. Can you split the tree at one node so that every path either crosses it or lies inside one piece?",
+      "Choose a centroid, which keeps every piece small. For paths through it, two nodes from different branches form a path of length k when their depths add up to k.",
+      "For each branch, count matches against the depths already seen with a counter array, then add that branch's depths. Reset the counters before working on smaller pieces.",
+      "Count the centroid itself as a node at depth 0, and make sure no pair is counted twice across branches.",
     ],
     solution: {
       idea: [
@@ -1232,9 +1245,10 @@ public:
       { input: [8,5,5,[[3,6],[2,5],[4,6],[4,5],[8,1],[2,7],[3,8]]], output: 3 },
     ],
     hints: [
-      "Use the same centroid decomposition as for an exact length: every path passes through some centroid c, and its two halves lie in different child subtrees of c (or one half is c itself).",
-      "For a node at depth d in the current child subtree, the partners it needs have depth between k1 - d and k2 - d. That is a range count over the depths recorded so far.",
-      "Keep a Fenwick tree indexed by depth, put depth 0 (the centroid) in first, and for each child subtree first query then insert. After the centroid is done, undo your insertions. Clamp the range to [0, n].",
+      "This is like the exact-length version, but the length can fall anywhere in a range. For a node at depth d, which depths on the other side would be valid?",
+      "For depth d, the partner depths lie between k1 minus d and k2 minus d. Counting entries in a range of depths is a natural Fenwick tree query.",
+      "Use centroid decomposition. For each branch, query the valid depth range, then insert that branch's depths. After finishing the centroid, undo the insertions.",
+      "Clamp the depth range to valid values, since the lower end can fall below zero.",
     ],
     solution: {
       idea: [

@@ -3,6 +3,7 @@ id: c-euler-26
 pattern: cses-euler
 difficulty: medium
 optimal: "O(limit^2) worst case, but cycle lengths are far shorter than m for most d so it runs in well under a second, O(1) space"
+brute: same
 reviewed: false
 ---
 

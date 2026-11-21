@@ -3,6 +3,7 @@ id: c-euler-23
 pattern: cses-euler
 difficulty: medium
 optimal: "O(L log L + A^2) time, O(L) space"
+brute: same
 reviewed: false
 ---
 

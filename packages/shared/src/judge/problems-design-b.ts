@@ -53,9 +53,10 @@ export const DESIGN_SPECS_B: ProblemSpec[] = [
       seq("SnapshotArray(5) snap() get(4,0) get(0,0)", [null, 0, 0, 0]),
     ],
     hints: [
-      "Storing a full copy of the array at every snap uses length times snaps memory. Most elements do not change between snaps.",
-      "For each index keep a list of (snap id, value) entries, added only when that index is set. Entries are in increasing snap id order.",
-      "get(index, snap_id) is a binary search in the index's list for the last entry whose snap id is at most snap_id. Start each list with (0, 0) so there is always an answer.",
+      "Copying the whole array on every snapshot wastes space. What if you only recorded the moments when something changed?",
+      "Most elements do not change between snapshots, so each index can keep its own history of changes.",
+      "For each index, keep a list of snapshot id and value pairs, then binary search that list for the last entry at or before the requested snapshot.",
+      "Start every list with an entry for snapshot 0 so every index has a value. If an index is set twice within one snapshot, overwrite the last entry.",
     ],
     solution: {
       idea: [
@@ -138,9 +139,10 @@ public:
       seq("MyCalendar() book(0,1000000000) book(0,1) book(999999999,1000000000)", [null, true, false, false]),
     ],
     hints: [
-      "A new range [s, e) overlaps an existing [a, b) exactly when s < b and a < e.",
-      "Checking against every booking works but is O(n) per call. If you keep the bookings sorted by start, only two neighbours can overlap the new one.",
-      "Keep an ordered map from start to end. Find the first booking starting at or after s: it must start at e or later. The booking just before it must end at s or earlier.",
+      "A new booking can only clash with bookings close to its start time. How could you find those neighbours quickly?",
+      "If the bookings are kept sorted by start time, the only ones that can clash are the booking just before and the booking just after the new start.",
+      "Keep bookings in an ordered map from start to end. Find the first start at or after the new start, and check it and its predecessor for overlap.",
+      "Touching is not overlapping. A booking ending at 20 and one starting at 20 are fine, so use strict comparisons.",
     ],
     solution: {
       idea: [
@@ -193,9 +195,10 @@ public:
       seq("MyCalendarTwo() book(1,3) book(2,4) book(3,5) book(2,3) book(4,6)", [null, true, true, true, false, true]),
     ],
     hints: [
-      "Remember two lists: every accepted booking, and the ranges where exactly two bookings overlap.",
-      "A new booking is refused if it overlaps any range in the double-booked list, because that would make three at that moment.",
-      "If it is accepted, intersect it with every accepted booking and add each non-empty intersection to the double-booked list.",
+      "Allowing double bookings means you need to know where two bookings already overlap. What would you store for those places?",
+      "A new booking becomes a triple booking only if it touches a spot where two bookings already overlap, so keep those spots separately.",
+      "Keep a list of all bookings and a list of double-booked ranges. Reject a booking that hits any double range; otherwise add each overlap with an existing booking to the double list.",
+      "Ranges are half-open, so a booking that only touches the end of a double range does not clash with it.",
     ],
     solution: {
       idea: [
@@ -252,9 +255,10 @@ public:
       seq("MyCalendarThree() book(10,20) book(20,30) book(30,40) book(10,40) book(15,35) book(25,26)", [null, 1, 1, 1, 2, 3, 4]),
     ],
     hints: [
-      "The coordinates go up to a billion, so you cannot keep a counter for every moment. Only the start and end points matter.",
-      "Record +1 at each start and -1 at each end in an ordered map. Walking the map in order and adding up gives how many bookings cover each stretch.",
-      "The answer is the largest running total. With at most 400 calls, walking the whole map on every call is fast enough; a segment tree with lazy updates does it in O(log n).",
+      "You do not need to track every moment on the timeline. Which points actually change the number of active bookings?",
+      "The count only changes at the start and end of each booking, so you only need to track those boundary points.",
+      "Store plus one at each start and minus one at each end in an ordered map. Then walk the points in order, keeping a running total and its maximum.",
+      "Store the net change at each time point, so a booking ending where another starts cancels out instead of being counted twice.",
     ],
     solution: {
       idea: [
@@ -315,9 +319,10 @@ public:
       seq("RandomizedSet() insert(4) remove(4) remove(4) insert(4) getRandom()", [null, true, true, false, true, 4]),
     ],
     hints: [
-      "A hash set gives O(1) insert and remove, but you cannot pick a random element of it in O(1). An array lets you pick a random index in O(1) but removing from the middle is O(n).",
-      "Keep the values in an array and a hash map from value to its index in the array.",
-      "To remove a value, copy the last array element into its slot, update that element's index in the map, then pop the end of the array and erase the value from the map. Be careful when the value you remove is itself the last element.",
+      "Picking a random element is easy from a list, and checking membership is easy from a table. Which part needs which structure?",
+      "Keep the values in a list so any position can be picked at random, and keep a table that records where each value sits in the list.",
+      "On removal, move the last list element into the freed slot, update its recorded position, then drop the last entry.",
+      "If the value being removed is already the last element, just drop it. Swapping it with itself must not break the table.",
     ],
     solution: {
       idea: [
@@ -424,9 +429,10 @@ public:
       seq("Twitter() postTweet(1,100) follow(2,1) postTweet(2,200) follow(1,2) getNewsFeed(1) getNewsFeed(2) postTweet(1,300) getNewsFeed(2)", [null, null, null, null, null, [200, 100], [200, 100], null, [300, 200, 100]]),
     ],
     hints: [
-      "Keep, for each user, the list of their tweets with a global counter as the time. Keep, for each user, the set of people they follow.",
-      "The news feed is the 10 newest tweets among the user's own and their followees'. Only the 10 newest tweets of each of those users can matter.",
-      "Collect the last 10 tweets of the user and of every followee, sort by time (newest first) or merge with a heap, and return the first 10 ids.",
+      "A feed only shows ten tweets. Does a tweet that is not among its author's ten most recent ever matter?",
+      "A tweet outside its author's newest ten can never reach the feed's top ten, so only the newest ten per person are candidates.",
+      "Give each tweet a global increasing time, gather the newest ten from the user and from each person they follow, then merge them and keep the top ten.",
+      "Store follows in a set so that repeated follow or unfollow calls do nothing when the link already exists or is missing.",
     ],
     solution: {
       idea: [

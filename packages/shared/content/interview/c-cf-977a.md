@@ -3,6 +3,7 @@ id: c-cf-977a
 pattern: cses-codeforces
 difficulty: easy
 optimal: "O(k) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

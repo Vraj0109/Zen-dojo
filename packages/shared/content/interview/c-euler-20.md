@@ -3,6 +3,7 @@ id: c-euler-20
 pattern: cses-euler
 difficulty: medium
 optimal: "O(n * D) time, O(D) space"
+brute: same
 reviewed: false
 ---
 

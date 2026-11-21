@@ -61,9 +61,10 @@ export const CSES_SPECS_GEO_STR: ProblemSpec[] = [
       }
     ],
     hints: [
-      "Consider the 2D cross product of vector v1 = (p2 - p1) and v2 = (p3 - p1).",
-      "The cross product is computed as (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1).",
-      "If the cross product is positive, p3 turns counter-clockwise (LEFT); if negative, clockwise (RIGHT); if zero, it is collinear (TOUCH). Use 64-bit integers to prevent overflow."
+      "Whether a point is on the left, on the right, or on the line is a question about the direction of a turn. How can one number tell you the turn direction?",
+      "Take the cross product of the line's direction and the vector to the point. It is positive on one side, negative on the other, and zero on the line.",
+      "Compute the cross product with the given formula in 64-bit integers, then map its sign to the answer.",
+      "Coordinates are large, so products of differences can exceed 32 bits. Use 64-bit integers.",
     ],
     solution: {
       idea: [
@@ -147,9 +148,10 @@ public:
       }
     ],
     hints: [
-      "Two segments AB and CD intersect in the general case if C and D lie on opposite sides of line AB, and A and B lie on opposite sides of line CD.",
-      "Check orientations using the 2D cross product: sign(cross(A, B, C)) != sign(cross(A, B, D)) and sign(cross(C, D, A)) != sign(cross(C, D, B)).",
-      "Don't forget the collinear cases: if three points are collinear (cross product is 0), check whether the third point falls within the bounding box of the segment."
+      "Two segments can cross, touch at an endpoint, or overlap while on one line. Which tests cover each of these cases?",
+      "If each segment's endpoints lie on opposite sides of the other segment's line, the segments cross. Check this with the signs of cross products.",
+      "Also handle the case where an endpoint lies exactly on the other segment: the cross product is zero and the point lies inside the segment's bounding box.",
+      "Touching at an endpoint counts as an intersection, so the boundary checks must include equality.",
     ],
     solution: {
       idea: [
@@ -267,9 +269,10 @@ public:
       }
     ],
     hints: [
-      "Use the Shoelace formula (Gauss's area formula).",
-      "Sum (x_i * y_{i+1} - x_{i+1} * y_i) for all consecutive pairs around the polygon, with the last point wrapping back to the first.",
-      "Take the absolute value of the total sum. Use 64-bit integers to prevent arithmetic overflow."
+      "The polygon's area can be split into signed triangles, one per edge, measured from the origin. What does each edge contribute?",
+      "Each edge adds a cross-product term built from its two endpoints. The sum of these terms is twice the signed area.",
+      "Loop over the vertices once, wrapping the last one back to the first, and accumulate the cross terms in a 64-bit integer.",
+      "Return the absolute value of the total, because the vertices can be listed clockwise or counterclockwise.",
     ],
     solution: {
       idea: [
@@ -351,9 +354,10 @@ public:
       }
     ],
     hints: [
-      "First check whether the query point lies exactly on any polygon segment using cross product and bounding box checks.",
-      "If not on the boundary, use the ray casting algorithm: cast a horizontal ray to x = +infinity and count crossings with polygon edges.",
-      "An odd number of crossings means INSIDE; an even number means OUTSIDE. Handle edge endpoints carefully (e.g., consider an edge only if one endpoint has y <= Py and the other has y > Py)."
+      "Before counting anything, decide whether the point lies on an edge. How would a cross product and a box test check that?",
+      "If the point is not on the border, shoot a ray from it and count how many edges it crosses. An odd count means inside, and an even count means outside.",
+      "Use a half-open rule on the y coordinates so that a vertex shared by two edges is counted once, and decide each crossing with the sign of a cross product.",
+      "Use exact integer arithmetic for the crossing test rather than dividing, so the result is never affected by rounding.",
     ],
     solution: {
       idea: [
@@ -479,9 +483,10 @@ public:
       }
     ],
     hints: [
-      "Use Pick's theorem: Area = I + B / 2 - 1, where I is strictly interior lattice points and B is boundary points.",
-      "The number of integer points on a segment between (x1, y1) and (x2, y2) is gcd(|x2 - x1|, |y2 - y1|).",
-      "Compute 2 * Area with the shoelace formula. Then I = (2 * Area - B + 2) / 2."
+      "Counting lattice points inside a polygon directly is hard. Is there a formula that relates the area and the boundary points to the interior points?",
+      "Pick's theorem links the doubled area, the number of boundary points and the number of interior points. If you know two of them, the third follows.",
+      "For the boundary, each edge contributes the gcd of its coordinate differences. The shoelace formula gives the doubled area, and then you can solve for the interior count.",
+      "Keep the doubled area as an integer and do the subtraction before dividing by 2.",
     ],
     solution: {
       idea: [
@@ -579,9 +584,10 @@ public:
       }
     ],
     hints: [
-      "A naive all-pairs search takes O(n^2), which is too slow for n = 200000.",
-      "Sort points by x-coordinate and use a sweep-line algorithm.",
-      "Maintain a dynamic set of active candidate points sorted by y-coordinate. Prune points whose x-distance exceeds sqrt(d), and check only points within y in [py - sqrt(d), py + sqrt(d)]."
+      "Checking all pairs is too slow. If you sort the points by x, which pairs can possibly be the closest?",
+      "Once you have a best squared distance d, a point more than sqrt(d) away in x cannot beat it, so only points close in x matter.",
+      "Sweep in x order and keep the active points ordered by y. For each new point, check only the active points whose y lies within sqrt(d) of its y.",
+      "The candidate box holds only a few points, so the sweep stays fast. Use squared distances in 64-bit integers to avoid floating-point errors.",
     ],
     solution: {
       idea: [
@@ -707,9 +713,10 @@ public:
       }
     ],
     hints: [
-      "Use Andrew's Monotone Chain algorithm (a variation of Graham Scan).",
-      "Sort the points by x-coordinate (and by y-coordinate on ties).",
-      "To include collinear boundary points, only pop from the stack when cross product < 0 (clockwise turn), rather than <= 0. Combine the lower and upper hulls and remove duplicate vertices."
+      "The hull is the outer boundary of the points. Could you build it by processing the points in a fixed order and watching the turns?",
+      "Sort the points by x, then y. Build the lower chain from left to right and the upper chain from right to left, keeping only turns that do not go clockwise.",
+      "Monotone chain: while the last turn is clockwise, pop the last point. Keeping collinear points means popping only on a strict clockwise turn. Join the two chains and drop the repeated endpoints.",
+      "Handle the case where all points lie on one line, and remove duplicate input points before building the hull.",
     ],
     solution: {
       idea: [
@@ -846,9 +853,10 @@ public:
       }
     ],
     hints: [
-      "Define dp[i] as the number of ways to form the prefix of s of length i.",
-      "Store all dictionary words in a Trie to quickly find all valid word matches starting at any index i.",
-      "From each index i where dp[i] > 0, traverse the Trie with s[i], s[i+1], ... and add dp[i] to dp[j + 1] whenever reaching a terminal word node."
+      "Let dp[i] be the number of ways to build the first i letters of the target. From each position, which dictionary words could start there?",
+      "From every position with a nonzero count, each dictionary word that matches the text there adds its count to the position just after that word.",
+      "Store the dictionary in a prefix tree. From each position, walk down the tree along the text, and add the count whenever a word ends.",
+      "Stop walking as soon as the tree has no matching branch, and take all counts modulo the prime.",
     ],
     solution: {
       idea: [
@@ -968,9 +976,10 @@ public:
       }
     ],
     hints: [
-      "Compute the KMP prefix function (pi table) for the entire string s.",
-      "The value pi[n - 1] gives the longest proper border length k.",
-      "Each shorter border length is obtained recursively by looking up pi[k - 1]. Collect all lengths and reverse them into ascending order."
+      "A border is a prefix that is also a suffix. What is the longest such prefix for the whole string, and how can you find the shorter ones?",
+      "The longest border can be read from the prefix-function table. Every shorter border is itself a border of the longest one.",
+      "Build the prefix-function table with KMP. Then follow the chain starting from the last value, each step using the table entry at the previous length.",
+      "The chain gives lengths from longest to shortest, so reverse them before printing.",
     ],
     solution: {
       idea: [
@@ -1067,9 +1076,10 @@ public:
       }
     ],
     hints: [
-      "Notice that p is a period of s if and only if the suffix of s starting at index p matches the prefix of s of length n - p.",
-      "The Z-algorithm computes z[p], the length of the longest substring starting at p that matches a prefix of s.",
-      "Therefore, p is a period whenever z[p] >= n - p. Also, p = n is always a valid period."
+      "A period p means the string matches itself when shifted by p. Which comparison between a prefix and a suffix shows that?",
+      "The shift p works exactly when the suffix starting at position p matches a prefix of the same length. The Z-array stores that matching length for every position.",
+      "Build the Z-array in linear time. Then p is a period when its Z value reaches the remaining length, n minus p.",
+      "Output the periods in increasing order, and remember that n itself is always a period.",
     ],
     solution: {
       idea: [
@@ -1166,9 +1176,10 @@ public:
       }
     ],
     hints: [
-      "Comparing all n rotations directly takes O(n^2), which times out for n = 10^6.",
-      "Use Booth's algorithm (or Duval's Lyndon factorization algorithm).",
-      "Booth's algorithm modifies KMP preprocessing on the doubled string s + s to locate the starting index of the lexicographically minimal rotation in linear time."
+      "Writing out every rotation and comparing them is too slow. Could you treat the rotations as substrings of a doubled string?",
+      "Doubling the string turns each rotation into a window of length n. You need the window that is smallest in dictionary order.",
+      "Use Booth's algorithm, a KMP-style scan over the doubled string that keeps the best start index and skips starts that cannot win.",
+      "Return the substring of length n that begins at the best index.",
     ],
     solution: {
       idea: [
@@ -1264,9 +1275,10 @@ public:
       }
     ],
     hints: [
-      "Expanding around every center takes O(n^2) worst-case time.",
-      "Use Manacher's algorithm to find the longest palindrome in linear O(n) time.",
-      "Insert special separator characters (like '#') between characters to handle both odd and even length palindromes uniformly."
+      "Expanding around each center is simple, but it can repeat work. Could you reuse what you already know about palindromes you have found?",
+      "Mirror symmetry: inside a palindrome, the palindrome radius at a position is at least the radius at its mirror position, capped by the palindrome's edge.",
+      "Use Manacher's algorithm on the string with separators between characters, so odd and even palindromes are handled the same way. Keep track of the rightmost palindrome seen so far.",
+      "Map the best center back to the original string. Its radius equals the length of the original palindrome.",
     ],
     solution: {
       idea: [
@@ -1374,9 +1386,10 @@ public:
       }
     ],
     hints: [
-      "Instead of directly counting strings containing pattern, count the complementary set: strings of length n that DO NOT contain pattern.",
-      "Build a DFA (finite state automaton) from the KMP prefix function of pattern with states 0 .. m - 1 (state m represents pattern matched).",
-      "Use dynamic programming: dp[i][state] is the number of valid prefix strings of length i currently at state. The answer is (26^n - sum(dp[n])) mod MOD."
+      "Counting strings that contain a pattern is tricky. Is there a related count that is easier, and how would you get the answer from it?",
+      "Count the strings that never contain the pattern, then subtract that from the total number of strings. Track how much of the pattern has been matched so far.",
+      "Build a KMP automaton whose states are the matched prefix lengths, leaving out the state where the full pattern is matched. Run a DP over the string length and the state.",
+      "The total is 26 to the power n. Subtract the forbidden count from it and reduce modulo the prime.",
     ],
     solution: {
       idea: [
@@ -1514,9 +1527,10 @@ public:
       }
     ],
     hints: [
-      "A substring s[a..b] is a palindrome if and only if its forward hash equals its backward (reversed) hash.",
-      "Use two Fenwick trees (Binary Indexed Trees) or Segment Trees: one maintaining the rolling polynomial hash of s in forward order, and one in reversed order.",
-      "Point updates modify both Fenwick trees in O(log n) time. Range hash queries are answered in O(log n) using precomputed powers and modular inverses."
+      "Checking whether a substring is a palindrome means comparing it with its reverse. How can you compare two long strings quickly while characters change?",
+      "Hash the string forward and backward. A substring is a palindrome exactly when its forward hash equals its reversed hash, after the powers of the base are aligned.",
+      "Keep two Fenwick trees of weighted character values, one for each direction, so that a change updates both in logarithmic time.",
+      "Use a large modulus and align the powers of the base for both ranges before comparing the hashes.",
     ],
     solution: {
       idea: [

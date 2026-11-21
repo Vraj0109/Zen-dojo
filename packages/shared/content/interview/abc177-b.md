@@ -3,6 +3,7 @@ id: abc177-b
 pattern: cses-atcoder
 difficulty: medium
 optimal: "O(|s| * |t|) time, O(1) space"
+brute: same
 reviewed: false
 ---
 

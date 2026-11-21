@@ -3,6 +3,7 @@ id: c-euler-35
 pattern: cses-euler
 difficulty: medium
 optimal: "O(N log log N) for the sieve with N = 10^k, plus O(count * digits) for the rotations, O(N) space"
+brute: same
 reviewed: false
 ---
 

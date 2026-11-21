@@ -3,6 +3,7 @@ id: c-euler-39
 pattern: cses-euler
 difficulty: medium
 optimal: "O(maxP log maxP) time, O(maxP) space"
+brute: same
 reviewed: false
 ---
 

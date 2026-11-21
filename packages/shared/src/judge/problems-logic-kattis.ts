@@ -27,9 +27,10 @@ export const LOGIC_SPECS_KATTIS: ProblemSpec[] = [
       { input: [[309,309,309]], output: 59049000000000 },
     ],
     hints: [
-      "Split each number: the exponent is x % 10 and the base is x / 10.",
-      "Raise the base to the exponent with a short loop (the exponent is at most 9).",
-      "Add the powers into a 64-bit total. The biggest one, 30^9, is about 2 * 10^13.",
+      "Each number is two parts glued together: a base and an exponent. Where is the exponent written?",
+      "The last digit is the exponent and the digits before it form the base. How can you separate those two parts?",
+      "Split each number into base and exponent with division and remainder by ten, raise the base to that power, and add the results.",
+      "Use 64-bit integers for the total and each power, since the largest power is about 2 * 10^13.",
     ],
     solution: {
       idea: [
@@ -78,9 +79,10 @@ public:
       { input: [50,[100,100]], output: -50 },
     ],
     hints: [
-      "Over n + 1 months you will have received x * (n + 1) megabytes in total.",
-      "Whatever you have already used is gone. Unused megabytes simply stay, so you do not need to track month by month.",
-      "The answer is x * (n + 1) minus the sum of the used list. (The input guarantees you never use more than you have.)",
+      "Think about all the data you have received in every month up to and including the month after the list.",
+      "Unused data carries over, so what is left is the total received minus the total used. Do you need month-by-month balances?",
+      "Multiply the monthly allowance by the number of months, including the extra one, then subtract the sum of the usage list.",
+      "Use 64-bit integers to be safe.",
     ],
     solution: {
       idea: [
@@ -125,9 +127,10 @@ public:
       { input: ["CCCCCCCCCC"], output: 100 },
     ],
     hints: [
-      "Count how many T, C and G cards there are.",
-      "The base score is t * t + c * c + g * g.",
-      "The number of complete sets is the smallest of the three counts. Add 7 times that.",
+      "The score depends only on how many cards of each kind you have. Does their order matter?",
+      "Complete sets are limited by the rarest kind. What is the largest number of complete sets you could form from the counts?",
+      "Count the T, C and G cards in one pass, then add the squares of the three counts plus seven times the smallest count.",
+      "The counts are tiny here, so ordinary integers are enough. Do not forget the bonus for complete sets.",
     ],
     solution: {
       idea: [
@@ -172,9 +175,10 @@ public:
       { input: [[11,22,33,22,11,44,44]], output: 33 },
     ],
     hints: [
-      "A set or a counting map would work. Is there a way to do it with no extra memory at all?",
-      "XOR (^) has two useful properties: x ^ x = 0 and x ^ 0 = x. The order of the operands does not matter.",
-      "XOR all the codes together. Every pair cancels, and the code that appears once is left.",
+      "Pairs cancel out in many problems. Is there an operation where a value combined with itself leaves nothing behind?",
+      "Exclusive or has this property: a value combined with itself is zero, and the order of combining does not matter. What remains after combining everything?",
+      "Combine all the codes with exclusive or in a single pass, starting from zero. Every pair cancels and the lone code remains.",
+      "This needs no extra memory, so a set or counting map is not necessary. A single integer register is enough.",
     ],
     solution: {
       idea: [
@@ -219,9 +223,10 @@ public:
       { input: [15], output: 1073807361 },
     ],
     hints: [
-      "Draw the picture for n = 0, 1 and 2 and count the points: 4, 9, 25.",
-      "The points form a square grid. After n steps each side of the big square is split into 2^n parts.",
-      "A side with 2^n parts has 2^n + 1 points, so the grid holds (2^n + 1)^2 points. Compute it with a shift: (1 << n) + 1.",
+      "Draw the first few steps and count the points. Do you see a pattern in the shape of the grid?",
+      "After each step, how many segments does each side of the big square have, and how many points does that give along one side?",
+      "The points form a square grid with 2 to the power n, plus 1, points along each side, so the total is that number squared.",
+      "Compute the power of two with a bit shift and use 64-bit numbers.",
     ],
     solution: {
       idea: [
@@ -265,9 +270,10 @@ public:
       { input: [[0,1,0,1,0,8]], output: [1,0,2,1,2,0] },
     ],
     hints: [
-      "Write down how many of each piece a complete set has: 1, 1, 2, 2, 2, 8.",
-      "For every kind, subtract the number you found from the number a set needs.",
-      "Keep the sign: a negative result means you have too many, which is the answer to return.",
+      "Compare what a complete set contains with what you found. Does one list need to be subtracted from the other?",
+      "A complete set has a fixed count for each piece type. For each type, what is the difference?",
+      "Keep the set counts in order and subtract the number you found for each type. A negative result means you have extra pieces.",
+      "Output the six numbers in the same order as the input. Zero means that type is complete.",
     ],
     solution: {
       idea: [

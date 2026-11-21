@@ -177,7 +177,7 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0089 | [Expressive redesign 5: Review, Revise, Backlog, Roadmap, Profile, Settings and theme warning, Sign in, final scan](0089-expressive-review-profile-settings-and-scan.md) | done |
 | 0090 | [Interview approach write-ups for every DSA problem: context script, checker, Interview tab, AI helper](0090-interview-approach-writeups.md) | ready |
 | 0091 | [Pattern thinking map in Quick revise: thinking map, how to read a problem, groups, recall](0091-pattern-thinking-map.md) | done |
-| 0092 | [Brute force and optimal code on every problem, hints that lead to the optimal approach](0092-audit-solutions-and-hints-alignment.md) | ready |
+| 0092 | [Brute force and optimal code on every problem, hints that lead to the optimal approach](0092-audit-solutions-and-hints-alignment.md) | done |
 | 0093 | [Design patterns catalogue in LLD: one lesson per pattern (27, four agents)](0093-design-patterns-catalogue.md) | done |
 | 0094 | [Roadmap: everything a candidate needs to prepare for SWE3 / SDE2 interviews in one app](0094-interview-prep-roadmap.md) | ready |
 | 0095 | [Story bank and behavioural question bank (Amazon principles, Google attributes)](0095-story-bank-and-behavioural-questions.md) | ready |

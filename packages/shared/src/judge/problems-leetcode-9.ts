@@ -32,10 +32,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[[".",".","5","3",".",".",".",".","."],["8",".",".",".",".",".",".","2","."],[".","7",".",".","1",".","5",".","."],["4",".",".",".",".","5","3",".","."],[".","1",".",".","7",".",".",".","6"],[".",".","3","2",".",".",".","8","."],[".","6",".","5",".",".",".",".","9"],[".",".","4",".",".",".",".","3","."],[".",".",".",".",".","9","7",".","."]]], output: [["1","4","5","3","2","7","6","9","8"],["8","3","9","6","5","4","1","2","7"],["6","7","2","9","1","8","5","4","3"],["4","9","6","1","8","5","3","7","2"],["2","1","8","4","7","3","9","5","6"],["7","5","3","2","9","6","4","8","1"],["3","6","7","5","4","2","8","1","9"],["9","8","4","7","6","1","2","3","5"],["5","2","1","8","3","9","7","6","4"]] },
     ],
     hints: [
-      "Find an empty cell, try placing digits '1' through '9', and check whether the placement violates Sudoku rules.",
-      "Keep track of numbers present in each row, column, and 3x3 box using bitmasks or boolean arrays for fast validation.",
-      "Use backtracking: place a valid digit, recurse to the next empty cell, and if no solution is found, undo the placement and try the next digit."
-],
+      "Fill the empty cells one at a time and try digits. What must a placement avoid?",
+      "Checking every row, column and box for each try is slow. Is there a compact way to remember which digits are used in each group?",
+      "Keep bitmasks for rows, columns and boxes. Try each digit that is free in all three, place it, recurse to the next empty cell, and undo it if that fails.",
+      "Edge case: the preset digits must be counted in the masks before the search starts.",
+    ],
     solution: {
       idea: [
         "Use backtracking to fill empty cells one by one. Maintain bitmasks for digits used in each of the 9 rows, 9 columns, and 9 3x3 subgrids. For each empty cell, iterate over candidate digits from 1 to 9 that are not yet used in its row, column, or box. Place the digit, update bitmasks, and recursively attempt to solve the remaining cells. If all cells are filled, return true; otherwise, backtrack by clearing the digit and bitmask bits."
@@ -78,10 +79,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
     ],
     unordered: true,
     hints: [
-      "Instead of searching for each word individually on the board, search all words at once by building a prefix tree (Trie).",
-      "Insert all dictionary words into the Trie. Start a DFS traversal from each cell on the board, following branches in the Trie.",
-      "When a Trie node corresponds to a complete word, record it and mark it as visited or remove it from the Trie to prevent duplicates."
-],
+      "Searching the board once for each word repeats the same work. Can words share work when they begin with the same letters?",
+      "Put all the words into a prefix tree. During a board walk, when does a path leave the tree, and what should happen then?",
+      "Walk the board from every cell, following the tree's branches. When a node ends a word, record it and clear it so the same word is not found twice.",
+      "Edge case: a word can be found from several start cells, and no cell may be reused within one path.",
+    ],
     solution: {
       idea: [
         "Construct a Trie containing all given words. Then, run a depth-first search starting at each cell of the grid. As the search moves to adjacent cells, it follows matching edges in the Trie. When a node marked as a complete word is reached, the word is added to the result set and cleared in the node to avoid duplicate inclusions. Backtracking restores grid characters upon return."
@@ -119,10 +121,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[[1,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,1]]], output: 7 },
     ],
     hints: [
-      "Use depth-first search to find the entire first island, and mark all its cells so you can distinguish them from the second island.",
-      "Enqueue all boundary cells of the first island into a queue for multi-source breadth-first search.",
-      "Expand BFS outward into the water level by level; the number of expansion steps taken to first reach any cell of the second island is the answer."
-],
+      "The two islands are joined by the fewest water cells. Start by finding one whole island. How will you tell its cells apart from the other island afterwards?",
+      "Once the first island is marked, expand outwards from all of its cells at the same time. What kind of search does that suggest?",
+      "Run a breadth-first search from every cell of the first island together. The number of layers before you touch the second island is the number of water cells to flip.",
+      "Edge case: do not count the first island's own cells, and stop as soon as the search steps onto land of the other island.",
+    ],
     solution: {
       idea: [
         "First, scan the matrix to find any cell containing 1. Run DFS from this cell to discover all cells belonging to the first island. Mark these cells with a special marker (such as 2) and push all of them into a BFS queue initialized with distance 0.",
@@ -162,10 +165,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[[1,2,3,4,5],[6,7,8,9,10]]], output: 25 },
     ],
     hints: [
-      "Since n <= 10 while hats are up to 40, assigning people to hats is much smaller than assigning hats to people.",
-      "Invert the mapping: for each hat from 1 to 40, find all people who like this hat.",
-      "Use dynamic programming with bitmask: dp[mask] is the number of ways to assign a subset of hats so that the subset of people represented by mask each have a hat."
-],
+      "There are 40 hats but only 10 people. Which side is smaller, and what could you track over that side?",
+      "Turn the lists around: for each hat, who likes it? Then process the hats one at a time.",
+      "Track which people already have a hat as a bitmask over the small set of people. For each hat, either skip it, or give it to a person who likes it and has no hat yet.",
+      "Edge case: the answer is taken modulo 1000000007, so reduce after every addition.",
+    ],
     solution: {
       idea: [
         "Invert the input to create a list of interested people for each hat from 1 to 40. Since the number of people n is at most 10, the subset of people who have received hats can be encoded as a bitmask of size 2^n.",
@@ -204,10 +208,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[-10000000,10000000],1], output: 1 },
     ],
     hints: [
-      "nums has length up to 40, which is too large for O(2^n) brute force, but small enough for meet-in-the-middle.",
-      "Split nums into two halves of size up to 20, and generate all possible subset sums for each half.",
-      "Sort the subset sums of the second half. For each sum in the first half, use binary search (lower_bound) to find the closest element in the second half."
-],
+      "With up to 40 numbers, trying every subset is too slow. But what about a set of half that size?",
+      "Split the numbers into two halves and list all the sums each half can make. How could you combine one sum from each half to get close to the goal?",
+      "Sort one list of sums, then for each sum in the other list, binary search for the best partner. Keep the smallest distance to the goal.",
+      "Edge case: the empty subset counts, so the starting best distance is the absolute value of the goal.",
+    ],
     solution: {
       idea: [
         "Divide the array into two halves of sizes n1 and n2 (at most 20 elements each). Compute all 2^n1 subset sums of the first half and all 2^n2 subset sums of the second half.",
@@ -245,10 +250,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[10,20,30,40,50,60]], output: 10 },
     ],
     hints: [
-      "2 * n is at most 30, so n is at most 15. This suggests a meet-in-the-middle approach.",
-      "Divide nums into two halves of size n. For each half, generate all subset sums grouped by the number of elements chosen k (from 0 to n).",
-      "If we choose k elements from the first half, we must choose n - k elements from the second half. Sort each group of sums in the second half and binary search for the value closest to total_sum / 2 - first_sum."
-],
+      "There are at most 30 numbers. How could you split them into two groups of equal size, so each group can be searched on its own?",
+      "If one part takes k numbers from the first half, the other part must take the rest from the second half. How could you group the sums by how many numbers were used?",
+      "Sort each group of sums from the second half and binary search for the value that best balances the totals. What you want is for the total minus twice the first sum to be close to zero.",
+      "Edge case: the difference is an absolute value, so check the neighbours on both sides of the value found by binary search.",
+    ],
     solution: {
       idea: [
         "Let total be the sum of all 2n elements. We want to pick n elements whose sum is as close to total / 2 as possible.",
@@ -287,10 +293,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
     ],
     unordered: true,
     hints: [
-      "First determine the exact minimum number of left and right parentheses that must be removed by scanning the string.",
-      "Use depth-first search or BFS to explore removing parentheses, skipping adjacent duplicate parentheses to prevent duplicate answers.",
-      "Validate the parenthesis balance along the way and ensure only valid strings with the target removals are recorded."
-],
+      "Before any removals, work out how many open and how many close brackets must go. Can one scan of the string tell you that?",
+      "Once you know exactly how many brackets to drop, a search only needs to explore deletions that use up those counts. How can you avoid repeats?",
+      "Backtrack over the string with the counts still to delete and the current balance. Skip runs of equal brackets to avoid duplicate answers, and collect the valid strings at the end.",
+      "Edge case: if the string is already valid, the original string is the answer, and the output must not contain duplicates.",
+    ],
     solution: {
       idea: [
         "First, scan the string to count the minimum misplaced left and right parentheses, remL and remR.",
@@ -325,10 +332,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[[2,15],[36,45],[9,29],[16,23],[4,9]]], output: 2 },
     ],
     hints: [
-      "Think about meetings as events in time: a start event adds a room requirement, and an end event frees a room.",
-      "Sort start times and end times independently.",
-      "Iterate through start times. If the next start time is before the earliest end time, an additional room is required; otherwise, a room was freed up and can be reused."
-],
+      "Think of the meetings as events on a timeline. What happens to the number of rooms in use at each start and each end?",
+      "If you could list all start times and all end times in order, how would you walk through them together?",
+      "Sort the starts and the ends separately. For each start, if it begins before the earliest unfinished meeting ends, you need another room; otherwise a room is free.",
+      "Edge case: a meeting that starts exactly when another ends can reuse its room, so compare with strictly less than.",
+    ],
     solution: {
       idea: [
         "Separate all start times and end times into two arrays and sort both in ascending order.",
@@ -365,10 +373,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[[0,1],[2,3],[4,5],[6,7],[8,9]]], output: [[1,2],[3,4],[5,6],[7,8]] },
     ],
     hints: [
-      "Collect all work intervals together regardless of employee, since a time is free only if no employee is working.",
-      "Sort the intervals by their start times and merge overlapping intervals.",
-      "Any positive gap between the end of one merged interval and the start of the next merged interval is common free time."
-],
+      "A time is free only if nobody is working. Does it matter which employee an interval belongs to?",
+      "If you put all the intervals on one timeline sorted by start, where do the busy periods merge together?",
+      "Merge overlapping and touching intervals as you walk through them. Any gap between one merged block and the next is free time for everyone.",
+      "Edge case: the input may be empty, and the result should only include gaps with positive length.",
+    ],
     solution: {
       idea: [
         "Sort all working intervals by start time. Maintain a running merged interval [curStart, curEnd].",
@@ -406,10 +415,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [["baa","abcd","abca","cab","cad"]], output: "bdac" },
     ],
     hints: [
-      "The order between characters is determined by comparing adjacent pairs of words in the dictionary.",
-      "Find the first differing character between words[i] and words[i + 1]: this establishes a directed edge u -> v.",
-      "If words[i] is longer than words[i + 1] and words[i + 1] is a prefix of words[i], the dictionary is invalid. Use Kahn's algorithm with a min-heap to find the lexicographically smallest topological sort."
-],
+      "Each pair of neighbouring words tells you something about two letters. Where in the words is that information?",
+      "Compare each neighbouring pair and find the first position where the letters differ. What does that difference say about the order of those two letters?",
+      "Build a graph of letters from these orderings, then order the letters topologically. A min-heap lets you always pick the smallest available letter, which gives the smallest order.",
+      "Edge case: if a word is a prefix of the word before it, or the graph has a cycle, the answer is an empty string.",
+    ],
     solution: {
       idea: [
         "Collect all unique characters present across all words.",
@@ -450,10 +460,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [5,5,[[2,2],[2,3],[2,1],[1,2],[3,2]]], output: [1,1,1,1,1] },
     ],
     hints: [
-      "Represent the dynamic grid cells with a Disjoint Set Union (Union-Find) data structure.",
-      "When adding land at (r, c), check if it is already land. If not, treat it as a new island (increment count) and check its 4 adjacent neighbors.",
-      "For every neighboring cell that is already land, union the two components; each successful union decreases the island count by 1."
-],
+      "Land is added one cell at a time, and each addition either creates an island or joins existing ones. How could you track pieces of land as they join?",
+      "When a new land cell touches existing land, what happens to the number of islands? How can you find each island's identity quickly?",
+      "Use a union-find structure over the cells. Each new land cell starts as its own island, then merge it with each neighbouring land cell that belongs to a different set.",
+      "Edge case: adding land to a cell that is already land changes nothing, so just record the current count.",
+    ],
     solution: {
       idea: [
         "Flatten 2D coordinates (r, c) into 1D indices r * n + c. Initialize a parent array with -1 to indicate water.",
@@ -496,10 +507,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [5,[1,2,3,4,5],[[1,2,1],[2,3,1],[3,4,1],[4,5,1]]], output: 5 },
     ],
     hints: [
-      "Building a well inside house i can be viewed as connecting house i to a virtual water source node 0 with weight wells[i - 1].",
-      "With virtual node 0, supplying water to every house is equivalent to connecting all houses 1..n to node 0.",
-      "This is exactly the Minimum Spanning Tree (MST) problem on n + 1 nodes. Use Kruskal's or Prim's algorithm."
-],
+      "A well is a cost on one house, while a pipe is a cost between two houses. Can you treat both kinds of cost the same way?",
+      "Imagine one extra virtual source that every house can reach. What if building a well is just a pipe from that source to the house?",
+      "The cheapest way to connect every node is a minimum spanning tree. Sort all the edges by cost and keep each one that joins two separate groups, using union-find.",
+      "Edge case: a pipe between two houses can be cheaper than a well, so all the edges must go into one sorted list together.",
+    ],
     solution: {
       idea: [
         "Introduce a virtual node 0 representing the global water reservoir. Building a well at house i (1-indexed) corresponds to an undirected edge between node 0 and house i with weight wells[i - 1].",
@@ -537,10 +549,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: ["(100 - (20 + 30) * 2) / 5"], output: 0 },
     ],
     hints: [
-      "Handle parentheses by either using recursion whenever an open parenthesis '(' is encountered, or using two stacks for values and operators.",
-      "Assign precedence: '*' and '/' have higher precedence (2) than '+' and '-' (1).",
-      "When encountering an operator, evaluate previous operators on the stack that have greater or equal precedence before pushing the new one."
-],
+      "Expressions have precedence and brackets. How could you evaluate a bracketed group as if it were a single number?",
+      "Within a group, multiplication and division bind before addition and subtraction. How could you keep a list of pending terms that you combine later?",
+      "Read the string left to right. Numbers build up digit by digit, and each operator decides what to do with the previous number: push it, negate it, or multiply or divide the top of the list.",
+      "Edge case: division truncates toward zero, so handle the sign of negative terms with care.",
+    ],
     solution: {
       idea: [
         "Use a recursive parsing function or two stacks (numbers and operators) with standard precedence rules.",
@@ -577,10 +590,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[1,5,2,4,3,6]], output: [1,2,1,2,1,6] },
     ],
     hints: [
-      "A naive search backward takes O(n) per day, resulting in O(n^2) overall time.",
-      "Notice that if prices[j] <= prices[i] (where j < i), any future price greater than prices[i] will also cover everything prices[j] covered.",
-      "Use a monotonic decreasing stack of pairs (price, span). Pop smaller or equal prices and accumulate their spans."
-],
+      "Scanning backwards for each day costs too much. Which earlier days could ever matter for a new price?",
+      "If an earlier price is no larger than today's, anything that covers today also covers that earlier day. What can you do with that?",
+      "Keep a stack of prices together with their spans. For each new price, pop the smaller or equal prices and add their spans into today's span.",
+      "Edge case: the first day's span is 1, since there are no earlier prices.",
+    ],
     solution: {
       idea: [
         "Maintain a monotonic stack storing pairs of (price, span).",
@@ -622,10 +636,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [7,[-1,0,1,2,3,4,5],[[6,6],[6,7],[1,1]]], output: [0,-1,0] },
     ],
     hints: [
-      "Climbing up one parent at a time takes O(k) per query, which is too slow for 50,000 queries.",
-      "Use binary lifting: precompute the 2^j-th ancestor for every node and power of two j.",
-      "Any integer k can be decomposed into powers of two; jumping using the set bits of k answers each query in O(log k) time."
-],
+      "Climbing one parent at a time is too slow when there are many queries. Could you precompute big jumps once, ahead of time?",
+      "Any number k can be built from powers of two. If you can jump by any power of two quickly, how would you combine jumps to make k?",
+      "Precompute the ancestor 2 to the power j steps up, for every node and every j. Each such jump is the previous jump applied twice. Answer each query by jumping for each set bit of k.",
+      "Edge case: if an ancestor does not exist, the jump is -1, so stop as soon as you reach -1.",
+    ],
     solution: {
       idea: [
         "Precompute a binary lifting table up[node][j], which stores the 2^j-th ancestor of node. up[node][0] is parent[node], and up[node][j] = up[up[node][j-1]][j-1].",
@@ -665,10 +680,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[1000,2000,3000],[[0,1],[1,2],[0,2]]], output: [3000,5000,6000] },
     ],
     hints: [
-      "Precomputing prefix sums allows calculating any range sum in O(1) time.",
-      "Build prefix[k] = nums[0] + nums[1] + ... + nums[k - 1] with prefix[0] = 0.",
-      "The sum from index left to right is simply prefix[right + 1] - prefix[left]."
-],
+      "The array never changes. What could you compute once that makes each query quick?",
+      "A sum over a range can be written as a difference of two running totals. Which two totals?",
+      "Build an array of running totals once. Each query is then the total up to the right end minus the total just before the left end.",
+      "Edge case: use an array one longer than the input, so the empty prefix is zero and the right end plus one is always valid.",
+    ],
     solution: {
       idea: [
         "Compute the prefix sum array pref of size n + 1 where pref[i] represents the sum of the first i elements.",
@@ -709,10 +725,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[10,20,30],[[2,0,0],[2,1,1],[2,2,2]]], output: [10,20,30] },
     ],
     hints: [
-      "A simple array gives O(1) update but O(n) query; a prefix sum array gives O(1) query but O(n) update.",
-      "A Binary Indexed Tree (Fenwick tree) or Segment Tree balances both operations in O(log n) time.",
-      "When updating nums[index] = val, compute delta = val - nums[index], update the tree with delta, and set nums[index] = val."
-],
+      "A plain array makes updates easy but queries slow, and running totals do the opposite. Is there a structure that balances both?",
+      "A Fenwick tree stores partial sums over ranges whose lengths are powers of two. How do you walk its indexes for an update, and for a prefix query?",
+      "When you change a value, the change is a difference. Add that difference into the tree along the update path, and store the new value in the array as well.",
+      "Edge case: the tree uses 1-based indexes, so shift the input index by one.",
+    ],
     solution: {
       idea: [
         "Implement a Binary Indexed Tree (BIT) / Fenwick Tree of size n + 1.",
@@ -748,10 +765,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [")()((()()))())("], output: 12 },
     ],
     hints: [
-      "A stack can track the indices of unmatched parentheses.",
-      "Push -1 onto the stack initially as a baseline reference for valid substrings starting from index 0.",
-      "For '(', push its index. For ')', pop the top index; if the stack becomes empty, push the current index as the new baseline, otherwise the valid length ending here is current_index - stack.top()."
-],
+      "A valid substring has to be matched in pairs. How could you remember where unmatched brackets sit as you scan?",
+      "Keep the positions of unmatched brackets on a stack. Which position should mark the start of a valid run when the stack is empty?",
+      "Push the index of each open bracket. On a close bracket, pop; if the stack is now empty, that index becomes the new start. Otherwise the valid length is the current index minus the top.",
+      "Edge case: push a sentinel index before the start, so the first valid substring is measured correctly.",
+    ],
     solution: {
       idea: [
         "Use a stack to keep indices. Initialize the stack with -1, which acts as the boundary before the first character.",
@@ -788,10 +806,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[["0","1","1"],["1","1","1"],["0","1","0"]]], output: 4 },
     ],
     hints: [
-      "Treat each row of the matrix as the base of a histogram.",
-      "Maintain a height array: if matrix[r][c] is '1', increment height[c]; if it is '0', reset height[c] to 0.",
-      "For each row, calculate the largest rectangle in the resulting histogram using a monotonic stack (like LeetCode 84)."
-],
+      "A rectangle of 1s has a bottom row. Could you treat each row as the floor of a histogram?",
+      "For each column, how many 1s are stacked up to this row? That count is a bar height. What does a 0 do to the bar?",
+      "Keep the bar heights per column and update them row by row. For each row, find the largest rectangle under the histogram using a monotonic stack.",
+      "Edge case: an empty matrix has area 0, and a sentinel zero height at the end of each row empties the stack.",
+    ],
     solution: {
       idea: [
         "Maintain a height array of length cols, where height[c] represents the number of consecutive '1's ending at the current row in column c.",
@@ -827,10 +846,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
     ],
     unordered: true,
     hints: [
-      "Use backtracking to construct valid combinations character by character.",
-      "At any point, we can add an open parenthesis '(' if we have used fewer than n open parentheses.",
-      "We can add a closing parenthesis ')' only if the number of closing parentheses used is strictly less than the number of opening parentheses used."
-],
+      "Build each answer one character at a time. Is there a rule about what each next character may be, so that every string you build can still be completed?",
+      "Count how many opening and closing brackets you have used so far. When may you add an opening bracket, and when may you add a closing one?",
+      "Backtrack with those two counts. Only extend a prefix while it stays valid, so every finished string is well formed and nothing needs checking at the end.",
+      "Edge case: the base case fires as soon as the built string reaches 2n characters, so check it first.",
+    ],
     solution: {
       idea: [
         "Backtrack by tracking the count of open '(' and close ')' parentheses used so far.",
@@ -866,10 +886,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[9,1,4,7,3,-1,0,5,8,-1,6]], output: 7 },
     ],
     hints: [
-      "Inserting all elements into a hash set allows O(1) average-time lookups.",
-      "To avoid duplicate work, only start counting a streak from a number x if x - 1 is not in the set.",
-      "If x - 1 is absent, x is the beginning of a streak; check for x + 1, x + 2, and so on."
-],
+      "Sorting would take n log n time, which is too slow. Is there a way to check whether a number is present in constant time?",
+      "A number starts a run only if the number just below it is missing. Why does this stop you from walking the same run many times?",
+      "Put all numbers in a hash set. From each start, count upwards while the next number is in the set, and keep the longest run.",
+      "Edge case: duplicates must not inflate a run. The set handles this, and an empty input gives 0.",
+    ],
     solution: {
       idea: [
         "Insert all numbers into an unordered_set to achieve O(1) lookups and eliminate duplicates.",
@@ -908,10 +929,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: ["goalspecial",["go","goal","goals","special"]], output: true },
     ],
     hints: [
-      "Define dp[i] as whether the prefix s[0..i - 1] can be segmented using dictionary words.",
-      "Base case: dp[0] = true for an empty prefix.",
-      "For each i from 1 to n, dp[i] is true if there exists some j < i such that dp[j] is true and the substring s[j..i - 1] exists in wordDict."
-],
+      "Ask about prefixes of the string. Can a prefix be split into dictionary words, and how does a longer prefix depend on shorter ones?",
+      "The empty prefix is trivially fine. For a longer prefix, what must the last word look like?",
+      "Store one boolean per prefix length. A prefix is valid if some shorter valid prefix is followed by a dictionary word. Put the dictionary in a hash set for fast lookup.",
+      "Edge case: the same dictionary word may be reused, so words must not be removed after use.",
+    ],
     solution: {
       idea: [
         "Store the words in an unordered_set for O(1) average lookup.",
@@ -949,10 +971,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
       { input: [[[0,1,2,3],[7,6,5,4]]], output: 8 },
     ],
     hints: [
-      "Since the path must be strictly increasing, there can never be any cycles in the movement graph.",
-      "This forms a Directed Acyclic Graph (DAG), meaning we can solve it using depth-first search with memoization.",
-      "memo[r][c] caches the length of the longest increasing path starting at cell (r, c)."
-],
+      "Each step must be strictly larger than the last one. Can a path ever loop back onto a cell it has already used?",
+      "Because the moves never cycle, the longest path from one cell never changes. What could you save the first time you compute it?",
+      "Run a depth-first search from each cell and store the best length found from each cell in a table. Reuse the stored value whenever a later path reaches that cell.",
+      "Edge case: a single cell is a path of length one, so every stored value is at least one.",
+    ],
     solution: {
       idea: [
         "Because path transitions must strictly increase in cell value, the grid forms a Directed Acyclic Graph (DAG) with no cycles.",
@@ -990,10 +1013,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
     ],
     unordered: true,
     hints: [
-      "For each element in nums, we have two choices: include it in the current subset or exclude it.",
-      "You can generate all subsets using recursion / backtracking, or by iterating over all bitmasks from 0 to 2^n - 1.",
-      "With a bitmask, the ith bit indicates whether nums[i] is part of the subset."
-],
+      "For each element there are two choices: include it or exclude it. How many subsets does that give in total?",
+      "If you number the elements, a subset is a yes or no answer for each position. What could a binary number of that length represent?",
+      "Loop over all numbers from zero up to a power of two. Bit i of the number tells you whether to include element i.",
+      "Edge case: the empty subset is included, and it corresponds to the number zero.",
+    ],
     solution: {
       idea: [
         "Iterate through all binary numbers from 0 to 2^n - 1.",
@@ -1031,10 +1055,11 @@ export const LEETCODE_SPECS_9: ProblemSpec[] = [
     ],
     unordered: true,
     hints: [
-      "Use backtracking: place each available number in the first position, then permute the remaining numbers.",
-      "An in-place approach swaps the current element with each subsequent element, recurses, and then swaps back.",
-      "When the recursion reaches the end of the array, add the current permutation to the result."
-],
+      "Build the answer position by position. At each position, how many choices are left?",
+      "Each remaining number can take the current position once. How can you keep track of the choices without any extra arrays?",
+      "Swap each remaining element into the current position, recurse for the next position, then swap back. Record a copy when every position is filled.",
+      "Edge case: a single element has exactly one permutation, and the array must be restored after each swap.",
+    ],
     solution: {
       idea: [
         "Use recursive backtracking with element swapping.",

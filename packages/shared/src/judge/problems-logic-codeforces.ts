@@ -27,9 +27,9 @@ export const LOGIC_SPECS_CODEFORCES: ProblemSpec[] = [
       { input: [100], output: true },
     ],
     hints: [
-      "The two even parts add up to w, so what can you say about w itself?",
-      "A sum of two even numbers is even, so w must be even.",
-      "But each part must be positive, so w = 2 is not enough (it would be 2 + 0). The answer is w even and w greater than 2.",
+      "Think about the sum of two even numbers. Does it have a particular parity?",
+      "Both parts must be positive and even, so what is the smallest total they can make? What must w be for a split to exist?",
+      "Check that w is even and that w is greater than 2.",
     ],
     solution: {
       idea: [
@@ -70,9 +70,10 @@ public:
       { input: [10000000,9999999,3], output: 11111112222222 },
     ],
     hints: [
-      "Look at one side at a time. How many stones are needed to cover a length of n metres with stones of length a?",
-      "That is n / a rounded up (the last stone may stick out). Integer rounding up: (n + a - 1) / a.",
-      "The two directions are independent, so multiply the counts. The product can reach 10^14: use a 64-bit type.",
+      "Cover each side separately. How many stones of length a are needed to cover one side of length n?",
+      "Covering a side may need one stone that overhangs. How do you round up in integer arithmetic?",
+      "Round each side up as (length plus a minus 1) divided by a, then multiply the two counts.",
+      "The product can reach about 10^14, so use 64-bit integers before multiplying.",
     ],
     solution: {
       idea: [
@@ -116,9 +117,9 @@ public:
       { input: [[[0,0,0],[0,0,0]]], output: 0 },
     ],
     hints: [
-      "Handle one row at a time and decide whether it counts.",
-      "Add up the three numbers of a row.",
-      "A row counts when its sum is at least 2. Count the rows that pass.",
+      "Each problem depends only on its own row. Can you decide each row on its own?",
+      "A row counts when at least two of its three answers are 1. How can you count the 1s in a row?",
+      "Add the three values of each row and count the rows where the sum is at least 2.",
     ],
     solution: {
       idea: [
@@ -163,9 +164,10 @@ public:
       { input: [[100,50,50,50,10],2], output: 4 },
     ],
     hints: [
-      "Find the score of the participant in k-th place (index k - 1).",
-      "Everybody with a score at least that big gets through, as long as the score is more than zero.",
-      "Count the entries with scores[i] >= scores[k - 1] and scores[i] > 0.",
+      "The scores are already sorted from highest to lowest. What does that tell you about who gets promoted?",
+      "The k-th place score is a threshold. Who scores at or above it, and do zero scores matter?",
+      "Find the score at place k, then count the participants whose score is at least that and greater than zero.",
+      "If the threshold is zero, nobody with a zero score is promoted. Since the list is sorted, you can stop at the first score below the threshold.",
     ],
     solution: {
       idea: [
@@ -210,9 +212,10 @@ public:
       { input: [5,7], output: 17 },
     ],
     hints: [
-      "Each domino covers two squares. What is an upper bound for the number of dominoes?",
-      "At most (m * n) / 2, rounded down. Can you always reach it?",
-      "Yes: fill the board row by row with horizontal dominoes. If a row has odd length, pair the left-over squares vertically across rows, leaving at most one square empty. The answer is m * n / 2 (integer division).",
+      "Each domino covers two squares. What is the most dominoes you could fit, even in theory?",
+      "Could you always reach that bound? Think about tiling rows with horizontal dominoes and what odd sizes do.",
+      "Multiply the two sizes and halve the total with integer division, rounding down.",
+      "Use 64-bit integers for the product, to be safe.",
     ],
     solution: {
       idea: [
@@ -252,9 +255,10 @@ public:
       { input: [[[0,0,0,0,1],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]], output: 4 },
     ],
     hints: [
-      "Find where the 1 is: its row r and column c.",
-      "A row swap moves the 1 one row up or down; a column swap moves it one column left or right. The two kinds of moves are independent.",
-      "The answer is the distance of r from 2 plus the distance of c from 2: |r - 2| + |c - 2|.",
+      "Only the position of the single 1 matters. Where is it, and where does it need to go?",
+      "A row swap and a column swap change different coordinates. How many steps does each coordinate need?",
+      "Add the distance of the row from the middle row to the distance of the column from the middle column.",
+      "Scan the grid to find the 1, then take the absolute differences from the centre cell at row 2, column 2.",
     ],
     solution: {
       idea: [
@@ -300,9 +304,10 @@ public:
       { input: [2,5,10], output: 105 },
     ],
     hints: [
-      "First work out the total price of the w bananas.",
-      "The price is k * (1 + 2 + ... + w) = k * w * (w + 1) / 2.",
-      "The answer is max(0, total - n). The total can reach about 5 * 10^14, so use 64-bit integers.",
+      "The price of each banana grows by a fixed amount. Can you find the total without adding the prices one by one?",
+      "The total is k times the sum of the consecutive whole numbers from 1 to w.",
+      "Use the formula for the sum of consecutive whole numbers, multiply by the unit price, then subtract the money he has, with zero as the floor.",
+      "The total can reach about 5 * 10^14, so use 64-bit integers, and compute w times w plus 1 before dividing by 2.",
     ],
     solution: {
       idea: [
@@ -347,9 +352,10 @@ public:
       { input: [[3,2,2,1,1,1]], output: 3 },
     ],
     hints: [
-      "Count how many groups of each size 1, 2, 3 and 4 there are. Only the counts matter, not the order.",
-      "Groups of 4 fill a taxi alone. A group of 3 can share only with a group of 1, so pair each 3 with a 1 while you have both.",
-      "Pair groups of 2 with each other (two per taxi). If one 2 is left over, it can take up to two 1s with it. Remaining 1s go four per taxi.",
+      "Groups cannot be split, so each group is one unit. Which group sizes can share a taxi with which?",
+      "Only the number of groups of each size matters. Which sizes fill a taxi by themselves, and which can pair with others?",
+      "Give each group of four its own taxi, pair each three with a one, then pair the twos with each other and use the leftover room for ones.",
+      "A single leftover group of two can take up to two ones. The remaining ones fill taxis of four, so divide by four and round up.",
     ],
     solution: {
       idea: [
@@ -404,9 +410,10 @@ public:
       { input: [[2,2,1,3,2,2,1,3],2], output: 2 },
     ],
     hints: [
-      "The sum of every block of k planks is needed, but adding k numbers for each of n starts costs O(n * k).",
-      "Consecutive blocks overlap: the sum of the next block is the previous sum, plus the plank that enters, minus the plank that leaves.",
-      "Slide the window and remember the first start where the sum is strictly smaller than the best so far (so the smallest start wins ties).",
+      "Adding up every block of k planks from scratch repeats a lot of work. What do two neighbouring blocks have in common?",
+      "Moving the block one step changes only two planks: one enters and one leaves. How can you update the sum with that?",
+      "Slide a window of length k, adjusting the sum by the entering plank minus the leaving plank, and track the smallest sum seen.",
+      "Update the best only on a strictly smaller sum, so the earliest start wins ties, and convert the 0-based start to a 1-based one.",
     ],
     solution: {
       idea: [
@@ -457,9 +464,10 @@ public:
       { input: [[1000000000,1,1000000000]], output: 2 },
     ],
     hints: [
-      "Walk through the list once, remembering the length of the current good block.",
-      "If a[i] >= a[i - 1], the block grows by one; otherwise a new block of length 1 starts at i.",
-      "Keep the largest block length seen. A single pass is enough.",
+      "You need the longest run of consecutive days with no drop. Does the answer depend on anything beyond each day and the day before it?",
+      "Only the comparison between each day and the day before matters. When does a run continue, and when does it break?",
+      "Walk the list once, keeping the current run length and the best length. Extend the run when a day is not lower than the day before, otherwise reset it to 1.",
+      "Equal neighbours count as non-decreasing, so they extend the run.",
     ],
     solution: {
       idea: [
@@ -507,9 +515,10 @@ public:
       { input: [7,4,3,10], output: 19 },
     ],
     hints: [
-      "Think about how many special tickets you buy: k of them cover k * m rides.",
-      "The remaining rides n - k * m (if positive) are paid either with single tickets or with one more special ticket.",
-      "Try the options: only single tickets, only special tickets (rounded up), and full special tickets plus single tickets for the remainder. Take the cheapest.",
+      "Compare the price of a special ticket with the price of single tickets for the same number of rides. When is the special one worth it?",
+      "The cheapest plan uses only a few options: all singles, some full bundles plus singles, or one extra bundle to cover the rest.",
+      "Compute each option directly with division and remainder, then take the minimum. Do not overlook rounding up to one more bundle.",
+      "Use 64-bit integers, since the price of many rides can be large. The options are closed form, so no loop is needed.",
     ],
     solution: {
       idea: [
@@ -554,9 +563,10 @@ public:
       { input: [5,5], output: 6 },
     ],
     hints: [
-      "In each block of n numbers (1..n, n+1..2n, ...) exactly n - 1 are not divisible by n.",
-      "So the k-th good number sits in block (k - 1) / (n - 1), counting blocks from 0. Skipped numbers before it: one for each full block.",
-      "The answer is k + (k - 1) / (n - 1): k itself, plus one skipped multiple of n for every complete group of n - 1 good numbers before it. Use 64 bits.",
+      "In each block of n consecutive numbers, which ones are skipped?",
+      "Each full group of n minus 1 allowed numbers includes exactly one skipped multiple. How many skipped numbers come before the k-th allowed one?",
+      "Count how many full groups of n minus 1 come before k, and add that count to k directly.",
+      "Use 64-bit integers, since k can be large.",
     ],
     solution: {
       idea: [
@@ -598,9 +608,10 @@ public:
       { input: [96], output: true },
     ],
     hints: [
-      "Remove all factors of 2 from n by dividing while n is even. What is left?",
-      "What is left is odd. If it is greater than 1, that value is an odd divisor of n.",
-      "So n has no odd divisor greater than 1 exactly when n is a power of two. Test that with a bit trick: n & (n - 1) == 0.",
+      "Think about which numbers have no odd divisor greater than 1 at all. What do they look like?",
+      "If you strip all factors of 2 from n, what is left? When is nothing left except 1?",
+      "A power of two has exactly one set bit in binary, so n AND (n minus 1) is zero exactly for powers of two.",
+      "Answer true when n is not a power of two. Treat n = 1 as a power of two, since it has no odd divisor above 1.",
     ],
     solution: {
       idea: [

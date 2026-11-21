@@ -28,9 +28,9 @@ export const LEETCODE_SPECS_4: ProblemSpec[] = [
       { input: [[1, 2, 0, 1]], output: true },
     ],
     hints: [
-      "You do not need to know the exact path, only whether the end is reachable.",
-      "Keep the farthest index you can reach so far. If you ever stand on an index beyond that, you are stuck.",
-      "Walk i from 0. If i > farthest, return false. Otherwise farthest = max(farthest, i + nums[i]). If farthest reaches the last index, return true.",
+      "You do not need the actual path, only whether the end can be reached. What single number summarises your reach so far?",
+      "The farthest position reachable so far. If you ever stand beyond it, you are stuck.",
+      "Walk forward and update the farthest reach with position plus jump length. Stop with true once the reach covers the last position; return false if you pass the reach.",
     ],
     solution: {
       idea: [
@@ -81,9 +81,9 @@ public:
       { input: [[1, 2, 1, 1, 1]], output: 3 },
     ],
     hints: [
-      "Think in rounds. After j jumps, which positions can you be on?",
-      "A contiguous range from 0 to some farthest index. The next jump extends it to the farthest index reachable from anywhere in the current range.",
-      "Keep curEnd (the end of the range reachable with the current number of jumps) and farthest (the best reach seen). When i passes curEnd, you must take another jump: jumps++ and curEnd = farthest.",
+      "Think in rounds. After one jump, which positions can you reach? After two?",
+      "Each round covers a contiguous range of positions. The next round extends that range to the farthest point reachable from anywhere in the current one.",
+      "Track the end of the current round and the farthest reach. When your scan reaches the end of the round, take another jump and set the new round's end to the farthest reach.",
     ],
     solution: {
       idea: [
@@ -136,9 +136,9 @@ public:
       { input: [5, 1], output: 1 },
     ],
     hints: [
-      "To arrive at a cell you came from the cell above or the cell to the left.",
-      "So paths(r, c) = paths(r - 1, c) + paths(r, c - 1), with paths = 1 along the first row and first column.",
-      "You only need the previous row. Keep one array of n values and update it row by row: dp[c] += dp[c - 1]. (There is also a closed form: choose which of the m + n - 2 moves are the downs, C(m + n - 2, m - 1).)",
+      "To reach a cell, which cells could you have come from just before it?",
+      "Only from above or from the left. So the number of paths to a cell is the sum of the paths to those two cells, with 1 along the edges.",
+      "Keep one row of counts and update it row by row, adding the left neighbour into each cell. A direct count of which moves go down also works.",
     ],
     solution: {
       idea: [
@@ -186,9 +186,9 @@ public:
       { input: [[[9, 1, 4, 8]]], output: 22 },
     ],
     hints: [
-      "The cheapest way to reach a cell comes from the cheaper of the cell above and the cell to its left.",
-      "best(r, c) = grid[r][c] + min(best(r - 1, c), best(r, c - 1)). The first row and first column have only one way in.",
-      "Fill the table row by row. You can reuse the grid itself to store the results if you may change it, or keep a single rolling row.",
+      "The cheapest way to reach a cell must come through one of its two possible predecessors. Which one should it be?",
+      "The cheaper of the cell above and the cell to the left, plus this cell's own cost. The top row and left column have only one way in.",
+      "Fill the grid row by row, reusing it as the table if you may change it, or keep a single row of costs.",
     ],
     solution: {
       idea: [
@@ -242,9 +242,9 @@ public:
       { input: ["aggtab", "gxtxayb"], output: 4 },
     ],
     hints: [
-      "Compare the last characters of the two strings. What follows if they are equal? If they are different?",
-      "Equal: they can both be part of the answer, so 1 + LCS of both strings without their last character. Different: drop one of the two and take the better result.",
-      "dp[i][j] is the LCS of the first i characters of text1 and the first j of text2. dp[i][j] = dp[i-1][j-1] + 1 if the characters match, else max(dp[i-1][j], dp[i][j-1]). Row 0 and column 0 are all 0.",
+      "Compare the last characters of the two strings. What follows when they match, and what follows when they differ?",
+      "A match adds one to the answer for the shorter strings. A mismatch means dropping one character from either string, and you keep the better result.",
+      "Fill a table where each cell is the answer for the first i and first j characters. Match: the diagonal cell plus one. Mismatch: the larger of the cell above and the cell to the left.",
     ],
     solution: {
       idea: [
@@ -297,8 +297,8 @@ public:
     ],
     hints: [
       "Compare the last characters of the two words. If they are equal, what does that cost?",
-      "Nothing: you only need to fix the shorter prefixes. If they differ, you have three choices (insert, delete, replace), and each leaves a smaller problem.",
-      "dp[i][j] is the distance between the first i characters of word1 and the first j of word2. Equal characters: dp[i-1][j-1]. Different: 1 + min(dp[i-1][j] (delete), dp[i][j-1] (insert), dp[i-1][j-1] (replace)). Base cases: dp[i][0] = i and dp[0][j] = j.",
+      "Nothing: only the shorter prefixes remain. If they differ, you can insert, delete or replace, and each choice leaves a smaller problem.",
+      "Fill a table of prefix distances. Matching characters copy the diagonal value. Otherwise take one plus the smallest of the cell above, the cell to the left and the diagonal. The first row and column are just counts.",
     ],
     solution: {
       idea: [
@@ -352,9 +352,9 @@ public:
       { input: [[5, 1, 5, 2, 5, 3]], output: 3 },
     ],
     hints: [
-      "Let best[i] be the length of the longest increasing subsequence that ends at position i. How do you get it from earlier positions?",
-      "Look at every earlier j with nums[j] < nums[i] and take the largest best[j], plus 1. That is O(n^2) and enough here.",
-      "For O(n log n): keep an array tails where tails[k] is the smallest possible last value of an increasing subsequence of length k + 1. For each number, binary search the first tail that is >= it and replace that tail (or append if none). The final size of tails is the answer.",
+      "Let the best value at a position be the longest increasing run that ends there. How could you compute it from earlier positions?",
+      "Compare with every earlier smaller value and extend the best run found there. That works, but a faster method exists.",
+      "Keep a list where each entry is the smallest possible last value of a run of each length. For each number, binary search for its place in the list and replace that entry, or append. The list length is the answer.",
     ],
     solution: {
       idea: [
@@ -404,9 +404,9 @@ public:
       { input: [[1, 1, 1, 1, 1, 1, 1]], output: false },
     ],
     hints: [
-      "If the total is odd, it is impossible. Otherwise, what are you looking for?",
-      "A subset that adds up to exactly total / 2. The rest then adds up to the other half automatically.",
-      "Subset-sum DP: reach[s] is true if some subset sums to s. Start with reach[0] = true. For each number x, update s from target down to x: reach[s] |= reach[s - x]. Going downwards ensures each number is used at most once.",
+      "When can two equal halves be made at all? Look at the total first.",
+      "The total must be even, and you need a group that adds up to exactly half the total. The rest then makes the other half.",
+      "Build a table of which sums are reachable. For each number, go down from the target to that number and mark a sum as reachable if the sum minus the number is reachable. Going downward stops any number being reused.",
     ],
     solution: {
       idea: [
@@ -461,9 +461,9 @@ public:
       { input: [8, [3, 5]], output: 1 },
     ],
     hints: [
-      "This is not the same as the fewest-coins problem: you are counting ways, and order must not matter.",
-      "To avoid counting 2+1 and 1+2 twice, decide coin by coin: for each coin, how many of it are used.",
-      "ways[a] = number of combinations making amount a. Start with ways[0] = 1. For each coin c in turn (outer loop), for a from c up to amount (inner loop): ways[a] += ways[a - c]. Putting the coins in the outer loop is what makes it count combinations, not sequences.",
+      "This counts ways, not coins, and the order of the coins must not matter. How do you avoid counting 2 then 1 and 1 then 2 as two different ways?",
+      "Decide coin by coin: handle all uses of one coin before moving to the next. That fixes the order, so each combination is counted once.",
+      "Keep a table of ways, starting with one way for amount zero. For each coin in turn, go upward through the amounts and add the ways for the amount minus that coin.",
     ],
     solution: {
       idea: [
@@ -513,9 +513,9 @@ public:
       { input: [[1, 10, 1, 10]], output: 18 },
     ],
     hints: [
-      "With unlimited trades, what is the profit of a rising stretch like 1, 3, 6?",
-      "Buying at 1 and selling at 6 earns 5, which equals the sum of the daily rises (3 - 1) + (6 - 3).",
-      "So add every day-over-day increase: for each i, if prices[i] > prices[i - 1], add the difference. Falling days add nothing, because you would simply not hold the stock then.",
+      "With unlimited trades, what is the profit of a rising stretch of prices, such as 1, 3, 6?",
+      "Buying at the start and selling at the end gives the same total as adding up the small rises between each pair of days.",
+      "Add up every day-over-day increase. Falling days add nothing, because you simply do not hold the stock on those days.",
     ],
     solution: {
       idea: [
@@ -567,8 +567,8 @@ public:
     ],
     hints: [
       "Decode from the left. At each position, how many ways can the next code be formed?",
-      "One digit (1 to 9) or two digits (10 to 26). A 0 can only be part of 10 or 20.",
-      "dp[i] is the number of ways to decode the first i characters. dp[i] += dp[i-1] if s[i-1] is not '0'; dp[i] += dp[i-2] if the two digits s[i-2..i-1] form a number from 10 to 26. dp[0] = 1.",
+      "One digit from 1 to 9, or two digits from 10 to 26. A zero can only be part of 10 or 20, and a leading zero is invalid.",
+      "Track the number of ways for the last two prefixes. Add the previous count when the single digit is valid, and add the count from two back when the pair is valid. Two variables are enough.",
     ],
     solution: {
       idea: [
@@ -622,9 +622,9 @@ public:
       { input: [[0, 0, 0], [0, 0, 0]], output: 0 },
     ],
     hints: [
-      "If the total gas is less than the total cost, no start works. What if it is at least as much?",
-      "Then a start exists. Consider trying to start at station 0 and drive; if the tank goes negative at station j, what does that say about stations 0..j as starts?",
-      "None of them can work (each reaches j with at least as much fuel as starting at 0 would have, and still fails). So restart from j + 1 with an empty tank. Track the total balance separately to decide between the found start and -1.",
+      "If the total fuel is less than the total cost, no start can work. What can you conclude if the fuel is at least that much?",
+      "A start exists. Begin at station 0 and drive; the first point where the tank runs dry tells you which starts can be skipped.",
+      "When the tank goes negative at station j, no station from the start up to j can work. Restart at j+1 with an empty tank, and track the overall balance to decide at the end.",
     ],
     solution: {
       idea: [
