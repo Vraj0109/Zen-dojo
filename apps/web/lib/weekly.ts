@@ -1,7 +1,8 @@
 import "server-only";
 import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
-import { PROBLEMS, TOTAL_WEEKS, addDays, startOfWeek, toLocalDate } from "@habit/shared";
+import { TOTAL_WEEKS, addDays, startOfWeek, toLocalDate } from "@habit/shared";
+import { getRoadmapProblems } from "./content-repo/lookups";
 import { getDb } from "./db";
 import { getPlanPosition } from "./tasks";
 import { xpEvents } from "./progress";
@@ -112,7 +113,8 @@ export async function saveReflection(monday: string, input: Reflection): Promise
 async function topSiteProblems(monday: string, limit = 5) {
   const rows = (await siteTimeInRange(monday, addDays(monday, 6))).slice(0, limit);
   if (rows.length === 0) return [];
-  const bySlug = new Map(Object.entries(PROBLEMS).flatMap(([id, p]) => (p.slug ? [[p.slug, { id, title: p.title }] as const] : [])));
+  const roadmap = await getRoadmapProblems();
+  const bySlug = new Map(Object.entries(roadmap).flatMap(([id, p]) => (p.slug ? [[p.slug, { id, title: p.title }] as const] : [])));
   const db = await getDb();
   const extras = new Map((await db.select().from(leetcodeProblems)).map((e) => [e.slug, e.title]));
   return rows.map((r) => {

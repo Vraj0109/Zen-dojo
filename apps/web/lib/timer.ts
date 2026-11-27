@@ -1,6 +1,7 @@
 import "server-only";
 import { eq, sql } from "drizzle-orm";
-import { ALL_CONCEPTS, ALL_EXERCISES, ALL_PATTERNS, toLocalDate } from "@habit/shared";
+import { toLocalDate } from "@habit/shared";
+import { getAllConcepts, getAllExercises, getAllPatterns } from "@/lib/content-repo/lookups";
 import { getDb } from "./db";
 import { focusSessions } from "./schema";
 import { isProblemId } from "./struggles";
@@ -13,13 +14,16 @@ export const BOSS_ITEM = "boss";
 
 /** Timer id for studying a DSA pattern guide (/dsa/pattern/[id]). */
 export const patternTimerId = (patternId: string) => `pattern:${patternId}`;
-const patternTimerIds = new Set(ALL_PATTERNS.map((p) => patternTimerId(p.id)));
 
-export const isTimerItem = (id: string) =>
-  isProblemId(id) || id in ALL_CONCEPTS || id in ALL_EXERCISES || id === BOSS_ITEM || patternTimerIds.has(id);
+/** Whether an id can take focus minutes: a problem, a concept, an exercise, the boss fight or a pattern guide. */
+export async function isTimerItem(id: string): Promise<boolean> {
+  if (isProblemId(id) || id === BOSS_ITEM) return true;
+  const [concepts, exercises, patterns] = await Promise.all([getAllConcepts(), getAllExercises(), getAllPatterns()]);
+  return id in concepts || id in exercises || patterns.some((p) => patternTimerId(p.id) === id);
+}
 
 export async function logFocus(itemId: string, minutes: number): Promise<boolean> {
-  if (!isTimerItem(itemId) || !Number.isFinite(minutes)) return false;
+  if (!(await isTimerItem(itemId)) || !Number.isFinite(minutes)) return false;
   const m = Math.min(Math.round(minutes), FOCUS_MAX_MINUTES);
   if (m < 1) return false;
   const db = await getDb();

@@ -1,25 +1,10 @@
-import { callList, designProblem, rng, seq } from "./design";
+import { designProblem, seq } from "./design";
 import type { ProblemSpec } from "./types";
 
 // "Design a class" problems, part 2: snapshots, calendars, a random set and a small Twitter. See problems-design-a.ts for
 // how a test is written. The expected answers below were checked by running the C++ reference.
 
-const between = (r: () => number, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1));
-
 const CALLS = "Each test gives the operations in order (the class name first, then method names) and their arguments; the expected answer has one entry per operation, with null for the constructor and for methods that return nothing.";
-
-/** Random bookings [start, end) inside 0..limit, each at most maxLen long. */
-function bookings(seed: number, className: string, n: number, limit: number, maxLen: number) {
-  const r = rng(seed);
-  const ops: string[] = [className];
-  const args: unknown[][] = [[]];
-  for (let i = 0; i < n; i++) {
-    const start = between(r, 0, limit - maxLen - 1);
-    ops.push("book");
-    args.push([start, start + between(r, 1, maxLen)]);
-  }
-  return callList(ops, args);
-}
 
 export const DESIGN_SPECS_B: ProblemSpec[] = [
   designProblem({
@@ -93,24 +78,6 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "50000 elements, 100000 sets, snaps and gets",
-        make: () => {
-          const r = rng(1146);
-          const ops: string[] = ["SnapshotArray"];
-          const args: unknown[][] = [[50000]];
-          let snaps = 0;
-          for (let i = 0; i < 99999; i++) {
-            const x = r();
-            if (x < 0.45) { ops.push("set"); args.push([between(r, 0, 49999), between(r, 0, 1000000000)]); }
-            else if (x < 0.55 || snaps === 0) { ops.push("snap"); args.push([]); snaps++; }
-            else { ops.push("get"); args.push([between(r, 0, 49999), between(r, 0, snaps - 1)]); }
-          }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 
   designProblem({
@@ -166,7 +133,6 @@ public:
 };
 `,
     },
-    stress: [{ label: "100000 short bookings in a wide range", make: () => bookings(729, "MyCalendar", 100000, 1000000000, 50000) }],
   }),
 
   designProblem({
@@ -226,7 +192,6 @@ public:
 };
 `,
     },
-    stress: [{ label: "1000 bookings that often overlap", make: () => bookings(731, "MyCalendarTwo", 1000, 100000, 3000) }],
   }),
 
   designProblem({
@@ -285,7 +250,6 @@ public:
 };
 `,
     },
-    stress: [{ label: "400 bookings that often overlap", make: () => bookings(732, "MyCalendarThree", 400, 1000000000, 600000000) }],
   }),
 
   designProblem({
@@ -359,37 +323,6 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "200000 inserts and removes, with getRandom on one-element sets",
-        make: () => {
-          const r = rng(380);
-          const ops: string[] = ["RandomizedSet"];
-          const args: unknown[][] = [[]];
-          const present = new Set<number>();
-          while (ops.length < 200000) {
-            if (ops.length % 20000 === 0 && present.size > 0) {
-              // Drain the set down to one element and ask for it.
-              const keep = [...present][0];
-              for (const v of [...present]) {
-                if (v === keep) continue;
-                ops.push("remove");
-                args.push([v]);
-                present.delete(v);
-              }
-              ops.push("getRandom");
-              args.push([]);
-              continue;
-            }
-            const v = between(r, 0, 30000);
-            if (r() < 0.55) { ops.push("insert"); present.add(v); }
-            else { ops.push("remove"); present.delete(v); }
-            args.push([v]);
-          }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 
   designProblem({
@@ -472,29 +405,5 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "30000 calls, 500 users who follow many others",
-        make: () => {
-          const r = rng(355);
-          const ops: string[] = ["Twitter"];
-          const args: unknown[][] = [[]];
-          let tweet = 0;
-          for (let i = 0; i < 29999; i++) {
-            const x = r();
-            if (x < 0.35) { ops.push("postTweet"); args.push([between(r, 1, 500), tweet++]); }
-            else if (x < 0.65) { ops.push("getNewsFeed"); args.push([between(r, 1, 500)]); }
-            else {
-              const a = between(r, 1, 500);
-              let b = between(r, 1, 500);
-              if (b === a) b = (a % 500) + 1;
-              ops.push(x < 0.95 ? "follow" : "unfollow");
-              args.push([a, b]);
-            }
-          }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 ];

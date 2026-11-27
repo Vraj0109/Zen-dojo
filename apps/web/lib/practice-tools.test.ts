@@ -14,6 +14,50 @@ import { getConceptDetail, logPractice, rateConcept, saveConcept } from "./study
 import { getTodayView } from "./tasks";
 import { focusMinutes, logFocus, patternTimerId } from "./timer";
 
+// Content comes from the database in the app; here the repo returns the old constants (no content DB in this test).
+vi.mock("@/lib/content-repo/lookups", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getStudyAreas: async () => s.STUDY_AREAS,
+    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
+    getAllConcepts: async () => s.ALL_CONCEPTS,
+    getAllExercises: async () => s.ALL_EXERCISES,
+    getRoadmapProblems: async () => s.PROBLEMS,
+    getDsaGroups: async () => s.DSA_GROUPS,
+    getAllPatterns: async () => s.ALL_PATTERNS,
+  };
+});
+vi.mock("@/lib/content-repo/docs", async () => {
+  const s = await import("@habit/shared");
+  const values: Record<string, unknown> = {
+    reading: s.READING,
+    "revise-plan": s.LAST_DAYS_PLAN,
+    "key-numbers": s.KEY_NUMBERS,
+    "complexity-table": s.COMPLEXITY_TABLE,
+    "quiz-deck": s.QUIZ_DECK,
+    "constraint-hints": s.CONSTRAINT_HINTS,
+    "leetcode-tags": s.LEETCODE_TAGS,
+    "think-patterns": s.THINK_PATTERNS,
+    "think-signals": s.THINK_SIGNALS,
+    "reading-routine": s.READING_ROUTINE,
+    clues: s.CLUES,
+    "worked-examples": s.WORKED_EXAMPLES,
+    "optimize-moves": s.OPTIMIZE_MOVES,
+    "cp-algorithms": s.CP_ALGO_ARTICLES,
+    "dsa-problems": s.PROBLEMS,
+    "dsa-groups": s.DSA_GROUPS,
+  };
+  return {
+    getDoc: async (kind: string, id: string) => (kind in values && id === "main" ? { row: { kind, id, body: values[kind] } } : null),
+    listDocs: async (kind: string) => (kind in values ? [{ kind, id: "main", body: values[kind] }] : []),
+  };
+});
+vi.mock("@/lib/content-repo/courses", () => ({
+  listCourses: async () => [],
+  getCourse: async () => null,
+  getLesson: async () => null,
+}));
+
 const setDay = (d: number) => vi.setSystemTime(new Date(2026, 10, d, 12));
 
 beforeEach(() => {

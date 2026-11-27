@@ -1,22 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ALL_CONCEPTS, LESSONS } from "@habit/shared";
 import { revertLessonAction, saveLessonAction } from "./study-actions";
-import { requireAdmin, type Session } from "@/lib/auth/session";
+import { AdminDeniedError, requireAdminAction } from "@/lib/auth/admin";
+import { mintAdminProof } from "@/lib/auth/admin-proof";
 import { getItem } from "@/lib/content";
 import { resolveLesson } from "@/lib/packs";
 
-vi.mock("next/cache", () => ({ refresh: vi.fn(), revalidatePath: vi.fn() }));
-vi.mock("@/lib/auth/session", () => ({ requireAdmin: vi.fn() }));
+vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {}, refresh: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("@/lib/auth/admin", () => ({
+  AdminDeniedError: class AdminDeniedError extends Error {
+    constructor(message = "Not allowed.") {
+      super(message);
+      this.name = "AdminDeniedError";
+    }
+  },
+  requireAdminAction: vi.fn(),
+}));
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-const admin: Session = { userId: "a", name: "Admin", avatarUrl: null, admin: true, expiresAt: Date.now() + 3600000, sessionId: "s" };
 const ID = "lld-solid";
+const mockAdminProof = mintAdminProof("a", "Admin");
 
 beforeEach(() => {
   process.env.DATABASE_URL = ":memory:";
   delete (globalThis as { habitDb?: unknown }).habitDb;
+  delete (globalThis as { habitContentDb?: unknown }).habitContentDb;
   vi.clearAllMocks();
-  vi.mocked(requireAdmin).mockResolvedValue(admin);
+  vi.mocked(requireAdminAction).mockResolvedValue(mockAdminProof as never);
 });
 
 function form(over: Record<string, string | string[]> = {}): FormData {
@@ -35,12 +45,13 @@ function form(over: Record<string, string | string[]> = {}): FormData {
 }
 
 describe("admin lesson editing", () => {
-  it("refuses non-admins and stores nothing", async () => {
-    vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
-    await expect(saveLessonAction(null, form())).rejects.toThrow("NEXT_REDIRECT");
+  it("refuses non-admins with 'Not allowed.' and stores nothing", async () => {
+    vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
+    expect(await saveLessonAction(null, form())).toEqual({ ok: false, errors: ["Not allowed."] });
     expect(await getItem(`patch:${ID}`)).toBeNull();
-    vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
-    await expect(revertLessonAction(null, form())).rejects.toThrow("NEXT_REDIRECT");
+
+    vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
+    expect(await revertLessonAction(null, form())).toEqual({ ok: false, errors: ["Not allowed."] });
   });
 
   it("saves a patch that resolveLesson returns, keeping the order of questions", async () => {

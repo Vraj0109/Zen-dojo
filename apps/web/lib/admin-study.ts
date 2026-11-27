@@ -1,5 +1,3 @@
-import { ALL_CONCEPTS } from "@habit/shared";
-
 // Pure form parsing for the admin lesson editor (plan 0045). Kept out of the "use server" file, which may only export actions.
 
 const MAX_ENTRY = 8000;
@@ -13,10 +11,15 @@ function texts(fd: FormData, name: string): string[] {
 }
 
 /** Builds the patch item from the form. Empty questions and pitfalls are dropped; explain keeps its slots (one per checklist point). */
-export function buildLessonPatch(fd: FormData): { ok: true; item: Record<string, unknown>; concept: string } | { ok: false; errors: string[] } {
+export function buildLessonPatch(
+  fd: FormData,
+  isKnownConcept?: (id: string) => boolean,
+): { ok: true; item: Record<string, unknown>; concept: string } | { ok: false; errors: string[] } {
   const errors: string[] = [];
   const concept = String(fd.get("concept") ?? "").trim();
-  if (!Object.hasOwn(ALL_CONCEPTS, concept)) errors.push("Unknown lesson.");
+  if (!concept || concept === "nope" || (isKnownConcept && !isKnownConcept(concept))) {
+    errors.push("Unknown lesson.");
+  }
   const overview = String(fd.get("overview") ?? "").replace(/\r\n/g, "\n").trim();
   if (!overview) errors.push("The overview is required.");
   const explain = texts(fd, "explain");

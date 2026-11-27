@@ -1,7 +1,9 @@
 "use server";
 
 import { hasAccountDb, refresh, syncBeforeReadIfHosted } from "@/lib/hosted/refresh";
-import { ALL_EXERCISES, CATEGORIES, PROBLEMS, type Category } from "@habit/shared";
+import { CATEGORIES, type Category } from "@habit/shared";
+import { getAllExercises, getRoadmapProblems } from "@/lib/content-repo/lookups";
+import { getProblemSpec } from "@/lib/content-repo/problems";
 import { getProblemDetail, markSolvedManually, undoSolve } from "@/lib/dsa";
 import { getSavedSolutions, saveNote, saveSolutionFor, type SavedSolution, type SolutionLang } from "@/lib/notes";
 import { applyFreeze } from "@/lib/progress";
@@ -74,7 +76,8 @@ export async function saveNoteAction(
   const formData = (second ?? first) as FormData;
   const problemId = String(formData.get("problemId") ?? "");
   // only known DSA problems, designs and LLD problems
-  if (!(problemId in ALL_EXERCISES) && !(await getProblemDetail(problemId))) return { ok: false, error: "Unknown problem." };
+  const exercises = await getAllExercises();
+  if (!(problemId in exercises) && !(await getProblemDetail(problemId))) return { ok: false, error: "Unknown problem." };
   const result = await saveNote(problemId, {
     notes: String(formData.get("notes") ?? ""),
     code: String(formData.get("code") ?? ""),
@@ -267,7 +270,8 @@ export async function clearStruggleAction(formData: FormData) {
   const p = await getProblemDetail(problemId);
   if (!p) return;
   await clearStruggles(problemId);
-  if (problemId in PROBLEMS && p.status.state === "unsolved") await markSolvedManually(problemId);
+  const roadmap = await getRoadmapProblems();
+  if (problemId in roadmap && p.status.state === "unsolved") await markSolvedManually(problemId);
   refresh();
 }
 
@@ -332,8 +336,7 @@ export type SaveSolutionResult = { ok: true; solution: SavedSolution } | { ok: f
 export async function saveSolutionAction(problemId: string, lang: string, code: string): Promise<SaveSolutionResult> {
   if (lang !== "cpp" && lang !== "java" && lang !== "javascript" && lang !== "python") return { ok: false, error: "Unknown language." };
   if (typeof code !== "string" || code.length > 50_000) return { ok: false, error: "The code is too long to save (over 50,000 characters)." };
-  const { JUDGE_PROBLEMS } = await import("@habit/shared");
-  const known = typeof problemId === "string" && (problemId.startsWith("pack:") ? Boolean(await getPackProblemSpec(problemId)) : Boolean(JUDGE_PROBLEMS[problemId]));
+  const known = typeof problemId === "string" && (problemId.startsWith("pack:") ? Boolean(await getPackProblemSpec(problemId)) : Boolean(await getProblemSpec(problemId)));
   if (!known) return { ok: false, error: "Unknown problem." };
   const solution = await saveSolutionFor(problemId, lang as SolutionLang, code);
   refresh();

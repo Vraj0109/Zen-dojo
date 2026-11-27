@@ -33,3 +33,6 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Built by apps/desktop/scripts/prepare-server.mjs (plan 0115)
+apps/desktop/resources/content.db*

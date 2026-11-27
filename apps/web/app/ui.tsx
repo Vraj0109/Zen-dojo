@@ -409,6 +409,14 @@ export function CheckIcon({ className, label }: { className?: string; label?: st
   );
 }
 
+export function CloseIcon({ className, label }: { className?: string; label?: string }) {
+  return (
+    <Icon className={className} label={label}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </Icon>
+  );
+}
+
 // ---- status
 
 /**

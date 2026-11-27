@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PROBLEMS } from "@habit/shared";
+import { getRoadmapProblems } from "@/lib/content-repo/lookups";
 import { BOSS_MINUTES, BOSS_RESULTS, getBossView } from "@/lib/boss";
 import { BOSS_ITEM, focusMinutes } from "@/lib/timer";
 import { saveBossFightAction } from "../../actions";
@@ -40,7 +40,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
   await connection();
   const params = await searchParams;
   const reroll = Math.max(0, Math.min(1000, Number(Array.isArray(params.r) ? params.r[0] : params.r) || 0));
-  const [v, focused] = await Promise.all([getBossView(reroll), focusMinutes(BOSS_ITEM)]);
+  const [v, focused, roadmap] = await Promise.all([getBossView(reroll), focusMinutes(BOSS_ITEM), getRoadmapProblems()]);
 
   const bestMinutes = v.history.filter((h) => h.minutes).map((h) => h.minutes!).sort((a, b) => a - b)[0];
   const bestText = bestMinutes ? `Your best so far: ${bestMinutes} minutes.` : "";
@@ -76,7 +76,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
           <StatusMark state="solved" />
           <span>
             Fought today:{" "}
-            {v.foughtToday.results.map((r) => `${PROBLEMS[r.problemId]?.title ?? r.problemId} (${BOSS_RESULTS[r.result as keyof typeof BOSS_RESULTS] ?? r.result})`).join(", ")}
+            {v.foughtToday.results.map((r) => `${roadmap[r.problemId]?.title ?? r.problemId} (${BOSS_RESULTS[r.result as keyof typeof BOSS_RESULTS] ?? r.result})`).join(", ")}
             {v.foughtToday.minutes ? ` in ${v.foughtToday.minutes} min` : ""}. Another round is optional.
           </span>
         </p>
@@ -245,7 +245,7 @@ async function Boss({ searchParams }: { searchParams: PageProps<"/dsa/boss">["se
                 </div>
                 <span className="block text-muted text-xs leading-relaxed">
                   {h.results
-                    .map((r) => `${PROBLEMS[r.problemId]?.title ?? r.problemId}: ${BOSS_RESULTS[r.result as keyof typeof BOSS_RESULTS] ?? r.result}`)
+                    .map((r) => `${roadmap[r.problemId]?.title ?? r.problemId}: ${BOSS_RESULTS[r.result as keyof typeof BOSS_RESULTS] ?? r.result}`)
                     .join(" · ")}
                 </span>
                 {h.notes && <span className="block text-foreground text-xs mt-0.5">{h.notes}</span>}

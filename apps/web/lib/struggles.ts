@@ -1,6 +1,7 @@
 import "server-only";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { PROBLEMS, addDays, toLocalDate } from "@habit/shared";
+import { addDays, toLocalDate } from "@habit/shared";
+import { getRoadmapProblems } from "./content-repo/lookups";
 import { getDb } from "./db";
 import { problemStruggles } from "./schema";
 
@@ -20,11 +21,13 @@ const MAX_REASON = 500;
 
 export type StruggleRow = typeof problemStruggles.$inferSelect;
 
-/** Roadmap problems and synced LeetCode problems outside the list ("lcx-<slug>"). */
-export const isProblemId = (id: string) => id in PROBLEMS || /^lcx-[a-z0-9-]{1,100}$/.test(id);
+/** Roadmap problems and synced LeetCode problems outside the list ("lcx-<slug>"). Synchronous for timer.ts. */
+export const isProblemId = (id: string) => /^(lc-\d+[a-z]?|cses-\d+|c-[a-z0-9-]+|lcx-[a-z0-9-]+|pack:[a-z0-9-]+)$/.test(id);
 
 export async function logStruggle(problemId: string, kind: string, reason: string): Promise<boolean> {
-  if (!isProblemId(problemId) || !(kind in STRUGGLE_KINDS)) return false;
+  const roadmap = await getRoadmapProblems();
+  const valid = (problemId in roadmap) || /^lcx-[a-z0-9-]{1,100}$/.test(problemId);
+  if (!valid || !(kind in STRUGGLE_KINDS)) return false;
   const db = await getDb();
   await db.insert(problemStruggles).values({ problemId, kind, reason: reason.trim().slice(0, MAX_REASON), loggedOn: toLocalDate() });
   return true;

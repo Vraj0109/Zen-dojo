@@ -4,6 +4,66 @@ import React from "react";
 import { prerender } from "react-dom/static";
 import { ALL_PATTERNS, DSA_GROUPS } from "@habit/shared";
 
+vi.mock("@/lib/content-repo/lookups", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getStudyAreas: async () => s.STUDY_AREAS,
+    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
+    getAllConcepts: async () => s.ALL_CONCEPTS,
+    getAllExercises: async () => s.ALL_EXERCISES,
+    getRoadmapProblems: async () => s.PROBLEMS,
+    getDsaGroups: async () => s.DSA_GROUPS,
+    getAllPatterns: async () => s.ALL_PATTERNS,
+  };
+});
+
+vi.mock("@/lib/content-repo/problems", async () => {
+  const s = await import("@habit/shared");
+  type SharedContent = typeof s & {
+    INTERVIEW?: Record<string, { md?: string; optimal?: string }>;
+    BRUTE?: Record<string, { cpp?: string; java?: string; python?: string }>;
+  };
+  const sc = s as unknown as SharedContent;
+  return {
+    getProblemSpec: async (id: string) => s.JUDGE_PROBLEMS[id] ?? null,
+    getProblem: async (id: string) => {
+      const spec = s.JUDGE_PROBLEMS[id];
+      if (!spec) return null;
+      const iv = sc.INTERVIEW?.[id];
+      const brute = sc.BRUTE?.[id];
+      return s.problemFromSpec(spec, {
+        interviewMd: iv?.md,
+        bruteSame: iv?.optimal === "brute: same",
+        brute,
+      });
+    },
+    getSolutionPage: async (id: string) => {
+      const spec = s.JUDGE_PROBLEMS[id];
+      if (!spec) return null;
+      const iv = sc.INTERVIEW?.[id];
+      const brute = sc.BRUTE?.[id];
+      const problem = s.problemFromSpec(spec, {
+        interviewMd: iv?.md,
+        bruteSame: iv?.optimal === "brute: same",
+        brute,
+      });
+      return problem.solution;
+    },
+    listProblemSummaries: async () => {
+      return Object.values(s.JUDGE_PROBLEMS).map((p) => ({
+        id: p.id,
+        title: p.title,
+        source: p.source,
+        difficulty: p.difficulty,
+        pattern: p.pattern ?? null,
+        kind: p.kind ?? "function",
+        languages: ["cpp"],
+        hasBrute: false,
+      }));
+    },
+  };
+});
+
 vi.mock("next/server", () => ({
   connection: vi.fn().mockResolvedValue(undefined),
   after: vi.fn(),
@@ -111,7 +171,7 @@ describe("Practice /dsa tabs and searchParams regression tests", () => {
     const html1 = await renderToString(pageWithWalkthrough);
     expect(html1).toContain("Try it yourself first");
     expect(html1).toContain("Optimal approach");
-    expect(html1).toContain("Reference implementation");
+    expect(html1).toContain("Optimal");
 
     // Test with alias ?tab=interview
     const pageWithAlias = await ProblemComponent({

@@ -37,7 +37,10 @@ export default defineConfig(({ mode }) => {
     test: {
       // Tests that compile code or install packs take more than the 5 s default when the machine is busy.
       testTimeout: 30_000,
-      include: ["packages/**/*.test.ts", "apps/**/*.test.ts"],
+      include: ["packages/**/*.test.ts", "apps/**/*.test.ts", "apps/**/*.test.tsx"],
+      // Content comes from the content database (plan 0114): one is filled per run, and cache tags are no-ops.
+      globalSetup: ["./apps/web/test/content-global-setup.ts"],
+      setupFiles: ["./apps/web/test/content-setup.ts"],
       exclude: [
         "**/node_modules/**",
         "**/.next/**",

@@ -1,6 +1,39 @@
 import type { ProblemView } from "./dsa";
 import { JUDGE_PROBLEMS } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/content-repo/lookups", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getStudyAreas: async () => s.STUDY_AREAS,
+    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
+    getAllConcepts: async () => s.ALL_CONCEPTS,
+    getAllExercises: async () => s.ALL_EXERCISES,
+    getRoadmapProblems: async () => s.PROBLEMS,
+    getDsaGroups: async () => s.DSA_GROUPS,
+    getAllPatterns: async () => s.ALL_PATTERNS,
+  };
+});
+
+vi.mock("@/lib/content-repo/problems", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getProblemSpec: async (id: string) => s.JUDGE_PROBLEMS[id] ?? null,
+    listProblemSummaries: async () => {
+      return Object.values(s.JUDGE_PROBLEMS).map((p) => ({
+        id: p.id,
+        title: p.title,
+        source: p.source,
+        difficulty: p.difficulty,
+        pattern: p.pattern ?? null,
+        kind: p.kind ?? "function",
+        languages: ["cpp"],
+        hasBrute: false,
+      }));
+    },
+  };
+});
+
 import { getDsaView, markSolved } from "./dsa";
 import {
   FILTER_OPTIONS,
@@ -17,6 +50,8 @@ import {
   parseDsaSort,
   sortProblems,
   sourceLabel,
+  indexFromSpecs,
+  setJudgeTextIndex,
 } from "./dsa-filters";
 import { importFromExtension } from "./leetcode/extension";
 import { saveNote } from "./notes";
@@ -26,6 +61,7 @@ beforeEach(() => {
   delete (globalThis as { habitDb?: unknown }).habitDb;
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 10, 6, 12));
+  setJudgeTextIndex(indexFromSpecs(JUDGE_PROBLEMS));
 });
 
 afterEach(() => {

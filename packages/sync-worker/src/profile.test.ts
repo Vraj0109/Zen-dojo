@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import worker, { type Env, type D1Database, type D1PreparedStatement, type D1Result } from "./index";
-import { signAccessToken } from "./auth/jwt";
+import { signAccessToken, verifyAccessToken } from "./auth/jwt";
 import { resetGuardState } from "./guard/guard";
 
 interface Row {
@@ -136,6 +136,28 @@ describe("public profile", () => {
     expect(b.id).toBe(a.id);
     const pub = (await (await call("GET", `/api/public/u/${a.id}`)).json()) as { data: { streak: number } };
     expect(pub.data.streak).toBe(5);
+  });
+
+  it("rejects attempt to promote to admin via profile PUT and subsequent tokens still have adm: false", async () => {
+    for (const bad of [
+      { data: GOOD, admin: true },
+      { data: GOOD, adm: true },
+      { data: GOOD, role: "admin" },
+      { data: GOOD, isAdmin: true },
+      { data: { ...GOOD, admin: true } },
+      { data: { ...GOOD, adm: true } },
+      { data: { ...GOOD, role: "admin" } },
+      { data: { ...GOOD, isAdmin: true } },
+    ]) {
+      const res = await call("PUT", "/api/profile/public", tokenA, bad);
+      expect(res.status).toBe(400);
+    }
+    expect(db.rows.size).toBe(0);
+
+    // A token issued afterwards still has adm: false
+    const issued = await signAccessToken(env, { sub: "gh:1001", sid: "sA", adm: false });
+    const verified = await verifyAccessToken(issued.token, env);
+    expect(verified).toMatchObject({ sub: "gh:1001", adm: false });
   });
 
   it("rejects unknown fields (top level, nested and body)", async () => {

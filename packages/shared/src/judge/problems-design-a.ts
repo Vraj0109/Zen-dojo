@@ -1,12 +1,9 @@
-import { callList, designProblem, rng, seq } from "./design";
+import { designProblem, seq } from "./design";
 import type { ProblemSpec } from "./types";
 
 // "Design a class" problems, part 1: caches, tries and a time-based store. Each test is a list of calls and a list of
 // answers (null for the constructor and for methods that return nothing). Statements, tests and reference solutions are
 // written for this app. The expected answers of the tests below were checked by running the C++ reference.
-
-const between = (r: () => number, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1));
-const letters = (r: () => number, n: number, alphabet: number) => Array.from({ length: n }, () => String.fromCharCode(97 + between(r, 0, alphabet - 1))).join("");
 
 const CALLS = "Each test gives the operations in order (the class name first, then method names) and their arguments; the expected answer has one entry per operation, with null for the constructor and for methods that return nothing.";
 
@@ -84,31 +81,6 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "200000 mixed calls, 2000 keys, capacity 1000",
-        make: () => {
-          const r = rng(146);
-          const ops: string[] = ["LRUCache"];
-          const args: unknown[][] = [[1000]];
-          for (let i = 0; i < 200000; i++) {
-            if (r() < 0.5) { ops.push("put"); args.push([between(r, 0, 1999), between(r, 0, 1000000000)]); }
-            else { ops.push("get"); args.push([between(r, 0, 1999)]); }
-          }
-          return callList(ops, args);
-        },
-      },
-      {
-        label: "100000 puts then 100000 gets, capacity 100000",
-        make: () => {
-          const ops: string[] = ["LRUCache"];
-          const args: unknown[][] = [[100000]];
-          for (let i = 0; i < 100000; i++) { ops.push("put"); args.push([i, i]); }
-          for (let i = 0; i < 100000; i++) { ops.push("get"); args.push([i]); }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 
   designProblem({
@@ -205,21 +177,6 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "200000 mixed calls, 3000 keys, capacity 1000",
-        make: () => {
-          const r = rng(460);
-          const ops: string[] = ["LFUCache"];
-          const args: unknown[][] = [[1000]];
-          for (let i = 0; i < 200000; i++) {
-            if (r() < 0.4) { ops.push("put"); args.push([between(r, 0, 2999), between(r, 0, 1000000000)]); }
-            else { ops.push("get"); args.push([between(r, 0, 2999)]); }
-          }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 
   designProblem({
@@ -301,19 +258,6 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "50000 inserts and 50000 lookups of words up to 40 letters",
-        make: () => {
-          const r = rng(208);
-          const ops: string[] = ["Trie"];
-          const args: unknown[][] = [[]];
-          for (let i = 0; i < 50000; i++) { ops.push("insert"); args.push([letters(r, between(r, 5, 40), 3)]); }
-          for (let i = 0; i < 50000; i++) { ops.push(r() < 0.5 ? "search" : "startsWith"); args.push([letters(r, between(r, 3, 40), 3)]); }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 
   designProblem({
@@ -392,25 +336,6 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "30000 words of up to 25 letters, 20000 searches with dots",
-        make: () => {
-          const r = rng(211);
-          const ops: string[] = ["WordDictionary"];
-          const args: unknown[][] = [[]];
-          const words: string[] = [];
-          for (let i = 0; i < 30000; i++) { const w = letters(r, between(r, 3, 25), 6); words.push(w); ops.push("addWord"); args.push([w]); }
-          for (let i = 0; i < 20000; i++) {
-            const chars = (r() < 0.6 ? words[between(r, 0, words.length - 1)] : letters(r, between(r, 3, 25), 6)).split("");
-            for (let d = between(r, 0, 2); d > 0; d--) chars[between(r, 0, chars.length - 1)] = ".";
-            ops.push("search");
-            args.push([chars.join("")]);
-          }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 
   designProblem({
@@ -479,24 +404,5 @@ public:
 };
 `,
     },
-    stress: [
-      {
-        label: "100000 sets over 100 keys, then 100000 gets",
-        make: () => {
-          const r = rng(981);
-          const ops: string[] = ["TimeMap"];
-          const args: unknown[][] = [[]];
-          const clock = new Array<number>(100).fill(0);
-          for (let i = 0; i < 100000; i++) {
-            const k = between(r, 0, 99);
-            clock[k] += between(r, 1, 50);
-            ops.push("set");
-            args.push([`key${k}`, letters(r, 8, 26), clock[k]]);
-          }
-          for (let i = 0; i < 100000; i++) { ops.push("get"); args.push([`key${between(r, 0, 99)}`, between(r, 1, 2600000)]); }
-          return callList(ops, args);
-        },
-      },
-    ],
   }),
 ];

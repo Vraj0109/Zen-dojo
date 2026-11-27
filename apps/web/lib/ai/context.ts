@@ -1,8 +1,6 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import {
-  JUDGE_PROBLEMS,
-  INTERVIEW,
   buildChatMessages,
   buildLessonChatMessages,
   buildBuddyChatMessages,
@@ -12,6 +10,7 @@ import {
   type ChatMessage,
   type VisibleMessage,
 } from "@habit/shared";
+import { getProblem, getProblemSpec } from "@/lib/content-repo/problems";
 import { getDb } from "@/lib/db";
 import { problemNotes } from "@/lib/schema";
 import { lessonSource } from "@/lib/ai/lesson";
@@ -93,12 +92,12 @@ export async function buildChat(req: ChatRequest): Promise<ChatBuild> {
     return { ok: true, messages: buildBuddyChatMessages({ ...req.buddy, history: req.messages }) };
   }
   if (req.lessonId) {
-    const src = lessonSource(req.lessonId);
+    const src = await lessonSource(req.lessonId);
     if (!src) return { ok: false, error: "unknown_problem" };
     return { ok: true, messages: buildLessonChatMessages({ title: src.title, area: src.area, material: src.material, history: req.messages }) };
   }
   const problemId = req.problemId ?? "";
-  const spec = JUDGE_PROBLEMS[problemId];
+  const spec = await getProblemSpec(problemId);
   if (!spec) return { ok: false, error: "unknown_problem" };
   let code: string | undefined;
   let language: string | undefined;
@@ -109,15 +108,29 @@ export async function buildChat(req: ChatRequest): Promise<ChatBuild> {
     language = note?.language || undefined;
     if (!code && req.intent === "review") return { ok: false, error: "no_code" };
   }
-  const interview = INTERVIEW[problemId];
   const isApproachRequest = req.intent === "interview" || req.messages[req.messages.length - 1]?.content.toLowerCase().includes("approach");
   const shouldReveal = req.revealSolution || isApproachRequest;
+
+  let interviewWalkthrough: string | undefined;
+  if (shouldReveal) {
+    const contentProblem = await getProblem(problemId);
+    if (contentProblem?.solution) {
+      const parts: string[] = [];
+      for (const s of contentProblem.solution.sections) {
+        if (s.title) parts.push(`## ${s.title}`);
+        for (const b of s.blocks) {
+          if (b.type === "markdown" && b.body) parts.push(b.body);
+        }
+      }
+      if (parts.length > 0) interviewWalkthrough = parts.join("\n\n");
+    }
+  }
 
   const messages = buildChatMessages({
     problem: { title: spec.title, statement: spec.statement, constraints: spec.constraints, hints: spec.hints },
     solution: req.revealSolution ? spec.solution : undefined,
     revealSolution: shouldReveal,
-    interviewWalkthrough: shouldReveal && interview ? interview.md : undefined,
+    interviewWalkthrough,
     code,
     includeCode: req.includeCode,
     language,

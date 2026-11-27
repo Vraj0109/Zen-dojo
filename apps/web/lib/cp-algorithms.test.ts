@@ -3,6 +3,19 @@ import { CP_ALGO_ARTICLES } from "@habit/shared";
 
 vi.mock("server-only", () => ({}));
 
+vi.mock("./content-repo/docs", async () => {
+  const { CP_ALGO_ARTICLES } = await import("@habit/shared");
+  return {
+    getDoc: async (kind: string) => {
+      if (kind === "cp-algorithms") {
+        return { row: { kind: "cp-algorithms", id: "main", body: CP_ALGO_ARTICLES } };
+      }
+      return null;
+    },
+    listDocs: async () => [],
+  };
+});
+
 // The first call loads the syntax highlighter (13 grammars); give it room on a busy machine or CI runner.
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -33,8 +46,8 @@ describe("getCpAlgoArticles", () => {
     const { getCpAlgoArticles, cpAlgoCount } = await import("./cp-algorithms");
     expect(await getCpAlgoArticles("hash-map")).toEqual([]);
     expect(await getCpAlgoArticles("not-a-pattern")).toEqual([]);
-    expect(cpAlgoCount("hash-map")).toBe(0);
-    expect(cpAlgoCount("dijkstra")).toBeGreaterThan(0);
+    expect(await cpAlgoCount("hash-map")).toBe(0);
+    expect(await cpAlgoCount("dijkstra")).toBeGreaterThan(0);
   });
 
   it("has a content file for every mapped article", async () => {

@@ -6,6 +6,60 @@ import { getTodayView, toggleTask } from "./tasks";
 import { logFocus } from "./timer";
 import { getReflection, getWeeklyReview, saveReflection, weekOf, weekStats } from "./weekly";
 
+// Content comes from the database in the app; here the repo returns the old constants (no content DB in this test).
+vi.mock("@/lib/content-repo/lookups", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getStudyAreas: async () => s.STUDY_AREAS,
+    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
+    getAllConcepts: async () => s.ALL_CONCEPTS,
+    getAllExercises: async () => s.ALL_EXERCISES,
+    getRoadmapProblems: async () => s.PROBLEMS,
+    getDsaGroups: async () => s.DSA_GROUPS,
+    getAllPatterns: async () => s.ALL_PATTERNS,
+  };
+});
+vi.mock("@/lib/content-repo/docs", async () => {
+  const s = await import("@habit/shared");
+  const values: Record<string, unknown> = {
+    reading: s.READING,
+    "revise-plan": s.LAST_DAYS_PLAN,
+    "key-numbers": s.KEY_NUMBERS,
+    "complexity-table": s.COMPLEXITY_TABLE,
+    "quiz-deck": s.QUIZ_DECK,
+    "think-patterns": s.THINK_PATTERNS,
+    "dsa-problems": s.PROBLEMS,
+    "dsa-groups": s.DSA_GROUPS,
+  };
+  return {
+    getDoc: async (kind: string, id: string) => (kind in values && id === "main" ? { row: { kind, id, body: values[kind] } } : null),
+    listDocs: async (kind: string) => (kind in values ? [{ kind, id: "main", body: values[kind] }] : []),
+  };
+});
+vi.mock("@/lib/content-repo/courses", () => ({
+  listCourses: async () => [],
+  getCourse: async () => null,
+  getLesson: async () => null,
+}));
+vi.mock("@/lib/content-repo/problems", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getProblemSpec: async (id: string) => s.JUDGE_PROBLEMS[id] ?? null,
+    listProblemSummaries: async () => {
+      return Object.values(s.JUDGE_PROBLEMS).map((p) => ({
+        id: p.id,
+        title: p.title,
+        source: p.source,
+        difficulty: p.difficulty,
+        pattern: p.pattern ?? null,
+        kind: p.kind ?? "function",
+        languages: ["cpp"],
+        hasBrute: false,
+      }));
+    },
+  };
+});
+
 const setDay = (d: number) => vi.setSystemTime(new Date(2026, 10, d, 12));
 
 beforeEach(() => {

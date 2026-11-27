@@ -4,7 +4,7 @@ import { JUDGE_LIMITS, runCode, runCustom } from "@/lib/judge/run";
 import { revalidatePath } from "next/cache";
 import { recordJudgePass } from "@/lib/dsa";
 import { saveSolution } from "@/lib/notes";
-import { resolveProblemSpec } from "@/lib/content";
+import { getProblemSpec } from "@/lib/content-repo/problems";
 import { getPackProblemSpec, setPackItemDone } from "@/lib/packs";
 import { getRuns, saveRun } from "@/lib/solution-runs";
 import { compactRunCases } from "@/lib/judge/saved-run";
@@ -28,8 +28,13 @@ function sameOrigin(request: Request): boolean {
 
 async function specFor(id: unknown): Promise<ProblemSpec | undefined> {
   if (typeof id !== "string") return undefined;
-  // stored content first (a seeded copy, extra test cases), then the built-in problems and the pack problems
-  return resolveProblemSpec(id, getPackProblemSpec);
+  if (id.startsWith("pack:")) {
+    const packSpec = await getPackProblemSpec(id);
+    if (packSpec) return packSpec;
+  }
+  const spec = await getProblemSpec(id);
+  if (spec) return spec;
+  return (await getPackProblemSpec(id)) ?? undefined;
 }
 
 /** Your latest run of each language for a problem (for the editor and the Notes tab). */

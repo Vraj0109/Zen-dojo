@@ -3,7 +3,7 @@
 //
 //   node scripts/prepare-server.mjs
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, lstatSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,6 +58,23 @@ if (personal.length) {
 
 const mb = walk(out).reduce((sum, f) => sum + statSync(f).size, 0) / 1e6;
 console.log(`> Done: ${out} (${mb.toFixed(0)} MB)`);
+
+// The content database shipped in the installer (plan 0115 step 5). Content always comes from the hosted content
+// database, never from files in the repo: this downloads every unit from the hosted site (default
+// https://zen-dojo-lovat.vercel.app; set CONTENT_SNAPSHOT_ORIGIN to use another deploy). No download, no installer.
+console.log("> Downloading the content database for apps/desktop/resources/content.db");
+const contentDbDir = path.join(desktop, "resources");
+mkdirSync(contentDbDir, { recursive: true });
+const contentDbDest = path.join(contentDbDir, "content.db");
+for (const f of [contentDbDest, `${contentDbDest}-wal`, `${contentDbDest}-shm`]) rmSync(f, { force: true });
+const origin = process.env.CONTENT_SNAPSHOT_ORIGIN?.trim();
+const contentCmd = `node --import ./scripts/lib/register-ts.mjs "${path.join(root, "scripts", "content-snapshot.mjs")}" --out "${contentDbDest}"${origin ? ` --origin "${origin}"` : ""}`;
+const contentRun = spawnSync(contentCmd, { cwd: root, stdio: "inherit", shell: true });
+if (contentRun.status !== 0 || !existsSync(contentDbDest)) {
+  rmSync(contentDbDest, { force: true });
+  console.error(`Failed to download apps/desktop/resources/content.db from ${origin || "the hosted site"}. The hosted site must serve /api/content/* (see docs/hosting.md).`);
+  process.exit(contentRun.status || 1);
+}
 
 /**
  * Turn pnpm's store into npm's layout: each package once in `dest`, and when two versions are needed,

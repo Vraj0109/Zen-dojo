@@ -1,6 +1,7 @@
 import "server-only";
 import { and, desc, eq, like, or } from "drizzle-orm";
-import { PROBLEMS, TOTAL_WEEKS, toLocalDate, weekFocus } from "@habit/shared";
+import { TOTAL_WEEKS, toLocalDate, weekFocus } from "@habit/shared";
+import { getRoadmapProblems } from "./content-repo/lookups";
 import { getDb } from "./db";
 import { getDsaView, markSolved, type ProblemView } from "./dsa";
 import { bossFights, tasks } from "./schema";
@@ -73,7 +74,8 @@ export async function getBossView(reroll = 0) {
 
 /** Save a fight: solves are recorded (with XP), hints and misses go on the stuck list, and today's timed-set task is ticked. */
 export async function saveBossFight(input: { results: { problemId: string; result: string }[]; minutes: number | null; notes: string }): Promise<boolean> {
-  const results = input.results.filter((r) => r.problemId in PROBLEMS && r.result in BOSS_RESULTS).slice(0, 3);
+  const roadmap = await getRoadmapProblems();
+  const results = input.results.filter((r) => r.problemId in roadmap && r.result in BOSS_RESULTS).slice(0, 3);
   if (results.length === 0) return false;
   const db = await getDb();
   const today = toLocalDate();

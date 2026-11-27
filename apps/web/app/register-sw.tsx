@@ -3,6 +3,21 @@
 import { useEffect } from "react";
 
 /**
+ * Tells the active service worker to cache the offline reader (/offline/read) once units are saved.
+ */
+export function notifyCacheReader() {
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "cache-reader" });
+    } else {
+      navigator.serviceWorker.ready
+        .then((reg) => reg.active?.postMessage({ type: "cache-reader" }))
+        .catch(() => {});
+    }
+  }
+}
+
+/**
  * Registers the offline-fallback service worker (public/sw.js) in production builds.
  *
  * In dev it does the opposite: a worker installed earlier by `pnpm start` on the same origin (localhost:3000) stays

@@ -1,7 +1,8 @@
 import "server-only";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { PROBLEMS, type Difficulty } from "@habit/shared";
+import type { Difficulty } from "@habit/shared";
+import { getRoadmapProblems } from "../content-repo/lookups";
 import { getDb } from "../db";
 import { leetcodeProblems, leetcodeTopics, leetcodeUserSubmissions, settings } from "../schema";
 import { recordAccepted } from "./sync";
@@ -127,18 +128,18 @@ export function parseExtTopics(raw: unknown): { slug: string; tags: string[] } |
   return { slug, tags };
 }
 
-const ROADMAP_SLUGS = new Set(Object.values(PROBLEMS).flatMap((p) => (p.slug ? [p.slug] : [])));
-
 /** Store submissions (code, runtime, notes) and record the solves they represent. */
 export async function importFromExtension(raw: unknown[], rawTopics: unknown[] = []): Promise<ExtImportResult> {
   const at = new Date().toISOString();
   const topics = rawTopics.slice(0, EXT_LIMITS.topics).map(parseExtTopics).filter((t) => t !== null);
   const subs = raw.slice(0, EXT_LIMITS.batch).map(parseExtSubmission).filter((s): s is ExtSubmission => s !== null);
   const db = await getDb();
+  const roadmap = await getRoadmapProblems();
+  const roadmapSlugs = new Set(Object.values(roadmap).flatMap((p) => (p.slug ? [p.slug] : [])));
 
   for (const s of subs) {
     // Remember title/difficulty of problems outside the roadmap so no extra LeetCode lookup is needed.
-    if (!ROADMAP_SLUGS.has(s.slug) && s.difficulty) {
+    if (!roadmapSlugs.has(s.slug) && s.difficulty) {
       const info = { number: s.number, title: s.title, difficulty: s.difficulty };
       await db.insert(leetcodeProblems).values({ slug: s.slug, ...info }).onConflictDoUpdate({ target: leetcodeProblems.slug, set: info });
     }
@@ -186,6 +187,8 @@ export async function getKnownSubmissionIds(): Promise<string[]> {
 /** LeetCode slugs the app tracks: the roadmap list plus problems already synced outside it. */
 export async function getSiteSlugs(): Promise<string[]> {
   const db = await getDb();
+  const roadmap = await getRoadmapProblems();
+  const roadmapSlugs = new Set(Object.values(roadmap).flatMap((p) => (p.slug ? [p.slug] : [])));
   const extras = (await db.select({ slug: leetcodeProblems.slug }).from(leetcodeProblems)).map((r) => r.slug);
-  return [...new Set([...ROADMAP_SLUGS, ...extras])].sort();
+  return [...new Set([...roadmapSlugs, ...extras])].sort();
 }

@@ -8,7 +8,7 @@ vi.mock("@/lib/notes", () => ({}));
 vi.mock("@/lib/content", () => ({ resolveProblemSpec: vi.fn(async () => undefined) }));
 vi.mock("@/lib/packs", () => ({}));
 vi.mock("@/lib/solution-runs", () => ({ getRuns: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {}, revalidatePath: vi.fn() }));
 vi.mock("@/lib/tools/handlers", () => ({
   handleInstall: vi.fn(async () => Response.json({ reached: true })),
   handleRemove: vi.fn(async () => Response.json({ reached: true })),

@@ -1,0 +1,42 @@
+name: Content backup
+
+# Weekly copy of the hosted content database (plan 0117 step 6). The snapshot is a normal content.db file, kept as a
+# workflow artifact for 90 days. To restore it: download the artifact, then run
+#   pnpm content:import <content-backup.db> --url <hosted libsql url>   (needs CONTENT_DATABASE_AUTH_TOKEN, owner only)
+# Every import is recorded in the admin audit log.
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays, 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    name: Snapshot the hosted content
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager" in package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download the hosted content into content-backup.db
+        run: node --import ./scripts/lib/register-ts.mjs scripts/content-snapshot.mjs --out content-backup.db
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: content-backup-${{ github.run_id }}
+          path: content-backup.db*
+          if-no-files-found: error
+          retention-days: 90

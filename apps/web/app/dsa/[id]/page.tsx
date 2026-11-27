@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_PATTERNS, INTERVIEW, JUDGE_PROBLEMS, RESOLVE_XP, solveXp } from "@habit/shared";
+import { RESOLVE_XP, solveXp } from "@habit/shared";
+import { getAllPatterns } from "@/lib/content-repo/lookups";
+import { getProblem, getProblemSpec } from "@/lib/content-repo/problems";
 import { getProblemDetail } from "@/lib/dsa";
 import { parseProblemTab } from "@/lib/dsa-filters";
 import { getPatternNotes } from "@/lib/pattern-notes";
@@ -86,7 +88,7 @@ async function Problem({
   const p = await getProblemDetail(decodeURIComponent(id));
   if (!p) notFound();
   const slug = p.url ? /\/problems\/([a-z0-9-]+)/.exec(p.url)?.[1] : undefined;
-  const [struggles, focused, cheats, simple, onSite, ai, readOnly] = await Promise.all([
+  const [struggles, focused, cheats, simple, onSite, ai, readOnly, allPatterns, contentProblem, spec] = await Promise.all([
     getStruggles(p.id),
     focusMinutes(p.id),
     getPatternNotes(),
@@ -94,6 +96,9 @@ async function Problem({
     slug ? siteMinutesForSlug(slug) : 0,
     process.env.HABIT_HOSTED === "1" ? Promise.resolve({ enabled: true, provider: "byok" } as unknown as Awaited<ReturnType<typeof getAiSettings>>) : getAiSettings(),
     isReaderMode(),
+    getAllPatterns(),
+    getProblem(p.id),
+    getProblemSpec(p.id),
   ]);
   const open = struggles.filter((x) => !x.clearedOn);
   const aiProviders = ai?.enabled ? await detectProviders() : [];
@@ -103,12 +108,11 @@ async function Problem({
 
   const tab = parseProblemTab(sp, p.submissions.length > 0);
 
-  const spec = JUDGE_PROBLEMS[p.id];
   if (spec) {
     const judgedTabs: ProblemTab[] = [
       { id: "description", label: "Description", node: <ProblemDescription spec={spec} /> },
       { id: "help", label: "Hints", node: <ProblemHelp spec={spec} /> },
-      { id: "solution", label: "Solution", node: <ProblemSolution spec={spec} interview={INTERVIEW[p.id]} /> },
+      { id: "solution", label: "Solution", node: <ProblemSolution spec={spec} solutionPage={contentProblem?.solution ?? null} problemId={p.id} /> },
       {
         id: "notes",
         label: "Notes",
@@ -141,7 +145,7 @@ async function Problem({
     ];
     const wanted = typeof sp.tab === "string" ? (sp.tab === "interview" ? "solution" : sp.tab) : undefined;
     // "pattern · n of m" and the next problem, from the first pattern this problem is in.
-    const firstPattern = p.patterns[0] ? ALL_PATTERNS.find((x) => x.id === p.patterns[0].id) : undefined;
+    const firstPattern = p.patterns[0] ? allPatterns.find((x) => x.id === p.patterns[0].id) : undefined;
     const position = firstPattern ? firstPattern.problems.indexOf(p.id) : -1;
     const nextId = firstPattern && position >= 0 ? firstPattern.problems[position + 1] : undefined;
     const statusState = s.state === "resolved" ? "solved" : s.state === "solved" ? (s.resolveDue ? "resolve" : "solved") : "none";

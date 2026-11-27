@@ -7,6 +7,7 @@ import { FOCUS_SESSION_ID, clock, remainingAt } from "./timer-math";
 import { SlidingPill } from "./sliding-pill";
 import { SessionControls } from "./start-timer";
 import { timer, useFocusTimer } from "./timer-store";
+import { getUnreadNoticeCountAction } from "./whats-new/actions";
 
 // Icons from Material 3 Expressive spec (XRail.dc.html & XNavBar.dc.html)
 export const ICONS = {
@@ -242,11 +243,64 @@ function NavRailInner({ counts, account, pathname }: { counts?: NavCounts; accou
         })}
       </SlidingPill>
 
-      {/* Bottom avatar trigger (Account menu) */}
-      <div className="mt-auto">
+      {/* Bottom actions: What's new bell + avatar trigger */}
+      <div className="mt-auto flex flex-col items-center gap-3">
+        {/* usePathname is request data: keep it inside Suspense so pages with params can still prerender their shell. */}
+        <Suspense fallback={<span className="size-10" aria-hidden="true" />}>
+          <WhatsNewBell />
+        </Suspense>
         {account}
       </div>
     </nav>
+  );
+}
+
+export function WhatsNewBell() {
+  const [count, setCount] = useState(0);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    let active = true;
+    getUnreadNoticeCountAction()
+      .then((c) => {
+        if (active) setCount(c);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  const active = pathname === "/whats-new";
+
+  return (
+    <Link
+      href="/whats-new"
+      aria-label={count > 0 ? `What's new (${count} unread updates)` : "What's new"}
+      title="What's new"
+      className={`relative grid size-10 place-items-center rounded-full transition-colors ${
+        active ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-foreground"
+      }`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="size-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={active ? 2.1 : 1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      {count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 grid min-w-4 h-4 px-1 place-items-center rounded-full bg-primary text-[10px] font-bold text-on-primary">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </Link>
   );
 }
 

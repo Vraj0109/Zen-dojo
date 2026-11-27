@@ -1,35 +1,43 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteProblemAction, saveProblemAction, updateProblemAction, verifyProblemAction } from "./actions";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  deleteProblemAction,
+  previewAction,
+  runDraftAction,
+  saveProblemAction,
+  updateProblemAction,
+  verifyProblemAction,
+} from "./actions";
 import { runCode } from "@/lib/judge/run";
-import { DELETE as apiDelete, GET as apiGet, POST as apiPost } from "@/app/api/admin/content/route";
-import { requireAdmin, type Session } from "@/lib/auth/session";
+import { AdminDeniedError, requireAdminAction } from "@/lib/auth/admin";
+import { mintAdminProof } from "@/lib/auth/admin-proof";
 import { getItem } from "@/lib/content";
+import type { ProblemDraft } from "@habit/shared";
 
-vi.mock("next/cache", () => ({
+vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {},
   refresh: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/session", () => ({
-  requireAdmin: vi.fn(),
+vi.mock("@/lib/auth/admin", () => ({
+  AdminDeniedError: class AdminDeniedError extends Error {
+    constructor(message = "Not allowed.") {
+      super(message);
+      this.name = "AdminDeniedError";
+    }
+  },
+  requireAdminAction: vi.fn(),
 }));
 
 vi.mock("@/lib/judge/run", () => ({ runCode: vi.fn() }));
 
-const mockAdminSession: Session = {
-  userId: "admin-1",
-  name: "Admin User",
-  avatarUrl: null,
-  admin: true,
-  expiresAt: Date.now() + 3600000,
-  sessionId: "session-1",
-};
+const mockAdminProof = mintAdminProof("admin-1", "Admin User");
 
 beforeEach(() => {
   process.env.DATABASE_URL = ":memory:";
   delete (globalThis as { habitDb?: unknown }).habitDb;
+  delete (globalThis as { habitContentDb?: unknown }).habitContentDb;
   vi.clearAllMocks();
-  vi.mocked(requireAdmin).mockResolvedValue(mockAdminSession);
+  vi.mocked(requireAdminAction).mockResolvedValue(mockAdminProof as never);
 });
 
 function createValidFormData(overrides: Record<string, string | null> = {}): FormData {
@@ -65,38 +73,24 @@ function createValidFormData(overrides: Record<string, string | null> = {}): For
 }
 
 describe("Admin problem actions", () => {
-  describe("requireAdmin authentication guard", () => {
-    it("saveProblemAction refuses when requireAdmin rejects with unauthorized error", async () => {
-      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("Unauthorized: not an admin"));
+  describe("requireAdminAction authentication guard", () => {
+    it("saveProblemAction refuses when requireAdminAction throws AdminDeniedError", async () => {
+      vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
 
       const fd = createValidFormData();
-      await expect(saveProblemAction(null, fd)).rejects.toThrow("Unauthorized: not an admin");
-      expect(requireAdmin).toHaveBeenCalled();
+      const res = await saveProblemAction(null, fd);
+      expect(res).toEqual({ ok: false, errors: ["Not allowed."] });
+      expect(requireAdminAction).toHaveBeenCalled();
       expect(await getItem("problem:double-the-number")).toBeNull();
     });
 
-    it("saveProblemAction refuses when requireAdmin throws redirect/notFound", async () => {
-      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
-
-      const fd = createValidFormData();
-      await expect(saveProblemAction(null, fd)).rejects.toThrow("NEXT_REDIRECT");
-      expect(requireAdmin).toHaveBeenCalled();
-    });
-
-    it("updateProblemAction refuses when requireAdmin rejects with unauthorized error", async () => {
-      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("Unauthorized: not an admin"));
+    it("updateProblemAction refuses when requireAdminAction throws AdminDeniedError", async () => {
+      vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
 
       const fd = createValidFormData({ originalId: "double-the-number" });
-      await expect(updateProblemAction(null, fd)).rejects.toThrow("Unauthorized: not an admin");
-      expect(requireAdmin).toHaveBeenCalled();
-    });
-
-    it("updateProblemAction refuses when requireAdmin throws redirect/notFound", async () => {
-      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_NOT_FOUND"));
-
-      const fd = createValidFormData({ originalId: "double-the-number" });
-      await expect(updateProblemAction(null, fd)).rejects.toThrow("NEXT_NOT_FOUND");
-      expect(requireAdmin).toHaveBeenCalled();
+      const res = await updateProblemAction(null, fd);
+      expect(res).toEqual({ ok: false, errors: ["Not allowed."] });
+      expect(requireAdminAction).toHaveBeenCalled();
     });
   });
 
@@ -360,9 +354,10 @@ describe("Admin problem actions", () => {
   });
 
   describe("verify with the judge", () => {
-    it("refuses non-admins and runs nothing", async () => {
-      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
-      await expect(verifyProblemAction(null, createValidFormData())).rejects.toThrow("NEXT_REDIRECT");
+    it("refuses non-admins with 'Not allowed.' and runs nothing", async () => {
+      vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
+      const res = await verifyProblemAction(null, createValidFormData());
+      expect(res).toEqual({ ok: false, errors: ["Not allowed."] });
       expect(runCode).not.toHaveBeenCalled();
     });
 
@@ -400,10 +395,11 @@ describe("Admin problem actions", () => {
       return fd;
     };
 
-    it("refuses non-admins and keeps the problem", async () => {
+    it("refuses non-admins with 'Not allowed.' and keeps the problem", async () => {
       await saveProblemAction(null, createValidFormData());
-      vi.mocked(requireAdmin).mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
-      await expect(deleteProblemAction(null, idForm("double-the-number"))).rejects.toThrow("NEXT_REDIRECT");
+      vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
+      const res = await deleteProblemAction(null, idForm("double-the-number"));
+      expect(res).toEqual({ ok: false, errors: ["Not allowed."] });
       expect(await getItem("problem:double-the-number")).not.toBeNull();
     });
 
@@ -415,26 +411,66 @@ describe("Admin problem actions", () => {
       expect((await deleteProblemAction(null, idForm("../x"))).ok).toBe(false);
     });
   });
-});
 
-describe("/api/admin/content", () => {
-  const OLD = process.env.CONTENT_ADMIN_TOKEN;
-  afterEach(() => {
-    if (OLD === undefined) delete process.env.CONTENT_ADMIN_TOKEN;
-    else process.env.CONTENT_ADMIN_TOKEN = OLD;
-  });
-  const req = (method: string, auth?: string) => new Request("http://localhost/api/admin/content?id=problem:x", { method, headers: auth ? { authorization: auth } : {}, ...(method === "POST" ? { body: "[]" } : {}) });
+  describe("runDraftAction and previewAction", () => {
+    const sampleDraft: ProblemDraft = {
+      row: {
+        id: "test-problem",
+        title: "Test Problem",
+        difficulty: "easy",
+        source: "custom",
+        pattern: null,
+        kind: "function",
+        url: null,
+        unordered: false,
+        complexity: null,
+        constraints: ["1 <= x <= 10"],
+        inputFormatMd: null,
+        outputFormatMd: null,
+        fn: {
+          name: "testFn",
+          params: [{ name: "x", type: "int" }],
+          returns: "int",
+        },
+        design: null,
+        extra: {},
+      },
+      cases: [{ ord: 0, role: "example", input: [2], output: 4, explanationMd: null }],
+      hints: [],
+      statement: { template: "problem", sections: [] },
+      solution: { template: "problem", sections: [] },
+    };
 
-  it("does not exist (404) without a configured token, for every method", async () => {
-    delete process.env.CONTENT_ADMIN_TOKEN;
-    for (const call of [apiGet, apiPost, apiDelete]) expect((await call(req("GET"))).status).toBe(404);
-  });
+    it("runDraftAction refuses non-admins with 'Not allowed.'", async () => {
+      vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
+      const res = await runDraftAction(sampleDraft, "cpp", "int testFn(int x) { return x * 2; }");
+      expect(res).toEqual({ ok: false, errors: ["Not allowed."] });
+      expect(runCode).not.toHaveBeenCalled();
+    });
 
-  it("answers 401 without the right token, for every method", async () => {
-    process.env.CONTENT_ADMIN_TOKEN = "secret-token";
-    for (const call of [apiGet, apiPost, apiDelete]) {
-      expect((await call(req("GET"))).status).toBe(401);
-      expect((await call(req("GET", "Bearer wrong-token"))).status).toBe(401);
-    }
+    it("runDraftAction on hosted returns the no-run message and does not call runCode", async () => {
+      const oldHosted = process.env.HABIT_HOSTED;
+      process.env.HABIT_HOSTED = "1";
+      try {
+        const res = await runDraftAction(sampleDraft, "cpp", "int testFn(int x) { return x * 2; }");
+        expect(res).toEqual({ ok: false, errors: ["Run tests in the desktop app"] });
+        expect(runCode).not.toHaveBeenCalled();
+      } finally {
+        process.env.HABIT_HOSTED = oldHosted;
+      }
+    });
+
+    it("previewAction refuses non-admins with 'Not allowed.'", async () => {
+      vi.mocked(requireAdminAction).mockRejectedValueOnce(new AdminDeniedError());
+      const res = await previewAction({ template: "problem", page: { template: "problem", sections: [] } });
+      expect(res).toEqual({ ok: false, errors: ["Not allowed."] });
+    });
+
+    it("previewAction accepts admins and returns the page rendered by the reader component", async () => {
+      const res = await previewAction({ template: "problem", page: { template: "problem", sections: [] } });
+      expect(res.ok).toBe(true);
+      // The node is the shared ContentPage element (same renderer as the public pages), with the draft passed through.
+      expect(res.ok && (res.node as { props?: { page?: unknown } }).props?.page).toEqual({ template: "problem", sections: [] });
+    });
   });
 });

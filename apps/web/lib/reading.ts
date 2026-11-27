@@ -1,8 +1,16 @@
 import "server-only";
 import { desc, eq } from "drizzle-orm";
-import { ALL_CONCEPTS, ALL_EXERCISES, READING, readingFor, toLocalDate, type Reading } from "@habit/shared";
+import { toLocalDate, type Reading } from "@habit/shared";
+import { getAllConcepts, getAllExercises } from "@/lib/content-repo/lookups";
+import { getDoc } from "@/lib/content-repo/docs";
 import { getDb } from "./db";
 import { readingCustom, readingProgress } from "./schema";
+
+/** The built-in reading list (doc "reading"). */
+async function readingList(): Promise<Reading[]> {
+  const doc = await getDoc("reading", "main");
+  return (doc?.row.body as Reading[] | undefined) ?? [];
+}
 
 // Reading list progress (built-in entries and your own links).
 
@@ -19,7 +27,10 @@ export interface ReadingView extends Omit<Reading, "items" | "kind" | "by" | "wh
   customId?: number;
 }
 
-const isStudyItem = (id: string) => id in ALL_CONCEPTS || id in ALL_EXERCISES;
+async function isStudyItem(id: string): Promise<boolean> {
+  const [concepts, exercises] = await Promise.all([getAllConcepts(), getAllExercises()]);
+  return id in concepts || id in exercises;
+}
 export const customReadingId = (id: number) => `custom-${id}`;
 
 async function progressMap() {
@@ -53,18 +64,18 @@ async function customFor(itemId?: string): Promise<ReadingView[]> {
 
 /** Built-in and custom readings for one concept or design. */
 export async function getReadingFor(itemId: string): Promise<ReadingView[]> {
-  const [progress, custom] = await Promise.all([progressMap(), customFor(itemId)]);
-  return [...withProgress(readingFor(itemId), progress), ...custom];
+  const [progress, custom, list] = await Promise.all([progressMap(), customFor(itemId), readingList()]);
+  return [...withProgress(list.filter((x) => x.items.includes(itemId)), progress), ...custom];
 }
 
 /** The whole list, for the reading page. */
 export async function getReadingList(): Promise<ReadingView[]> {
-  const [progress, custom] = await Promise.all([progressMap(), customFor()]);
-  return [...withProgress(READING, progress), ...custom];
+  const [progress, custom, list] = await Promise.all([progressMap(), customFor(), readingList()]);
+  return [...withProgress(list, progress), ...custom];
 }
 
 async function knownReadingId(id: string): Promise<boolean> {
-  if (READING.some((x) => x.id === id)) return true;
+  if ((await readingList()).some((x) => x.id === id)) return true;
   const m = /^custom-(\d+)$/.exec(id);
   if (!m) return false;
   const db = await getDb();
@@ -80,7 +91,7 @@ export async function setReadingDone(readingId: string, done: boolean) {
 
 export async function addCustomReading(itemId: string, title: string, url: string): Promise<boolean> {
   const u = url.trim();
-  if (!isStudyItem(itemId) || !/^https?:\/\/\S+$/i.test(u) || u.length > READING_LIMITS.url) return false;
+  if (!(await isStudyItem(itemId)) || !/^https?:\/\/\S+$/i.test(u) || u.length > READING_LIMITS.url) return false;
   const t = title.trim().slice(0, READING_LIMITS.title) || u;
   const db = await getDb();
   await db.insert(readingCustom).values({ itemId, title: t, url: u, addedOn: toLocalDate() });

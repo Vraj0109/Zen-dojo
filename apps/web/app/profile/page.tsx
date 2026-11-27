@@ -3,7 +3,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { isNotNull } from "drizzle-orm";
-import { ALL_CONCEPTS, addDays, type Category, type HeatCell } from "@habit/shared";
+import { addDays, type Category, type HeatCell } from "@habit/shared";
+import { getAllConcepts } from "@/lib/content-repo/lookups";
 import { getDb } from "@/lib/db";
 import { conceptProgress } from "@/lib/schema";
 import { BALANCE_DAYS, getStats } from "@/lib/stats";
@@ -51,7 +52,8 @@ async function Stats() {
     getProfileName().catch(() => ""),
     getDb().then((db) => db.select({ id: conceptProgress.conceptId }).from(conceptProgress).where(isNotNull(conceptProgress.coveredOn))),
   ]);
-  const conceptsCovered = coveredRows.filter((c) => ALL_CONCEPTS[c.id]).length;
+  const concepts = await getAllConcepts();
+  const conceptsCovered = coveredRows.filter((c) => concepts[c.id]).length;
   const displayName = session?.name || profileName;
   const initial = displayName.trim().charAt(0).toUpperCase();
   const { totals } = s;

@@ -1,6 +1,7 @@
 import "server-only";
 import { inArray } from "drizzle-orm";
-import { CONFIDENCE_LABELS, PROBLEMS, STUDY_AREAS, studyHref, type StudyAreaId } from "@habit/shared";
+import { CONFIDENCE_LABELS, studyHref, type Problem, type StudyAreaId } from "@habit/shared";
+import { getRoadmapProblems, getStudyAreas } from "@/lib/content-repo/lookups";
 import { getDb } from "./db";
 import { getDsaView } from "./dsa";
 import { leetcodeProblems } from "./schema";
@@ -31,19 +32,20 @@ export const REVIEW_KIND_LABELS: Record<ReviewItem["kind"], string> = {
   exercise: "Practice again",
 };
 
-const problemTitle = (id: string, extra: Map<string, { title: string; number: number | null }>) => {
-  const p = PROBLEMS[id];
+const problemTitle = (id: string, roadmap: Record<string, Problem>, extra: Map<string, { title: string; number: number | null }>) => {
+  const p = roadmap[id];
   if (p) return p.number ? `${p.number}. ${p.title}` : p.title;
   const e = extra.get(id);
   return e ? `${e.number ? `${e.number}. ` : ""}${e.title}` : id.replace(/^lcx-/, "");
 };
 
 export async function getReviewQueue(): Promise<ReviewItem[]> {
-  const [dsa, struggles, ...areas] = await Promise.all([getDsaView(), openStruggles(), ...STUDY_AREAS.map((a) => getStudyView(a.id))]);
+  const [dsa, struggles, roadmap, studyAreas] = await Promise.all([getDsaView(), openStruggles(), getRoadmapProblems(), getStudyAreas()]);
+  const areas = await Promise.all(studyAreas.map((a) => getStudyView(a.id)));
   const due = [...struggles.values()].filter((s) => s.due);
 
   // Titles for synced problems outside the roadmap list
-  const slugs = due.filter((s) => !(s.problemId in PROBLEMS)).map((s) => s.problemId.replace(/^lcx-/, ""));
+  const slugs = due.filter((s) => !(s.problemId in roadmap)).map((s) => s.problemId.replace(/^lcx-/, ""));
   const extra = new Map<string, { title: string; number: number | null }>();
   if (slugs.length) {
     const db = await getDb();
@@ -58,7 +60,7 @@ export async function getReviewQueue(): Promise<ReviewItem[]> {
     items.push({
       kind: "struggle",
       id: s.problemId,
-      title: problemTitle(s.problemId, extra),
+      title: problemTitle(s.problemId, roadmap, extra),
       href: `/dsa/${encodeURIComponent(s.problemId)}`,
       detail: `${STRUGGLE_KINDS[s.kind]}${s.count > 1 ? ` (${s.count}×)` : ""}${s.reason ? `: ${s.reason}` : ""}`,
       struggle: s,

@@ -1,9 +1,10 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getWorkerUrl, verifyAccessToken } from "./jwks";
 import { hubUrl } from "../hub/url";
+import { isAdminClaims, requireAdminPage } from "./admin";
 import type { AccessTokenClaims, Session } from "./types";
 
 export type { Session } from "./types";
@@ -145,7 +146,7 @@ export async function getSession(): Promise<Session | null> {
         userId: claims.sub,
         name,
         avatarUrl,
-        admin: claims.adm,
+        admin: isAdminClaims(claims),
         expiresAt: claims.exp * 1000,
         sessionId: claims.sid,
       };
@@ -199,7 +200,7 @@ export async function getSession(): Promise<Session | null> {
   const userId = refreshed.user?.id ?? refreshed.claims?.sub ?? "";
   const name = refreshed.user?.name ?? refreshed.user?.id ?? refreshed.claims?.sub ?? userId;
   const avatarUrl = refreshed.user?.avatar_url ?? null;
-  const admin = refreshed.user?.admin ?? refreshed.claims?.adm ?? false;
+  const admin = refreshed.claims ? isAdminClaims(refreshed.claims) : (refreshed.user?.admin ?? false);
   const sessionId = refreshed.claims?.sid ?? "";
   const expiresAt = refreshed.claims?.exp
     ? refreshed.claims.exp * 1000
@@ -226,29 +227,30 @@ export async function requireSession(next?: string): Promise<Session> {
 }
 
 export async function requireAdmin(): Promise<Session> {
-  const session = await getSession();
-  if (!session) {
-    if (await hasRefreshCookie()) redirect("/auth/refresh?next=%2Fadmin");
-    redirect("/login?next=/admin");
-  }
-  if (!session.admin) {
-    notFound();
-  }
-  return session;
+  const proof = await requireAdminPage("/admin");
+  return {
+    userId: proof.userId,
+    name: proof.name,
+    avatarUrl: null,
+    admin: true,
+    expiresAt: 0,
+    sessionId: "",
+  };
 }
 
-export async function workerFetch(path: string, init?: RequestInit): Promise<Response> {
-  const workerUrl = getWorkerUrl();
-  const url =
-    path.startsWith("http://") || path.startsWith("https://")
-      ? path
-      : hubUrl(path, workerUrl);
+export async function fetchWithAccessToken(url: string | URL, init?: RequestInit): Promise<Response> {
+  let at: string | undefined;
+  let rt: string | undefined;
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined;
+  try {
+    cookieStore = await cookies();
+    at = cookieStore.get(ACCESS_COOKIE)?.value;
+    rt = cookieStore.get(REFRESH_COOKIE)?.value;
+  } catch {
+    // Outside of request context
+  }
 
-  const cookieStore = await cookies();
-  let at = cookieStore.get(ACCESS_COOKIE)?.value;
-  const rt = cookieStore.get(REFRESH_COOKIE)?.value;
-
-  if (!at && rt) {
+  if (!at && rt && cookieStore) {
     const refreshed = await doRefresh(rt);
     if (refreshed) {
       at = refreshed.accessToken;
@@ -274,7 +276,7 @@ export async function workerFetch(path: string, init?: RequestInit): Promise<Res
   }
 
   const headers = new Headers(init?.headers);
-  if (at) {
+  if (at && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${at}`);
   }
 
@@ -283,7 +285,7 @@ export async function workerFetch(path: string, init?: RequestInit): Promise<Res
     headers,
   });
 
-  if (res.status === 401 && rt) {
+  if (res.status === 401 && rt && cookieStore) {
     // Attempt token refresh and retry once
     const refreshed = await doRefresh(rt);
     if (refreshed) {
@@ -322,4 +324,13 @@ export async function workerFetch(path: string, init?: RequestInit): Promise<Res
   }
 
   return res;
+}
+
+export async function workerFetch(path: string, init?: RequestInit): Promise<Response> {
+  const workerUrl = getWorkerUrl();
+  const url =
+    path.startsWith("http://") || path.startsWith("https://")
+      ? path
+      : hubUrl(path, workerUrl);
+  return fetchWithAccessToken(url, init);
 }

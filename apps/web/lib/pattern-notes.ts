@@ -1,5 +1,6 @@
 import "server-only";
-import { ALL_PATTERNS, toLocalDate } from "@habit/shared";
+import { toLocalDate } from "@habit/shared";
+import { getAllPatterns } from "./content-repo/lookups";
 import { getDb } from "./db";
 import { patternNotes } from "./schema";
 
@@ -9,14 +10,14 @@ export const PATTERN_NOTE_LIMITS = { template: 20_000, recognize: 5_000, languag
 
 export type PatternNote = typeof patternNotes.$inferSelect;
 
-const patternIds = new Set(ALL_PATTERNS.map((p) => p.id));
-
 export async function getPatternNotes(): Promise<Map<string, PatternNote>> {
   const db = await getDb();
   return new Map((await db.select().from(patternNotes)).map((n) => [n.patternId, n]));
 }
 
 export async function savePatternNote(patternId: string, input: { template: string; recognize: string; language: string }): Promise<boolean> {
+  const patterns = await getAllPatterns();
+  const patternIds = new Set(patterns.map((p) => p.id));
   if (!patternIds.has(patternId)) return false;
   const db = await getDb();
   const row = {

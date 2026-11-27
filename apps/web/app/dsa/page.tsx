@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { after, connection } from "next/server";
-import { DSA_GROUPS } from "@habit/shared";
 import { getDsaView, type ProblemView } from "@/lib/dsa";
+import { getDsaGroups } from "@/lib/content-repo/lookups";
 import { AddedProblems } from "./added-problems";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import {
@@ -62,11 +62,6 @@ function dsaTabHref(id: string, params: Record<string, string | string[] | undef
   return qs ? `/dsa?${qs}` : "/dsa";
 }
 
-const PATTERN_FILTER_GROUPS = DSA_GROUPS.map((g) => ({
-  title: g.title,
-  options: g.patterns.map((p) => ({ value: p.name, label: p.name })),
-}));
-
 async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchParams"] }) {
   await connection();
   const params = await searchParams;
@@ -79,7 +74,16 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
       }
     });
   }
-  const [{ groups, due, extras, totals }, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
+  const [{ groups, due, extras, totals }, simple, dsaGroups] = await Promise.all([
+    getDsaView(),
+    getSimpleMode(),
+    getDsaGroups(),
+  ]);
+
+  const patternFilterGroups = dsaGroups.map((g) => ({
+    title: g.title,
+    options: g.patterns.map((p) => ({ value: p.name, label: p.name })),
+  }));
 
   const anywhere = params.platforms === "all";
   const shown = anywhere ? { solved: totals.solvedAnywhere, allSolved: totals.allSolvedAnywhere } : { solved: totals.solved, allSolved: totals.allSolved };
@@ -209,7 +213,7 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                 clearHref={clearHref("topic")}
                 label="Pattern"
                 selected={filters.topic}
-                groups={PATTERN_FILTER_GROUPS}
+                groups={patternFilterGroups}
                 searchable
                 searchPlaceholder="Find one of 67 patterns"
               />

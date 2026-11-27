@@ -7,13 +7,16 @@ import { describe, expect, it } from "vitest";
 import {
   CLUES,
   CONSTRAINT_HINTS,
+  LEETCODE_TAGS,
   OPTIMIZE_MOVES,
+  PROBLEMS,
   READING_ROUTINE,
   THINK_PATTERNS,
   THINK_SIGNALS,
   WORKED_EXAMPLES,
   type Clue,
   type OptimizeMove,
+  type Problem,
   type ReadStep,
   type ThinkPattern,
   type WorkedExample,
@@ -61,7 +64,7 @@ const fixtureSignals = [
   { id: "contiguous", label: "Best contiguous part", when: "Subarray or substring with a rule", patterns: ["sliding-window", "kadane"] },
   { id: "pairs", label: "Pairs in sorted data", when: "Two items that match", patterns: ["kadane"] },
 ];
-const fixturePatterns = Object.fromEntries([fixturePattern, fixtureLeaf].map((p) => [p.id, thinkPatternData(p)]));
+const fixturePatterns = Object.fromEntries([fixturePattern, fixtureLeaf].map((p) => [p.id, thinkPatternData(p, {})]));
 
 const fixtureClues: Clue[] = [
   { id: "c1", kind: "wording", phrase: "longest substring with at most k distinct", points: ["sliding-window/longest"], why: "A rule on a contiguous part.", falseFriend: "Subsequence is not contiguous." },
@@ -104,8 +107,9 @@ describe("helpers", () => {
   });
 
   it("links problems inside the app or to LeetCode", () => {
-    expect(problemLink("slug:two-sum")).toMatchObject({ href: "https://leetcode.com/problems/two-sum/", external: true, label: "Two Sum" });
-    expect(problemLink("lc-3").external).toBe(false);
+    expect(problemLink("slug:two-sum", {})).toMatchObject({ href: "https://leetcode.com/problems/two-sum/", external: true, label: "Two Sum" });
+    expect(problemLink("lc-3", {}).external).toBe(false);
+    expect(problemLink("lc-3", { "lc-3": { title: "Longest Substring" } as Problem }).label).toBe("Longest Substring");
   });
 });
 
@@ -146,7 +150,7 @@ describe("thinking map", () => {
   });
 
   it("renders the real signals", () => {
-    const patterns = Object.fromEntries(Object.values(THINK_PATTERNS).map((p) => [p.id, thinkPatternData(p)]));
+    const patterns = Object.fromEntries(Object.values(THINK_PATTERNS).map((p) => [p.id, thinkPatternData(p, PROBLEMS)]));
     const out = html(createElement(ThinkMap, { signals: THINK_SIGNALS, patterns, mastery: {}, initialNode: null }));
     const t = text(out);
     for (const s of THINK_SIGNALS) expect(t).toContain(text(html(createElement("i", null, s.label))).trim());
@@ -155,7 +159,7 @@ describe("thinking map", () => {
 
 describe("how to read a problem", () => {
   it("renders the routine, clues, worked examples (answer behind details) and moves from fixtures", () => {
-    const out = html(createElement(ReadView, { routine: fixtureRoutine, clues: fixtureClues, examples: fixtureExamples, moves: fixtureMoves, patterns: { "sliding-window": fixturePattern, kadane: fixtureLeaf } }));
+    const out = html(createElement(ReadView, { routine: fixtureRoutine, clues: fixtureClues, examples: fixtureExamples, moves: fixtureMoves, patterns: { "sliding-window": fixturePattern, kadane: fixtureLeaf }, problems: {} }));
     const t = text(out);
     expect(t).toContain("Read the constraints");
     expect(t).toContain("How big is n?");
@@ -174,7 +178,7 @@ describe("how to read a problem", () => {
   });
 
   it("renders the real routine, clues, examples and moves", () => {
-    const out = html(createElement(ReadView, { routine: READING_ROUTINE, clues: CLUES, examples: WORKED_EXAMPLES, moves: OPTIMIZE_MOVES, patterns: THINK_PATTERNS }));
+    const out = html(createElement(ReadView, { routine: READING_ROUTINE, clues: CLUES, examples: WORKED_EXAMPLES, moves: OPTIMIZE_MOVES, patterns: THINK_PATTERNS, problems: PROBLEMS }));
     const t = text(out);
     for (const s of READING_ROUTINE) expect(t).toContain(text(s.title).trim());
     expect(out).toContain('id="routine"');
@@ -218,8 +222,11 @@ describe("pattern groups and recall", () => {
 });
 
 describe("thinking map view with the real data", () => {
+  // The content the page reads from the database, here taken from the old constants.
+  const realThink = { hints: CONSTRAINT_HINTS, signals: THINK_SIGNALS, patterns: THINK_PATTERNS, tags: LEETCODE_TAGS, problems: PROBLEMS };
+
   it("renders the constraints strip and every signal", () => {
-    const out = html(createElement(ThinkView, { mastery: {} }));
+    const out = html(createElement(ThinkView, { mastery: {}, ...realThink }));
     const t = text(out);
     expect(t).toContain("Step 1");
     if (THINK_SIGNALS.length > 0) expect(t).toContain("Step 2");
@@ -230,7 +237,7 @@ describe("thinking map view with the real data", () => {
   it("opens the node from ?node= (a clue links here)", () => {
     const first = THINK_SIGNALS[0]?.patterns[0];
     if (!first) return;
-    const out = html(createElement(ThinkView, { mastery: {}, node: first }));
+    const out = html(createElement(ThinkView, { mastery: {}, node: first, ...realThink }));
     expect(out).toContain(`aria-current="true"`);
   });
 });

@@ -1,8 +1,9 @@
 import "server-only";
 import { inArray, isNotNull } from "drizzle-orm";
-import { ALL_CONCEPTS, STUDY_AREAS, TOTAL_WEEKS, toLocalDate, type CourseProgress, type PortfolioData } from "@habit/shared";
+import { TOTAL_WEEKS, toLocalDate, type CourseProgress, type PortfolioData } from "@habit/shared";
 import { getDb } from "./db";
 import { getDsaView } from "./dsa";
+import { getAllConcepts, getStudyAreas } from "./content-repo/lookups";
 import { getStats } from "./stats";
 import { getPlanPosition } from "./tasks";
 import { getProfileName } from "./ui-prefs";
@@ -16,17 +17,19 @@ const latest = (dates: (string | null | undefined)[]): string | null => dates.re
  */
 export async function getPortfolio(): Promise<PortfolioData> {
   const db = await getDb();
-  const [name, stats, dsa, position, concepts] = await Promise.all([
+  const [name, stats, dsa, position, concepts, studyAreas, allConcepts] = await Promise.all([
     getProfileName(),
     getStats(),
     getDsaView(),
     getPlanPosition(),
     db.select({ id: conceptProgress.conceptId, on: conceptProgress.coveredOn }).from(conceptProgress).where(isNotNull(conceptProgress.coveredOn)),
+    getStudyAreas(),
+    getAllConcepts(),
   ]);
 
   const coveredOn = new Map(concepts.map((c) => [c.id, c.on]));
-  const areaCourses: CourseProgress[] = STUDY_AREAS.map((area) => {
-    const ids = area.sections.flatMap((s) => s.concepts.map((c) => c.id)).filter((id) => ALL_CONCEPTS[id]);
+  const areaCourses: CourseProgress[] = studyAreas.map((area) => {
+    const ids = area.sections.flatMap((s) => s.concepts.map((c) => c.id)).filter((id) => allConcepts[id]);
     const covered = ids.filter((id) => coveredOn.has(id));
     return {
       id: area.id,

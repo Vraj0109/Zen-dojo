@@ -247,10 +247,6 @@ public:
       { input: [10], output: 89 },
       { input: [20], output: 10946 },
     ],
-    stress: [
-      { label: "n = 30", make: () => [30] },
-      { label: "n = 45", make: () => [45] },
-    ],
     hints: [
       "Think about the very last move. How many different last moves could there be?",
       "The last move was 1 step or 2 steps. So the number of ways to reach a step is the sum of the ways to reach the two steps before it.",

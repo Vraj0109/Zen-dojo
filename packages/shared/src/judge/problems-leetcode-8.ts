@@ -1047,9 +1047,6 @@ public:
       { input: [100], output: 25 },
       { input: [1000], output: 168 },
     ],
-    stress: [
-      { label: "n = 49979", make: () => [49979] },
-    ],
     hints: [
       "Testing every number by division is slow. Instead of asking whether each number is prime, what could you do once you know a prime?",
       "A composite number has a smaller prime factor, so something already marked it. When you process a prime p, which of its multiples still need marking?",

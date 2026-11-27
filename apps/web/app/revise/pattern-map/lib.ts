@@ -1,6 +1,6 @@
 // Pure helpers for the Pattern map (plan 0091): node ids, links, and progress ("mastery") per pattern.
 // No I/O and no React, so the render test can use them without a database.
-import { PROBLEMS, type ThinkPattern, type ThinkSignal } from "@habit/shared";
+import type { Problem, ThinkPattern, ThinkSignal } from "@habit/shared";
 
 export const MAP_VIEWS = [
   { id: "think", label: "Thinking map" },
@@ -121,7 +121,8 @@ export interface ProblemLink {
 }
 
 /** An example reference: an app problem id (opens in the app), or "slug:<leetcode slug>" (opens on LeetCode). */
-export function problemLink(ref: string): ProblemLink {
+/** `problems` is the roadmap list by id (the database's dsa-problems doc), used for titles. */
+export function problemLink(ref: string, problems: Record<string, Problem>): ProblemLink {
   if (ref.startsWith("slug:")) {
     const slug = ref.slice(5);
     const label = slug
@@ -130,7 +131,7 @@ export function problemLink(ref: string): ProblemLink {
       .join(" ");
     return { label, href: `https://leetcode.com/problems/${slug}/`, external: true };
   }
-  const p = PROBLEMS[ref];
+  const p = problems[ref];
   return { label: p ? p.title : ref, href: `/dsa/${encodeURIComponent(ref)}`, external: false };
 }
 
@@ -161,7 +162,7 @@ export interface ThinkSigData {
   patterns: string[];
 }
 
-export function thinkPatternData(p: ThinkPattern): ThinkPatData {
+export function thinkPatternData(p: ThinkPattern, problems: Record<string, Problem>): ThinkPatData {
   return {
     id: p.id,
     label: p.label,
@@ -175,7 +176,7 @@ export function thinkPatternData(p: ThinkPattern): ThinkPatData {
       label: v.label,
       when: v.when,
       key: v.key,
-      examples: (v.examples ?? []).map(problemLink),
+      examples: (v.examples ?? []).map((ref) => problemLink(ref, problems)),
     })),
   };
 }

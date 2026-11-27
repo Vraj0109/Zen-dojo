@@ -2,21 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { CONFIDENCE_LABELS, COVERED_CONFIDENCE, pickCard, seededRandom, toLocalDate, type PlanPhase, type StudyAreaId } from "@habit/shared";
+import { getStudyAreas } from "@/lib/content-repo/lookups";
 import {
-  COMPLEXITY_TABLE,
-  CONFIDENCE_LABELS,
-  COVERED_CONFIDENCE,
-  KEY_NUMBERS,
-  LAST_DAYS_PLAN,
-  LLD_GUIDES,
-  STUDY_AREAS,
-  pickCard,
-  quizCards,
-  seededRandom,
-  toLocalDate,
-  type StudyAreaId,
-} from "@habit/shared";
-import { getCountdown, getReviseAreas, getRevisePatterns, getWeakSpots, weakConceptIds, type ReviseConcept, type ReviseExercise } from "@/lib/revise";
+  docValue,
+  getCountdown,
+  getReviseAreas,
+  getRevisePatterns,
+  getWeakSpots,
+  quizCardsFor,
+  weakConceptIds,
+  type ReviseConcept,
+  type ReviseExercise,
+} from "@/lib/revise";
 import { setInterviewDateAction } from "../actions";
 import { CodeBlock } from "../learn-blocks";
 import { Confidence } from "../study/study-ui";
@@ -120,7 +118,7 @@ function Recap({ items }: { items: string[] }) {
 // ---------------------------------------------------------------- Plan
 
 async function PlanTab() {
-  const [countdown, weak] = await Promise.all([getCountdown(), getWeakSpots()]);
+  const [countdown, weak, lastDaysPlan] = await Promise.all([getCountdown(), getWeakSpots(), docValue<PlanPhase[]>("revise-plan", [])]);
   const today = toLocalDate();
 
   // Combine top weak spots across categories
@@ -297,7 +295,7 @@ async function PlanTab() {
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">Detailed last days plan</h3>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3">
-              {LAST_DAYS_PLAN.map((p) => {
+              {lastDaysPlan.map((p) => {
                 const now = countdown?.phase?.id === p.id;
                 return (
                   <div
@@ -457,11 +455,12 @@ async function DsaTab({ weak }: { weak: boolean }) {
 // ---------------------------------------------------------------- SD / LLD / Core
 
 async function AreaTab({ area, weak }: { area: StudyAreaId; weak: boolean }) {
-  const a = (await getReviseAreas()).find((x) => x.id === area)!;
+  const [studyAreas, revised] = await Promise.all([getStudyAreas(), getReviseAreas()]);
+  const a = revised.find((x) => x.id === area)!;
   const concepts = a.concepts.filter((c) => !weak || c.confidence < COVERED_CONFIDENCE);
   const exercises = a.exercises.filter((e) => !weak || e.lastScore === null || e.lastScore <= 3);
   const sections = [...new Set(concepts.map((c) => c.section))];
-  const exTitle = STUDY_AREAS.find((x) => x.id === area)!.exercises?.title;
+  const exTitle = studyAreas.find((x) => x.id === area)!.exercises?.title;
 
   return (
     <div className="space-y-6">
@@ -510,7 +509,7 @@ function ConceptCard({ c, area }: { c: ReviseConcept; area: StudyAreaId }) {
 }
 
 function ExerciseCard({ e, area }: { e: ReviseExercise; area: StudyAreaId }) {
-  const lld = LLD_GUIDES[e.id];
+  const lld = e.lldPatterns;
   return (
     <div className="break-inside-avoid rounded-[24px] border border-line bg-surface p-4 dark:border-0">
       <div className="flex items-baseline justify-between gap-2">
@@ -520,19 +519,24 @@ function ExerciseCard({ e, area }: { e: ReviseExercise; area: StudyAreaId }) {
         <span className="shrink-0 text-xs text-muted">{e.lastScore === null ? "not practised" : `last ${e.lastScore}/5`}</span>
       </div>
       <Recap items={e.recap} />
-      {lld && <p className="mt-1 text-xs text-muted">Patterns: {lld.patterns.join("; ")}</p>}
+      {lld && <p className="mt-1 text-xs text-muted">Patterns: {lld.join("; ")}</p>}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- Numbers
 
-function NumbersTab() {
-  const sd = STUDY_AREAS.find((a) => a.id === "sd")!.exercises!.steps;
-  const lld = STUDY_AREAS.find((a) => a.id === "lld")!.exercises!.steps;
+async function NumbersTab() {
+  const [areas, keyNumbers, complexity] = await Promise.all([
+    getStudyAreas(),
+    docValue<{ title: string; rows: [string, string][] }[]>("key-numbers", []),
+    docValue<[string, string][]>("complexity-table", []),
+  ]);
+  const sd = areas.find((a) => a.id === "sd")!.exercises!.steps;
+  const lld = areas.find((a) => a.id === "lld")!.exercises!.steps;
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-3">
-      {KEY_NUMBERS.map((t) => (
+      {keyNumbers.map((t) => (
         <section key={t.title} className="break-inside-avoid rounded-[24px] border border-line bg-surface p-6 dark:border-0">
           <h3 className="mb-2 text-lg font-semibold">{t.title}</h3>
           <table className="w-full text-sm">
@@ -551,7 +555,7 @@ function NumbersTab() {
         <h3 className="mb-2 text-lg font-semibold">Big-O you should never have to think about</h3>
         <table className="w-full text-sm">
           <tbody>
-            {COMPLEXITY_TABLE.map(([k, v]) => (
+            {complexity.map(([k, v]) => (
               <tr key={k} className="border-t border-line first:border-0">
                 <td className="py-1 pr-3 text-muted">{k}</td>
                 <td className="py-1 text-right font-medium">{v}</td>
@@ -613,7 +617,8 @@ async function QuizTab({ sp }: { sp: SP }) {
   const prev = Number(str(sp.prev));
   const step = Math.max(0, Number(str(sp.s)) || 0);
   const only = weak ? await weakConceptIds() : undefined;
-  const cards = quizCards(area, only);
+  const cards = await quizCardsFor(area, only);
+  const studyAreas = await getStudyAreas();
   // Shuffled per day: the same step shows the same card today, a different one tomorrow.
   const card = pickCard(cards, seededRandom(`${toLocalDate()}:${area}:${weak}:${step}`), Number.isInteger(prev) ? prev : undefined);
   const qs = (extra: string) => `/revise?tab=quiz&area=${area}${weak ? "&weak=1" : ""}${extra}`;
@@ -653,7 +658,7 @@ async function QuizTab({ sp }: { sp: SP }) {
       ) : (
         <article className="rounded-[28px] border border-line bg-surface p-6 dark:border-0 sm:p-8">
           <p className="text-xs text-muted">
-            {card.itemTitle} · {STUDY_AREAS.find((a) => a.id === card.area)?.title}
+            {card.itemTitle} · {studyAreas.find((a) => a.id === card.area)?.title}
           </p>
           <h3 className="mt-2 text-xl font-semibold leading-snug sm:text-2xl">{card.question}</h3>
           <p className="mt-2 text-sm text-muted">Answer out loud (aim for under 2 minutes), then check yourself.</p>

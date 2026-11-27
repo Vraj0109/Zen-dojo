@@ -1,10 +1,6 @@
 import "server-only";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import {
-  ALL_PATTERNS,
-  DSA_GROUPS,
-  JUDGE_PROBLEMS,
-  PROBLEMS,
   RESOLVE_XP,
   patternTarget,
   solveState,
@@ -15,6 +11,8 @@ import {
   type Problem,
   type SolveState,
 } from "@habit/shared";
+import { getAllPatterns, getDsaGroups, getRoadmapProblems } from "./content-repo/lookups";
+import { getProblemSpec, listProblemSummaries } from "./content-repo/problems";
 import { getDb } from "./db";
 import { getNote, getNotedIds, type ProblemNote } from "./notes";
 import { getPatternNotes, type PatternNote } from "./pattern-notes";
@@ -22,8 +20,9 @@ import { listAddedProblems } from "./content";
 import { leetcodeProblems, leetcodeSubmissions, leetcodeTopics, leetcodeUserSubmissions, problemSolves, solutionRuns } from "./schema";
 import { openStruggles } from "./struggles";
 
-/** Solve history for roadmap problems (ids in PROBLEMS). Other LeetCode solves are handled separately. */
-async function solveIndex() {
+/** Solve history for roadmap problems (ids in roadmap). Other LeetCode solves are handled separately. */
+async function solveIndex(roadmap?: Record<string, Problem>) {
+  const problems = roadmap ?? (await getRoadmapProblems());
   const db = await getDb();
   const rows = await db.select().from(problemSolves).orderBy(problemSolves.id);
   const first = new Map<string, string>();
@@ -31,7 +30,7 @@ async function solveIndex() {
   const auto = new Set<string>();
   const sources = new Map<string, "manual" | "judge" | "leetcode">();
   for (const r of rows) {
-    if (!(r.problemId in PROBLEMS)) continue;
+    if (!(r.problemId in problems)) continue;
     if (r.kind === "solve" && !first.has(r.problemId)) {
       first.set(r.problemId, r.solvedOn);
       sources.set(r.problemId, (r.source as "manual" | "judge" | "leetcode") ?? "manual");
@@ -49,7 +48,8 @@ async function solveIndex() {
  * Where a problem counts as solved. "Here" is the main one: every test passed in this app's editor (or, for problems the
  * judge cannot run, marked by hand). "On LeetCode" is a second, softer confirmation, like the second tick in a chat app.
  */
-async function tickIndex(first: Map<string, string>) {
+async function tickIndex(first: Map<string, string>, roadmap?: Record<string, Problem>) {
+  const problems = roadmap ?? (await getRoadmapProblems());
   const db = await getDb();
   const [rows, runs, subs] = await Promise.all([
     db.select({ problemId: problemSolves.problemId, kind: problemSolves.kind, source: problemSolves.source }).from(problemSolves),
@@ -60,7 +60,7 @@ async function tickIndex(first: Map<string, string>) {
   const leetcode = new Set<string>(subs.map((s) => s.slug));
   for (const r of rows) if (r.kind === "solve" && first.has(r.problemId) && r.source !== "leetcode") here.add(r.problemId);
   for (const r of runs) if (r.status === "done" && r.total > 0 && r.passed === r.total) here.add(r.problemId);
-  for (const r of rows) if (r.source === "leetcode") leetcode.add(PROBLEMS[r.problemId]?.slug ?? "");
+  for (const r of rows) if (r.source === "leetcode") leetcode.add(problems[r.problemId]?.slug ?? "");
   return { here, leetcode };
 }
 
@@ -141,8 +141,14 @@ export interface PatternView extends Pattern {
 
 export async function getDsaView() {
   const today = toLocalDate();
+  const [roadmap, dsaGroups, summaries] = await Promise.all([
+    getRoadmapProblems(),
+    getDsaGroups(),
+    listProblemSummaries(),
+  ]);
+  const judgeableIds = new Set(summaries.map((s) => s.id));
   const [{ rows, first, resolved, auto }, extraRows, noted, lc, struggles, patternNotes, addedProblems] = await Promise.all([
-    solveIndex(),
+    solveIndex(roadmap),
     getExtraSolves(),
     getNotedIds(),
     leetcodeIndex(),
@@ -151,11 +157,11 @@ export async function getDsaView() {
     listAddedProblems(),
   ]);
   const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), struggling: struggles.has(e.problemId), ...lc(e.slug) }));
-  const ticks = await tickIndex(first);
+  const ticks = await tickIndex(first, roadmap);
 
   // Map each problem id to the pattern names it appears in, so topics always includes them
   const problemPatterns = new Map<string, string[]>();
-  for (const g of DSA_GROUPS) {
+  for (const g of dsaGroups) {
     for (const p of g.patterns) {
       for (const pid of p.problems) {
         problemPatterns.set(pid, [...(problemPatterns.get(pid) ?? []), p.name]);
@@ -164,19 +170,19 @@ export async function getDsaView() {
   }
 
   // Pattern names stand in for topics only while no LeetCode topic tags are known at all (before the extension has seen problems).
-  const noLcTopics = Object.keys(PROBLEMS).every((id) => lc(PROBLEMS[id].slug).topics.length === 0);
+  const noLcTopics = Object.keys(roadmap).every((id) => lc(roadmap[id]?.slug).topics.length === 0);
 
   const view = (id: string): ProblemView => {
-    const lcInfo = lc(PROBLEMS[id].slug);
+    const lcInfo = lc(roadmap[id]?.slug);
     const patternNames = problemPatterns.get(id) ?? [];
     const problemTopics = noLcTopics ? patternNames : lcInfo.topics;
     return {
-      ...PROBLEMS[id],
+      ...roadmap[id],
       here: ticks.here.has(id),
-      onLeetCode: ticks.leetcode.has((PROBLEMS[id].slug ?? "")),
+      onLeetCode: ticks.leetcode.has((roadmap[id]?.slug ?? "")),
       status: solveState(first.get(id), resolved.get(id), today),
       auto: auto.has(id),
-      judgeable: id in JUDGE_PROBLEMS,
+      judgeable: judgeableIds.has(id),
       noted: noted.has(id),
       struggling: struggles.has(id),
       ...lcInfo,
@@ -184,7 +190,7 @@ export async function getDsaView() {
     };
   };
 
-  const groups = DSA_GROUPS.map((g) => {
+  const groups = dsaGroups.map((g) => {
     const patterns: PatternView[] = g.patterns.map((p) => {
       const items = p.problems.map(view);
       const addedForPattern = addedProblems.filter((ap) => ap.patterns.includes(p.id));
@@ -196,14 +202,14 @@ export async function getDsaView() {
     return { ...g, patterns, covered: patterns.filter((p) => p.covered).length };
   });
 
-  const allIds = Object.keys(PROBLEMS);
+  const allIds = Object.keys(roadmap);
   const due = allIds.map(view).filter((p) => p.status.state === "solved" && p.status.resolveDue);
   const patterns = groups.flatMap((g) => g.patterns);
   // Topic tags seen on roadmap problems (or their pattern names), for the filter dropdown.
   const topics = [
     ...new Set(
       allIds.flatMap((id) => {
-        const lcTopics = lc(PROBLEMS[id].slug).topics;
+        const lcTopics = lc(roadmap[id]?.slug).topics;
         return noLcTopics ? (problemPatterns.get(id) ?? []) : lcTopics;
       })
     ),
@@ -272,20 +278,28 @@ async function userSubmissions(slug: string | undefined): Promise<UserSubmission
 /** Everything the problem page needs; null for unknown ids. */
 export async function getProblemDetail(id: string): Promise<ProblemDetail | null> {
   const today = toLocalDate();
-  if (id in PROBLEMS) {
-    const slug = PROBLEMS[id].slug;
-    const [{ first, resolved, auto, sources }, note, submissions, topics] = await Promise.all([solveIndex(), getNote(id), userSubmissions(slug), topicsFor(slug)]);
-    const ticks = await tickIndex(first);
+  const roadmap = await getRoadmapProblems();
+  if (id in roadmap) {
+    const slug = roadmap[id].slug;
+    const [{ first, resolved, auto, sources }, note, submissions, topics, allPatterns, spec] = await Promise.all([
+      solveIndex(roadmap),
+      getNote(id),
+      userSubmissions(slug),
+      topicsFor(slug),
+      getAllPatterns(),
+      getProblemSpec(id),
+    ]);
+    const ticks = await tickIndex(first, roadmap);
     return {
-      ...PROBLEMS[id],
+      ...roadmap[id],
       here: ticks.here.has(id),
       onLeetCode: ticks.leetcode.has(slug ?? "") || submissions.length > 0,
       kind: "roadmap",
-      patterns: ALL_PATTERNS.filter((p) => p.problems.includes(id)).map(({ id, name, recognize }) => ({ id, name, recognize })),
+      patterns: allPatterns.filter((p) => p.problems.includes(id)).map(({ id, name, recognize }) => ({ id, name, recognize })),
       status: solveState(first.get(id), resolved.get(id), today),
       auto: auto.has(id),
       solveSource: sources.get(id),
-      judgeable: id in JUDGE_PROBLEMS,
+      judgeable: Boolean(spec),
       note,
       submissions,
       topics,
@@ -333,7 +347,8 @@ export async function getResolveDueCount(): Promise<number> {
 
 /** First call records the solve; a second call records the re-solve. Further calls do nothing. */
 export async function markSolved(problemId: string, source: "manual" | "judge" = "manual") {
-  const problem = PROBLEMS[problemId];
+  const roadmap = await getRoadmapProblems();
+  const problem = roadmap[problemId];
   if (!problem) return;
   const db = await getDb();
   const existing = await db.select({ kind: problemSolves.kind }).from(problemSolves).where(eq(problemSolves.problemId, problemId));
@@ -350,7 +365,8 @@ export async function markSolved(problemId: string, source: "manual" | "judge" =
  * test in the editor (see recordJudgePass). Only problems without a judge spec allow manual solves.
  */
 export async function markSolvedManually(problemId: string): Promise<boolean> {
-  if (problemId in JUDGE_PROBLEMS) {
+  const spec = await getProblemSpec(problemId);
+  if (Boolean(spec)) {
     return false;
   }
   await markSolved(problemId);
@@ -359,8 +375,9 @@ export async function markSolvedManually(problemId: string): Promise<boolean> {
 
 /** Every test passed in the judge: records the first solve, or the re-solve once it is due. Returns true if a row was added. */
 export async function recordJudgePass(problemId: string): Promise<boolean> {
-  if (!(problemId in PROBLEMS)) return false;
-  const { first, resolved } = await solveIndex();
+  const roadmap = await getRoadmapProblems();
+  if (!(problemId in roadmap)) return false;
+  const { first, resolved } = await solveIndex(roadmap);
   const s = solveState(first.get(problemId), resolved.get(problemId), toLocalDate());
   if (s.state === "unsolved" || (s.state === "solved" && s.resolveDue)) {
     await markSolved(problemId, "judge");

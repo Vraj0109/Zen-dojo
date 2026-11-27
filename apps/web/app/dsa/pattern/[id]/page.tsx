@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_PATTERNS, DSA_GROUPS, PATTERN_ARTICLES, PATTERN_GUIDES, type PatternArticle } from "@habit/shared";
+import { lessonToShape, type PatternArticle } from "@habit/shared";
+import { getAllPatterns, getDsaGroups } from "@/lib/content-repo/lookups";
+import { getLesson } from "@/lib/content-repo/courses";
 import "katex/dist/katex.min.css";
 import { cpAlgoCount, getCpAlgoArticles } from "@/lib/cp-algorithms";
 import { getDsaView } from "@/lib/dsa";
@@ -21,19 +23,19 @@ import { PatternTabs } from "./pattern-tabs";
 import { TabPanel } from "../../../tab-panel";
 
 /** One page per pattern, known at build time. */
-export function generateStaticParams() {
-  return ALL_PATTERNS.map((p) => ({ id: p.id }));
+export async function generateStaticParams() {
+  const patterns = await getAllPatterns();
+  return patterns.map((p) => ({ id: p.id }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/dsa/pattern/[id]">): Promise<Metadata> {
   const { id } = await params;
-  return { title: ALL_PATTERNS.find((p) => p.id === id)?.name ?? "Pattern" };
+  const patterns = await getAllPatterns();
+  return { title: patterns.find((p) => p.id === id)?.name ?? "Pattern" };
 }
 
 /** Learn (when a full article exists), Practice and My template always; Reference (cp-algorithms articles) only for patterns that have some. */
-function tabsFor(patternId: string, problemCount = 0) {
-  const hasArticle = Boolean(PATTERN_ARTICLES[patternId]);
-  const refs = cpAlgoCount(patternId);
+function tabsFor(patternId: string, hasArticle: boolean, refs: number, problemCount = 0) {
   return [
     ...(hasArticle ? [{ id: "learn", label: "Learn" }] : []),
     { id: "practice", label: problemCount > 0 ? `Practice · ${problemCount}` : "Practice" },
@@ -47,7 +49,8 @@ export default async function PatternPage({
   searchParams,
 }: PageProps<"/dsa/pattern/[id]">) {
   const { id } = await params;
-  const pattern = ALL_PATTERNS.find((p) => p.id === id);
+  const patterns = await getAllPatterns();
+  const pattern = patterns.find((p) => p.id === id);
   if (!pattern) notFound();
 
   return (
@@ -70,16 +73,22 @@ async function PatternView({
   await connection();
   const { id } = await params;
   const sp = await searchParams;
-  const pattern = ALL_PATTERNS.find((p) => p.id === id);
-  const guide = PATTERN_GUIDES[id];
-  if (!pattern || !guide) notFound();
-  const article = PATTERN_ARTICLES[id];
-  const nav = patternNeighbours(id);
-  const group = nav?.group ?? DSA_GROUPS.find((g) => g.patterns.some((p) => p.id === id))!;
+  const [patterns, dsaGroups, guideLesson, articleLesson, nav, refs] = await Promise.all([
+    getAllPatterns(),
+    getDsaGroups(),
+    getLesson(`pattern-${id}`),
+    getLesson(`article-${id}`),
+    patternNeighbours(id),
+    cpAlgoCount(id),
+  ]);
+  const pattern = patterns.find((p) => p.id === id);
+  if (!pattern || !guideLesson) notFound();
+  const article = articleLesson ? (lessonToShape(articleLesson) as { article: PatternArticle }).article : undefined;
+  const group = nav?.group ?? dsaGroups.find((g) => g.patterns.some((p) => p.id === id))!;
   const prev = nav?.prev;
   const next = nav?.next;
 
-  const tabs = tabsFor(id, pattern.problems.length);
+  const tabs = tabsFor(id, Boolean(article), refs, pattern.problems.length);
   const defaultTab = article ? "learn" : "practice";
   const requested = typeof sp?.tab === "string" ? sp.tab : defaultTab;
   const currentTab = tabs.some((t) => t.id === requested) ? requested : defaultTab;
@@ -289,11 +298,11 @@ async function Template({ id }: { id: string }) {
 
 async function Practice({ id }: { id: string }) {
   await connection();
-  const [view, simple] = await Promise.all([getDsaView(), getSimpleMode()]);
+  const [view, simple, articleLesson] = await Promise.all([getDsaView(), getSimpleMode(), getLesson(`article-${id}`)]);
   const p = view.groups.flatMap((g) => g.patterns).find((x) => x.id === id);
   if (!p) return null;
   const nextId = p.items.find((i) => i.status.state === "unsolved")?.id;
-  const hasArticle = Boolean(PATTERN_ARTICLES[id]);
+  const hasArticle = Boolean(articleLesson);
 
   return (
     <div className="flex gap-5 flex-wrap items-start">

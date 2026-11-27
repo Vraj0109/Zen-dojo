@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_CONCEPTS, ALL_EXERCISES, READING_KINDS, studyHref, weekFocus } from "@habit/shared";
+import { READING_KINDS, studyHref, weekFocus } from "@habit/shared";
+import { getAllConcepts, getAllExercises } from "@/lib/content-repo/lookups";
 import { getReadingList } from "@/lib/reading";
 import { getPlanPosition } from "@/lib/tasks";
 import { toggleReadingAction } from "../../actions";
@@ -25,9 +26,9 @@ export default function ReadingPage({ searchParams }: { searchParams: Promise<{ 
   );
 }
 
-const itemLink = (id: string) => {
-  const c = ALL_CONCEPTS[id];
-  const e = ALL_EXERCISES[id];
+const itemLink = (id: string, concepts: Awaited<ReturnType<typeof getAllConcepts>>, exercises: Awaited<ReturnType<typeof getAllExercises>>) => {
+  const c = concepts[id];
+  const e = exercises[id];
   const area = c?.area ?? e?.area;
   return area ? { href: studyHref(area, id), title: c?.title ?? e!.title, area } : null;
 };
@@ -61,7 +62,7 @@ async function Reading({ searchParams }: { searchParams: Promise<{ filter?: stri
   await connection();
   const sp = await searchParams;
   const currentFilter = FILTERS.some((f) => f.id === sp.filter) ? sp.filter! : "all";
-  const [list, pos] = await Promise.all([getReadingList(), getPlanPosition()]);
+  const [list, pos, concepts, exercises] = await Promise.all([getReadingList(), getPlanPosition(), getAllConcepts(), getAllExercises()]);
   const doneCount = list.filter((r) => r.done).length;
   // "This week": readings that go with this plan week's system design and low-level design topics.
   const focus = weekFocus(pos.cursor);
@@ -126,7 +127,7 @@ async function Reading({ searchParams }: { searchParams: Promise<{ filter?: stri
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-3">
           {filtered.map((r) => {
-            const links = r.items.map(itemLink).filter((x): x is NonNullable<typeof x> => x !== null);
+            const links = r.items.map((id) => itemLink(id, concepts, exercises)).filter((x): x is NonNullable<typeof x> => x !== null);
             const firstTopic = links[0];
             const tone = getTone(firstTopic?.area);
 

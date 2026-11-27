@@ -4,7 +4,7 @@
 //
 //   electron .          use the bundled server
 //   electron . --dev    show the dev server on http://localhost:3000 instead (run `pnpm dev` first)
-import { app, BrowserWindow, Menu, dialog, shell, utilityProcess } from "electron";
+import { app, BrowserWindow, Menu, Notification, dialog, shell, utilityProcess } from "electron";
 import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -13,7 +13,9 @@ import updaterPkg from "electron-updater";
 import { PROTOCOL, findDeepLink, hubOrigins, isSignInHandoff, isWorkerRedirect, parseAuthDeepLink } from "./lib/deeplink.js";
 import { appCommandAction, swipeAction, withFeature } from "./lib/navigation.js";
 import { DEFAULT_PORT, databaseUrl, importDatabase, isExternal, pickPort, waitForServer } from "./lib/setup.js";
+import { copyContentDatabase, decideContentCopy, readContentVersion } from "./lib/content-setup.js";
 import { CHECK_EVERY_MS, RELEASES_REPO, backupName, backupsToPrune, isNewer, needsBackup } from "./lib/updates.js";
+import { maybeShowNotification } from "./lib/notify.js";
 
 const { autoUpdater } = updaterPkg;
 
@@ -95,6 +97,9 @@ async function start() {
   if (!existsSync(dbFile)) await firstRun(dbFile);
   backupIfVersionChanged(dbFile);
 
+  const contentDbFile = path.join(dataDir(), "content.db");
+  setupContentDatabase(contentDbFile);
+
   const serverJs = path.join(app.isPackaged ? process.resourcesPath : here, "server", "apps", "web", "server.js");
   if (!existsSync(serverJs)) {
     return fail("Server not built", `Missing ${serverJs}\n\nRun \`pnpm --filter desktop prepare-server\` first.`);
@@ -123,6 +128,7 @@ async function start() {
       HOSTNAME: "127.0.0.1",
       PORT: String(port),
       DATABASE_URL: databaseUrl(dbFile),
+      CONTENT_DATABASE_URL: databaseUrl(path.join(dataDir(), "content.db")),
     },
   });
   server.stdout?.pipe(log);
@@ -140,6 +146,7 @@ async function start() {
   openWindow(origin);
   void warmUp(origin);
   setupUpdates();
+  setupContentSync(origin);
   if (fallback) {
     dialog.showMessageBox({
       type: "info",
@@ -421,6 +428,31 @@ Zen Dojo will start anyway; your data is unchanged so far.`);
   writeFileSync(marker, current);
 }
 
+/**
+ * If the local content.db is missing or older than the shipped one, copy the shipped content.db into dataDir().
+ * Uses an atomic copy (temporary name, then rename).
+ * @param {string} dest
+ */
+function setupContentDatabase(dest) {
+  const shipped = path.join(app.isPackaged ? process.resourcesPath : here, "resources", "content.db");
+  if (!existsSync(shipped)) return;
+  const existingVersion = readContentVersion(dest);
+  const shippedVersion = readContentVersion(shipped);
+  const decision = decideContentCopy({
+    existingExists: existsSync(dest),
+    shippedExists: true,
+    existingVersion,
+    shippedVersion,
+  });
+  if (decision.copy) {
+    try {
+      copyContentDatabase(shipped, dest);
+    } catch (err) {
+      console.error("Could not copy shipped content.db:", err);
+    }
+  }
+}
+
 let updateReady = false;
 
 /** Background checks: shortly after start, then every few hours. Installed builds only. */
@@ -451,6 +483,50 @@ function setupUpdates() {
   });
   setTimeout(() => checkForUpdates(false), 10_000);
   setInterval(() => checkForUpdates(false), CHECK_EVERY_MS);
+}
+
+const CONTENT_SYNC_START_MS = 20_000;
+
+/**
+ * Background content sync (plan 0115 step 5): triggers the local-only POST /api/content/sync
+ * 20 seconds after start and every 6 hours.
+ * @param {string} origin e.g. http://127.0.0.1:3000
+ */
+function setupContentSync(origin) {
+  if (process.env.HABIT_NO_SYNC) return;
+  const triggerSync = async () => {
+    if (quitting || !server) return;
+    try {
+      const res = await fetch(`${origin}/api/content/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (res.ok) {
+        /** @type {any} */
+        const body = await res.json().catch(() => null);
+        if (body && typeof body.notices === "string" && body.notices) {
+          const summary = typeof body.notices === "string" ? body.notices : undefined;
+          maybeShowNotification({
+            summary,
+            count: 0, // only changes marked "Tell learners" notify (plan 0119); silent edits never do
+            NotificationClass: Notification,
+            onClick: () => {
+              if (win) {
+                if (win.isMinimized()) win.restore();
+                win.focus();
+                win.loadURL(`${origin}/whats-new`);
+              }
+            },
+          });
+        }
+      }
+    } catch {
+      // Background sync is best-effort.
+    }
+  };
+  setTimeout(triggerSync, CONTENT_SYNC_START_MS);
+  setInterval(triggerSync, CHECK_EVERY_MS);
 }
 
 /**

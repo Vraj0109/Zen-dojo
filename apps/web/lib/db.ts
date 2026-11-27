@@ -272,6 +272,22 @@ ALTER TABLE solution_runs ADD COLUMN failed_cases TEXT NOT NULL DEFAULT '';
   `
 ALTER TABLE solution_runs ADD COLUMN run_detail TEXT NOT NULL DEFAULT '';
 `,
+  // 0119: content update notices for learners, per device (not synced)
+  `
+CREATE TABLE content_notices (
+  id INTEGER PRIMARY KEY,
+  unit TEXT NOT NULL,
+  unit_title TEXT NOT NULL DEFAULT '',
+  entity TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  section_id TEXT,
+  title TEXT NOT NULL,
+  note TEXT NOT NULL,
+  at INTEGER NOT NULL,
+  read_at TEXT
+);
+CREATE INDEX content_notices_read ON content_notices (read_at);
+`,
 ];
 
 /** Names the step in the error so a log line says what failed (never any data or token). */

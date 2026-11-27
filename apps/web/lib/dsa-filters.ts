@@ -1,4 +1,4 @@
-import { JUDGE_PROBLEMS, type Difficulty } from "@habit/shared";
+import type { Difficulty } from "@habit/shared";
 import type { PatternView, ProblemView } from "./dsa";
 
 // Search and filters for the DSA page. Filters live in the URL (/dsa?q=&topic=&difficulty=&status=&has=&source=) as
@@ -142,15 +142,22 @@ export const hasActiveFilters = (f: DsaFilters) => Boolean(f.q) || FILTER_KEYS.s
 let judgeText: Map<string, string> | undefined;
 const TEST_TEXT_LIMIT = 2000;
 
-function judgeTextFor(id: string): string {
-  if (!judgeText) {
-    judgeText = new Map();
-    for (const [pid, spec] of Object.entries(JUDGE_PROBLEMS)) {
-      const cases = [...spec.examples, ...spec.tests].map((c) => `${JSON.stringify(c.input)} ${JSON.stringify(c.output)}`).join(" ");
-      judgeText.set(pid, [...spec.statement, ...spec.hints, cases.slice(0, TEST_TEXT_LIMIT)].join(" ").toLowerCase());
-    }
+/** Optional search index injection (e.g. from the content repo or tests). */
+export function setJudgeTextIndex(index: Map<string, string>) {
+  judgeText = index;
+}
+
+export function indexFromSpecs(specs: Record<string, { statement: string[]; hints: string[]; examples: { input: unknown; output: unknown }[]; tests: { input: unknown; output: unknown }[] }>): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [pid, spec] of Object.entries(specs)) {
+    const cases = [...spec.examples, ...spec.tests].map((c) => `${JSON.stringify(c.input)} ${JSON.stringify(c.output)}`).join(" ");
+    map.set(pid, [...spec.statement, ...spec.hints, cases.slice(0, TEST_TEXT_LIMIT)].join(" ").toLowerCase());
   }
-  return judgeText.get(id) ?? "";
+  return map;
+}
+
+function judgeTextFor(id: string): string {
+  return judgeText?.get(id) ?? "";
 }
 
 /** The source a problem belongs to (same rules as matchesSource); empty when none matches. */

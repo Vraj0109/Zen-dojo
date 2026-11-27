@@ -121,8 +121,17 @@ pre-0.9.0 desktop build that started sign-in at the old Worker) shows a 400 page
 - The hub is one more Turso database (so about 98 signed-in users fit in the 100-database limit). Its writes count toward the same 10 million rows a month. The one-time import counts once; daily sync writes are small (a few rows per change).
 - The old Worker's free-plan limits in `docs/sync-security.md` apply only until cutover.
 
+## Admins
+
+- **Who is an admin**: Admin status is derived strictly from the environment variable `ADMIN_USER_IDS` (a comma-separated list of GitHub user ids, e.g. `gh:12345`). There is no admin column in any user table, no promotion API, and no CLI command to grant admin rights.
+- **Adding or removing an admin**: The deployment owner edits `ADMIN_USER_IDS` in Vercel project settings and redeploys. Adding an admin gives them admin rights on their next token issuance or refresh. Removing an admin takes effect immediately on the hosted API / web routes that verify `ADMIN_USER_IDS`, and within 15 minutes for existing JWT access tokens when they expire.
+- **No other path**: No profile update, server action, OAuth flow, or database write can make someone an admin.
+- **Read/write token split**: Reading content uses a read-only database client (`CONTENT_DATABASE_READ_TOKEN`), preventing read bugs or public requests from writing content. Only verified admin write operations receive an `AdminProof` to open the write client (`CONTENT_DATABASE_AUTH_TOKEN`).
+- **Audit log**: Every change made by an admin is written to the `admin_audit` table in the same transaction as the change, tracking actor, timestamp, action type, entity, and full before/after state.
+
 ## Not available hosted
 
 Running code (Run, Submit, Java project Run, tool installs), the browser extension and its pairing key, restoring a
-database file, the local backup download in Settings, AI help that uses programs on the computer, and `/admin` (404).
+database file, the local backup download in Settings, and AI help that uses programs on the computer. (The `/admin` portal
+is available on the hosted site for users listed in `ADMIN_USER_IDS`.)
 Guests cannot save anything.

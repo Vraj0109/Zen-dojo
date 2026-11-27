@@ -2,26 +2,53 @@ import { describe, expect, it, vi } from "vitest";
 import { ALL_CONCEPTS, ALL_EXERCISES, buildLessonChatMessages, starterMessage, MAX_LESSON_CHARS } from "@habit/shared";
 
 vi.mock("server-only", () => ({}));
+// The lesson text comes from the content database: serve the old constants through the repo functions.
+vi.mock("../content-repo/lookups", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getAllConcepts: async () => s.ALL_CONCEPTS,
+    getAllExercises: async () => s.ALL_EXERCISES,
+    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
+  };
+});
+vi.mock("../content-repo/courses", async () => {
+  const s = await import("@habit/shared");
+  const ctx = { courseId: "course", ord: 0, title: "Lesson" };
+  return {
+    getLesson: async (id: string) => {
+      if (s.LESSONS[id]) {
+        return s.lessonFromFile("concept", id, { lesson: s.LESSONS[id], extra: s.LESSON_EXTRA[id] }, { ...ctx, points: s.ALL_CONCEPTS[id]?.points });
+      }
+      if (s.WALKTHROUGHS[id]) {
+        return s.lessonFromFile("design", id, { walkthrough: s.WALKTHROUGHS[id], deep: s.DESIGN_DEEP[id], extra: s.WALKTHROUGH_EXTRA[id] }, ctx);
+      }
+      if (s.LLD_GUIDES[id]) {
+        return s.lessonFromFile("lld", id, { guide: s.LLD_GUIDES[id], deep: s.LLD_DEEP[id], extra: s.LLD_EXTRA[id] }, ctx);
+      }
+      return null;
+    },
+  };
+});
 import { parseChatRequest } from "./context";
 import { lessonSource } from "./lesson";
 
 describe("lessonSource", () => {
-  it("returns the title, area and text of a concept lesson", () => {
+  it("returns the title, area and text of a concept lesson", async () => {
     const id = Object.keys(ALL_CONCEPTS)[0];
-    const s = lessonSource(id);
+    const s = await lessonSource(id);
     expect(s?.title).toBe(ALL_CONCEPTS[id].title);
     expect(s?.material).toContain("What to know:");
   });
 
-  it("returns text for a system design or LLD exercise", () => {
+  it("returns text for a system design or LLD exercise", async () => {
     const id = Object.keys(ALL_EXERCISES)[0];
-    const s = lessonSource(id);
+    const s = await lessonSource(id);
     expect(s?.title).toBe(ALL_EXERCISES[id].title);
     expect(s?.material.length).toBeGreaterThan(10);
   });
 
-  it("is null for an unknown id", () => {
-    expect(lessonSource("no-such-lesson")).toBeNull();
+  it("is null for an unknown id", async () => {
+    expect(await lessonSource("no-such-lesson")).toBeNull();
   });
 });
 

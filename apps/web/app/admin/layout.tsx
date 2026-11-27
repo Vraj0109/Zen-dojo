@@ -1,34 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { requireAdmin } from "@/lib/auth/session";
-import { isHosted } from "@/lib/hosted";
+import { requireAdminPage } from "@/lib/auth/admin";
 
 export const metadata: Metadata = { title: "Admin" };
 
 // Gate design: a layout is not re-run on every client navigation, so it must not be the only check.
 // This layout checks too (so nothing admin-looking renders for others), but every admin page
-// (page.tsx, problems/page.tsx) and every server action in actions.ts calls requireAdmin() itself.
+// (page.tsx, problems/page.tsx) calls requireAdminPage() and server actions call requireAdminAction().
 
 const LINKS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/problems", label: "Problems" },
   { href: "/admin/study", label: "Study Content" },
+  { href: "/admin/docs", label: "Docs" },
+  { href: "/admin/audit", label: "Audit Log" },
 ];
-
-/** Plan 0058: the admin portal does not exist on the hosted site. */
-async function HostedGate({ children }: { children: React.ReactNode }) {
-  await connection();
-  if (isHosted()) notFound();
-  return <>{children}</>;
-}
 
 async function AdminNav() {
   await connection();
-  if (isHosted()) notFound();
-  const session = await requireAdmin();
+  const proof = await requireAdminPage();
   return (
     <header className="mb-6 flex flex-wrap items-center gap-3 border-b border-line pb-3">
       <span className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
@@ -46,10 +38,17 @@ async function AdminNav() {
         ))}
       </nav>
       <Link href="/profile/account" className="ml-auto text-xs text-muted hover:underline">
-        Signed in as {session.name}
+        Signed in as {proof.name}
       </Link>
     </header>
   );
+}
+
+/** Renders the admin pages only after the server-side admin check passes (request-time, so inside Suspense). */
+async function AdminGate({ children }: { children: React.ReactNode }) {
+  await connection();
+  await requireAdminPage();
+  return <>{children}</>;
 }
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
@@ -59,7 +58,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         <AdminNav />
       </Suspense>
       <Suspense fallback={null}>
-        <HostedGate>{children}</HostedGate>
+        <AdminGate>{children}</AdminGate>
       </Suspense>
     </div>
   );

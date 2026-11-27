@@ -14,6 +14,14 @@
     "dist": "node scripts/prepare-server.mjs && electron-builder --publish never",
     "typecheck": "tsc --noEmit"
   },
+  "build": {
+    "extraResources": [
+      {
+        "from": "resources/content.db",
+        "to": "resources/content.db"
+      }
+    ]
+  },
   "devDependencies": {
     "@types/node": "^20",
     "electron": "44.9.3",

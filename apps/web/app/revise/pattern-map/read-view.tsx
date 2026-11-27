@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Clue, OptimizeMove, ReadStep, ThinkPattern, WorkedExample } from "@habit/shared";
+import type { Clue, OptimizeMove, Problem, ReadStep, ThinkPattern, WorkedExample } from "@habit/shared";
 import { ClueDictionary, type ClueData } from "./clue-dictionary";
 import { labelFor, nodeHref, pointRef, problemLink, type NodeRef } from "./lib";
 import "./pattern-map.css";
@@ -29,12 +29,15 @@ export function ReadView({
   examples,
   moves,
   patterns,
+  problems,
 }: {
   routine: ReadStep[];
   clues: Clue[];
   examples: WorkedExample[];
   moves: OptimizeMove[];
   patterns: Patterns;
+  /** The roadmap problems by id, for the titles of the example links */
+  problems: Record<string, Problem>;
 }) {
   const clueData: ClueData[] = clues.map((c) => ({
     id: c.id,
@@ -113,7 +116,7 @@ export function ReadView({
           <ul className="grid items-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr))]">
             {examples.map((ex) => {
               const ref: NodeRef = { pattern: ex.pattern, variation: ex.variation };
-              const prob = ex.problem ? problemLink(ex.problem) : null;
+              const prob = ex.problem ? problemLink(ex.problem, problems) : null;
               return (
                 <li key={ex.id} className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 dark:border-0">
                   <h3 className="text-base leading-snug font-medium">{ex.title}</h3>

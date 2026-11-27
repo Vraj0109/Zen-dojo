@@ -71,3 +71,32 @@ When working with parallel subagents (Claude Code + Antigravity):
 - Divide tasks into independent files so agents never conflict or lock the same files.
 - Subagents must ONLY use **Tier 1 targeted vitest runs**.
 - The coordinating agent runs the single final `pnpm check` after merging.
+
+---
+
+## 4. Content caching
+
+Content (problems, courses, lessons, docs) is read from the content database through `apps/web/lib/content-repo/`
+(plan 0114). Each read is a `'use cache: remote'` function with `cacheLife('max')` and cache tags from
+`packages/shared/src/content-model/tags.ts`. Remote falls back to Next's in-memory LRU when no cache handler is
+configured (desktop and `next start`); on Vercel the platform provides the shared handler.
+
+| Tag | Covers |
+|---|---|
+| `content` | everything (full import or snapshot apply) |
+| `problems` | the problem list (summaries) |
+| `problem:<id>` | one problem, its solution page and its judge spec |
+| `courses` | the course list with lesson summaries |
+| `course:<id>` | one course and its lesson list |
+| `lesson:<id>` | one lesson |
+| `docs:<kind>` | the list of one doc kind |
+| `doc:<kind>:<id>` | one doc |
+| `content-version` | the content version number |
+
+**Rule: after a content write, call the invalidation helper; nothing else.** Use `expireContentTagsInAction(changes)`
+in a server action (read-your-own-writes) or `expireContentTagsInRoute(changes)` in a route handler or background job.
+`changes` is the list the write helpers return, for example `[{ entity: "lesson", id, courseId }]`.
+
+Public JSON routes under `/api/content/*` are versioned: `?v=<current version>` is immutable for a year with an ETag,
+and an old or missing `v` redirects (302, no-store) to the current one. Stress generators stay in code; the judge spec
+is built with `getProblemSpec(id)`, which is not cached as a whole because the generators are functions.

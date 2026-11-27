@@ -4,7 +4,7 @@ import { getProblemDetail } from "../dsa";
 import { EXT_LIMITS, getExtensionStatus } from "./extension";
 import { FILE_FORMAT, FILE_MAX_BYTES, importLeetCodeFile, LeetCodeFileError, parseLeetCodeFile } from "./file-import";
 
-vi.mock("next/cache", () => ({ refresh: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {}, refresh: vi.fn(), revalidatePath: vi.fn() }));
 
 const ts = (date: string) => {
   const [y, m, d] = date.split("-").map(Number);

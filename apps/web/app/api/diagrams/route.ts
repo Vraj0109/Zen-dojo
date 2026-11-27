@@ -1,4 +1,5 @@
-import { ALL_EXERCISES, studyHref } from "@habit/shared";
+import { studyHref } from "@habit/shared";
+import { getAllExercises } from "@/lib/content-repo/lookups";
 import { DIAGRAM_LIMITS, addDiagram } from "@/lib/diagrams";
 
 /**
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const itemId = String(form.get("itemId") ?? "");
-  const exercise = ALL_EXERCISES[itemId];
+  const exercise = (await getAllExercises())[itemId];
   if (!exercise) return Response.json({ error: "Unknown design or problem." }, { status: 400 });
 
   const file = form.get("file");

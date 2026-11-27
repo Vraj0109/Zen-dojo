@@ -2,7 +2,7 @@
 
 import { inlineParts, parseMarkdown } from "@habit/shared";
 
-// A light preview for the admin editors. It reads the same Markdown subset as app/markdown.tsx but draws code blocks
+// A light preview for client-side rendering. It reads the same Markdown subset as app/markdown.tsx but draws code blocks
 // as plain text: app/markdown.tsx pulls in the Shiki highlighter, which is server-only and cannot go in a client bundle.
 
 function Inline({ text }: { text: string }) {

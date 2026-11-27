@@ -5,7 +5,7 @@ import { editorHelp, TAB_HELP } from "@/app/editor-help";
 import { getNote, getSavedSolutions, saveSolution, saveSolutionFor } from "./notes";
 import { saveRun } from "./solution-runs";
 
-vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
+vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {}, refresh: () => {}, revalidatePath: () => {} }));
 
 beforeEach(() => {
   process.env.DATABASE_URL = ":memory:";

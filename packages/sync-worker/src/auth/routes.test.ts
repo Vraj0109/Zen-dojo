@@ -299,6 +299,32 @@ describe("token (authorization code)", () => {
     expect(env.DB.sessions).toHaveLength(2);
   });
 
+  it("user upsert after GitHub sign-in ignores extra fields and adm follows ADMIN_USER_IDS only", async () => {
+    const env = await makeEnv({ ADMIN_USER_IDS: "gh:999" });
+    (ghUser as unknown as Record<string, unknown>).admin = true;
+    (ghUser as unknown as Record<string, unknown>).adm = true;
+    (ghUser as unknown as Record<string, unknown>).role = "admin";
+    (ghUser as unknown as Record<string, unknown>).site_admin = true;
+
+    const p = await pkcePair();
+    const code = await signIn(env, p);
+    const res = await exchange(env, code, p.verifier);
+    expect(res!.status).toBe(200);
+
+    const body = (await res!.json()) as { user: { id: string; admin: boolean }; access_token: string };
+    expect(body.user.admin).toBe(false);
+
+    const claims = await verifyAccessToken(body.access_token, env);
+    expect(claims?.adm).toBe(false);
+
+    expect(env.DB.users).toHaveLength(1);
+    const storedUser = env.DB.users[0] as Record<string, unknown>;
+    expect(storedUser).toMatchObject({ id: "gh:1", name: "Alice", avatar_url: "https://avatars.test/a.png" });
+    expect(storedUser).not.toHaveProperty("admin");
+    expect(storedUser).not.toHaveProperty("adm");
+    expect(storedUser).not.toHaveProperty("role");
+  });
+
   it("rejects a replayed code", async () => {
     const env = await makeEnv();
     const p = await pkcePair();

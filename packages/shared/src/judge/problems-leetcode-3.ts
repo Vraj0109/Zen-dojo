@@ -546,10 +546,6 @@ public:
       { input: [[10, 10], 3], output: 10 },
       { input: [[3, 6, 7, 11], 8], output: 4 },
     ],
-    stress: [
-      { label: "pile = 1000000000", make: () => [[1000000000], 2] },
-      { label: "pile = 312884470", make: () => [[312884470], 312884469] },
-    ],
     hints: [
       "If a speed works, does a faster speed also work? What does that tell you about searching for the smallest speed?",
       "Yes, a faster speed never takes longer. So the answers go no, no, ..., yes, yes, which is the shape binary search needs.",

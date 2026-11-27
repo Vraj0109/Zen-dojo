@@ -2,7 +2,7 @@ import "server-only";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { CP_ALGO_ARTICLES } from "@habit/shared";
+import { getDoc } from "./content-repo/docs";
 import { toLang } from "./code-lang";
 import { highlight } from "./highlight";
 
@@ -55,14 +55,32 @@ async function loadArticle(articlePath: string): Promise<CpAlgoArticle | null> {
   return article;
 }
 
+async function getCpAlgoArticlePaths(patternId: string): Promise<string[]> {
+  const doc = await getDoc("cp-algorithms", patternId);
+  if (doc?.row?.body) {
+    if (Array.isArray(doc.row.body)) return doc.row.body as string[];
+    if (typeof doc.row.body === "object") {
+      const map = doc.row.body as Record<string, string[]>;
+      if (patternId in map) return map[patternId] ?? [];
+    }
+  }
+  const main = await getDoc("cp-algorithms", "main");
+  if (main?.row?.body) {
+    const map = main.row.body as Record<string, string[]>;
+    return map[patternId] ?? [];
+  }
+  return [];
+}
+
 /** Articles mapped to a pattern, in mapping order. Missing files are skipped, so this never throws. */
 export async function getCpAlgoArticles(patternId: string): Promise<CpAlgoArticle[]> {
-  const paths = CP_ALGO_ARTICLES[patternId] ?? [];
+  const paths = await getCpAlgoArticlePaths(patternId);
   const loaded = await Promise.all(paths.map(loadArticle));
   return loaded.filter((a): a is CpAlgoArticle => a !== null);
 }
 
 /** How many articles a pattern has, without reading them (for the tab label). */
-export function cpAlgoCount(patternId: string): number {
-  return (CP_ALGO_ARTICLES[patternId] ?? []).length;
+export async function cpAlgoCount(patternId: string): Promise<number> {
+  const paths = await getCpAlgoArticlePaths(patternId);
+  return paths.length;
 }

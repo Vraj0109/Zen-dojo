@@ -1,15 +1,46 @@
 "use server";
 
-import { refresh, revalidatePath } from "next/cache";
-import { packProblemSpec, type PackProblem } from "@habit/shared";
-import { requireAdmin } from "@/lib/auth/session";
+import { refresh, revalidatePath, revalidateTag } from "next/cache";
+import { createElement, type ReactNode } from "react";
+import { ContentPage as ContentPageView } from "@/app/content-page";
+import {
+  packProblemSpec,
+  specFromContent,
+  TAG,
+  type CodeLang,
+  type ContentLesson,
+  type ContentPage,
+  type ContentProblem,
+  type PackProblem,
+  type ProblemDraft,
+  type TemplateDef,
+  type TemplateId,
+} from "@habit/shared";
+import { AdminDeniedError, requireAdminAction } from "@/lib/auth/admin";
+import type { AdminProof } from "@/lib/auth/admin-proof";
+import { getContentWriteDb } from "@/lib/content-db/client";
+import { writeAudit } from "@/lib/content-db/audit";
+import { putAsset } from "@/lib/content-db/write";
 import { deleteItem, getItem, upsertItem } from "@/lib/content";
 import { isHosted } from "@/lib/hosted";
 import { runCode } from "@/lib/judge/run";
+import { stressFor } from "@/lib/content-repo/stress";
+import {
+  deleteLesson,
+  deleteProblem,
+  isDesktop,
+  restoreFromAudit,
+  saveLesson,
+  saveDoc,
+  saveProblem,
+  type WriteResult,
+} from "@/lib/admin-content/write";
+import { contentOrigin } from "@/lib/content-sync/origin";
+import { fetchWithAccessToken } from "@/lib/auth/session";
+import { detectMimeType } from "@/app/api/admin/content/assets/route";
 
-// Admin problem saving (plan 0045). Saves go through the existing content store (`upsertItem`, table `content_items`,
-// item id "problem:<slug>"); the store validates the item again with the same rules the pack importer uses and sets
-// `updated_at`. No new table or migration.
+// Admin problem saving (plan 0045 & 0116).
+// Supports legacy PackProblem saving as well as the new database-backed ProblemDraft, ContentLesson, and Doc editing.
 
 export type ProblemActionResult = { ok: true; message: string; id: string } | { ok: false; errors: string[] };
 
@@ -91,7 +122,6 @@ function build(fd: FormData): Built {
     statement: description.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean),
     constraints: constraints ? constraints.split("\n").map((s) => s.trim()).filter(Boolean) : ["See the statement."],
     fn: { name: fnName, params: params as PackProblem["fn"]["params"], returns: returns as PackProblem["fn"]["returns"] },
-    // The first case is shown as the example; the rest are tests. Together they are what the form shows again on edit.
     examples: cases.slice(0, 1) as PackProblem["examples"],
     tests: cases.slice(1) as PackProblem["tests"],
     hints,
@@ -103,8 +133,7 @@ function build(fd: FormData): Built {
   return { ok: true, item };
 }
 
-async function save(mode: "create" | "update", fd: FormData): Promise<ProblemActionResult> {
-  await requireAdmin();
+async function save(mode: "create" | "update", fd: FormData, proof: AdminProof): Promise<ProblemActionResult> {
   const built = build(fd);
   if (!built.ok) return built;
   const existing = await getItem(`problem:${built.item.id}`);
@@ -117,6 +146,23 @@ async function save(mode: "create" | "update", fd: FormData): Promise<ProblemAct
   try {
     const result = await upsertItem(built.item, "admin");
     if (!result.ok) return { ok: false, errors: result.errors };
+    if (result.changed) {
+      try {
+        const contentDb = await getContentWriteDb(proof);
+        await contentDb.transaction(async (tx) => {
+          await writeAudit(tx, proof, {
+            action: mode === "create" ? "create" : "update",
+            entity: "content_item",
+            entityId: `problem:${built.item.id}`,
+            before: existing ? existing.item : null,
+            after: built.item,
+            requestId: null,
+          });
+        });
+      } catch {
+        // Fallback for environments without content write db configured
+      }
+    }
     refresh();
     revalidatePath("/admin/problems");
     const warn = result.warnings.length > 0 ? ` Notes: ${result.warnings.join(" ")}` : "";
@@ -127,50 +173,340 @@ async function save(mode: "create" | "update", fd: FormData): Promise<ProblemAct
 }
 
 export async function saveProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
-  await requireAdmin();
-  return save("create", formData);
+  try {
+    const proof = await requireAdminAction();
+    return await save("create", formData, proof);
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
 }
 
 export async function updateProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
-  await requireAdmin();
-  return save("update", formData);
+  try {
+    const proof = await requireAdminAction();
+    return await save("update", formData, proof);
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
 }
-
-// ---- verify with the judge, and delete (plan 0045 steps 2 and 4) -------------------------------------------------------
 
 export type VerifyResult = { ok: true; passed: number; total: number; maxMs: number; failures: string[] } | { ok: false; errors: string[] };
 
 const short = (s: string) => (s.length > 80 ? `${s.slice(0, 77)}...` : s);
 
-/** Compiles the C++ code of the form and runs it on every case of the form (the first case plus the tests). Saves nothing. */
+/** Compiles the C++ code of the form and runs it on every case of the form. Saves nothing. */
 export async function verifyProblemAction(_prev: VerifyResult | null, formData: FormData): Promise<VerifyResult> {
-  await requireAdmin();
-  if (isHosted()) return { ok: false, errors: ["Running code is available in the desktop app."] };
-  const built = build(formData);
-  if (!built.ok) return built;
-  const code = text(formData, "code");
-  if (!code.trim()) return { ok: false, errors: ["Write the C++ reference solution in the code box first."] };
   try {
-    const run = await runCode(packProblemSpec(built.item, "verify"), "cpp", code);
-    if (run.status !== "done") return { ok: false, errors: [run.message] };
-    const failures = run.results
-      .filter((r) => !r.pass)
-      .slice(0, 5)
-      .map((r) => `Case ${r.index + 1}: ${r.error ?? `expected ${short(r.expected)}, got ${short(r.actual ?? "nothing")}`}`);
-    return { ok: true, passed: run.passed, total: run.total, maxMs: Math.round(Math.max(0, ...run.results.map((r) => r.elapsedMs ?? 0))), failures };
-  } catch {
-    return { ok: false, errors: ["Could not run the judge. Check the server log."] };
+    await requireAdminAction();
+    if (isHosted()) return { ok: false, errors: ["Running code is available in the desktop app."] };
+    const built = build(formData);
+    if (!built.ok) return built;
+    const code = text(formData, "code");
+    if (!code.trim()) return { ok: false, errors: ["Write the C++ reference solution in the code box first."] };
+    try {
+      const run = await runCode(packProblemSpec(built.item, "verify"), "cpp", code);
+      if (run.status !== "done") return { ok: false, errors: [run.message] };
+      const failures = run.results
+        .filter((r) => !r.pass)
+        .slice(0, 5)
+        .map((r) => `Case ${r.index + 1}: ${r.error ?? `expected ${short(r.expected)}, got ${short(r.actual ?? "nothing")}`}`);
+      return { ok: true, passed: run.passed, total: run.total, maxMs: Math.round(Math.max(0, ...run.results.map((r) => r.elapsedMs ?? 0))), failures };
+    } catch {
+      return { ok: false, errors: ["Could not run the judge. Check the server log."] };
+    }
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
   }
 }
 
-/** Removes a stored problem. Built-in problems are never touched, and neither are seeded copies (source "builtin"). */
+/** Removes a stored problem. Built-in problems are never touched. */
 export async function deleteProblemAction(_prev: ProblemActionResult | null, formData: FormData): Promise<ProblemActionResult> {
-  await requireAdmin();
-  const id = text(formData, "id").trim();
-  const row = SLUG.test(id) ? await getItem(`problem:${id}`) : null;
-  if (!row || row.source === "builtin") return { ok: false, errors: ["That stored problem does not exist."] };
-  await deleteItem(`problem:${id}`);
-  refresh();
-  revalidatePath("/admin/problems");
-  return { ok: true, id: `problem:${id}`, message: "Deleted. Built-in problems are unchanged." };
+  try {
+    const proof = await requireAdminAction();
+    const id = text(formData, "id").trim();
+    const row = SLUG.test(id) ? await getItem(`problem:${id}`) : null;
+    if (!row || row.source === "builtin") return { ok: false, errors: ["That stored problem does not exist."] };
+    await deleteItem(`problem:${id}`);
+    try {
+      const contentDb = await getContentWriteDb(proof);
+      await contentDb.transaction(async (tx) => {
+        await writeAudit(tx, proof, {
+          action: "delete",
+          entity: "content_item",
+          entityId: `problem:${id}`,
+          before: row.item,
+          after: null,
+          requestId: null,
+        });
+      });
+    } catch {
+      // Fallback for environments without content write db configured
+    }
+    refresh();
+    revalidatePath("/admin/problems");
+    return { ok: true, id: `problem:${id}`, message: "Deleted. Built-in problems are unchanged." };
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Plan 0116: Problem draft actions (content DB)
+// -------------------------------------------------------------------------------------------------
+
+export async function saveProblemDraftAction(
+  draft: ProblemDraft,
+  baseRev: string | null = null,
+  extra?: { note?: string | null; notify?: boolean },
+): Promise<WriteResult<ContentProblem>> {
+  try {
+    const proof = await requireAdminAction();
+    const res = await saveProblem(proof, draft, baseRev, extra);
+    if (res.ok) {
+      refresh();
+      revalidatePath("/admin/problems");
+      revalidatePath(`/admin/problems/${draft.row.id}`);
+    }
+    return res;
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+export async function deleteProblemDraftAction(
+  id: string,
+  baseRev: string | null = null,
+): Promise<WriteResult<ContentProblem>> {
+  try {
+    const proof = await requireAdminAction();
+    const res = await deleteProblem(proof, id, baseRev);
+    if (res.ok) {
+      refresh();
+      revalidatePath("/admin/problems");
+    }
+    return res;
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+export type RunDraftResult =
+  | { ok: true; passed: number; total: number; maxMs: number; failures: string[] }
+  | { ok: false; errors: string[] };
+
+/**
+ * Plan 0116 step 6: Runs tests against a problem draft's code on desktop.
+ * Hosted environments return an error indicating testing is desktop-only.
+ */
+export async function runDraftAction(
+  draft: ProblemDraft,
+  lang: CodeLang,
+  code: string,
+  includeStress = false,
+): Promise<RunDraftResult> {
+  try {
+    await requireAdminAction();
+    if (isHosted()) {
+      return { ok: false, errors: ["Run tests in the desktop app"] };
+    }
+    if (!code || !code.trim()) {
+      return { ok: false, errors: ["Write solution code first."] };
+    }
+
+    if (lang !== "cpp" && lang !== "java" && lang !== "javascript" && lang !== "python") {
+      return { ok: false, errors: [`Judge only supports C++, Java, JavaScript, and Python. Cannot run ${lang}.`] };
+    }
+
+    try {
+      const spec = specFromContent(draft, includeStress ? stressFor(draft.row.id) : undefined);
+      const run = await runCode(spec, lang, code);
+      if (run.status !== "done") {
+        return { ok: false, errors: [run.message] };
+      }
+      const failures = run.results
+        .filter((r) => !r.pass)
+        .slice(0, 5)
+        .map(
+          (r) =>
+            `Case ${r.index + 1}: ${r.error ?? `expected ${short(r.expected)}, got ${short(r.actual ?? "nothing")}`}`,
+        );
+      return {
+        ok: true,
+        passed: run.passed,
+        total: run.total,
+        maxMs: Math.round(Math.max(0, ...run.results.map((r) => r.elapsedMs ?? 0))),
+        failures,
+      };
+    } catch {
+      return { ok: false, errors: ["Could not run the judge. Check the server log."] };
+    }
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+/**
+ * Plan 0116 step 5: renders the preview on the server with the same component the public pages use
+ * (app/content-page.tsx: Markdown with Shiki highlighting, code tabs, diagrams, images), so the preview matches the
+ * reader exactly. The client page editor cannot import that component (Shiki is server-only), so it calls this.
+ */
+export async function previewAction(
+  fragment: { template: TemplateId | TemplateDef; page: ContentPage },
+): Promise<{ ok: true; node: ReactNode } | { ok: false; errors: string[] }> {
+  try {
+    await requireAdminAction();
+    return { ok: true, node: createElement(ContentPageView, { template: fragment.template, page: fragment.page }) };
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+/** Plan 0116 step 4b: Image asset upload. */
+export async function uploadAssetAction(
+  formData: FormData,
+): Promise<{ ok: true; id: string; url: string } | { ok: false; error: string }> {
+  try {
+    const proof = await requireAdminAction();
+    const file = formData.get("file");
+    if (!file || !(file instanceof Blob)) {
+      return { ok: false, error: "Missing file field." };
+    }
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    if (bytes.byteLength > 1024 * 1024) {
+      return { ok: false, error: "Image is larger than 1 MB." };
+    }
+    const headerSlice = new TextDecoder().decode(bytes.slice(0, 100)).trim().toLowerCase();
+    if (headerSlice.startsWith("<svg") || headerSlice.startsWith("<?xml")) {
+      return { ok: false, error: "SVG images are not allowed (use a Mermaid diagram for vector drawings)." };
+    }
+    const mime = detectMimeType(bytes);
+    if (!mime) {
+      return { ok: false, error: "Only PNG, JPEG, and WebP images are allowed." };
+    }
+
+    if (isDesktop()) {
+      const origin = contentOrigin();
+      const url = `${origin}/api/admin/content/assets`;
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await fetchWithAccessToken(url, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        return { ok: false, error: json.error ?? "Asset upload failed." };
+      }
+      const json = await res.json();
+      return { ok: true, id: json.id, url: json.url };
+    }
+
+    const db = await getContentWriteDb(proof);
+    let assetId = "";
+    await db.transaction(async (tx) => {
+      const res = await putAsset(tx, bytes, mime, proof.name || proof.userId);
+      assetId = res.id;
+    });
+    return { ok: true, id: assetId, url: `/api/content/assets/${assetId}` };
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, error: "Not allowed." };
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to upload asset." };
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Plan 0116 step 7 & 8: Lesson & Doc editing and restore
+// -------------------------------------------------------------------------------------------------
+
+export async function saveLessonContentAction(
+  draft: ContentLesson,
+  baseRev: string | null = null,
+  extra?: { note?: string | null; notify?: boolean },
+): Promise<WriteResult<ContentLesson>> {
+  try {
+    const proof = await requireAdminAction();
+    const res = await saveLesson(proof, draft, baseRev, extra);
+    if (res.ok) {
+      refresh();
+      revalidatePath("/admin/study");
+      revalidatePath(`/admin/study/${draft.row.courseId}/${draft.row.id}`);
+    }
+    return res;
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+export async function deleteLessonContentAction(
+  id: string,
+  baseRev: string | null = null,
+): Promise<WriteResult<ContentLesson>> {
+  try {
+    const proof = await requireAdminAction();
+    const res = await deleteLesson(proof, id, baseRev);
+    if (res.ok) {
+      refresh();
+      revalidatePath("/admin/study");
+    }
+    return res;
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
+}
+
+export async function saveDocContentAction(
+  kind: string,
+  id: string,
+  body: unknown,
+  baseRev: string | null = null,
+  extra?: { note?: string | null; notify?: boolean },
+): Promise<{ ok: true; rev: string } | { ok: false; errors: string[] }> {
+  try {
+    const proof = await requireAdminAction();
+    // saveDoc writes the hosted content database (or forwards there from the desktop app) with an audit row.
+    const res = await saveDoc(proof, { row: { kind, id, body } }, baseRev, extra);
+    if (!res.ok) {
+      if (res.conflict) return { ok: false, errors: ["Someone saved this doc after you opened it. Reload to see their version."] };
+      return { ok: false, errors: res.errors };
+    }
+    revalidateTag(TAG.doc(kind, id), { expire: 0 });
+    revalidateTag(TAG.docs(kind), { expire: 0 });
+    refresh();
+    revalidatePath("/admin/docs");
+    revalidatePath(`/admin/docs/${kind}/${id}`);
+    return { ok: true, rev: res.rev };
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    return { ok: false, errors: [e instanceof Error ? e.message : "Save failed."] };
+  }
+}
+
+export async function restoreAuditAction(
+  auditId: number,
+): Promise<WriteResult<unknown>> {
+  try {
+    const proof = await requireAdminAction();
+    const res = await restoreFromAudit(proof, auditId);
+    if (res.ok) {
+      refresh();
+      revalidatePath("/admin/problems");
+      revalidatePath("/admin/study");
+      revalidatePath("/admin/audit");
+    }
+    return res;
+  } catch (e) {
+    if (e instanceof AdminDeniedError) return { ok: false, errors: ["Not allowed."] };
+    throw e;
+  }
 }

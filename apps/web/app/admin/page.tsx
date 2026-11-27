@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PROBLEMS, type Difficulty } from "@habit/shared";
-import { requireAdmin } from "@/lib/auth/session";
+import type { Difficulty } from "@habit/shared";
+import { requireAdminPage } from "@/lib/auth/admin";
+import { listProblemSummaries } from "@/lib/content-repo/problems";
 
-function sourceOf(id: string): string {
+function sourceOf(id: string, sourceField?: string | null): string {
+  if (sourceField && sourceField.trim()) return sourceField.trim();
   if (id.startsWith("lc-")) return "LeetCode";
   if (id.startsWith("cses-")) return "CSES";
   if (id.startsWith("c-atc-")) return "AtCoder";
@@ -26,14 +28,14 @@ function sum(r: Counts): number {
 
 async function Dashboard() {
   await connection();
-  await requireAdmin();
+  await requireAdminPage();
 
+  const list = await listProblemSummaries();
   const rows = new Map<string, Counts>();
   const totals: Counts = { easy: 0, medium: 0, hard: 0, none: 0 };
-  const list = Object.values(PROBLEMS);
   for (const p of list) {
-    const src = sourceOf(p.id);
-    const d: Bucket = p.difficulty ?? "none";
+    const src = sourceOf(p.id, p.source);
+    const d: Bucket = (p.difficulty as Bucket) ?? "none";
     const row = rows.get(src) ?? { easy: 0, medium: 0, hard: 0, none: 0 };
     row[d] += 1;
     totals[d] += 1;
@@ -77,7 +79,7 @@ async function Dashboard() {
         </table>
       </section>
       <p className="text-sm text-muted">
-        Read-only view of the built-in catalog. Edits and stored problems arrive with the sync plan 0044.{" "}
+        Content database catalog.{" "}
         <Link href="/admin/problems" className="text-accent hover:underline">Browse all problems</Link>
       </p>
     </div>

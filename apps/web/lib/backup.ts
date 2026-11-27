@@ -35,6 +35,7 @@ export const BACKUP_TABLES = [
   "pack_progress",
   "solution_runs",
   "content_items",
+  "content_notices",
 ] as const;
 
 /** Never exported or overwritten: the extension pairing key stays with this install. */

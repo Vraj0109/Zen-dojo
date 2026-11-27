@@ -18,6 +18,8 @@ import { AppearanceSyncNote } from "@/app/components/appearance-sync-note";
 import { PageMain, buttonClass } from "../../ui";
 import { ExtensionCard, LeetCodeCard } from "../connections";
 import { PROFILE_PAGE_CLASS } from "../shared";
+import { OfflineContentCard } from "./offline-content";
+import { getDesktopContentSettings } from "./offline-actions";
 import { FeedUpdater } from "./feed-updater";
 import { AiSettings } from "./ai-settings";
 import { BuddyAppearance } from "./buddy-appearance";
@@ -66,6 +68,7 @@ const ENTRIES: SettingsEntry[] = [
   { id: "buddy", category: "buddy", title: "Accountability Buddy and Gentle Pacing", description: "A shame-free companion, gentle timers and pacing.", keywords: ["buddy name", "buddy tone", "pacing", "pomodoro", "timer", "focus", "adhd", "streak freeze", "pet", "petdex", "appearance"] },
   { id: "sync", category: "account", title: "Sync across devices", description: "Sign in to keep progress in step across devices.", keywords: ["sync", "sign in", "account", "devices", "log in", "sign out"] },
   { id: "packs", category: "content", title: "Add problems and lessons", description: "Import a content pack: a JSON file of lessons and problems.", keywords: ["packs", "content pack", "import", "json", "lessons", "problems", "course"] },
+  { id: "offline", category: "content", title: "Offline content", description: "Keep courses and problem sets available offline; check for updates.", keywords: ["offline", "downloads", "cache", "version", "update", "units", "notifications"] },
   { id: "feed", category: "content", title: "Updates and feeds", description: "Check an over-the-air content feed for new and updated packs.", keywords: ["feed", "updates", "ota", "url", "patches"] },
   { id: "connections", category: "connections", title: HOSTED ? "LeetCode" : "LeetCode and browser extension", description: HOSTED ? "Your LeetCode username." : "LeetCode username, and importing your history from the browser extension (file or pairing key).", keywords: ["LeetCode", "LeetCode username", "import file", "export", "json", "pairing key", "extension", "browser", "sync solves", "chrome"] },
   { id: "profile-editor", category: "profile", title: "Profile", description: "Your display profile.", keywords: ["avatar", "display", "profile"] },
@@ -168,6 +171,14 @@ export default function SettingsPage({ searchParams }: PageProps<"/profile/setti
         </SettingsBlock>
 
         <SettingsBlock id="content" title="Content and packs">
+          <SettingsSection id="offline" scope="device">
+            <section className="space-y-4 rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
+              <h3 className="text-lg font-medium">Offline content</h3>
+              <Suspense fallback={<div className="text-sm text-muted">Loading offline settings…</div>}>
+                <OfflineContentSection />
+              </Suspense>
+            </section>
+          </SettingsSection>
           <SettingsSection id="packs" scope="data">
             <section className="space-y-3 rounded-[28px] border border-line bg-surface p-5 dark:border-0 sm:px-6 sm:py-[22px]">
               <h3 className="text-lg font-medium">Add problems and lessons</h3>
@@ -450,4 +461,13 @@ async function BuddySettingsSection() {
       <BuddyAppearance aiEnabled={HOSTED || (ai?.enabled ?? false)} providerLabel={HOSTED ? "your AI provider" : ai ? PROVIDER_LABEL[ai.provider] : ""} cloud={HOSTED || (ai ? ai.provider !== "ollama" : false)} />
     </section>
   );
+}
+
+async function OfflineContentSection() {
+  await connection();
+  if (process.env.HABIT_DESKTOP === "1") {
+    const desktopData = await getDesktopContentSettings();
+    return <OfflineContentCard isDesktop {...desktopData} />;
+  }
+  return <OfflineContentCard isDesktop={false} />;
 }

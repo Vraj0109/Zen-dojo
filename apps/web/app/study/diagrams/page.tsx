@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_EXERCISES, STUDY_AREAS, studyHref } from "@habit/shared";
+import { studyHref } from "@habit/shared";
 import { DIAGRAM_LIMITS, DIAGRAM_TYPES, getDiagrams } from "@/lib/diagrams";
+import { getAllExercises, getStudyAreas } from "@/lib/content-repo/lookups";
 import { LearnBack } from "../../section-tabs";
 import { buttonClass, INPUT_CLASS, PageMain } from "../../ui";
 import { fmtDate } from "../study-ui";
@@ -41,9 +42,9 @@ function getTone(area?: string) {
 
 async function Gallery() {
   await connection();
-  const all = await getDiagrams();
+  const [all, studyAreas, exercises] = await Promise.all([getDiagrams(), getStudyAreas(), getAllExercises()]);
   // Diagrams belong to a design or an LLD project, so the upload asks which one.
-  const groups = STUDY_AREAS.filter((a) => a.exercises?.items.length).map((a) => ({ title: a.title, items: a.exercises!.items }));
+  const groups = studyAreas.filter((a) => a.exercises?.items.length).map((a) => ({ title: a.title, items: a.exercises!.items }));
 
   return (
     <div className="space-y-5">
@@ -121,7 +122,7 @@ async function Gallery() {
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-3">
           {all.map((d) => {
-            const ex = ALL_EXERCISES[d.itemId];
+            const ex = exercises[d.itemId];
             const tone = getTone(ex?.area);
             const href = ex ? `${studyHref(ex.area, ex.id)}?tab=turn#diagrams` : null;
             const open = d.hasImage ? `/api/diagrams/${d.id}` : d.url;

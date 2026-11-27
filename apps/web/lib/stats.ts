@@ -1,10 +1,7 @@
 import "server-only";
 import { eq, isNotNull } from "drizzle-orm";
 import {
-  ALL_CONCEPTS,
-  ALL_EXERCISES,
   CATEGORIES,
-  PROBLEMS,
   addDays,
   bestStreak,
   currentStreak,
@@ -17,6 +14,7 @@ import {
   type Category,
   type StudyAreaId,
 } from "@habit/shared";
+import { getAllConcepts, getAllExercises, getRoadmapProblems } from "@/lib/content-repo/lookups";
 import { getDb } from "./db";
 import { frozenDays } from "./progress";
 import { focusByDay } from "./timer";
@@ -38,24 +36,26 @@ interface Event {
 
 async function events(): Promise<Event[]> {
   const db = await getDb();
-  const [t, s, p, c] = await Promise.all([
+  const [t, s, p, c, concepts, exercises] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.status, "done")),
     db.select().from(problemSolves),
     db.select().from(practiceSessions),
     db.select().from(conceptProgress).where(isNotNull(conceptProgress.coveredOn)),
+    getAllConcepts(),
+    getAllExercises(),
   ]);
   return [
     ...t.flatMap((r) => (r.doneOn ? [{ on: r.doneOn, xp: r.xp, category: r.category as Category, minutes: r.minutes ?? 0 }] : [])),
     ...s.map((r) => ({ on: r.solvedOn, xp: r.xp, category: "dsa" as Category, minutes: 0 })),
-    ...p.map((r) => ({ on: r.practicedOn, xp: r.xp, category: AREA_CATEGORY[ALL_EXERCISES[r.itemId]?.area ?? "core"], minutes: r.minutes ?? 0 })),
-    ...c.map((r) => ({ on: r.coveredOn!, xp: r.xp, category: AREA_CATEGORY[ALL_CONCEPTS[r.conceptId]?.area ?? "core"], minutes: 0 })),
+    ...p.map((r) => ({ on: r.practicedOn, xp: r.xp, category: AREA_CATEGORY[exercises[r.itemId]?.area ?? "core"], minutes: r.minutes ?? 0 })),
+    ...c.map((r) => ({ on: r.coveredOn!, xp: r.xp, category: AREA_CATEGORY[concepts[r.conceptId]?.area ?? "core"], minutes: 0 })),
   ];
 }
 
 export async function getStats() {
   const today = toLocalDate();
   const db = await getDb();
-  const [ev, dsa, solves, extras, practice, covered, allTasks, focus] = await Promise.all([
+  const [ev, dsa, solves, extras, practice, covered, allTasks, focus, concepts, exercises, roadmap] = await Promise.all([
     events(),
     getDsaView(),
     db.select({ problemId: problemSolves.problemId, kind: problemSolves.kind }).from(problemSolves),
@@ -64,6 +64,9 @@ export async function getStats() {
     db.select({ id: conceptProgress.conceptId }).from(conceptProgress).where(isNotNull(conceptProgress.coveredOn)),
     db.select({ date: tasks.date, scope: tasks.scope, status: tasks.status }).from(tasks),
     focusByDay(),
+    getAllConcepts(),
+    getAllExercises(),
+    getRoadmapProblems(),
   ]);
 
   const xpByDay = new Map<string, number>();
@@ -87,8 +90,8 @@ export async function getStats() {
 
   const extraDifficulty = new Map(extras.map((e) => [`lcx-${e.slug}`, e.difficulty]));
   const firstSolves = new Set(solves.filter((s) => s.kind === "solve").map((s) => s.problemId));
-  const hardSolved = [...firstSolves].filter((id) => (PROBLEMS[id]?.difficulty ?? extraDifficulty.get(id)) === "hard").length;
-  const practicedIn = (area: StudyAreaId) => practice.filter((p) => ALL_EXERCISES[p.itemId]?.area === area).length;
+  const hardSolved = [...firstSolves].filter((id) => (roadmap[id]?.difficulty ?? extraDifficulty.get(id)) === "hard").length;
+  const practicedIn = (area: StudyAreaId) => practice.filter((p) => exercises[p.itemId]?.area === area).length;
 
   const badges = evaluateBadges({
     solved: firstSolves.size,
@@ -98,7 +101,7 @@ export async function getStats() {
     groupsCovered: dsa.groups.filter((g) => g.covered === g.patterns.length).length,
     designsPracticed: practicedIn("sd"),
     lldPracticed: practicedIn("lld"),
-    conceptsCovered: covered.filter((c) => ALL_CONCEPTS[c.id]).length,
+    conceptsCovered: covered.filter((c) => concepts[c.id]).length,
     perfectWeeks: perfectWeeks(allTasks),
     level: level.level,
   });

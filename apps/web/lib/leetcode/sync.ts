@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, inArray, like } from "drizzle-orm";
-import { PROBLEMS, RESOLVE_AFTER_DAYS, RESOLVE_XP, SOLVE_XP, daysBetween, solveXp, toLocalDate } from "@habit/shared";
+import { RESOLVE_AFTER_DAYS, RESOLVE_XP, SOLVE_XP, daysBetween, solveXp, toLocalDate } from "@habit/shared";
+import { getRoadmapProblems } from "../content-repo/lookups";
 import { getDb } from "../db";
 import { leetcodeProblems, leetcodeSubmissions, problemSolves, settings, tasks } from "../schema";
 import { getPlanStart } from "../tasks";
@@ -21,8 +22,6 @@ export interface SyncResult {
 
 /** Problem id used for LeetCode solves that are not in the roadmap list. */
 export const extraProblemId = (slug: string) => `lcx-${slug}`;
-
-const ROADMAP_BY_SLUG = new Map(Object.values(PROBLEMS).flatMap((p) => (p.slug ? [[p.slug, p.id] as const] : [])));
 
 async function getSetting(key: string) {
   const db = await getDb();
@@ -119,6 +118,8 @@ export async function recordAccepted(accepted: AcceptedSubmission[], syncedAt: s
   );
 
   const today = toLocalDate();
+  const roadmap = await getRoadmapProblems();
+  const roadmapBySlug = new Map(Object.values(roadmap).flatMap((p) => (p.slug ? [[p.slug, p.id] as const] : [])));
   let added = 0;
   let resolved = 0;
   let solvedToday = false;
@@ -126,12 +127,12 @@ export async function recordAccepted(accepted: AcceptedSubmission[], syncedAt: s
   for (const sub of subs) {
     if (seen.has(sub.id)) continue;
     const solvedOn = toLocalDate(new Date(sub.timestamp * 1000));
-    const roadmapId = ROADMAP_BY_SLUG.get(sub.slug);
+    const roadmapId = roadmapBySlug.get(sub.slug);
     const problemId = roadmapId ?? extraProblemId(sub.slug);
 
     let xp: number;
     if (roadmapId) {
-      xp = solveXp(PROBLEMS[roadmapId]);
+      xp = solveXp(roadmap[roadmapId]);
     } else {
       // Not in the roadmap list: look up its difficulty once and remember it.
       const known = await db.query.leetcodeProblems.findFirst({ where: eq(leetcodeProblems.slug, sub.slug) });

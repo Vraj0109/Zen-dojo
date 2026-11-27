@@ -4,7 +4,15 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "exports": { ".": "./src/index.ts", "./solutions": "./src/judge/solutions.ts" },
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "devDependencies": { "typescript": "^5" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./solutions": "./src/judge/solutions.ts",
+    "./stress-registry": "./src/judge/stress-registry.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
 }

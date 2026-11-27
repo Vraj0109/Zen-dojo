@@ -1,10 +1,7 @@
 import "server-only";
 import {
-  ALL_CONCEPTS,
-  ALL_EXERCISES,
   CONFIDENCE_LABELS,
   COVERED_CONFIDENCE,
-  DSA_GROUPS,
   PLAN_WEEKS,
   TOTAL_WEEKS,
   studyHref,
@@ -13,6 +10,7 @@ import {
   parseWeekKey,
 } from "@habit/shared";
 import { getDsaView, type ProblemView } from "./dsa";
+import { getAllConcepts, getAllExercises, getDsaGroups } from "./content-repo/lookups";
 import type { Task } from "./schema";
 import { getStudyView, type ConceptView, type ExerciseView } from "./study";
 
@@ -43,11 +41,11 @@ export interface WeekFocusView {
   lld: { items: FocusItem[]; next: FocusItem | null };
 }
 
-const patternGroup = new Map(DSA_GROUPS.flatMap((g) => g.patterns.map((p) => [p.id, g.id] as const)));
-export const patternHref = (id: string) => `/dsa?group=${patternGroup.get(id) ?? "none"}#p-${id}`;
+/** Link to a pattern on the DSA page. `groupOf` maps a pattern id to its group id (from the content database). */
+export const patternHref = (id: string, groupOf: Map<string, string>) => `/dsa?group=${groupOf.get(id) ?? "none"}#p-${id}`;
 
-function studyItem(id: string, concepts: Map<string, ConceptView>, exercises: Map<string, ExerciseView>): FocusItem | null {
-  const area = (ALL_CONCEPTS[id] ?? ALL_EXERCISES[id])?.area;
+function studyItem(id: string, concepts: Map<string, ConceptView>, exercises: Map<string, ExerciseView>, areaOf: (id: string) => string | undefined): FocusItem | null {
+  const area = areaOf(id);
   if (!area) return null;
   const c = concepts.get(id);
   if (c) {
@@ -77,12 +75,21 @@ function studyItem(id: string, concepts: Map<string, ConceptView>, exercises: Ma
 export async function getWeekFocus(weekNo: number): Promise<WeekFocusView> {
   const n = Math.min(Math.max(weekNo, 1), TOTAL_WEEKS);
   const focus = weekFocus(n);
-  const [dsa, sd, lld] = await Promise.all([getDsaView(), getStudyView("sd"), getStudyView("lld")]);
+  const [dsa, sd, lld, allConcepts, allExercises, groups] = await Promise.all([
+    getDsaView(),
+    getStudyView("sd"),
+    getStudyView("lld"),
+    getAllConcepts(),
+    getAllExercises(),
+    getDsaGroups(),
+  ]);
+  const groupOf = new Map(groups.flatMap((g) => g.patterns.map((p) => [p.id, g.id] as const)));
+  const areaOf = (id: string) => (allConcepts[id] ?? allExercises[id])?.area;
 
   const patterns = new Map(dsa.groups.flatMap((g) => g.patterns).map((p) => [p.id, p]));
   const dsaItems: FocusItem[] = focus.patterns.flatMap((id) => {
     const p = patterns.get(id);
-    return p ? [{ id, title: p.name, href: patternHref(id), detail: `${p.solved}/${p.target} solved`, done: p.covered, kind: "pattern" as const }] : [];
+    return p ? [{ id, title: p.name, href: patternHref(id, groupOf), detail: `${p.solved}/${p.target} solved`, done: p.covered, kind: "pattern" as const }] : [];
   });
   const nextProblem = focus.patterns
     .flatMap((id) => patterns.get(id)?.items ?? [])
@@ -90,7 +97,7 @@ export async function getWeekFocus(weekNo: number): Promise<WeekFocusView> {
 
   const concepts = new Map([...(sd?.sections ?? []), ...(lld?.sections ?? [])].flatMap((s) => s.concepts).map((c) => [c.id, c]));
   const exercises = new Map([...(sd?.exercises ?? []), ...(lld?.exercises ?? [])].map((e) => [e.id, e]));
-  const items = (ids: string[]) => ids.flatMap((id) => studyItem(id, concepts, exercises) ?? []);
+  const items = (ids: string[]) => ids.flatMap((id) => studyItem(id, concepts, exercises, areaOf) ?? []);
   const sdItems = items(focus.sd);
   const lldItems = items(focus.lld);
 
@@ -99,7 +106,7 @@ export async function getWeekFocus(weekNo: number): Promise<WeekFocusView> {
     week: PLAN_WEEKS[n - 1],
     dsa: {
       items: dsaItems,
-      href: focus.patterns.length ? patternHref(focus.patterns[0]) : `/dsa?${focus.dsaFilter ?? ""}`,
+      href: focus.patterns.length ? patternHref(focus.patterns[0], groupOf) : `/dsa?${focus.dsaFilter ?? ""}`,
       next: nextProblem
         ? { id: nextProblem.id, title: `${nextProblem.number ? `${nextProblem.number}. ` : ""}${nextProblem.title}`, href: `/dsa/${encodeURIComponent(nextProblem.id)}`, difficulty: nextProblem.difficulty }
         : null,

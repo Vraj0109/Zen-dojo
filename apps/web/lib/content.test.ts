@@ -5,7 +5,6 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { validateItem } from "@habit/shared";
 import { exportBackup, restoreBackup } from "./backup";
-import { adminDenied } from "./content-admin";
 import { deleteItem, getExtraTests, getItem, listAddedProblems, listItems, listReading, resolveProblemSpec, seedBuiltinProblems, upsertItem, withExtraTests } from "./content";
 import { clientOptions, databaseUrl } from "./db";
 import { getPackProblemSpec, listPacks } from "./packs";
@@ -118,15 +117,8 @@ describe("content items", () => {
   });
 });
 
-describe("admin access", () => {
-  const request = (auth?: string) => new Request("http://localhost/api/admin/content", { headers: auth ? { authorization: auth } : {} });
-  it("answers 404 without a token configured, 401 for a wrong one, and allows the right one", () => {
-    expect(adminDenied(request("Bearer x"), {})?.status).toBe(404);
-    expect(adminDenied(request(), { CONTENT_ADMIN_TOKEN: "secret" })?.status).toBe(401);
-    expect(adminDenied(request("Bearer wrong!"), { CONTENT_ADMIN_TOKEN: "secret" })?.status).toBe(401);
-    expect(adminDenied(request("Bearer secret"), { CONTENT_ADMIN_TOKEN: "secret" })).toBeNull();
-  });
-});
+// Admin access to /api/admin/content is tested in app/api/admin/content/route.test.ts (plan 0113: the static
+// CONTENT_ADMIN_TOKEN path was removed in favour of signed admin sessions).
 
 describe("remote database settings", () => {
   it("passes the token when DATABASE_AUTH_TOKEN is set and leaves local files as they were", () => {

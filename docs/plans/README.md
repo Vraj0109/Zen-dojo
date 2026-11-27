@@ -197,3 +197,11 @@ under *Open questions*; answer it in the plan, set it back to `ready`) and `chan
 | 0109 | [Career kit: resume check, project deep-dives, applications tracker, offers and negotiation](0109-career-kit-resume-projects-applications-offers.md) | ready |
 | 0110 | [Readiness score per area and "what to do this week"](0110-readiness-score-and-weekly-plan.md) | ready |
 | 0111 | [Optional tracks through the course library (ML, frontend, mobile system design)](0111-optional-tracks-ml-frontend-mobile.md) | ready |
+| 0112 | [Content database: schema, client and one-time seed from the repo files](0112-content-db-schema-and-seed.md) | in-progress |
+| 0113 | [Admin guardrails: server-side admin checks, admin on the hosted site, audit log](0113-admin-guardrails-and-audit-log.md) | in-progress |
+| 0114 | [Read content from the content database, with server and HTTP caching](0114-content-read-path-and-caching.md) | in-progress |
+| 0115 | [Offline content: download by course, part-level updates, versioning](0115-offline-content-download-and-updates.md) | in-progress |
+| 0116 | [Admin content editor: problems, test cases, hints, block-based solution pages](0116-admin-content-editor.md) | in-progress |
+| 0117 | [Cutover: delete the content files, retire content scripts, new checks and backups](0117-content-cutover-delete-repo-files.md) | in-progress |
+| 0118 | ["Write with AI" on every admin edit field: copy a full prompt, paste the answer back](0118-admin-ai-prompt-buttons.md) | in-progress |
+| 0119 | [Tell learners what changed in the content they follow (What's new, badges, system notifications)](0119-content-update-notifications.md) | in-progress |

@@ -46,6 +46,10 @@ vi.mock("@/lib/content", () => ({
   resolveProblemSpec: async (id: string) => (id === "lc-1" ? mockSpec : undefined),
 }));
 
+vi.mock("@/lib/content-repo/problems", () => ({
+  getProblemSpec: async (id: string) => (id === "lc-1" ? mockSpec : null),
+}));
+
 vi.mock("@/lib/dsa", () => ({
   recordJudgePass: (...args: unknown[]) => mockRecordJudgePass(...args),
 }));
@@ -64,7 +68,7 @@ vi.mock("@/lib/packs", () => ({
   setPackItemDone: (...args: unknown[]) => mockSetPackItemDone(...args),
 }));
 
-vi.mock("next/cache", () => ({
+vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {},
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }));
 

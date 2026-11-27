@@ -3,25 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import {
-  ALL_CONCEPTS,
-  ALL_EXERCISES,
-  CONFIDENCE_LABELS,
-  COVERED_CONFIDENCE,
-  LESSON_EXTRA,
-  DESIGN_DEEP,
-  LLD_DEEP,
-  LLD_PROJECTS,
-  LESSONS,
-  LLD_EXTRA,
-  LLD_GUIDES,
-  STUDY_AREAS,
-  WALKTHROUGH_EXTRA,
-  WALKTHROUGHS,
-  getStudyArea,
-  studyHref,
-  readingMinutes,
-} from "@habit/shared";
+import { CONFIDENCE_LABELS, COVERED_CONFIDENCE, studyHref, type LldProject, type StudyArea } from "@habit/shared";
+import { getDoc } from "@/lib/content-repo/docs";
+import { getAllConcepts, getAllExercises, getStudyArea, getStudyAreas } from "@/lib/content-repo/lookups";
 import { getDiagrams } from "@/lib/diagrams";
 import { getAiSettings, getSimpleMode } from "@/lib/ui-prefs";
 import { isReaderMode } from "@/lib/reader-mode";
@@ -31,7 +15,16 @@ import { AskAiButton, LessonAi } from "./lesson-ai";
 import { resolveLesson } from "@/lib/packs";
 import { getReadingFor } from "@/lib/reading";
 import { focusMinutes } from "@/lib/timer";
-import { PRACTICE_LIMITS, getConceptDetail, getExerciseDetail } from "@/lib/study";
+import {
+  PRACTICE_LIMITS,
+  asConceptShape,
+  asDesignShape,
+  asLldShape,
+  getConceptDetail,
+  getExerciseDetail,
+  getLessonValue,
+  readingMinutesOf,
+} from "@/lib/study";
 import { deletePracticeAction, logPracticeAction, saveConceptAction } from "../../../actions";
 import { StartTimer } from "../../../start-timer";
 import { NotesForm } from "../../../notes-form";
@@ -51,8 +44,8 @@ import { ProjectPlayground } from "./project-playground";
 import { Confidence, fmtDate } from "../../study-ui";
 
 /** Every concept and exercise is known at build time. */
-export function generateStaticParams() {
-  return STUDY_AREAS.flatMap((a) => [
+export async function generateStaticParams() {
+  return (await getStudyAreas()).flatMap((a) => [
     ...a.sections.flatMap((s) => s.concepts.map((c) => ({ area: a.id, id: c.id }))),
     ...(a.exercises?.items ?? []).map((e) => ({ area: a.id, id: e.id })),
   ]);
@@ -61,7 +54,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/study/[area]/[id]">): Promise<Metadata> {
   const { id } = await params;
   return {
-    title: ALL_CONCEPTS[id]?.title ?? ALL_EXERCISES[id]?.title ?? "Study",
+    title: (await getAllConcepts())[id]?.title ?? (await getAllExercises())[id]?.title ?? "Study",
   };
 }
 
@@ -81,7 +74,7 @@ interface LessonLink {
   href: string;
 }
 
-function getAdjacentLessons(area: ReturnType<typeof getStudyArea> & {}, currentId: string): { prev?: LessonLink; next?: LessonLink; index: number; total: number } {
+function getAdjacentLessons(area: StudyArea, currentId: string): { prev?: LessonLink; next?: LessonLink; index: number; total: number } {
   const all: LessonLink[] = [
     ...area.sections.flatMap((s) =>
       s.concepts.map((c) => ({
@@ -139,7 +132,7 @@ function LessonNav({ prev, next }: { prev?: LessonLink; next?: LessonLink }) {
   );
 }
 
-function buildLessonNav(area: ReturnType<typeof getStudyArea> & {}, currentId: string) {
+function buildLessonNav(area: StudyArea, currentId: string) {
   const allLessons = [
     ...area.sections.flatMap((s) =>
       s.concepts.map((c) => ({
@@ -193,9 +186,9 @@ async function Item({ params, searchParams }: { params: PageProps<"/study/[area]
   const sp = await searchParams;
   const diagramError = typeof sp.diagramError === "string" ? sp.diagramError : undefined;
   await connection();
-  const area = getStudyArea(areaId);
-  const concept = ALL_CONCEPTS[id];
-  const exercise = ALL_EXERCISES[id];
+  const area = await getStudyArea(areaId);
+  const concept = (await getAllConcepts())[id];
+  const exercise = (await getAllExercises())[id];
   if (!area || (concept?.area !== area.id && exercise?.area !== area.id)) notFound();
 
   const title = concept?.title ?? exercise?.title ?? "Lesson";
@@ -268,11 +261,18 @@ async function ConceptView({
   lessonNav?: React.ReactNode;
   askAi?: React.ReactNode;
 }) {
-  const [d0, reading, focused, simple] = await Promise.all([getConceptDetail(id), getReadingFor(id), focusMinutes(id), getSimpleMode()]);
+  const [d0, reading, focused, simple, stored] = await Promise.all([
+    getConceptDetail(id),
+    getReadingFor(id),
+    focusMinutes(id),
+    getSimpleMode(),
+    getLessonValue(id),
+  ]);
   const d = d0!;
-  const lesson = (await resolveLesson(id, LESSONS[id])) ?? undefined;
-  const extra = LESSON_EXTRA[id];
-  const readMin = readingMinutes(id);
+  const concept = asConceptShape(stored);
+  const lesson = (await resolveLesson(id, concept?.lesson)) ?? undefined;
+  const extra = concept?.extra;
+  const readMin = readingMinutesOf(concept?.lesson, extra);
   // Read, then answer the interview questions aloud: about twice the reading time, rounded to 5.
   const studyMinutes = Math.min(60, Math.max(15, Math.ceil((readMin * 2) / 5) * 5));
   const p = d.progress;
@@ -438,13 +438,15 @@ async function ExerciseView({
   lessonNav?: React.ReactNode;
   askAi?: React.ReactNode;
 }) {
-  const [d0, reading, focused, diagrams, simple, readOnly] = await Promise.all([
+  const [d0, reading, focused, diagrams, simple, readOnly, stored, projectDoc] = await Promise.all([
     getExerciseDetail(id),
     getReadingFor(id),
     focusMinutes(id),
     getDiagrams(id),
     getSimpleMode(),
     isReaderMode(),
+    getLessonValue(id),
+    getDoc("lld-project", id),
   ]);
   const d = d0!;
   const { exercise, area, sessions, practice } = d;
@@ -453,13 +455,15 @@ async function ExerciseView({
   const noRun = isHosted(); // hosted: Java projects cannot run, the editors show a desktop-app notice
   const totalMinutes = steps.reduce((a, s) => a + s.minutes, 0);
 
-  const walkthrough = isDesign ? WALKTHROUGHS[id] : undefined;
-  const designDeep = isDesign ? DESIGN_DEEP[id] : undefined;
-  const followUps = isDesign ? WALKTHROUGH_EXTRA[id]?.followUps : undefined;
-  const lldGuide = !isDesign ? LLD_GUIDES[id] : undefined;
-  const lldProject = !isDesign ? LLD_PROJECTS[id] : undefined;
-  const lldDeep = !isDesign ? LLD_DEEP[id] : undefined;
-  const lldExtra = !isDesign ? LLD_EXTRA[id] : undefined;
+  const design = asDesignShape(stored);
+  const lld = asLldShape(stored);
+  const walkthrough = isDesign ? design?.walkthrough : undefined;
+  const designDeep = isDesign ? design?.deep : undefined;
+  const followUps = isDesign ? design?.extra?.followUps : undefined;
+  const lldGuide = !isDesign ? lld?.guide : undefined;
+  const lldProject = !isDesign ? (projectDoc?.row.body as LldProject | undefined) : undefined;
+  const lldDeep = !isDesign ? lld?.deep : undefined;
+  const lldExtra = !isDesign ? lld?.extra : undefined;
   const hasFlow = !!lldExtra?.flow?.length;
   const hasEdgeCases = !!lldExtra?.edgeCases?.length;
   const playgroundFiles = isDesign
@@ -568,11 +572,11 @@ async function ExerciseView({
   ) : null;
 
   const referenceMaterial =
-    !isDesign && (lldProject || lldDeep || ALL_EXERCISES[id])
+    !isDesign && (lldProject || lldDeep || exercise)
       ? {
           requirements: {
-            title: ALL_EXERCISES[id]?.title ?? "Requirements",
-            prompt: lldGuide?.requirements?.length ? "• " + lldGuide.requirements.join("\n• ") : ALL_EXERCISES[id]?.focus,
+            title: exercise.title ?? "Requirements",
+            prompt: lldGuide?.requirements?.length ? "• " + lldGuide.requirements.join("\n• ") : exercise.focus,
           },
           walkthrough: lldDeep?.walkthrough.map((sec) => ({
             title: sec.title,

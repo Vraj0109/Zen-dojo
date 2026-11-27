@@ -1,48 +1,70 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ALL_CONCEPTS, LESSONS } from "@habit/shared";
-import { requireAdmin } from "@/lib/auth/session";
-import { getItem } from "@/lib/content";
-import { resolveLesson } from "@/lib/packs";
-import { LessonEditor } from "./lesson-editor";
+import { requireAdminPage } from "@/lib/auth/admin";
+import { getLesson, listCourses } from "@/lib/content-repo/courses";
+import { getContentDb } from "@/lib/content-db/client";
+import { listAudit } from "@/lib/content-db/audit";
+import { LessonEditorClient } from "./lesson-editor-client";
 
-async function Editor({ params }: { params: PageProps<"/admin/study/[area]/[id]">["params"] }) {
+async function LessonEditorContainer({ params }: { params: Promise<{ area: string; id: string }> | { area: string; id: string } }) {
   await connection();
-  await requireAdmin();
-  const { area, id } = await params;
-  const concept = Object.hasOwn(ALL_CONCEPTS, id) ? ALL_CONCEPTS[id] : undefined;
-  if (!concept || concept.area !== area) notFound();
-  const stored = await getItem(`patch:${id}`);
-  const lesson = await resolveLesson(id, LESSONS[id]);
+  await requireAdminPage();
+  const { id } = await params;
+
+  const [lesson, courseOutlines, db] = await Promise.all([
+    getLesson(id),
+    listCourses(),
+    getContentDb(),
+  ]);
+
+  if (!lesson) {
+    notFound();
+  }
+
+  const auditRows = await listAudit(db, {
+    entity: "lesson",
+    entityId: id,
+    limit: 50,
+  });
+
+  const courses = courseOutlines.map((c) => ({
+    id: c.row.id,
+    title: c.row.title,
+  }));
+
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted">
-        {concept.section}. Saving stores a replacement of this lesson text; the built-in lesson is never changed.{" "}
-        <Link href={`/study/${area}/${id}`} className="text-accent hover:underline">View as learner</Link>
-      </p>
-      <LessonEditor
-        initial={{
-          concept: id,
-          overview: lesson?.overview ?? "",
-          points: concept.points,
-          explain: lesson?.explain ?? [],
-          questions: lesson?.questions ?? [],
-          pitfalls: lesson?.pitfalls ?? [],
-          patched: stored !== null,
-        }}
-      />
-    </div>
+    <LessonEditorClient
+      initialLesson={lesson}
+      initialAuditRows={auditRows}
+      courses={courses}
+    />
   );
 }
 
-export default function AdminLessonPage({ params }: PageProps<"/admin/study/[area]/[id]">) {
+async function IdTitle({ params }: { params: Promise<{ area: string; id: string }> | { area: string; id: string } }) {
+  const { id } = await params;
+  return <span className="font-mono text-accent text-xl">{id}</span>;
+}
+
+// Route params are request data: read only inside Suspense, so the page shell still prerenders.
+export default function AdminLessonPage({
+  params,
+}: {
+  params: Promise<{ area: string; id: string }> | { area: string; id: string };
+}) {
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit lesson</h1>
-      <Suspense fallback={<div className="h-64 rounded-xl border border-line bg-surface" />}>
-        <Editor params={params} />
+      <div className="flex items-center justify-between border-b border-line pb-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          Edit Lesson:{" "}
+          <Suspense fallback={null}>
+            <IdTitle params={params} />
+          </Suspense>
+        </h1>
+      </div>
+      <Suspense fallback={<div className="h-96 rounded-lg border border-line bg-surface animate-pulse" />}>
+        <LessonEditorContainer params={params} />
       </Suspense>
     </div>
   );

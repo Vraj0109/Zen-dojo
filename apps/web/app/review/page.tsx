@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { STUDY_AREAS, toLocalDate } from "@habit/shared";
+import { toLocalDate } from "@habit/shared";
+import { getStudyAreas } from "@/lib/content-repo/lookups";
 import { applySkips, getReviewQueue, splitReviewQueue, type ReviewItem } from "@/lib/review";
 import { getProgress } from "@/lib/progress";
 import { ReviewTabs } from "../section-tabs";
@@ -78,7 +79,7 @@ async function Review({ searchParams }: { searchParams: PageProps<"/review">["se
   const currentSubject = next ? itemSubject(next) : "dsa";
   let conceptPoints: string[] | undefined;
   if (next && next.kind === "concept") {
-    const area = STUDY_AREAS.find((a) => a.id === next.area);
+    const area = (await getStudyAreas()).find((a) => a.id === next.area);
     for (const s of area?.sections ?? []) {
       const c = s.concepts.find((x) => x.id === next.id);
       if (c) {

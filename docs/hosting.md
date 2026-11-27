@@ -12,7 +12,7 @@ DATABASE_AUTH_TOKEN=<token from the database provider>
 - On the first start the app runs its migrations against that database (it records how many have run in `PRAGMA user_version`), so an
   empty remote database becomes a complete one. Never run two different app versions against one database at the same time during an upgrade.
 - Content added with `pnpm content:add` (table `content_items`) lives in the same database. To add content to a hosted copy, either point
-  the command at the database (`DATABASE_URL` and `DATABASE_AUTH_TOKEN` set) or use `--url` with the app's `CONTENT_ADMIN_TOKEN`
+  the command at the database (`DATABASE_URL` and `DATABASE_AUTH_TOKEN` set) or use `--url` with an admin access token
   (see `docs/content-editing.md`, "Add one thing").
 - The desktop app keeps its database in the operating system's app-data folder and does not need any of this.
 - Accounts, one progress set per user and a shared content database are a later step (plan 0032). Today the database holds one person's data.
@@ -44,6 +44,13 @@ environment variables, never in the repo.
 | `JWT_PUBLIC_JWK` | no | matching public key |
 | `ADMIN_USER_IDS`, `ALLOWED_REDIRECTS`, `ALLOWED_ORIGIN` | no | admin ids, allowed sign-in return addresses, CORS origin |
 | `PUBLIC_SITE_URL` | no | public origin of the site, no trailing slash |
+| `CONTENT_DATABASE_URL` | no | `libsql://` URL of the content database `zen-dojo-content` (the lessons, problems and reading list; see `docs/content-deploy.md`) |
+| `CONTENT_DATABASE_AUTH_TOKEN` | yes | full-access token for the content database. Only the owner's commands (`content:seed-db`, `content:import`, `content:resync`) need it; the site uses it only for verified admin writes |
+| `CONTENT_DATABASE_READ_TOKEN` | yes | read-only token for the content database; public pages and the content API read with it |
+
+The content database setup, step by step (create it, its two tokens, the first fill, and the check), is in
+`docs/content-deploy.md`. Run `pnpm content:check-hosted --origin https://<site>` after each deploy to confirm the
+public content API answers.
 
 After the move (plan 0073) sign in and sync go through the site's own `/hub` routes and the hub database; the former Worker secrets are Vercel environment variables.
 Before cutover the Cloudflare Worker `zen-dojo-sync` still serves them; the steps to move are in `docs/migration-cloudflare-to-vercel.md`.
@@ -61,7 +68,8 @@ First deploy checklist:
 7. Deploy.
 8. Set `ALLOWED_REDIRECTS` in Vercel to `https://<site>/auth/callback` (exact, no trailing slash) and redeploy.
 9. Open the site, sign in with GitHub, and check that your progress appears after the first sync.
-10. For later releases: deploy the new app version first, then let each user's database migrate on first use. Never
+10. Fill the shared content database and check the public content API: follow `docs/content-deploy.md`.
+11. For later releases: deploy the new app version first, then let each user's database migrate on first use. Never
     run two versions against one database at once.
 
 Limits: the Turso Free plan allows 100 databases (the control database is one, so about 99 users) and 10 million rows
@@ -72,7 +80,7 @@ What is not available hosted:
 
 - Running code (Run, Submit, the Java project Run, tool installs): every such route answers 403 `hosted-no-run`;
   the screen says "Running code is available in the desktop app". Editing, saving and reading keep working.
-- The browser extension and its pairing key, restoring a database file, the local backup download in Settings, AI
-  help that uses programs on the computer, and the `/admin` portal (404).
+- The browser extension and its pairing key, restoring a database file, the local backup download in Settings, and AI
+  help that uses programs on the computer. (The `/admin` portal is available on the hosted site for users listed in `ADMIN_USER_IDS`.)
 - Saving as a guest: signed-out visitors can look around, but progress saves only after GitHub sign-in.
 - Sync runs on request (at most once per 20 seconds per user) and after each change, not in the background.

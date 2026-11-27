@@ -1,23 +1,11 @@
 import "server-only";
-import { timingSafeEqual } from "node:crypto";
 import { JUDGE_PROBLEMS, casesMissingOutput, validateItem, type ProblemSpec, type TestsItem } from "@habit/shared";
 import { computeOutputs } from "@/lib/judge/run";
 import { getPackProblemSpec } from "@/lib/packs";
 import { resolveProblemSpec, upsertItem, type UpsertResult } from "@/lib/content";
 
-// What the admin API and the content scripts share: checking the token, and filling in missing test outputs from the
+// Helpers shared by the admin API and content scripts: filling in missing test outputs from the
 // problem's C++ reference solution (the same way pack:build does).
-
-/** null when the request is allowed; otherwise the response to send. No token configured: the route does not exist. */
-export function adminDenied(request: Request, env: Record<string, string | undefined> = process.env): Response | null {
-  const token = env.CONTENT_ADMIN_TOKEN;
-  if (!token) return new Response("Not found", { status: 404 });
-  const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const a = Buffer.from(given);
-  const b = Buffer.from(token);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return Response.json({ error: "Wrong or missing token." }, { status: 401 });
-  return null;
-}
 
 /** For a tests item: computes the "output" of every case that has none, using the problem's own C++ solution. */
 export async function fillMissingOutputs(raw: unknown): Promise<{ ok: true; item: unknown } | { ok: false; errors: string[] }> {

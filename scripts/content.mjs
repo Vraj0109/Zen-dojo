@@ -7,7 +7,7 @@
 //
 // Without --url the command writes straight to this computer's database (DATABASE_URL, or data/habit.db; it asks for --yes
 // before touching the real data/habit.db). With --url <app> --token <t> it talks to a running or hosted app through
-// /api/admin/content (the app needs CONTENT_ADMIN_TOKEN). Formats: docs/content-editing.md, section "Add one thing".
+// /api/admin/content (needs an admin access token). Formats: docs/content-editing.md, section "Add one thing".
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -26,7 +26,7 @@ const has = (name) => {
   return true;
 };
 const url = flag("--url")?.replace(/\/$/, "");
-const token = flag("--token") ?? process.env.CONTENT_ADMIN_TOKEN;
+const token = flag("--token");
 const yes = has("--yes");
 const prune = has("--prune");
 const [command, target] = args;
@@ -38,7 +38,7 @@ const fail = (...lines) => {
 const usage = () =>
   fail(
     "Usage: pnpm content:add <file.json> | content:sync <folder> | content:list | content:remove <id> | content:export <file> | content:seed",
-    "Add --url <app> --token <token> to use a running or hosted app.",
+    "Add --url <app> --token <access token> to use a running or hosted app.",
   );
 if (!["add", "sync", "list", "remove", "export", "seed"].includes(command ?? "")) usage();
 
@@ -59,13 +59,15 @@ const show = (r, label) => {
 };
 
 async function api(method, query, body) {
-  if (!token) fail("Give --token <token> (or set CONTENT_ADMIN_TOKEN).");
+  if (!token) fail("Give --token <access token> to authenticate with the admin API.");
   const res = await fetch(`${url}/api/admin/content${query}`, {
     method,
     headers: { authorization: `Bearer ${token}`, ...(body ? { "content-type": "application/json" } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (res.status === 404 && !query) fail("The app answered 404: it has no CONTENT_ADMIN_TOKEN set, or the address is wrong.");
+  if (res.status === 401) fail("The app answered 401: missing or invalid access token.");
+  if (res.status === 403) fail("The app answered 403: this account is not an admin.");
+  if (res.status === 404 && !query) fail("The app answered 404: route not found or the address is wrong.");
   const text = await res.text();
   try {
     return { status: res.status, json: JSON.parse(text) };

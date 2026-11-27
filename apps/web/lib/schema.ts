@@ -261,3 +261,19 @@ export const solutionRuns = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.problemId, t.lang] })],
 );
+
+/** Content update notices for learners (plan 0119): kept per device, not synced. */
+export const contentNotices = sqliteTable("content_notices", {
+  id: integer("id").primaryKey(),
+  unit: text("unit").notNull(),
+  unitTitle: text("unit_title").notNull().default(""),
+  entity: text("entity").notNull(),
+  entityId: text("entity_id").notNull(),
+  sectionId: text("section_id"),
+  title: text("title").notNull(),
+  note: text("note").notNull(),
+  at: integer("at").notNull(),
+  readAt: text("read_at"),
+});
+
+export type ContentNoticeRow = typeof contentNotices.$inferSelect;

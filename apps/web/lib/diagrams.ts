@@ -1,6 +1,7 @@
 import "server-only";
 import { desc, eq } from "drizzle-orm";
-import { ALL_EXERCISES, toLocalDate } from "@habit/shared";
+import { toLocalDate } from "@habit/shared";
+import { getAllExercises } from "./content-repo/lookups";
 import { getDb } from "./db";
 import { diagrams } from "./schema";
 
@@ -51,7 +52,7 @@ export function sniffImage(bytes: Uint8Array): (typeof DIAGRAM_TYPES)[number] | 
 }
 
 export async function addDiagram(input: { itemId: string; title: string; url: string; image: Uint8Array | null }): Promise<AddDiagramResult> {
-  if (!(input.itemId in ALL_EXERCISES)) return { ok: false, error: "Unknown design or problem." };
+  if (!(input.itemId in (await getAllExercises()))) return { ok: false, error: "Unknown design or problem." };
   const url = input.url.trim();
   if (url && (!/^https?:\/\/\S+$/i.test(url) || url.length > DIAGRAM_LIMITS.url)) return { ok: false, error: "The link must start with http:// or https://." };
   let mime: string | null = null;

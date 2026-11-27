@@ -1,223 +1,325 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PROBLEMS, type PackProblem, type Problem } from "@habit/shared";
-import { requireAdmin } from "@/lib/auth/session";
-import { getItem, listItems } from "@/lib/content";
-import { Badge, Difficulty, INPUT_CLASS, buttonClass } from "../../ui";
-import { ProblemDrawer, type DrawerInitial } from "./problem-drawer";
+import { requireAdminPage } from "@/lib/auth/admin";
+import { listProblemSummaries } from "@/lib/content-repo/problems";
+import { getAllPatterns } from "@/lib/content-repo/lookups";
+import { getContentDb } from "@/lib/content-db/client";
+import { adminAudit, problems as problemsTable } from "@/lib/content-db/schema";
+import { desc, eq } from "drizzle-orm";
+import { Difficulty as DifficultyBadge } from "../../ui";
 
-function sourceOf(id: string): string {
-  if (id.startsWith("lc-")) return "LeetCode";
-  if (id.startsWith("cses-")) return "CSES";
-  if (id.startsWith("c-atc-")) return "AtCoder";
-  if (id.startsWith("c-cf-")) return "Codeforces";
-  if (id.startsWith("c-euler-")) return "Project Euler";
-  if (id.startsWith("c-kattis-")) return "Kattis";
-  return "Other";
-}
-
-const SOURCES = ["LeetCode", "CSES", "AtCoder", "Codeforces", "Project Euler", "Kattis", "Other"];
-const DIFFICULTIES = ["easy", "medium", "hard", "none"];
-const MAX_ROWS = 200;
-
-type Params = {
+type SearchParams = Promise<{
   q?: string | string[];
   source?: string | string[];
   difficulty?: string | string[];
-  edit?: string | string[];
-  new?: string | string[];
-};
+  pattern?: string | string[];
+  brute?: string | string[];
+  missingLang?: string | string[];
+}>;
 
 function one(v: string | string[] | undefined): string {
   return (Array.isArray(v) ? v[0] : v) ?? "";
 }
 
-function keep(p: { q: string; source: string; difficulty: string }, extra: Record<string, string>): string {
-  const sp = new URLSearchParams();
-  if (p.q) sp.set("q", p.q);
-  if (p.source) sp.set("source", p.source);
-  if (p.difficulty) sp.set("difficulty", p.difficulty);
-  for (const [k, v] of Object.entries(extra)) sp.set(k, v);
-  const s = sp.toString();
-  return s ? `/admin/problems?${s}` : "/admin/problems";
-}
+const SOURCES = ["LeetCode", "CSES", "AtCoder", "Codeforces", "Project Euler", "Kattis", "Other"];
+const DIFFICULTIES = ["easy", "medium", "hard"];
 
-const field = `${INPUT_CLASS} !h-10`;
-
-function toInitial(id: string, builtin: Problem | null, stored: PackProblem | null): DrawerInitial {
-  if (stored) {
-    const cases = [...stored.examples, ...stored.tests].map((c) => ({ input: c.input, output: c.output }));
-    return {
-      originalId: id,
-      title: stored.title,
-      slug: stored.id,
-      difficulty: stored.difficulty ?? "easy",
-      source: stored.source ?? "",
-      category: stored.group ?? "",
-      description: stored.statement.join("\n\n"),
-      constraints: stored.constraints.join("\n"),
-      hints: stored.hints.join("\n"),
-      fnName: stored.fn.name,
-      params: stored.fn.params.map((p) => `${p.name}:${p.type}`).join(", "),
-      returns: stored.fn.returns,
-      tests: JSON.stringify(cases, null, 2),
-      code: stored.solution?.cpp ?? "",
-      stored: true,
-    };
-  }
-  return {
-    originalId: "",
-    title: builtin?.title ?? "",
-    slug: builtin ? (builtin.slug ?? builtin.id) : "",
-    difficulty: builtin?.difficulty ?? "easy",
-    source: builtin ? sourceOf(builtin.id) : "",
-    category: "",
-    description: builtin?.why ?? "",
-    constraints: "",
-    hints: "",
-    fnName: "",
-    params: "",
-    returns: "int",
-    tests: "",
-    code: "",
-    stored: false,
-  };
-}
-
-async function ProblemsTable({ searchParams }: { searchParams: Promise<Params> }) {
+async function ProblemsTable({ searchParams }: { searchParams: SearchParams }) {
   await connection();
-  await requireAdmin();
+  await requireAdminPage();
 
   const sp = await searchParams;
-  const q = one(sp.q).trim().slice(0, 100);
-  const source = SOURCES.includes(one(sp.source)) ? one(sp.source) : "";
-  const difficulty = DIFFICULTIES.includes(one(sp.difficulty)) ? one(sp.difficulty) : "";
-  const f = { q, source, difficulty };
+  const q = one(sp.q).trim();
+  const source = one(sp.source).trim();
+  const difficulty = one(sp.difficulty).trim();
+  const pattern = one(sp.pattern).trim();
+  const brute = one(sp.brute).trim();
+  const missingLang = one(sp.missingLang).trim();
 
-  const needle = q.toLowerCase();
-  const all = Object.values(PROBLEMS);
-  const matches = all.filter((p) => {
-    if (source && sourceOf(p.id) !== source) return false;
-    if (difficulty && (p.difficulty ?? "none") !== difficulty) return false;
-    if (needle && !p.title.toLowerCase().includes(needle) && !(p.slug ?? p.id).toLowerCase().includes(needle)) return false;
+  const [allSummaries, patterns, db] = await Promise.all([
+    listProblemSummaries(),
+    getAllPatterns(),
+    getContentDb(),
+  ]);
+
+  // Query updated_at for problems and latest audit rows for actor attribution
+  const [dbProblemRows, recentAuditRows] = await Promise.all([
+    db.select({ id: problemsTable.id, updatedAt: problemsTable.updatedAt }).from(problemsTable),
+    db
+      .select({
+        entityId: adminAudit.entityId,
+        actorName: adminAudit.actorName,
+        at: adminAudit.at,
+      })
+      .from(adminAudit)
+      .where(eq(adminAudit.entity, "problem"))
+      .orderBy(desc(adminAudit.id))
+      .limit(500),
+  ]);
+
+  const updatedAtMap = new Map<string, number>();
+  for (const r of dbProblemRows) {
+    if (r.updatedAt) updatedAtMap.set(r.id, r.updatedAt);
+  }
+
+  const auditMap = new Map<string, { actorName: string; at: number }>();
+  for (const a of recentAuditRows) {
+    if (!auditMap.has(a.entityId)) {
+      auditMap.set(a.entityId, { actorName: a.actorName, at: a.at });
+    }
+  }
+
+  const qLower = q.toLowerCase();
+
+  const filtered = allSummaries.filter((p) => {
+    if (qLower && !p.id.toLowerCase().includes(qLower) && !p.title.toLowerCase().includes(qLower)) {
+      return false;
+    }
+    if (source && p.source !== source) {
+      return false;
+    }
+    if (difficulty && p.difficulty !== difficulty) {
+      return false;
+    }
+    if (pattern && p.pattern !== pattern) {
+      return false;
+    }
+    if (brute === "yes" && !p.hasBrute) return false;
+    if (brute === "no" && p.hasBrute) return false;
+    if (missingLang === "yes" && p.languages.length >= 4) return false;
     return true;
   });
-  const shown = matches.slice(0, MAX_ROWS);
-  const editId = one(sp.edit);
-  const storedRow = editId ? await getItem(`problem:${editId}`) : null;
-  const storedEdit = storedRow?.item.type === "problem" ? (storedRow.item as PackProblem) : null;
-  const builtinEdit = editId ? (PROBLEMS[editId] ?? null) : null;
-  const drawerMode: "new" | "edit" | null = storedEdit || builtinEdit ? "edit" : one(sp.new) === "1" ? "new" : null;
-  const storedShown = (await listItems("problem"))
-    .filter((r) => r.source !== "builtin" && r.item.type === "problem")
-    .map((r) => r.item as PackProblem)
-    .filter((p) => {
-      if (source && (p.source ?? "Other") !== source) return false;
-      if (difficulty && (p.difficulty ?? "none") !== difficulty) return false;
-      if (needle && !p.title.toLowerCase().includes(needle) && !p.id.includes(needle)) return false;
-      return true;
+
+  const formatDate = (ts?: number) => {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <form method="get" action="/admin/problems" className="flex flex-1 flex-wrap items-end gap-3">
-          <label className="block min-w-56 flex-1 text-sm">Search title or slug
-            <input name="q" defaultValue={q} className={`${field} mt-1`} placeholder="two sum" />
-          </label>
-          <label className="block text-sm">Source
-            <select name="source" defaultValue={source} className={`${field} mt-1`}>
-              <option value="">All sources</option>
+      {/* Search & Filter Bar (works without JS as a standard GET form) */}
+      <form method="GET" action="/admin/problems" className="rounded-lg border border-line bg-surface p-4 space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-medium text-muted mb-1">Search ID or Title</label>
+            <input
+              type="text"
+              name="q"
+              defaultValue={q}
+              placeholder="Filter by name or slug..."
+              className="w-full rounded border border-line bg-surface/50 px-2.5 py-1.5 text-xs focus:border-accent focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-muted mb-1">Source</label>
+            <select
+              name="source"
+              defaultValue={source}
+              className="w-full rounded border border-line bg-surface/50 px-2.5 py-1.5 text-xs focus:border-accent focus:outline-none"
+            >
+              <option value="">All Sources</option>
               {SOURCES.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm">Difficulty
-            <select name="difficulty" defaultValue={difficulty} className={`${field} mt-1`}>
-              <option value="">All</option>
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-              <option value="none">Unrated</option>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-muted mb-1">Difficulty</label>
+            <select
+              name="difficulty"
+              defaultValue={difficulty}
+              className="w-full rounded border border-line bg-surface/50 px-2.5 py-1.5 text-xs focus:border-accent focus:outline-none"
+            >
+              <option value="">All Difficulties</option>
+              {DIFFICULTIES.map((d) => (
+                <option key={d} value={d}>
+                  {d.charAt(0).toUpperCase() + d.slice(1)}
+                </option>
+              ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-muted mb-1">Pattern</label>
+            <select
+              name="pattern"
+              defaultValue={pattern}
+              className="w-full rounded border border-line bg-surface/50 px-2.5 py-1.5 text-xs focus:border-accent focus:outline-none"
+            >
+              <option value="">All Patterns</option>
+              {patterns.map((pat) => (
+                <option key={pat.id} value={pat.id}>
+                  {pat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-muted mb-1">Has Brute Force</label>
+            <select
+              name="brute"
+              defaultValue={brute}
+              className="w-full rounded border border-line bg-surface/50 px-2.5 py-1.5 text-xs focus:border-accent focus:outline-none"
+            >
+              <option value="">Any</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between border-t border-line/60 pt-3 gap-2">
+          <label className="flex items-center gap-2 text-xs text-muted cursor-pointer select-none">
+            <input
+              type="checkbox"
+              name="missingLang"
+              value="yes"
+              defaultChecked={missingLang === "yes"}
+              className="rounded border-line text-accent focus:ring-accent"
+            />
+            Only show problems missing languages (&lt; 4)
           </label>
-          <button type="submit" className={buttonClass("tonal", "sm")}>Filter</button>
-          {(q || source || difficulty) && <Link href="/admin/problems" className={buttonClass("quiet", "sm")}>Clear</Link>}
-        </form>
-        <Link href={keep(f, { new: "1" })} className={buttonClass("primary", "sm")}>
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Add New Problem
-        </Link>
+
+          <div className="flex items-center gap-2">
+            {(q || source || difficulty || pattern || brute || missingLang) && (
+              <Link
+                href="/admin/problems"
+                className="rounded border border-line bg-surface px-3 py-1.5 text-xs text-muted hover:text-foreground"
+              >
+                Reset filters
+              </Link>
+            )}
+            <button
+              type="submit"
+              className="rounded bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:bg-accent/90"
+            >
+              Apply filters
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Results header */}
+      <div className="flex items-center justify-between text-xs text-muted">
+        <span>
+          Showing <strong>{filtered.length}</strong> of {allSummaries.length} problems
+        </span>
       </div>
 
-      <p className="text-sm text-muted" aria-live="polite">
-        {matches.length} of {all.length} problems{matches.length > MAX_ROWS ? `, showing the first ${MAX_ROWS}` : ""}.
-      </p>
-
-      <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-        <table className="w-full text-sm">
+      {/* Table */}
+      <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+        <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-              <th scope="col" className="px-4 py-2">Title</th>
-              <th scope="col" className="px-4 py-2">Slug or id</th>
-              <th scope="col" className="px-4 py-2">Source</th>
-              <th scope="col" className="px-4 py-2">Difficulty</th>
-              <th scope="col" className="px-4 py-2">Status</th>
-              <th scope="col" className="px-4 py-2 text-right">Actions</th>
+            <tr className="border-b border-line bg-surface/60 font-medium text-muted">
+              <th className="p-3">ID</th>
+              <th className="p-3">Title</th>
+              <th className="p-3">Difficulty</th>
+              <th className="p-3">Source</th>
+              <th className="p-3">Pattern</th>
+              <th className="p-3">Languages</th>
+              <th className="p-3">Last Edited</th>
+              <th className="p-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {storedShown.map((p) => (
-              <tr key={`stored-${p.id}`} className="border-b border-line">
-                <td className="px-4 py-2 font-medium">{p.title}</td>
-                <td className="px-4 py-2 font-mono text-xs text-muted">{p.id}</td>
-                <td className="px-4 py-2">{p.source ?? "Other"}</td>
-                <td className="px-4 py-2">{p.difficulty ? <Difficulty level={p.difficulty} /> : <span className="text-muted">unrated</span>}</td>
-                <td className="px-4 py-2"><Badge tone="primary">New stored problem</Badge></td>
-                <td className="px-4 py-2 text-right">
-                  <Link href={keep(f, { edit: p.id })} className="text-accent hover:underline">Edit</Link>
-                </td>
-              </tr>
-            ))}
-            {shown.map((p) => (
-              <tr key={p.id} className="border-b border-line last:border-0">
-                <td className="px-4 py-2 font-medium">{p.title}</td>
-                <td className="px-4 py-2 font-mono text-xs text-muted">{p.slug ?? p.id}</td>
-                <td className="px-4 py-2">{sourceOf(p.id)}</td>
-                <td className="px-4 py-2">
-                  {p.difficulty ? <Difficulty level={p.difficulty} /> : <span className="text-muted">unrated</span>}
-                </td>
-                <td className="px-4 py-2"><Badge>Built-in</Badge></td>
-                <td className="px-4 py-2 text-right">
-                  <Link href={keep(f, { edit: p.id })} className="text-accent hover:underline">Edit</Link>
-                </td>
-              </tr>
-            ))}
-            {shown.length === 0 && storedShown.length === 0 && (
+          <tbody className="divide-y divide-line">
+            {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted">No problems match these filters.</td>
+                <td colSpan={8} className="p-8 text-center text-muted">
+                  No problems match the selected filters.
+                </td>
               </tr>
+            ) : (
+              filtered.map((p) => {
+                const updatedTs = updatedAtMap.get(p.id);
+                const audit = auditMap.get(p.id);
+
+                return (
+                  <tr key={p.id} className="hover:bg-surface/40 transition-colors">
+                    <td className="p-3 font-mono text-accent">
+                      <Link href={`/admin/problems/${p.id}`} className="hover:underline font-semibold">
+                        {p.id}
+                      </Link>
+                    </td>
+                    <td className="p-3 font-medium text-foreground max-w-xs truncate">
+                      <Link href={`/admin/problems/${p.id}`} className="hover:underline">
+                        {p.title}
+                      </Link>
+                    </td>
+                    <td className="p-3">
+                      {p.difficulty ? <DifficultyBadge level={p.difficulty} /> : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="p-3 text-muted">{p.source ?? "—"}</td>
+                    <td className="p-3 text-muted max-w-[150px] truncate">{p.pattern ?? "—"}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1">
+                        {(["cpp", "java", "python", "javascript"] as const).map((lang) => {
+                          const has = p.languages.includes(lang);
+                          return (
+                            <span
+                              key={lang}
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-mono font-medium ${
+                                has ? "bg-accent/15 text-accent" : "bg-surface-2 text-muted/40"
+                              }`}
+                              title={has ? `${lang} solution present` : `Missing ${lang} solution`}
+                            >
+                              {lang === "javascript" ? "js" : lang === "python" ? "py" : lang}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </td>
+                    <td className="p-3 text-muted whitespace-nowrap">
+                      <div>{formatDate(audit?.at ?? updatedTs)}</div>
+                      {audit && <div className="text-[10px] text-muted/70">by {audit.actorName}</div>}
+                    </td>
+                    <td className="p-3 text-right whitespace-nowrap">
+                      <Link
+                        href={`/admin/problems/${p.id}`}
+                        className="rounded border border-line bg-surface px-2.5 py-1 text-xs text-foreground hover:bg-surface-2 font-medium"
+                      >
+                        Edit
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
-
-      {drawerMode && (
-        <ProblemDrawer key={`${drawerMode}:${editId}`} mode={drawerMode} initial={toInitial(editId, builtinEdit, storedEdit)} closeHref={keep(f, {})} />
-      )}
     </div>
   );
 }
 
-export default function AdminProblemsPage({ searchParams }: PageProps<"/admin/problems">) {
+export default function AdminProblemsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <div>
-      <h1 className="mb-4 text-2xl font-semibold tracking-tight">Problems</h1>
-      <Suspense fallback={<div className="h-64 rounded-xl border border-line bg-surface" />}>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-line pb-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Problems Catalog</h1>
+          <p className="text-xs text-muted">
+            Manage all problem statements, test cases, hints, and reference solutions from the content database.
+          </p>
+        </div>
+        <Link
+          href="/admin/problems/new"
+          className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-white shadow hover:bg-accent/90"
+        >
+          + New problem
+        </Link>
+      </div>
+
+      <Suspense fallback={<div className="h-96 rounded-lg border border-line bg-surface animate-pulse" />}>
         <ProblemsTable searchParams={searchParams} />
       </Suspense>
     </div>

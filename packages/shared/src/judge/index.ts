@@ -25,27 +25,11 @@ import { LOGIC_SPECS_BATCH2 } from "./problems-logic-batch2";
 import { LOGIC_SPECS_C } from "./problems-logic-c";
 import { PROBLEMS_LOGIC_D } from "./problems-logic-d";
 import { SPECIAL_SPECS } from "./problems-special";
-import { STRESS_LOGIC_C } from "./stress-logic-c";
-import { STRESS_LOGIC_D } from "./stress-logic-d";
-import { STRESS } from "./stress";
-import { STRESS_6 } from "./stress-6";
-import { STRESS_7 } from "./stress-7";
-import { STRESS_8 } from "./stress-8";
-import { STRESS_9 } from "./stress-9";
-import { STRESS_CSES_INTRO } from "./stress-cses-intro";
-import { STRESS_CSES_SORTING } from "./stress-cses-sorting";
-import { STRESS_CSES_DP } from "./stress-cses-dp";
-import { STRESS_CSES_GRAPH } from "./stress-cses-graph";
-import { STRESS_CSES_MISC } from "./stress-cses-misc";
+import { stressFor } from "./stress-registry";
 import { CSES_RANGE_SPECS } from "./problems-cses-range";
-import { STRESS_CSES_RANGE } from "./stress-cses-range";
 import { CSES_TREE_SPECS } from "./problems-cses-tree";
-import { STRESS_CSES_TREE } from "./stress-cses-tree";
 import { CSES_SPECS_MATH } from "./problems-cses-math";
-import { STRESS_CSES_MATH } from "./stress-cses-math";
 import { CSES_SPECS_GEO_STR } from "./problems-cses-geo-str";
-import { STRESS_CSES_GEO_STR } from "./stress-cses-geo-str";
-import { STRESS_LOGIC } from "./stress-logic";
 import type { ProblemSpec } from "./types";
 
 export * from "./types";
@@ -87,26 +71,9 @@ export const JUDGE_PROBLEMS: Record<string, ProblemSpec> = Object.fromEntries(
 // "Design a class" problems (LRU Cache and friends); see design.ts.
 for (const p of [...DESIGN_SPECS_A, ...DESIGN_SPECS_B, ...DESIGN_SPECS_C, ...SPECIAL_SPECS]) JUDGE_PROBLEMS[p.id] = p;
 
-// Attach the large inputs (speed and memory checks) to their problems.
+// Attach the large inputs (speed and memory checks) to their problems. The lookup lives in stress-registry.ts.
 for (const spec of Object.values(JUDGE_PROBLEMS)) {
-  const stress =
-    STRESS[spec.id] ??
-    STRESS_6[spec.id] ??
-    STRESS_7[spec.id] ??
-    STRESS_8[spec.id] ??
-    STRESS_9[spec.id] ??
-    STRESS_CSES_INTRO[spec.id] ??
-    STRESS_CSES_SORTING[spec.id] ??
-    STRESS_CSES_DP[spec.id] ??
-    STRESS_CSES_GRAPH[spec.id] ??
-    STRESS_CSES_MISC[spec.id] ??
-    STRESS_CSES_RANGE[spec.id] ??
-    STRESS_CSES_TREE[spec.id] ??
-    STRESS_CSES_MATH[spec.id] ??
-    STRESS_CSES_GEO_STR[spec.id] ??
-    STRESS_LOGIC[spec.id] ??
-    STRESS_LOGIC_C[spec.id] ??
-    STRESS_LOGIC_D[spec.id];
+  const stress = stressFor(spec.id);
   if (stress) spec.stress = stress;
 }
 

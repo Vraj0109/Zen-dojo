@@ -10,6 +10,22 @@ import { getExtensionToken } from "./leetcode/extension";
 import { getNote, saveNote } from "./notes";
 import { getRuns, saveRun } from "./solution-runs";
 import { compactRunCases } from "./judge/saved-run";
+
+// Content comes from the content database (plan 0114); these tests are about user data, so content reads return the
+// built-in constants instead of needing a seeded content DB, and cache tags are no-ops outside Next.
+vi.mock("next/cache", async (orig) => ({ ...(await orig<typeof import("next/cache")>()), cacheTag: vi.fn(), cacheLife: vi.fn() }));
+vi.mock("@/lib/content-repo/lookups", async () => {
+  const s = await import("@habit/shared");
+  return {
+    getStudyAreas: async () => s.STUDY_AREAS,
+    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
+    getAllConcepts: async () => s.ALL_CONCEPTS,
+    getAllExercises: async () => s.ALL_EXERCISES,
+    getRoadmapProblems: async () => s.PROBLEMS,
+    getDsaGroups: async () => s.DSA_GROUPS,
+    getAllPatterns: async () => s.ALL_PATTERNS,
+  };
+});
 import { getConceptDetail, logPractice, saveConcept } from "./study";
 import { getTodayView } from "./tasks";
 

@@ -1,7 +1,8 @@
 import "server-only";
 import { eq } from "drizzle-orm";
-import { ALL_CONCEPTS, ALL_EXERCISES, COVERED_CONFIDENCE, STUDY_AREAS, type StudyAreaId } from "@habit/shared";
+import { COVERED_CONFIDENCE, type StudyAreaId } from "@habit/shared";
 import { getDb } from "./db";
+import { getAllConcepts, getAllExercises, getStudyAreas } from "./content-repo/lookups";
 import { getDsaView } from "./dsa";
 import { getReadingList } from "./reading";
 import { conceptProgress, practiceSessions, settings } from "./schema";
@@ -178,17 +179,23 @@ export interface ContinueStep {
 /** The study item you touched most recently (a concept you rated or a design you practised), to continue from. */
 export async function getContinue(): Promise<ContinueStep | null> {
   const db = await getDb();
-  const [concepts, sessions] = await Promise.all([db.select().from(conceptProgress), db.select().from(practiceSessions)]);
+  const [concepts, sessions, allConcepts, allExercises, studyAreas] = await Promise.all([
+    db.select().from(conceptProgress),
+    db.select().from(practiceSessions),
+    getAllConcepts(),
+    getAllExercises(),
+    getStudyAreas(),
+  ]);
   let best: { id: string; on: string } | null = null;
   const consider = (id: string, on: string) => {
     if (!best || on > best.on) best = { id, on };
   };
-  for (const c of concepts) if (ALL_CONCEPTS[c.conceptId]) consider(c.conceptId, c.updatedOn);
-  for (const s of sessions) if (ALL_EXERCISES[s.itemId]) consider(s.itemId, s.practicedOn);
+  for (const c of concepts) if (allConcepts[c.conceptId]) consider(c.conceptId, c.updatedOn);
+  for (const s of sessions) if (allExercises[s.itemId]) consider(s.itemId, s.practicedOn);
   if (!best) return null;
   const found: { id: string; on: string } = best;
-  const item = ALL_CONCEPTS[found.id] ?? ALL_EXERCISES[found.id];
+  const item = allConcepts[found.id] ?? allExercises[found.id];
   const areaId: StudyAreaId = item.area;
-  const area = STUDY_AREAS.find((a) => a.id === areaId);
+  const area = studyAreas.find((a) => a.id === areaId);
   return { title: item.title, course: area?.title ?? "Study", href: `/study/${areaId}/${found.id}`, on: found.on };
 }

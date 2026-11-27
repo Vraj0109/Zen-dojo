@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { COVERED_CONFIDENCE, LESSON_EXTRA, STUDY_AREAS, getStudyArea } from "@habit/shared";
+import { COVERED_CONFIDENCE } from "@habit/shared";
 import { getAddedItems, type AddedGroup } from "@/lib/packs";
-import { getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
+import { getStudyArea, getStudyAreas } from "@/lib/content-repo/lookups";
+import { deeperTitlesFor, getStudyView, type ConceptView, type ExerciseView } from "@/lib/study";
 import { Badge, PageMain, ProgressBar, StatusMark } from "../../ui";
 import { LearnBack } from "../../section-tabs";
 import { Tabs } from "../../tabs";
@@ -15,13 +16,13 @@ import { TabPanel } from "../../tab-panel";
 import { StudyAreaSkeleton } from "@/app/components/study-skeleton";
 
 /** The study areas are fixed, so their pages are known at build time. */
-export function generateStaticParams() {
-  return STUDY_AREAS.map((a) => ({ area: a.id }));
+export async function generateStaticParams() {
+  return (await getStudyAreas()).map((a) => ({ area: a.id }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/study/[area]">): Promise<Metadata> {
   const { area } = await params;
-  return { title: getStudyArea(area)?.title ?? "Study" };
+  return { title: (await getStudyArea(area))?.title ?? "Study" };
 }
 
 export default function StudyAreaPage({ params, searchParams }: PageProps<"/study/[area]">) {
@@ -70,6 +71,7 @@ async function Area({
   const [{ area: areaId }, sp] = await Promise.all([params, searchParams]);
   const [view, added] = await Promise.all([getStudyView(areaId), getAddedItems(areaId)]);
   if (!view) notFound();
+  const deeper = await deeperTitlesFor(view.sections.flatMap((s) => s.concepts.map((c) => c.id)));
   const sectionTitles = new Set(view.sections.map((s) => s.title));
   const joined = (title: string) => added.find((g) => g.section === title)?.items ?? [];
   const separate = added.filter((g) => !sectionTitles.has(g.section));
@@ -151,7 +153,7 @@ async function Area({
                   <ExerciseRow key={e.id} e={e} areaId={area.id} />
                 ))}
                 {due.concepts.map((c) => (
-                  <ConceptRow key={c.id} c={c} areaId={area.id} />
+                  <ConceptRow key={c.id} c={c} areaId={area.id} titles={deeper[c.id] ?? []} />
                 ))}
               </ul>
             </section>
@@ -256,7 +258,7 @@ async function Area({
                   <ProgressBar value={covered} max={s.concepts.length} label={`${s.title} progress`} />
                   <ul className="-mx-2 divide-y divide-line">
                     {s.concepts.map((c) => (
-                      <ConceptRow key={c.id} c={c} areaId={area.id} next={c.id === nextId} />
+                      <ConceptRow key={c.id} c={c} areaId={area.id} next={c.id === nextId} titles={deeper[c.id] ?? []} />
                     ))}
                     {joined(s.title).map((i) => (
                       <AddedRow key={i.packId + i.id} item={i} />
@@ -363,8 +365,7 @@ function AddedRow({ item }: { item: AddedGroup["items"][number] }) {
   );
 }
 
-function ConceptRow({ c, areaId, next = false }: { c: ConceptView; areaId: string; next?: boolean }) {
-  const titles = LESSON_EXTRA[c.id]?.deeper.map((x) => x.title) ?? [];
+function ConceptRow({ c, areaId, next = false, titles }: { c: ConceptView; areaId: string; next?: boolean; titles: string[] }) {
   const ids = deeperIds(titles);
   const covered = c.confidence >= COVERED_CONFIDENCE;
   return (

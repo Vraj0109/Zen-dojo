@@ -289,8 +289,12 @@ export async function resolveLesson(conceptId: string, fallback?: Lesson): Promi
   const patch = await getLessonPatch(conceptId);
   if (patch) return patch;
   if (fallback) return fallback;
-  const { LESSONS } = await import("@habit/shared");
-  return (LESSONS as Record<string, Lesson>)[conceptId] ?? null;
+  const { getLesson } = await import("./content-repo/courses");
+  const { lessonToShape } = await import("@habit/shared");
+  const lesson = await getLesson(conceptId);
+  if (!lesson) return null;
+  const shape = lessonToShape(lesson);
+  return (shape as { lesson?: Lesson }).lesson ?? null;
 }
 
 /** Resets a patched lesson back to the built-in lesson. */

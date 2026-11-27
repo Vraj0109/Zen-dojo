@@ -1,0 +1,554 @@
+import { describe, expect, it } from "vitest";
+import { JUDGE_PROBLEMS } from "./index";
+import { STRESS_BY_ID, stressFor } from "./stress-registry";
+import { STRESS_INLINE } from "./stress-inline";
+
+// Recorded before the registry existed (plan 0117 step 2): every problem id that had stress, the number of stress
+// cases, and an FNV-1a hash of the case labels joined with \u0001. Labels are compared, but no make() is run.
+const BEFORE = `
+abc151-a 1 390db554
+abc153-a 1 a6e9a27b
+abc154-a 1 45cd76f0
+abc155-a 1 77ddd8e4
+abc156-a 1 ac50a7cf
+abc157-a 1 52d60935
+abc158-a 1 1c71030c
+abc159-a 1 2215a678
+abc160-a 1 6ea58225
+abc161-a 1 d4a2090f
+abc162-a 1 dc4d2a78
+abc163-b 2 d77c493b
+abc163-c 2 55710271
+abc164-c 2 b9d17169
+abc165-b 2 361fd23c
+abc169-b 3 48268ed2
+abc171-b 2 b253de97
+abc172-b 2 3bc53e05
+abc175-b 3 9407887b
+abc177-b 2 50ab5794
+c-atc-abc081-b 3 d4e0c860
+c-atc-abc083-b 2 7b028be2
+c-atc-abc085-b 3 b87e6fa6
+c-atc-abc085-c 3 ca24a3a3
+c-atc-abc086-a 1 a6e9a27b
+c-atc-abc087-b 3 c6591f37
+c-atc-abc088-b 3 3539b291
+c-atc-abc136-b 2 5fff0d4d
+c-atc-abc143-b 2 9034f484
+c-atc-abc146-b 3 401a6fd3
+c-atc-abc148-b 1 5065850b
+c-atc-abc149-b 3 138214ca
+c-atc-abc150-b 2 ac489c8e
+c-atc-arc065-a 4 56c54bf0
+c-atc-arc089-a 3 6e2f6739
+c-cf-1030a 1 b8d24744
+c-cf-110a 3 da81e7f8
+c-cf-112a 1 e34d8c30
+c-cf-118a 2 d717aa32
+c-cf-1328a 1 c39f9df0
+c-cf-1335a 1 52ffff0a
+c-cf-1352c 2 e485281c
+c-cf-136a 1 24e1f01a
+c-cf-1475a 2 371e5974
+c-cf-148a 1 4611b5ed
+c-cf-158a 2 06bb1f47
+c-cf-158b 4 ca668bd6
+c-cf-160a 2 0bc6a9c1
+c-cf-1a 2 b10a6718
+c-cf-231a 1 907cf12c
+c-cf-236a 1 4781a7d5
+c-cf-263a 1 42a7f522
+c-cf-266a 2 17f45025
+c-cf-271a 1 7c3d93de
+c-cf-281a 1 33a07287
+c-cf-282a 1 23a8a81c
+c-cf-339a 2 7f10ba11
+c-cf-344a 1 b9f232cf
+c-cf-363b 3 1c703475
+c-cf-41a 1 1cb6e0db
+c-cf-443a 1 f37087f7
+c-cf-466a 2 2dc4401b
+c-cf-467a 1 f09f544d
+c-cf-479a 1 57fecad8
+c-cf-486a 1 fc0f155a
+c-cf-4a 2 e5c61acd
+c-cf-50a 2 22b2034e
+c-cf-520a 1 38bb1bff
+c-cf-546a 2 d87d26fa
+c-cf-580a 3 7ef562ee
+c-cf-59a 1 98390924
+c-cf-617a 1 10969fc6
+c-cf-677a 2 f4b8b9ee
+c-cf-69a 2 4bed6d2c
+c-cf-703a 1 8bead548
+c-cf-705a 1 97f0f85a
+c-cf-71a 2 826b812f
+c-cf-734a 1 aef18032
+c-cf-791a 1 6c9d04ed
+c-cf-977a 1 f140ea43
+c-cf-996a 1 a85e8244
+c-euler-1 3 b3450233
+c-euler-10 2 62bd63e4
+c-euler-12 2 a3919e8b
+c-euler-14 2 eb9d3af3
+c-euler-15 3 5f22b54b
+c-euler-16 2 8338a2c9
+c-euler-17 3 72e44a0f
+c-euler-18 3 b542450e
+c-euler-19 3 a86a8734
+c-euler-2 2 d7ce934a
+c-euler-20 3 41e8c56a
+c-euler-21 3 4c92e9be
+c-euler-23 3 28f03f1b
+c-euler-24 3 24430757
+c-euler-25 3 8aa651bb
+c-euler-26 3 905b0286
+c-euler-27 3 189857cf
+c-euler-28 2 86696902
+c-euler-29 2 7f9700be
+c-euler-3 3 040022f5
+c-euler-30 3 b13191fc
+c-euler-31 3 88cf0447
+c-euler-34 3 b35728ba
+c-euler-35 3 9165edcc
+c-euler-36 3 d25bb779
+c-euler-37 2 85bdef89
+c-euler-39 3 252debe3
+c-euler-4 4 6f91bad9
+c-euler-40 3 7ef5a082
+c-euler-41 4 c575b0ec
+c-euler-45 2 994c5c06
+c-euler-47 3 3eac0005
+c-euler-48 3 b87b982e
+c-euler-5 2 baab6226
+c-euler-52 3 c0d121a6
+c-euler-53 3 b6c026ac
+c-euler-55 3 895d2743
+c-euler-58 3 382277e2
+c-euler-6 2 441e79c3
+c-euler-7 3 efbf3b6b
+c-euler-8 3 a2607e00
+c-euler-9 3 b94827e6
+c-euler-92 3 c2b303ce
+c-euler-97 2 a6fa534f
+c-kattis-autori 2 2bcbff50
+c-kattis-bijele 2 d8724b3e
+c-kattis-cold 1 380407ba
+c-kattis-datum 1 9b7c937b
+c-kattis-dicecup 1 a1e6e6bd
+c-kattis-faktor 1 c09abefb
+c-kattis-filip 1 d278242e
+c-kattis-fizzbuzz 1 fdfde010
+c-kattis-hissingmicrophone 1 645cca67
+c-kattis-isithalloween 1 8ce7e720
+c-kattis-judgingmoose 1 8dc5b9e5
+c-kattis-nastyhacks 1 219ab099
+c-kattis-oddmanout 2 d5d8bdf9
+c-kattis-pieceofcake2 1 fdb84db7
+c-kattis-planina 2 68c8aba5
+c-kattis-pot 2 e7026593
+c-kattis-quadrant 1 918deb98
+c-kattis-r2 2 6b021bc8
+c-kattis-sevenwonders 2 be5c3265
+c-kattis-sibice 1 5fbd73bd
+c-kattis-spavanac 2 5ffecc05
+c-kattis-speedlimit 1 7ab54726
+c-kattis-tarifa 2 77b73c23
+c-kattis-trik 1 4a388106
+c-kattis-zamka 1 a1e4e790
+c-rabin-karp 3 3758a3c4
+c-z-function 3 67289fce
+cses-apartments 2 4848ef75
+cses-apple-division 4 7fd95739
+cses-array-description 3 31366249
+cses-array-division 2 a2cda312
+cses-binomial-coefficients 3 4017f4dd
+cses-bit-strings 3 bad421aa
+cses-book-shop 3 64214963
+cses-bracket-sequences-i 3 c0dc00c8
+cses-building-roads 3 a25d9fe7
+cses-building-teams 3 710efc6e
+cses-chessboard-and-queens 2 64f10632
+cses-christmas-party 3 bad421aa
+cses-coin-combinations-i 3 a835b4ac
+cses-coin-combinations-ii 3 0f24dc1e
+cses-coin-piles 3 2859ecd8
+cses-collecting-numbers 2 f1ae26ef
+cses-common-divisors 4 084f192d
+cses-company-queries-i 4 10abf703
+cses-company-queries-ii 4 48ef2658
+cses-concert-tickets 2 ec2527f4
+cses-convex-hull 2 91716408
+cses-counting-coprime-pairs 3 8a7029a7
+cses-counting-divisors 4 ae28b64b
+cses-counting-necklaces 3 06f710ed
+cses-counting-paths 4 8ad01517
+cses-counting-rooms 4 21bbc316
+cses-course-schedule 3 bc7c034a
+cses-creating-strings 3 af9331b9
+cses-creating-strings-ii 3 e0914d13
+cses-cycle-finding 3 8d2f0353
+cses-dice-combinations 3 d76f9311
+cses-digit-queries 3 532cf3c6
+cses-distance-queries 4 3aecc276
+cses-distinct-colors 4 c950d8ed
+cses-distinct-numbers 2 7ff92031
+cses-distinct-values-queries 4 293f0c57
+cses-distinct-values-subarrays 2 c1f3ddbe
+cses-distributing-apples 4 14f1b9c8
+cses-dynamic-range-minimum-queries 3 6579382f
+cses-dynamic-range-sum-queries 3 bb78ea4a
+cses-edit-distance 3 5220e876
+cses-exponentiation 4 e7e679ef
+cses-exponentiation-ii 3 59c002e2
+cses-factory-machines 2 4c78010f
+cses-ferris-wheel 2 da157e79
+cses-fibonacci-numbers 4 2e769faf
+cses-finding-a-centroid 4 6cc8c14b
+cses-finding-borders 3 c2f7b3af
+cses-finding-periods 3 a420a941
+cses-fixed-length-paths-i 5 37feb949
+cses-fixed-length-paths-ii 5 13492b06
+cses-flight-discount 3 8252ef2b
+cses-forest-queries 3 58871cee
+cses-forest-queries-ii 3 14b1e1f2
+cses-game-routes 3 a81526e2
+cses-gray-code 2 2a265f53
+cses-grid-coloring-i 3 8e1dd486
+cses-grid-path-description 3 20cebb39
+cses-grid-paths-i 3 ef48fb05
+cses-hotel-queries 4 d0449b84
+cses-increasing-array 3 0bc7d643
+cses-josephus-queries 3 5b1a736e
+cses-knight-moves-grid 3 5d13fc79
+cses-labyrinth 3 56693c9f
+cses-line-segment-intersection 2 92f417db
+cses-list-removals 4 179200d2
+cses-longest-flight-route 3 da3330be
+cses-longest-palindrome 3 d84b0abf
+cses-maximum-subarray-sum 2 26b9f942
+cses-message-route 3 08d816ef
+cses-mex-grid-construction 2 c5f49629
+cses-minimal-rotation 3 9ab15e3d
+cses-minimizing-coins 4 900ad4c2
+cses-minimum-euclidean-distance 2 d9ab0e48
+cses-missing-coin-sum 2 0ecc37b2
+cses-missing-coin-sum-queries 6 d9cfc2a3
+cses-missing-number 3 0b09dc0f
+cses-money-sums 3 db38d342
+cses-monsters 3 69de89eb
+cses-movie-festival 2 48016ba3
+cses-movie-festival-queries 4 d26e4aee
+cses-nearest-smaller-values 3 f61658f8
+cses-nim-game-i 3 f04e5197
+cses-number-spiral 3 412c6869
+cses-palindrome-queries 2 766f8eee
+cses-palindrome-reorder 4 251ec7a9
+cses-path-queries 4 11e1d1dd
+cses-path-queries-ii 5 dd8e2105
+cses-permutations 3 78708acb
+cses-pizzeria-queries 3 6569c8b8
+cses-playlist 2 d9ce9990
+cses-point-in-polygon 1 3982cb91
+cses-point-location-test 2 b2fd5ff4
+cses-polygon-area 2 cd4120c6
+cses-polygon-lattice-points 2 c5c59763
+cses-prefix-sum-queries 3 d22b1af4
+cses-prime-multiples 3 f6faa3e8
+cses-range-queries-and-copies 3 cdfd71cf
+cses-range-update-queries 3 0bbf6d68
+cses-range-xor-queries 3 e1c269cf
+cses-rectangle-cutting 4 f3e7c818
+cses-removal-game 3 21b18f4b
+cses-removing-digits 4 cf12c26a
+cses-repetitions 3 79da3027
+cses-required-substring 3 71d8bf20
+cses-restaurant-customers 2 5b19a38e
+cses-round-trip 3 6af53fdc
+cses-salary-queries 3 3e180997
+cses-shortest-routes-i 3 26a42f96
+cses-static-range-minimum-queries 3 b310d669
+cses-static-range-sum-queries 3 2fc8ed60
+cses-stick-lengths 2 56412c21
+cses-string-matching 4 b118e4f6
+cses-string-reorder 4 0fe12873
+cses-subarray-sum-queries 3 2d6697fb
+cses-subarray-sums-i 2 bf4f96e5
+cses-subarray-sums-ii 2 e8bfb018
+cses-subordinates 3 f6d45e6a
+cses-subtree-queries 4 0f83428d
+cses-sum-of-divisors 4 b4dc7c88
+cses-sum-of-three-values 2 b7a90080
+cses-sum-of-two-values 2 78ae7593
+cses-tasks-and-deadlines 2 dbed7fdd
+cses-tower-of-hanoi 2 b9d85682
+cses-towers 3 14a4b38e
+cses-traffic-lights 2 6a4d222f
+cses-trailing-zeros 3 5197d027
+cses-tree-diameter 3 0f9c9bbf
+cses-tree-distances-i 4 6c528dc4
+cses-tree-distances-ii 4 8e018ca1
+cses-tree-matching 4 e6964686
+cses-two-knights 3 a8e7017c
+cses-two-sets 3 fbd97469
+cses-two-sets-ii 4 6ff8be6d
+cses-weird-algorithm 3 9edddb83
+cses-word-combinations 2 5a658204
+lc-1 2 8ad7c477
+lc-10 4 e91a4193
+lc-1000 4 fb423dd6
+lc-1011 3 fe05ad99
+lc-102 2 188c9837
+lc-105 3 eeeedd94
+lc-1094 2 1a2a360a
+lc-11 3 96510d93
+lc-1109 2 5adeeb83
+lc-1143 3 049a45a6
+lc-1146 1 052b1ff8
+lc-115 4 f93d198a
+lc-1168 2 5c2e60ce
+lc-1192 3 e4f81d52
+lc-121 2 c4994efe
+lc-122 3 523c0c20
+lc-123 4 8becf07d
+lc-124 4 857c97f6
+lc-127 3 a1e61e49
+lc-128 2 df8f152b
+lc-131 3 dc586033
+lc-132 4 7875816e
+lc-133 1 b8fb0974
+lc-1334 3 966b5800
+lc-134 2 cbba1c38
+lc-135 5 eba8ffc0
+lc-136 1 e2a8b381
+lc-137 3 314d5b3f
+lc-139 2 0ee861c5
+lc-1392 4 4c6a508e
+lc-142 4 6f0a3bb4
+lc-143 3 43310913
+lc-1434 2 5f68ebd4
+lc-146 2 b5456030
+lc-1483 2 398717d8
+lc-149 4 9447a690
+lc-15 3 93ac0654
+lc-152 2 1eaf8ba7
+lc-1584 4 062a14c7
+lc-162 4 cb03d475
+lc-1631 3 57140c42
+lc-173 1 20f11fd0
+lc-1755 2 b34539c7
+lc-179 3 ceeadbc7
+lc-188 4 7da606cf
+lc-198 2 4804c91b
+lc-1986 4 20ec2086
+lc-199 2 66e027a5
+lc-20 4 cd2f553e
+lc-200 4 47de01fe
+lc-2035 2 be1e792e
+lc-204 4 073b0880
+lc-2050 3 8ef73822
+lc-207 3 5f628b01
+lc-208 1 8ceaa0c4
+lc-210 4 0589bb88
+lc-211 1 aa7dd780
+lc-212 2 f23619bc
+lc-215 3 330e76f9
+lc-22 2 ae51af46
+lc-220 4 c3575cd0
+lc-221 3 77d7f0ea
+lc-223 4 01c3a65b
+lc-224 3 23eed33a
+lc-227 3 e38245d6
+lc-2290 4 df1ec3f8
+lc-23 3 c9102a17
+lc-230 2 ffc49bfe
+lc-236 3 a01e79bf
+lc-238 3 aa9ab999
+lc-239 4 f77e9e70
+lc-25 3 55b5c3e1
+lc-253 2 677d4426
+lc-26 3 ed5f1e97
+lc-260 1 342234ea
+lc-269 2 03a9ecbf
+lc-28 2 36a70d4d
+lc-287 3 69cfb317
+lc-295 3 bb5c8a78
+lc-297 1 4877410b
+lc-3 3 43fed064
+lc-300 3 864bdc8a
+lc-301 2 7135fbae
+lc-303 1 bf3d7659
+lc-305 2 c895a5e1
+lc-307 1 8ff8d864
+lc-309 3 d23cf73e
+lc-312 2 95e964c9
+lc-315 3 8c5d4d48
+lc-32 2 cfa8bd3f
+lc-322 3 bf87b0d1
+lc-327 4 88ee4bc4
+lc-329 2 7bfa270b
+lc-33 2 f6c4ff01
+lc-332 3 ab7ada55
+lc-337 2 f9eb33a3
+lc-338 2 0661d2d8
+lc-347 3 7e6281a7
+lc-354 3 67b06518
+lc-355 1 ef7ada79
+lc-357 3 81f3645d
+lc-362 1 c6dd9790
+lc-37 2 54092ba9
+lc-372 4 ea6daab1
+lc-380 1 099dffaf
+lc-382 1 d6e22dee
+lc-394 3 3514df2f
+lc-4 4 226c86cb
+lc-40 3 6d5c4d14
+lc-406 3 5010595b
+lc-41 2 88a4c7e4
+lc-410 3 1c73da97
+lc-416 3 9f092c47
+lc-417 4 01b4bf02
+lc-42 4 eba0e2dc
+lc-421 3 c7476c8d
+lc-432 3 e06a77a0
+lc-435 3 c9461c7c
+lc-44 4 cbd855c8
+lc-442 2 4b79d1ce
+lc-45 2 8ce2978b
+lc-452 3 33c2198d
+lc-46 2 43a44349
+lc-460 1 b6d43413
+lc-47 3 1d23ab8f
+lc-474 2 7eb0aca7
+lc-48 2 9026cd3c
+lc-480 5 d4a4271a
+lc-49 3 7422ccf9
+lc-493 4 f4ffc53e
+lc-494 3 234d0c21
+lc-50 5 ca692fe2
+lc-502 4 97a2cd87
+lc-51 2 bb571b9d
+lc-518 3 c596afcf
+lc-528 1 d9442068
+lc-53 2 831e88ce
+lc-54 3 8129cc3e
+lc-542 3 c21e411e
+lc-543 2 5ca2e565
+lc-547 3 2d25019a
+lc-55 3 fc0e896f
+lc-56 3 6f6b667f
+lc-560 3 9f3c4e52
+lc-57 2 6bbbd5fe
+lc-62 3 7091de5f
+lc-621 3 e64a1a94
+lc-64 3 acc31255
+lc-673 3 7be9ce88
+lc-684 3 cbea253a
+lc-686 3 e0c550f3
+lc-698 4 5ebe58e5
+lc-699 4 a5ca5db7
+lc-70 1 df2b07ab
+lc-72 3 8bca5905
+lc-721 3 5242bab9
+lc-729 1 652234e8
+lc-73 3 9fece215
+lc-731 1 b1d2f296
+lc-732 1 89bcbc49
+lc-739 3 ea491d4f
+lc-741 3 22024ba0
+lc-743 3 4af4f49f
+lc-75 3 40ef9dd0
+lc-752 3 cc238115
+lc-759 2 d6240f95
+lc-76 2 7fd1bdc0
+lc-763 3 d95bb6cb
+lc-767 4 e0653986
+lc-772 2 0cd24cf3
+lc-773 3 8e57195d
+lc-778 3 39ffe6c4
+lc-78 2 e56709cd
+lc-785 3 a656291e
+lc-787 3 d908d61c
+lc-79 3 53b3cb5d
+lc-834 3 8cb6ffda
+lc-84 3 5c26c5a3
+lc-847 4 fe3980db
+lc-85 2 f39ff0ec
+lc-862 4 56093488
+lc-875 3 272c3d89
+lc-886 3 363c9e93
+lc-90 3 f3222587
+lc-901 2 95779d29
+lc-902 4 803075df
+lc-904 3 f2397068
+lc-907 3 b4e04a36
+lc-91 3 00f6cc40
+lc-918 3 863b80c5
+lc-92 2 66b6b709
+lc-934 2 9d112aa2
+lc-968 3 8dc8d08d
+lc-98 3 c978e59f
+lc-981 1 f5986ab3
+lc-987 3 d1fdd126
+lc-99 3 d22afc50
+lc-994 3 7e17c745`;
+
+const fnv1a = (text: string) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+};
+
+const before = new Map(
+  BEFORE.trim().split("\n").map((line) => {
+    const [id, count, hash] = line.split(" ");
+    return [id, { count: Number(count), hash }] as const;
+  }),
+);
+
+const INLINE_IDS = ["lc-146", "lc-460", "lc-208", "lc-211", "lc-981", "lc-1146", "lc-729", "lc-731", "lc-732", "lc-380", "lc-355", "lc-875", "lc-204", "lc-70"];
+
+describe("stress registry", () => {
+  it("returns the same stress for every problem id as before the move", () => {
+    expect(before.size).toBe(486);
+    for (const [id, { count, hash }] of before) {
+      const cases = stressFor(id);
+      expect(cases, id).toBeDefined();
+      expect(cases?.length, id).toBe(count);
+      expect(fnv1a(cases!.map((c) => c.label).join("\u0001")), id).toBe(hash);
+    }
+  });
+
+  it("has no stress for a problem that had none before", () => {
+    for (const id of Object.keys(JUDGE_PROBLEMS)) {
+      if (!before.has(id)) expect(stressFor(id), id).toBeUndefined();
+    }
+  });
+
+  it("gives every problem the same stress array the registry returns", () => {
+    for (const [id, spec] of Object.entries(JUDGE_PROBLEMS)) {
+      expect(spec.stress, id).toBe(stressFor(id));
+    }
+  });
+
+  it("gives every stress case a label and a make function (nothing is run)", () => {
+    for (const [id, cases] of Object.entries(STRESS_BY_ID)) {
+      for (const c of cases) {
+        expect(typeof c.label, id).toBe("string");
+        expect(typeof c.make, id).toBe("function");
+      }
+    }
+  });
+
+  it("keeps the 14 moved inline sets in stress-inline.ts, keyed by id", () => {
+    expect(Object.keys(STRESS_INLINE).sort()).toEqual([...INLINE_IDS].sort());
+    for (const id of INLINE_IDS) expect(JUDGE_PROBLEMS[id], id).toBeDefined();
+  });
+
+  it("returns undefined for an unknown id", () => {
+    expect(stressFor("no-such-problem")).toBeUndefined();
+  });
+});

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { COVERED_CONFIDENCE, LESSON_EXTRA } from "@habit/shared";
-import { getStudyView } from "@/lib/study";
+import { COVERED_CONFIDENCE } from "@habit/shared";
+import { deeperTitlesFor, getStudyView } from "@/lib/study";
 import { courseOutline } from "./toc-items";
 
 /** Tiny marker for a covered lesson (no symbols or emoji; the text is for screen readers). */
@@ -29,12 +29,13 @@ export async function CourseOutline({
 }) {
   const view = await getStudyView(areaId);
   if (!view) return null;
+  const deeper = await deeperTitlesFor(view.sections.flatMap((s) => s.concepts.map((c) => c.id)));
   const tree = courseOutline({
     areaId,
     currentId,
     sections: view.sections,
     coveredAt: COVERED_CONFIDENCE,
-    deeper: (id) => LESSON_EXTRA[id]?.deeper.map((s) => s.title) ?? [],
+    deeper: (id) => deeper[id] ?? [],
   });
 
   const totalConcepts = tree.reduce((acc, s) => acc + s.lessons.length, 0);

@@ -46,3 +46,24 @@ On Linux using the standalone AppImage, the desktop environment must know how to
 - **AppImageLauncher**: If you use AppImageLauncher or a similar daemon, desktop integration and protocol registration are handled automatically when installing or launching the AppImage.
 - **Manual desktop registration**: If running the AppImage directly, ensure a `.desktop` file exists (e.g. in `~/.local/share/applications/`) with `MimeType=x-scheme-handler/zendojo;` and `Exec=/path/to/ZenDojo.AppImage %u`, then update the MIME database via `update-desktop-database ~/.local/share/applications/`.
 
+## Content is out of date
+
+The desktop app stores its learning and problem content locally in `content.db` inside your OS app-data folder. Updates download automatically in the background (a check runs 20 seconds after launch, then every 6 hours).
+
+If lessons or problems on your desktop app appear out of date compared to the hosted site:
+1. **Trigger a manual sync:** Open **Profile > Settings** (`/profile/settings`), find the **Offline content** card, and click **Check for updates**.
+2. **Check internet connectivity:** The desktop app fetches updates from the hosted site (`https://zen-dojo-lovat.vercel.app`). Verify that your device has network access.
+3. **Inspect the logs:** Check `server.log` inside the app data folder (`logs/server.log`). If a network error occurred during sync, it will be recorded there.
+4. **Development runs:** If developing locally without desktop packaging, run `node --import ./scripts/lib/register-ts.mjs scripts/content-snapshot.mjs --out data/content.db` to pull the latest snapshot into your local development database.
+
+## Needs a newer app version
+
+When content schema changes are made on the hosted site (a new `CONTENT_SCHEMA_VERSION`), the server sends updates only to clients that understand the new table structure.
+
+If your app displays "Needs a newer app version" or "New content needs a newer app version":
+- **Your data and existing content are safe:** The app continues to run offline with your existing content and progress untouched.
+- **Update the app:** Updates are distributed automatically through GitHub Releases.
+  - On Windows and Linux (AppImage), the update downloads automatically in the background. Restart the app when prompted to install it.
+  - On macOS, open **Help > Check for updates…** (or visit the GitHub releases page), download the new `.dmg`, and drag Zen Dojo to Applications.
+- Once the app is updated, content sync resumes automatically.
+

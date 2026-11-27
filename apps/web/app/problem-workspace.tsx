@@ -1,5 +1,4 @@
 import { JUDGE_LANGS, templateFor, type ProblemSpec } from "@habit/shared";
-import { SOLUTION_LANG_LABEL, hasBundledSolutions, solutionCode, solutionLangs } from "@habit/shared/solutions";
 import { Code } from "./code";
 import { SolutionTabs } from "./solution-tabs";
 
@@ -101,16 +100,35 @@ export function ProblemHelp({ spec }: { spec: ProblemSpec }) {
   );
 }
 
+const LANG_DISPLAY: Record<string, string> = {
+  cpp: "C++",
+  java: "Java",
+  python: "Python",
+  javascript: "JavaScript",
+  typescript: "TypeScript",
+};
+
 /** The reference solution in every language that has one, as tabs (C++ first). Stored (pack or admin) problems keep C++ only. */
 export function SolutionCode({ spec }: { spec: ProblemSpec }) {
-  const langs = solutionLangs(spec);
-  const builtIn = hasBundledSolutions(spec);
+  const codeByLang: Record<string, string> = {};
+  if (spec.solution.cpp) codeByLang.cpp = spec.solution.cpp;
+  const raw = spec.solution as Record<string, unknown>;
+  for (const lang of ["java", "python", "javascript", "typescript"]) {
+    if (typeof raw[lang] === "string" && raw[lang]) {
+      codeByLang[lang] = raw[lang] as string;
+    }
+  }
+  const langs = Object.keys(codeByLang);
   return (
     <div className="space-y-2">
       <SolutionTabs
-        tabs={langs.map((l) => ({ id: l, label: SOLUTION_LANG_LABEL[l], node: <Code code={solutionCode(spec, l) ?? ""} lang={SOLUTION_LANG_LABEL[l]} maxHeight="24rem" /> }))}
+        tabs={langs.map((l) => ({
+          id: l,
+          label: LANG_DISPLAY[l] ?? l,
+          node: <Code code={codeByLang[l] ?? ""} lang={LANG_DISPLAY[l] ?? l} maxHeight="24rem" />,
+        }))}
       />
-      {builtIn && langs.length === 1 && <p className="text-xs text-muted">Java and Python solutions are being added.</p>}
+      {langs.length === 1 && <p className="text-xs text-muted">Java and Python solutions are being added.</p>}
     </div>
   );
 }
