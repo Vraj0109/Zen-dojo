@@ -158,7 +158,7 @@ Round C part 2 (lead, 2026-11-27):
 - **Step 6** was done in round C part 1 (C11, `content-backup.yml`); a manual dispatch has not been run yet.
 - **Step 7.** `AGENTS.md`, `CLAUDE.md`, `docs/solutions.md` (rewritten as "Checking solutions"), `content-packs.md`,
   `hosting.md`, `HANDOFF.md`, `development-performance.md`, the in-app FAQ (`lib/faq.ts`, `docs/faq.md`), release notes
-  `docs/releases/v0.10.0.md` (version not bumped).
+  `docs/releases/v0.9.6.md` (version not bumped).
 - **Step 8:** see the wave 3 log for the `pnpm check` result and timing.
 
 ### Found but not changed
