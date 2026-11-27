@@ -201,12 +201,52 @@ export async function listUnits(db: ContentDb): Promise<UnitInfo[]> {
   const docRows = await db.select({ rev: docs.rev }).from(docs).where(eq(docs.deleted, 0));
   if (docRows.length > 0) units.push({ unit: "docs", title: "Reading, revise and key numbers", kind: "docs", revs: docRows.map((d) => d.rev) });
 
+  // Counts are exact; sizes are an estimate from the stored text (shown as "about 1.2 MB" in Settings). Loading every
+  // entity to measure its JSON took thousands of round trips against the hosted database (over two minutes), so the
+  // sizes come from a few summing queries instead. unitPages still packs pages by the real JSON size.
+  const sizes = await unitSizes(db);
   const out: UnitInfo[] = [];
   for (const u of units) {
-    const entities = await unitEntities(db, u.unit);
-    const bytes = entities.reduce((sum, e) => sum + byteLength(canonicalJson(e)), 0);
-    out.push({ unit: u.unit, title: u.title, kind: u.kind, count: entities.length, bytes, rev: revOf(u.revs.sort()) });
+    const size = sizes.get(u.unit) ?? { count: 0, bytes: 0 };
+    out.push({ unit: u.unit, title: u.title, kind: u.kind, count: size.count, bytes: size.bytes, rev: revOf(u.revs.sort()) });
   }
+  return out;
+}
+
+/** Rough JSON overhead per entity (row fields, keys, ids, ords) on top of its stored text. */
+const ENTITY_OVERHEAD_BYTES = 600;
+
+type SizeRow = { unit: string; n: number | null; bytes: number | null };
+
+/** Exact entity count and estimated size per unit, in a handful of grouped queries. */
+async function unitSizes(db: ContentDb): Promise<Map<UnitId, { count: number; bytes: number }>> {
+  const out = new Map<UnitId, { count: number; bytes: number }>();
+  const add = (rows: SizeRow[], withCount: boolean) => {
+    for (const r of rows) {
+      const cur = out.get(r.unit) ?? { count: 0, bytes: 0 };
+      if (withCount) cur.count += Number(r.n ?? 0);
+      cur.bytes += Number(r.bytes ?? 0) + (withCount ? Number(r.n ?? 0) * ENTITY_OVERHEAD_BYTES : 0);
+      out.set(r.unit, cur);
+    }
+  };
+  const all = <T>(q: ReturnType<typeof sql>) => db.all<T>(q);
+
+  // Problems, grouped by pattern unit.
+  const pUnit = sql`'problems:' || COALESCE(p.pattern, 'other')`;
+  add(await all<SizeRow>(sql`SELECT ${pUnit} AS unit, COUNT(*) AS n, SUM(length(p.constraints_json) + length(p.fn_json) + length(p.extra_json)) AS bytes FROM problems p WHERE p.deleted = 0 GROUP BY unit`), true);
+  add(await all<SizeRow>(sql`SELECT ${pUnit} AS unit, NULL AS n, SUM(length(b.body)) AS bytes FROM problems p JOIN page_sections s ON s.owner_kind = 'problem' AND s.owner_id = p.id JOIN blocks b ON b.section_id = s.id WHERE p.deleted = 0 GROUP BY unit`), false);
+  add(await all<SizeRow>(sql`SELECT ${pUnit} AS unit, NULL AS n, SUM(length(c.code)) AS bytes FROM problems p JOIN page_sections s ON s.owner_kind = 'problem' AND s.owner_id = p.id JOIN blocks b ON b.section_id = s.id JOIN block_code c ON c.block_id = b.id WHERE p.deleted = 0 GROUP BY unit`), false);
+  add(await all<SizeRow>(sql`SELECT ${pUnit} AS unit, NULL AS n, SUM(length(t.input_json) + length(t.output_json) + COALESCE(length(t.explanation_md), 0)) AS bytes FROM problems p JOIN test_cases t ON t.problem_id = p.id WHERE p.deleted = 0 GROUP BY unit`), false);
+  add(await all<SizeRow>(sql`SELECT ${pUnit} AS unit, NULL AS n, SUM(length(h.body_md)) AS bytes FROM problems p JOIN hints h ON h.problem_id = p.id WHERE p.deleted = 0 GROUP BY unit`), false);
+
+  // Courses: the course row itself plus its lessons.
+  add(await all<SizeRow>(sql`SELECT 'course:' || c.id AS unit, 1 AS n, length(c.data_json) + length(c.summary_md) AS bytes FROM courses c WHERE c.deleted = 0`), true);
+  add(await all<SizeRow>(sql`SELECT 'course:' || l.course_id AS unit, COUNT(*) AS n, SUM(length(l.meta_json)) AS bytes FROM lessons l WHERE l.deleted = 0 GROUP BY unit`), true);
+  add(await all<SizeRow>(sql`SELECT 'course:' || l.course_id AS unit, NULL AS n, SUM(length(b.body)) AS bytes FROM lessons l JOIN page_sections s ON s.owner_kind = 'lesson' AND s.owner_id = l.id JOIN blocks b ON b.section_id = s.id WHERE l.deleted = 0 GROUP BY unit`), false);
+  add(await all<SizeRow>(sql`SELECT 'course:' || l.course_id AS unit, NULL AS n, SUM(length(c.code)) AS bytes FROM lessons l JOIN page_sections s ON s.owner_kind = 'lesson' AND s.owner_id = l.id JOIN blocks b ON b.section_id = s.id JOIN block_code c ON c.block_id = b.id WHERE l.deleted = 0 GROUP BY unit`), false);
+
+  // Docs.
+  add(await all<SizeRow>(sql`SELECT 'docs' AS unit, COUNT(*) AS n, SUM(length(d.body_json)) AS bytes FROM docs d WHERE d.deleted = 0`), true);
   return out;
 }
 
