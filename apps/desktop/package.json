@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "productName": "Zen Dojo",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "private": true,
   "description": "Zen Dojo desktop app (Windows, macOS, Linux)",
   "author": "Vraj Limbachiya",
@@ -13,14 +13,6 @@
     "dev": "electron . --dev",
     "dist": "node scripts/prepare-server.mjs && electron-builder --publish never",
     "typecheck": "tsc --noEmit"
-  },
-  "build": {
-    "extraResources": [
-      {
-        "from": "resources/content.db",
-        "to": "resources/content.db"
-      }
-    ]
   },
   "devDependencies": {
     "@types/node": "^20",
