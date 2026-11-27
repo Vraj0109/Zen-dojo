@@ -6,8 +6,12 @@ resume
 .env*
 **/node_modules
 **/.next
-apps/desktop
-apps/extension
+# apps/desktop and apps/extension must be uploaded (pnpm checks every workspace in pnpm-lock.yaml), but not their
+# build output: the installer, the bundled server, and the shipped content database.
+apps/desktop/dist
+apps/desktop/server
+apps/desktop/build
+apps/desktop/resources/content.db*
 apps/web/.open-next
 *.pdf
 .claude
