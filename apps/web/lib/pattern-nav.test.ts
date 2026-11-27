@@ -1,13 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import { ALL_PATTERNS, DSA_GROUPS } from "@habit/shared";
+import { describe, expect, it } from "vitest";
+import type { PatternGroup } from "@habit/shared";
+import { fixtureDoc } from "@/lib/content-db/test-helpers";
 
-vi.mock("@/lib/content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-  };
-});
+const DSA_GROUPS = fixtureDoc<PatternGroup[]>("dsa-groups");
+const ALL_PATTERNS = DSA_GROUPS.flatMap((g) => g.patterns);
 
 import { patternNeighbours } from "./pattern-nav";
 

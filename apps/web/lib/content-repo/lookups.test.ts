@@ -1,29 +1,36 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALL_CONCEPTS, ALL_EXERCISES, ALL_PATTERNS, DSA_GROUPS, PROBLEMS, STUDY_AREAS } from "@habit/shared";
-import { getContentDb, resetContentDbForTests } from "../content-db/client";
-import { seedContent } from "../content-db/seed";
+import { describe, expect, it, vi } from "vitest";
+import type { PatternGroup, Problem } from "@habit/shared";
+import { fixtureDoc } from "../content-db/test-helpers";
 import { getAllConcepts, getAllExercises, getAllPatterns, getDsaGroups, getRoadmapProblems, getStudyAreas } from "./lookups";
 
-// The lookups must give exactly the old constants back after a real seed, so callers can switch without changes.
+// The lookups rebuild the shapes the app used before the content moved to the database (plan 0114), here from the
+// fixture the vitest global setup loaded. At cutover they matched the old constants exactly for all content.
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn(), updateTag: vi.fn(), revalidateTag: vi.fn() }));
 
-const json = (v: unknown) => JSON.parse(JSON.stringify(v));
+describe("content lookups", () => {
+  it("study areas come in nav order with their sections, concepts and exercises", async () => {
+    const areas = await getStudyAreas();
+    expect(areas.map((a) => a.id)).toEqual(["sd", "lld", "core"]);
+    const sd = areas[0];
+    expect(sd.sections.length).toBeGreaterThan(0);
+    expect(sd.sections.flatMap((s) => s.concepts).some((c) => c.id === "sd-caching")).toBe(true);
+    expect(sd.exercises?.items.some((e) => e.id === "sdd-url-shortener")).toBe(true);
+  });
 
-beforeAll(async () => {
-  process.env.CONTENT_DATABASE_URL = ":memory:";
-  await seedContent(await getContentDb(), { actor: "seed", batch: 50 });
-}, 60_000);
+  it("every concept and exercise is indexed with its area (and a concept with its section title)", async () => {
+    const concepts = await getAllConcepts();
+    expect(concepts["sd-caching"]).toMatchObject({ id: "sd-caching", area: "sd" });
+    expect(typeof concepts["sd-caching"].section).toBe("string");
+    expect(concepts["lld-solid"].area).toBe("lld");
+    const exercises = await getAllExercises();
+    expect(exercises["sdd-chat"].area).toBe("sd");
+    expect(exercises["lldp-parking-lot"].area).toBe("lld");
+  });
 
-afterAll(async () => {
-  await resetContentDbForTests();
-  delete process.env.CONTENT_DATABASE_URL;
-});
-
-describe("lookups match the old constants", () => {
-  it("STUDY_AREAS", async () => expect(await getStudyAreas()).toEqual(json(STUDY_AREAS)));
-  it("ALL_CONCEPTS", async () => expect(await getAllConcepts()).toEqual(json(ALL_CONCEPTS)));
-  it("ALL_EXERCISES", async () => expect(await getAllExercises()).toEqual(json(ALL_EXERCISES)));
-  it("PROBLEMS", async () => expect(await getRoadmapProblems()).toEqual(json(PROBLEMS)));
-  it("DSA_GROUPS", async () => expect(await getDsaGroups()).toEqual(json(DSA_GROUPS)));
-  it("ALL_PATTERNS", async () => expect(await getAllPatterns()).toEqual(json(ALL_PATTERNS)));
+  it("the roadmap list and pattern groups are the dsa-problems and dsa-groups docs", async () => {
+    expect(await getRoadmapProblems()).toEqual(fixtureDoc<Record<string, Problem>>("dsa-problems"));
+    const groups = fixtureDoc<PatternGroup[]>("dsa-groups");
+    expect(await getDsaGroups()).toEqual(groups);
+    expect(await getAllPatterns()).toEqual(groups.flatMap((g) => g.patterns));
+  });
 });

@@ -1,7 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS, type ProblemSpec } from "@habit/shared";
+import { type ProblemSpec } from "@habit/shared";
 import { DEFAULT_TIME_LIMIT_MS, runCode } from "./run";
+import { fixtureSpecs } from "@/lib/content-db/test-helpers";
+
+// Problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureSpecs();
 
 const hasGpp = (() => {
   try {

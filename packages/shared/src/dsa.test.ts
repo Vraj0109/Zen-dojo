@@ -1,45 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_PATTERNS, DSA_GROUPS, PROBLEMS, RESOLVE_XP, patternTarget, solveState, solveXp } from "./dsa";
-
-describe("DSA data", () => {
-  const problems = Object.values(PROBLEMS);
-
-  it("has 9 groups from the roadmap plus the CSES group", () => {
-    expect(DSA_GROUPS).toHaveLength(10);
-  });
-
-  it("references only problems that exist", () => {
-    for (const p of ALL_PATTERNS) {
-      expect(p.problems.length, p.name).toBeGreaterThan(0);
-      for (const id of p.problems) expect(PROBLEMS[id], `${p.name} -> ${id}`).toBeDefined();
-    }
-  });
-
-  it("has unique pattern ids and no duplicate problems within a pattern", () => {
-    const ids = ALL_PATTERNS.map((p) => p.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const p of ALL_PATTERNS) expect(new Set(p.problems).size, p.name).toBe(p.problems.length);
-  });
-
-  it("uses every problem in at least one pattern", () => {
-    const used = new Set(ALL_PATTERNS.flatMap((p) => p.problems));
-    for (const id of Object.keys(PROBLEMS)) expect(used.has(id), id).toBe(true);
-  });
-
-  it("has well-formed LeetCode entries", () => {
-    for (const p of problems.filter((x) => x.id.startsWith("lc-"))) {
-      expect(p.id).toBe(`lc-${p.number}`);
-      expect(p.slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
-      expect(p.url).toBe(`https://leetcode.com/problems/${p.slug}/`);
-      expect(["easy", "medium", "hard"]).toContain(p.difficulty);
-    }
-  });
-
-  it("has unique LeetCode slugs", () => {
-    const slugs = problems.filter((p) => p.slug).map((p) => p.slug);
-    expect(new Set(slugs).size).toBe(slugs.length);
-  });
-});
+import { RESOLVE_XP, patternTarget, solveState, solveXp } from "./dsa";
 
 describe("patternTarget", () => {
   it("is 4, or every problem when a pattern has fewer", () => {
@@ -50,10 +10,10 @@ describe("patternTarget", () => {
 
 describe("solveXp", () => {
   it("scales with difficulty", () => {
-    expect(solveXp(PROBLEMS["lc-1"])).toBe(5);
-    expect(solveXp(PROBLEMS["lc-560"])).toBe(15);
-    expect(solveXp(PROBLEMS["lc-42"])).toBe(30);
-    expect(solveXp(PROBLEMS["c-z-function"])).toBe(10);
+    expect(solveXp({ difficulty: "easy" })).toBe(5);
+    expect(solveXp({ difficulty: "medium" })).toBe(15);
+    expect(solveXp({ difficulty: "hard" })).toBe(30);
+    expect(solveXp({ difficulty: undefined })).toBe(10);
     expect(RESOLVE_XP).toBe(10);
   });
 });

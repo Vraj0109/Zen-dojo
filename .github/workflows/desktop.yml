@@ -49,6 +49,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm desktop:build
+      # The installer carries the content downloaded from the hosted site; refuse to ship it if a content check fails.
+      - run: pnpm content:verify --db apps/desktop/resources/content.db
 
       - uses: actions/upload-artifact@v4
         with:

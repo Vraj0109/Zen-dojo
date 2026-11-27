@@ -1,27 +1,22 @@
-# Reference solutions in C++, Java and Python
+# Checking solutions
 
-For anyone (a person, Antigravity, a cheaper model) who has never seen this repo. Every built-in problem shows its
-reference solution in **C++, Java and Python** (tabs in the problem's Hints > "Show the solution"). The C++ solution lives on
-the problem (`solution.cpp` in `packages/shared/src/judge/problems-*.ts`). The **Java and Python solutions are plain files**,
-one per problem and language, so adding or fixing one never needs TypeScript.
+Every problem's solution page is a list of blocks in the **content database** (plan 0117): Markdown, diagrams and code
+blocks labelled brute force, optimal or a custom label, each with code in one or more judge languages (C++, Java,
+JavaScript, Python). The admin edits them at `/admin/problems/<id>` (see `docs/content-editing.md`) and can run them
+against the problem's tests before saving. There are no solution files in the repo any more.
 
-The prompt to give an agent: **"Read docs/solutions.md, then fix <id>.java / <id>.py."**
-
-## Where the files are
-
-`packages/shared/content/solutions/<problem-id>.java` and `<problem-id>.py`. The folder is flat and the names are the
-problem ids in lowercase: `lc-1.java`, `lc-1.py`, `cses-weird-algorithm.py`, `c-euler-1.java`. Nothing else goes there
-except `README.md`. A file whose name is not a real problem id is rejected by `pnpm solutions:check`.
+The prompt to give an agent: **"Read docs/solutions.md, then check <id> with pnpm content:verify-solutions."**
 
 ## The rules
 
 - Write exactly what a learner would paste into the editor for that language: the starter with the body filled in.
 - **Same algorithm as the C++ reference**, so the shared "idea" and "complexity" text stay true. A short comment may explain
   a language detail.
-- No network, files or processes. Forbidden words (a test checks them): `Runtime.getRuntime().exec`, `ProcessBuilder`,
-  `subprocess`, `os.system`, `socket`, `urllib`, `java.net`.
-- A file is at most 40 KB. CRLF line endings are fine (the bundle uses `\n`).
-- Do not touch anything else: not the problem files, not `generated/solutions.ts`. Only the lead rebuilds the bundle.
+- No network, files or processes: never use `Runtime.getRuntime().exec`, `ProcessBuilder`, `subprocess`, `os.system`,
+  `socket`, `urllib` or `java.net`.
+- A code block is at most 40 KB.
+- Change only the code block you are fixing. If the **test data** looks wrong (an expectation that the C++ reference also
+  fails), do not change the tests: report the id and the case.
 
 ### Java
 
@@ -77,51 +72,34 @@ If the faithful Python solution is correct but cannot meet the large-input time 
 ```
 
 The verifier then still requires every example and test to pass and only skips the large inputs. Use it sparingly;
-`pnpm solutions:status` lists every use.
+search the content for `skip-stress` to see every use.
 
 ## Commands
 
-All from the repo root (on Windows PowerShell use `pnpm.cmd`).
+All from the repo root (on Windows PowerShell use `pnpm.cmd`). Both read a content database file; get one with
+`pnpm content:pull` (writes `data/content.db`) or `pnpm content:snapshot --out <file>`.
 
 | Command | What it does |
 |---|---|
-| `pnpm solutions:status [d\|e\|f]` | Done/total per language for the three author groups; with a group, also the missing ids. |
-| `pnpm solutions:todo <group> [--limit 10]` | The next problems without both files: id, title, the Java and Python starters and the C++ reference. |
-| `pnpm solutions:verify <id or file> ...` | Runs the files through the real judge (examples, tests, large inputs). One line per file. |
-| `pnpm solutions:verify --group d [--lang java\|python]` | The same for every existing file of a group. |
-| `pnpm solutions:check` | Fails on a bad file name or a stale bundle. A test runs it in `pnpm check` too. |
-| `pnpm solutions:build` | Rewrites `packages/shared/src/judge/generated/solutions.ts` from the folder. **Only the lead runs this**, once at the end. |
+| `pnpm content:verify-solutions [--ids a,b] [--lang java,python] [--brute] [--db <file>]` | Runs every code block of every problem (or only the given ids, languages or brute force blocks) through the local judge: examples, tests and large inputs. One line per problem, language and block; exit code 1 when any fails. |
+| `pnpm content:verify [--db <file> \| --origin <url>]` | The content checks (`verifyContent`): for problems, an optimal C++ block, tests that match the function, hints and more. Errors fail with exit code 1; warnings are listed. |
 
-`solutions:verify` accepts ids (`lc-1` means both languages), file names (`lc-1.py`), globs (`lc-1*`), paths, and `--lang`.
-Output is `ok lc-1.java 2.1s` or `FAIL lc-1.py case 3: expected [0,1] got [1,0]`; a compile error prints the compiler message.
-It needs the same tools as the judge: a JDK for Java, Python 3 for Python (see `docs/troubleshooting.md`). Without the
-`SOLUTIONS_FILES` variable the vitest file behind it is skipped, so `pnpm test` stays fast.
-
-## Groups
-
-Defined in `packages/shared/src/judge/solution-groups.ts`; a test checks that every problem is in exactly one:
-
-| Group | Problems |
-|---|---|
-| `d` | LeetCode files 1 to 8 and CSES math |
-| `e` | LeetCode file 9, CSES (except math and geometry/strings), design-a-class, special and other |
-| `f` | Euler, AtCoder, Codeforces, Kattis, logic batches and CSES geometry/strings |
+Brute force blocks run without the large inputs and with five times the time limit. `content:verify-solutions` needs the
+same tools as the judge: a C++ compiler, a JDK for Java, Python 3 (see `docs/troubleshooting.md`). It is not part of
+`pnpm test`.
 
 ## Add or fix one solution
 
-1. `pnpm solutions:todo <group> --limit 1` (or open the problem's starter in the app) to see the starters and the C++ reference.
-2. Write or edit `packages/shared/content/solutions/<id>.java` and `<id>.py`.
-3. `pnpm solutions:verify <id>`. Fix every `FAIL`. If the **test data** looks wrong (an expectation that the C++ reference also
-   fails), do not edit the problem: report the id and the case.
-4. Commit the two files. The bundle (and so the app) picks them up when the lead runs `pnpm solutions:build`.
+1. Open the problem at `/admin/problems/<id>`, tab Solution. Edit the code block (or add one with the block toolbar),
+   pick its label and language.
+2. Click **Run tests** in the editor. Fix every failing case.
+3. Save with a short note. The save runs the content checks; errors block it, warnings are shown.
+4. Optional, on a computer with the compilers: `pnpm content:pull` then `pnpm content:verify-solutions --ids <id>`.
 
 ## How it is wired
 
-- `scripts/solutions.mjs` reads the folder and writes `generated/solutions.ts` (`SOLUTIONS: Record<id, { java?, python? }>`).
-- `packages/shared/src/judge/solutions.ts` (import it as `@habit/shared/solutions`, **server code only**: the bundle is large)
-  exports `solutionCode(spec, lang)` and `solutionLangs(spec)`. C++ comes from the spec, the others from the bundle. Stored
-  (admin or pack) problems keep C++ only.
-- `apps/web/app/problem-workspace.tsx` highlights each language on the server and `solution-tabs.tsx` switches between them
-  (the last choice is remembered in the browser). A problem with C++ only shows one block and a muted line.
-- Tests: `packages/shared/src/judge/solutions.test.ts` (names, structure, bundle up to date, groups) always runs;
-  `apps/web/lib/judge/solutions-verify.test.ts` only when `SOLUTIONS_FILES` is set.
+- The judge spec of a problem is built from the content database by `specFromContent`
+  (`packages/shared/src/content-model/to-spec.ts`); large inputs come from `stress-registry.ts`, keyed by problem id.
+- `apps/web/lib/content-repo/problems.ts` reads problems and solution pages (cached, tag per problem).
+- The solution tab renders the blocks with `app/content-page.tsx`; each code block shows its languages as tabs.
+- `scripts/content-verify-solutions.mjs` and `apps/web/lib/content-db/verify-db.ts` run the checks above.

@@ -1,10 +1,15 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS, JUDGE_LANGS, PROBLEMS, templateFor } from "@habit/shared";
+import { JUDGE_LANGS, templateFor, type Problem } from "@habit/shared";
 import { sameAnswer } from "./compare";
 import { CPP_PRELUDE_LINES, JAVA_PRELUDE_LINES, cppProgram } from "./harness";
 import { firstDifference } from "./compare";
 import { runCode, runCustom, shiftLines } from "./run";
+import { fixtureSpecs, fixtureDoc } from "@/lib/content-db/test-helpers";
+
+// Problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureSpecs();
+const PROBLEMS = fixtureDoc<Record<string, Problem>>("dsa-problems");
 
 const has = (cmd: string, args: string[]) => !spawnSync(cmd, args, { stdio: "ignore" }).error;
 const GPP = has("g++", ["--version"]);
@@ -15,7 +20,7 @@ const specs = Object.values(JUDGE_PROBLEMS);
 
 describe("problem specs", () => {
   it("are well formed", () => {
-    expect(specs.length).toBeGreaterThanOrEqual(53);
+    expect(specs.length).toBeGreaterThanOrEqual(20);
     for (const s of specs) {
       expect(s.statement.length, s.id).toBeGreaterThan(0);
       expect(s.constraints.length, s.id).toBeGreaterThan(0);
@@ -751,7 +756,7 @@ describe("design-a-class problems", () => {
 
   it("every design problem is a design with a constructor, methods and cases written as [ops, args]", () => {
     const designs = specs.filter((s) => s.design);
-    expect(designs.length).toBeGreaterThanOrEqual(11);
+    expect(designs.length).toBeGreaterThanOrEqual(3);
     for (const s of designs) {
       expect(s.kind, s.id).toBe("design");
       for (const c of [...s.examples, ...s.tests]) {

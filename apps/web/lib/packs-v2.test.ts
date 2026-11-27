@@ -1,57 +1,8 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { LESSONS, validatePack } from "@habit/shared";
-
-vi.mock("@/lib/content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getStudyAreas: async () => s.STUDY_AREAS,
-    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
-    getAllConcepts: async () => s.ALL_CONCEPTS,
-    getAllExercises: async () => s.ALL_EXERCISES,
-    getRoadmapProblems: async () => s.PROBLEMS,
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-  };
-});
-
-vi.mock("@/lib/content-repo/problems", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getProblemSpec: async (id: string) => s.JUDGE_PROBLEMS[id] ?? null,
-    listProblemSummaries: async () => {
-      return Object.values(s.JUDGE_PROBLEMS).map((p) => ({
-        id: p.id,
-        title: p.title,
-        source: p.source,
-        difficulty: p.difficulty,
-        pattern: p.pattern ?? null,
-        kind: p.kind ?? "function",
-        languages: ["cpp"],
-        hasBrute: false,
-      }));
-    },
-  };
-});
-
-vi.mock("@/lib/content-repo/docs", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getDoc: async (kind: string, id: string) => (kind === "reading" && id === "main" ? { row: { kind, id, body: s.READING } } : null),
-  };
-});
-
-vi.mock("@/lib/content-repo/courses", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getLesson: async (id: string) => {
-      const lesson = s.LESSONS[id];
-      if (!lesson) return null;
-      return s.lessonFromFile("concept", id, { lesson }, { courseId: "test", ord: 0, title: s.ALL_CONCEPTS[id]?.title ?? id });
-    },
-  };
-});
+import { lessonToShape, validatePack, type Lesson } from "@habit/shared";
+import { fixtureLesson } from "@/lib/content-db/test-helpers";
 
 import { getCourses } from "./courses";
 import {
@@ -71,6 +22,9 @@ import {
   setFeedUrl,
   setPackItemDone,
 } from "./packs";
+
+// The built-in lesson as the content database holds it (the committed fixture).
+const LESSONS: Record<string, Lesson> = { "lld-solid": (lessonToShape(fixtureLesson("lld-solid")) as { lesson: Lesson }).lesson };
 
 // These tests open a fresh in-memory database and (for packs) validate Mermaid diagrams, which can take longer than the
 // 5-second default when several checks run at the same time.

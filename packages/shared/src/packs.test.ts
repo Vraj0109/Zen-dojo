@@ -198,7 +198,8 @@ describe("patch items in packs", () => {
   it("rejects patches for unknown concepts or with invalid replace fields", () => {
     const badConcept: Loose = sample();
     badConcept.sections[0].items.push({ ...patchItem(), concept: "not-a-real-concept" });
-    const r1 = validatePack(badConcept);
+    // Known concept ids come from the content database; the caller passes them in.
+    const r1 = validatePack(badConcept, { concepts: { "lld-solid": { title: "SOLID" } } });
     expect(r1.ok).toBe(false);
     if (!r1.ok) expect(r1.errors.join("\n")).toContain("not a recognized built-in concept");
 

@@ -2,8 +2,7 @@
 // (format "prepwise-pack"); the app validates it here, stores it, and shows it as a course in Learn. Pure code, no I/O.
 // The format is written up in docs/content-packs.md, with a prompt another AI can follow to produce a pack.
 
-import { ALL_PATTERNS } from "./dsa";
-import { ALL_CONCEPTS, STUDY_AREAS } from "./study";
+import { STUDY_AREA_IDS } from "./study";
 import { checkStress, expandStress, type PackStress } from "./judge/stress-gen";
 import type { Case, ProblemSpec, Ty } from "./judge/types";
 import type { Lesson } from "./learn/types";
@@ -177,7 +176,16 @@ function checkCases(v: unknown, what: string, fn: PackProblem["fn"], errs: strin
   return v as Case[];
 }
 
-function checkProblem(o: Record<string, unknown>, where: string, errs: string[], warnings: string[]): PackProblem | null {
+/**
+ * Ids a pack may point at, read from the content database by the caller (plan 0117: the content is no longer in this
+ * package). Without them, pattern and concept ids are checked for their form only.
+ */
+export interface PackKnown {
+  patternIds?: ReadonlySet<string>;
+  concepts?: Readonly<Record<string, { title: string }>>;
+}
+
+function checkProblem(o: Record<string, unknown>, where: string, errs: string[], warnings: string[], known: PackKnown = {}): PackProblem | null {
   const before = errs.length;
   if (!isStr(o.title, 120)) errs.push(`${where}: "title" is required.`);
   const statement = strList(o.statement, `${where}.statement`, errs);
@@ -226,8 +234,8 @@ function checkProblem(o: Record<string, unknown>, where: string, errs: string[],
   }
   let patterns: string[] | undefined;
   if (o.patterns !== undefined) {
-    const known = new Set(ALL_PATTERNS.map((x) => x.id));
-    if (!Array.isArray(o.patterns) || o.patterns.length > 5 || !o.patterns.every((x) => typeof x === "string" && known.has(x))) errs.push(`${where}.patterns must be a list of up to 5 pattern ids, for example ["bs-index"]. Unknown ids are refused.`);
+    const ids = known.patternIds;
+    if (!Array.isArray(o.patterns) || o.patterns.length > 5 || !o.patterns.every((x) => typeof x === "string" && (ids ? ids.has(x) : SLUG.test(x)))) errs.push(`${where}.patterns must be a list of up to 5 pattern ids, for example ["bs-index"]. Unknown ids are refused.`);
     else patterns = o.patterns as string[];
   }
   if (o.source !== undefined && !isStr(o.source, 80)) errs.push(`${where}.source must be text of up to 80 characters.`);
@@ -408,7 +416,7 @@ export function validateFeed(input: unknown): FeedCheck {
 }
 
 /** Checks a pack (already parsed JSON) and returns it cleaned, or every problem found, in plain words. */
-export function validatePack(input: unknown): PackCheck {
+export function validatePack(input: unknown, known: PackKnown = {}): PackCheck {
   const errs: string[] = [];
   const warnings: string[] = [];
   if (!isObj(input)) return { ok: false, errors: ["The file must be a JSON object."] };
@@ -419,7 +427,7 @@ export function validatePack(input: unknown): PackCheck {
   let target: PackTarget | undefined;
   if (input.target !== undefined) {
     const t = input.target;
-    if (!isObj(t) || typeof t.area !== "string" || !STUDY_AREAS.some((a) => a.id === t.area)) errs.push(`"target.area" must be one of: ${STUDY_AREAS.map((a) => a.id).join(", ")}.`);
+    if (!isObj(t) || typeof t.area !== "string" || !(STUDY_AREA_IDS as readonly string[]).includes(t.area)) errs.push(`"target.area" must be one of: ${STUDY_AREA_IDS.join(", ")}.`);
     else if (t.section !== undefined && !isStr(t.section, 80)) errs.push(`"target.section" must be a heading of up to 80 characters.`);
     else target = { area: t.area, ...(typeof t.section === "string" ? { section: t.section } : {}) };
   }
@@ -459,16 +467,16 @@ export function validatePack(input: unknown): PackCheck {
         }
         items.push({ type: "lesson", id: rawId, title: String(it.title), markdown: it.markdown });
       } else if (it.type === "problem") {
-        const p = checkProblem(it, where, errs, warnings);
+        const p = checkProblem(it, where, errs, warnings, known);
         if (p) items.push(p);
       } else if (it.type === "patch") {
         if (!isStr(it.concept, 60) || !SLUG.test(it.concept)) {
           errs.push(`${where}: "concept" is required (lowercase letters, digits and hyphens, up to 60 characters).`);
-        } else if (!(it.concept in ALL_CONCEPTS)) {
+        } else if (known.concepts && !(it.concept in known.concepts)) {
           errs.push(`${where}: "${it.concept}" is not a recognized built-in concept.`);
         }
         const rep = checkLessonReplace(it.replace, `${where}.replace`, errs);
-        const title = typeof it.title === "string" && it.title.trim().length > 0 ? String(it.title) : (ALL_CONCEPTS[String(it.concept)]?.title ?? String(it.concept));
+        const title = typeof it.title === "string" && it.title.trim().length > 0 ? String(it.title) : (known.concepts?.[String(it.concept)]?.title ?? String(it.concept));
         if (rep) items.push({ type: "patch", id: rawId, title, concept: String(it.concept), replace: rep });
       } else errs.push(`${where}: "type" must be "lesson", "problem" or "patch".`);
     });

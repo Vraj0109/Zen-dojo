@@ -18,14 +18,15 @@ vi.mock("@/lib/ai/providers", () => ({
   }),
 }));
 
-import { JUDGE_PROBLEMS } from "@habit/shared";
+import { fixtureSpec } from "@/lib/content-db/test-helpers";
 import { setAiSettings } from "@/lib/ui-prefs";
 import { getDb } from "@/lib/db";
 import { problemNotes } from "@/lib/schema";
 import { POST } from "./route";
 
 const PID = "lc-1";
-const SECRET = JUDGE_PROBLEMS[PID].solution.cpp.trim().split("\n").find((l) => l.trim().length > 12)!.trim();
+const SPEC = fixtureSpec(PID);
+const SECRET = SPEC.solution.cpp.trim().split("\n").find((l) => l.trim().length > 12)!.trim();
 
 const req = (body: unknown, origin: string | null = "http://localhost:3000") =>
   new Request("http://localhost:3000/api/ai/chat", {
@@ -129,7 +130,7 @@ describe("POST /api/ai/chat", () => {
 
   it("the hint intent sends the chosen hint text", async () => {
     await ask({ intent: "hint", hintIndex: 0 });
-    expect(systemText()).toContain(JUDGE_PROBLEMS[PID].hints[0].slice(0, 30));
+    expect(systemText()).toContain(SPEC.hints[0].slice(0, 30));
   });
 
   it("never sends the reference solution without revealSolution, and sends it with revealSolution", async () => {

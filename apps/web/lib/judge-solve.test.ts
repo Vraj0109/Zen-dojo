@@ -1,39 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PROBLEMS } from "@habit/shared";
-
-vi.mock("@/lib/content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getStudyAreas: async () => s.STUDY_AREAS,
-    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
-    getAllConcepts: async () => s.ALL_CONCEPTS,
-    getAllExercises: async () => s.ALL_EXERCISES,
-    getRoadmapProblems: async () => s.PROBLEMS,
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-  };
-});
-
-vi.mock("@/lib/content-repo/problems", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getProblemSpec: async (id: string) => s.JUDGE_PROBLEMS[id] ?? null,
-    listProblemSummaries: async () => {
-      return Object.values(s.JUDGE_PROBLEMS).map((p) => ({
-        id: p.id,
-        title: p.title,
-        source: p.source,
-        difficulty: p.difficulty,
-        pattern: p.pattern ?? null,
-        kind: p.kind ?? "function",
-        languages: ["cpp"],
-        hasBrute: false,
-      }));
-    },
-  };
-});
+import { beforeEach, describe, expect, it } from "vitest";
+import type { Problem } from "@habit/shared";
 
 import { getDsaView, getProblemDetail, markSolvedManually, recordJudgePass } from "./dsa";
+import { fixtureSpecs, fixtureDoc } from "@/lib/content-db/test-helpers";
+
+// Problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureSpecs();
+const PROBLEMS = fixtureDoc<Record<string, Problem>>("dsa-problems");
 
 describe("solving through the judge", () => {
   beforeEach(() => {
@@ -61,7 +34,6 @@ describe("solving through the judge", () => {
 describe("saved runs keep only failed test ids", () => {
   it("stores ids and looks the cases up from the problem", async () => {
     const { saveRun, getRuns } = await import("./solution-runs");
-    const { JUDGE_PROBLEMS } = await import("@habit/shared");
     const spec = JUDGE_PROBLEMS["lc-128"];
     await saveRun("lc-128", "cpp", "int x;", { status: "done", passed: 3, total: 5, failedIds: [1, spec.examples.length + spec.tests.length] });
     const [run] = await getRuns("lc-128", spec);

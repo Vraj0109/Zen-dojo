@@ -8,6 +8,7 @@ export * from "./snapshot";
 export * from "./notices";
 export * from "./tags";
 export { TEMPLATES, pageTemplate, slotKey, validatePageAgainstTemplate } from "./templates";
+
 export { problemFromSpec, type ProblemExtra } from "./from-files";
 export { specFromContent } from "./to-spec";
 export { lessonFromFile, lessonToShape, docFromFile, courseFromStudyArea, DOC_KINDS, PATTERN_COURSE_ID, type DocKind } from "./lesson-map";

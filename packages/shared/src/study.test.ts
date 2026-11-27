@@ -1,54 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ALL_CONCEPTS,
-  ALL_EXERCISES,
-  STUDY_AREAS,
-  averageScore,
-  conceptReviewDue,
-  practiceInterval,
-  practiceState,
-} from "./study";
-import { ALL_PATTERNS, PROBLEMS } from "./dsa";
-
-describe("study content", () => {
-  it("has unique ids that don't clash with DSA problems or patterns", () => {
-    const ids = STUDY_AREAS.flatMap((a) => [
-      ...a.sections.map((s) => s.id),
-      ...a.sections.flatMap((s) => s.concepts.map((c) => c.id)),
-      ...(a.exercises?.items ?? []).map((e) => e.id),
-    ]);
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const id of ids) {
-      expect(id in PROBLEMS).toBe(false);
-      expect(ALL_PATTERNS.some((p) => p.id === id)).toBe(false);
-      expect(id).toMatch(/^[a-z0-9-]+$/);
-    }
-  });
-
-  it("covers the roadmap's system design section", () => {
-    const sd = STUDY_AREAS.find((a) => a.id === "sd")!;
-    expect(sd.sections.map((s) => s.concepts.length)).toEqual([8, 10, 14]);
-    expect(sd.exercises!.items).toHaveLength(27);
-    expect(sd.exercises!.steps.map((s) => s.minutes).reduce((a, b) => a + b, 0)).toBe(45);
-    expect(Object.values(ALL_CONCEPTS).every((c) => c.points.length >= 2 && c.points.every((p) => p.length > 1))).toBe(true);
-    expect(ALL_EXERCISES["sdd-url-shortener"]).toMatchObject({ area: "sd", title: "URL shortener / Pastebin" });
-  });
-});
-
-describe("LLD and core CS", () => {
-  it("cover the roadmap's LLD section and the core subjects", () => {
-    const lld = STUDY_AREAS.find((a) => a.id === "lld")!;
-    expect(lld.sections[0].concepts).toHaveLength(6);
-    expect(lld.exercises!.items).toHaveLength(24);
-    expect(lld.exercises!.steps.map((s) => s.minutes).reduce((a, b) => a + b, 0)).toBe(45);
-    expect(ALL_CONCEPTS["lld-patterns"].points).toHaveLength(10);
-
-    const core = STUDY_AREAS.find((a) => a.id === "core")!;
-    expect(core.sections.map((s) => s.title)).toEqual(["Operating systems", "Databases (DBMS)", "Computer networks"]);
-    expect(core.exercises).toBeUndefined();
-    expect(STUDY_AREAS.map((a) => a.id)).toEqual(["sd", "lld", "core"]);
-  });
-});
+import { averageScore, conceptReviewDue, practiceInterval, practiceState } from "./study";
 
 describe("practice schedule", () => {
   it("spaces practice by how well it went", () => {

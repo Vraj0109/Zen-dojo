@@ -4,11 +4,18 @@ import * as React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { prerender } from "react-dom/static";
-import { DESIGN_DEEP, PROBLEM_MICRO_STEPS, type BuddyTone } from "@habit/shared";
+import { lessonToShape, PROBLEM_MICRO_STEPS, type BuddyTone, type WalkthroughDeep } from "@habit/shared";
+import { fixtureLesson } from "@/lib/content-db/test-helpers";
 import { DesignDeepView } from "./design-deep";
 import { BuddySession } from "./buddy-session";
 import { ProblemMicroSteps } from "./problem-micro-steps";
 import { designDeepToc, flattenToc } from "./toc-items";
+
+// The system design walkthroughs in the content fixture (the content lives in the database; plan 0117).
+const FIXTURE_DESIGNS = ["sdd-url-shortener", "sdd-chat", "sdd-payments"];
+const DESIGN_DEEP: Record<string, WalkthroughDeep> = Object.fromEntries(
+  FIXTURE_DESIGNS.map((id) => [id, (lessonToShape(fixtureLesson(id)) as { deep: WalkthroughDeep }).deep]),
+);
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -32,11 +39,12 @@ function parseDom(html: string): HTMLElement {
   return div;
 }
 
-describe("System Design Deep: UI render & verification for all 27 designs", () => {
+describe("System Design Deep: UI render & verification for the fixture designs", () => {
   const designEntries = Object.entries(DESIGN_DEEP);
 
-  it("has exactly 27 system design deep implementations", () => {
-    expect(designEntries.length).toBe(27);
+  it("has a deep walkthrough for every fixture design", () => {
+    expect(designEntries.length).toBe(FIXTURE_DESIGNS.length);
+    for (const [, deep] of designEntries) expect(deep).toBeDefined();
   });
 
   for (const [id, deep] of designEntries) {

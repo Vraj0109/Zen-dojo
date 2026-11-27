@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS } from "@habit/shared";
+
 import { runCode } from "./run";
+import { fixtureSpecs } from "@/lib/content-db/test-helpers";
+
+// Problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureSpecs();
 
 describe("runCode with { only: 'examples', extra }", () => {
   // Clear cpp solution in spec so the test uses JS only without invoking g++

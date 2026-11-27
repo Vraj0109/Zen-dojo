@@ -4,23 +4,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-  CLUES,
-  CONSTRAINT_HINTS,
-  LEETCODE_TAGS,
-  OPTIMIZE_MOVES,
-  PROBLEMS,
-  READING_ROUTINE,
-  THINK_PATTERNS,
-  THINK_SIGNALS,
-  WORKED_EXAMPLES,
-  type Clue,
-  type OptimizeMove,
-  type Problem,
-  type ReadStep,
-  type ThinkPattern,
-  type WorkedExample,
-} from "@habit/shared";
+import type { Clue, ConstraintHint, OptimizeMove, Problem, ReadStep, ThinkPattern, ThinkSignal, WorkedExample } from "@habit/shared";
+import { fixtureDoc } from "@/lib/content-db/test-helpers";
 import { ClueDictionary } from "./clue-dictionary";
 import { GroupsView, type GroupData } from "./groups-view";
 import {
@@ -38,6 +23,17 @@ import { ReadView } from "./read-view";
 import { RecallView, type RecallCard } from "./recall-view";
 import { ThinkMap } from "./think-map";
 import { ThinkView } from "./think-view";
+
+// The map's content comes from the content database; these are the committed fixture's docs (lists cut to 3 items).
+const CLUES = fixtureDoc<Clue[]>("clues");
+const CONSTRAINT_HINTS = fixtureDoc<ConstraintHint[]>("constraint-hints");
+const LEETCODE_TAGS = fixtureDoc<string[]>("leetcode-tags");
+const OPTIMIZE_MOVES = fixtureDoc<OptimizeMove[]>("optimize-moves");
+const PROBLEMS = fixtureDoc<Record<string, Problem>>("dsa-problems");
+const READING_ROUTINE = fixtureDoc<ReadStep[]>("reading-routine");
+const THINK_PATTERNS = fixtureDoc<Record<string, ThinkPattern>>("think-patterns");
+const THINK_SIGNALS = fixtureDoc<ThinkSignal[]>("think-signals");
+const WORKED_EXAMPLES = fixtureDoc<WorkedExample[]>("worked-examples");
 
 const html = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
 const text = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/\s+/g, " ");

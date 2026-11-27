@@ -381,7 +381,8 @@ export async function importPackAction(_prev: PackImportState | null, formData: 
   }
   if (formData.get("checkOnly") === "1") {
     const { validatePack } = await import("@habit/shared");
-    const r = validatePack(data);
+    const { packKnown } = await import("@/lib/packs");
+    const r = validatePack(data, await packKnown());
     return r.ok ? { ok: true, message: `Looks good: "${r.pack.title}" is valid.`, errors: [], warnings: r.warnings } : fail("The pack has problems. Fix these and try again.", r.errors);
   }
   const r = await installPack(data);

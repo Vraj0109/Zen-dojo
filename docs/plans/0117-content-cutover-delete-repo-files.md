@@ -1,8 +1,8 @@
 # 0117: Cutover: delete the content files, retire the content scripts, new checks and backups
 
-- **Status:** in-progress (wave 1 done, see docs/plans/wave1-content-db.md)
+- **Status:** implemented (round C part 2, 2026-11-27; step 4 not built, see notes)
 - **Planned by:** Claude Code, 2026-11-23
-- **Implemented by:** (implementer fills in)
+- **Implemented by:** Claude Code (lead), rounds A to C; see docs/plans/wave1-, wave2-, wave2b-, wave3-content-db.md
 - **Series:** content in the database (0112 to 0119), overview `docs/architecture/content-in-db.md`.
 - **Needs:** 0112 to 0116 all `done`, the hosted content DB seeded and live, and at least one desktop release with
   0115 (so installed apps already update content on their own).
@@ -41,12 +41,12 @@ reference solution.
 
 ## Steps
 
-- [ ] **1. Final parity and a frozen backup.** Before deleting anything: run the 0112 parity test against the
+- [x] **1. Final parity and a frozen backup.** Before deleting anything: run the 0112 parity test against the
   **hosted** content DB (`CONTENT_DATABASE_URL` set) and record the result; any difference must be an admin edit made
   since the seed (list them in the notes). Then `pnpm content:snapshot --out content-snapshot-final.db` and attach it
   to the GitHub release of the next version as `content-snapshot-<content_version>.db` (desktop workflow, step 5).
   - Done when: parity result and the snapshot location are in the notes.
-- [ ] **2. Pure content checks.** Move the coverage rules from `packages/shared/src/learn/learn.test.ts`,
+- [x] **2. Pure content checks.** Move the coverage rules from `packages/shared/src/learn/learn.test.ts`,
   `learn/order-audit.test.ts`, `learn/pattern-articles.test.ts`, `learn/design-depth.test.ts`,
   `judge/solutions.test.ts`, `judge/interview.test.ts` (and any other test that checks "every item has its content")
   into `packages/shared/src/content-model/verify.ts`: `verifyContent(snapshot) → Issue[]` (`{ level: "error" |
@@ -58,7 +58,7 @@ reference solution.
   - Admin saves (0116 `lib/content-admin/write.ts`) run `verifyEntity`: errors block the save, warnings are shown.
   - Done when: every rule from the old tests is in the list, and `pnpm exec vitest run packages/shared/src/content-model`
     passes.
-- [ ] **3. New scripts, old scripts removed.** In the root `package.json`:
+- [x] **3. New scripts, old scripts removed.** In the root `package.json`:
   - Add `content:pull` (0115), `content:snapshot` (0115), `content:fixture` (0114),
     `content:verify` (runs `verifyContent` on a snapshot: `--db <file>` or the hosted origin; exit 1 on errors),
     `content:verify-solutions` (desktop/dev only: runs every code block of every problem against its tests with the
@@ -79,7 +79,7 @@ reference solution.
   with `packages/shared/src/packs.ts`, preview the list of entities, then save each through the 0116 write path with
   action `import`). Admin checks as in 0113. `docs/content-packs.md` gets a section for it.
   - Done when: importing the example pack in `docs/examples/` adds its problems and lessons for everyone.
-- [ ] **5. Delete the content files and fix the build.** Delete the paths from *Context*. Remove now-dead exports from
+- [x] **5. Delete the content files and fix the build.** Delete the paths from *Context*. Remove now-dead exports from
   `packages/shared/src/index.ts`, `judge/index.ts`, `learn/index.ts`. Fix every compile error by reading through the
   0114 repository (there should be none left if 0114 was complete; list any you find). Update tests that still imported
   content to use the fixture (`seedFixture`). Run `pnpm -r typecheck` until clean.
@@ -88,11 +88,11 @@ reference solution.
     `content:verify --db apps/desktop/resources/content.db` (fails the release on errors), and attach the snapshot to
     the GitHub release.
   - Done when: `pnpm -r typecheck` and a targeted test run pass, and `du -sh packages/shared` is several MB smaller.
-- [ ] **6. Backups.** `.github/workflows/content-backup.yml`: weekly (and on manual dispatch) runs
+- [x] **6. Backups.** `.github/workflows/content-backup.yml`: weekly (and on manual dispatch) runs
   `content:snapshot` from the hosted site and uploads it as a workflow artifact (90-day retention). Document restore:
   `content:import <snapshot.db>` (owner, write token) and that every import is in the audit log.
   - Done when: a manual dispatch produces an artifact.
-- [ ] **7. Docs and agent rules.** Update `AGENTS.md` ("Layout": content now lives in the content DB; remove the
+- [x] **7. Docs and agent rules.** Update `AGENTS.md` ("Layout": content now lives in the content DB; remove the
   `learn/`, `dsa.ts` content descriptions that no longer apply; "Commands": `pnpm test` no longer compiles all demos,
   new `content:*` commands; `docs/solutions.md` replaced), `CLAUDE.md` speed rules (update the "71 C++ programs"
   numbers), `GEMINI.md` if it repeats them, `docs/content-editing.md`, `docs/solutions.md` (rewrite as "Checking
@@ -121,7 +121,56 @@ reference solution.
 
 ## Implementation notes
 
-(Implementer fills in: files changed, deviations from the plan and why, test results, *Found but not changed*.)
+Round C part 2 (lead, 2026-11-27):
+
+- **Step 1.** `pnpm content:snapshot` from https://zen-dojo-lovat.vercel.app: 79 units, 817 entities, version 817,
+  epoch 1. Parity against a seed of the repo files (scratch script, every course, lesson, problem and doc compared by
+  rev): 817 vs 817, 0 only-in-files, 0 only-in-snapshot, 0 different. No admin edits had been made since the seed. The
+  frozen copy is `data/content-snapshot-817.db` (git-ignored, owner's machine). Not yet attached to a GitHub release
+  (no release in this round). Two bugs fixed in `scripts/content-snapshot.mjs` on the way: it imported `@libsql/client`
+  from the repo root, where it is not installed (so the desktop build's content download could not have worked), and
+  the final rename failed on Windows with EBUSY (now built in memory and written with `VACUUM INTO`).
+- **Step 2** was done in round C part 1 (V1, C10). Rules that lived in deleted tests and are now only in `verify.ts`
+  or nowhere: see "Found but not changed".
+- **Step 3.** Removed from `package.json` and `scripts/`: `content:build|check|add|sync|list|remove|export|seed|seed-db`,
+  `solutions:*`, `interview:*`, `import:cp-algorithms`. Kept `pack:check`, `pack:build`, `courses:catalog` (user packs)
+  and `faq:build` (app code). Removed the `content_items` path: `lib/content.ts`, `lib/content-admin.ts`,
+  `app/api/admin/content/route.ts` (+ tests), `packages/shared/src/content-items.ts`, the old unused admin actions
+  (`saveProblemAction` and friends, `app/admin/study-actions.ts`) and the DSA page's "added problems" list. The
+  `content_items` table stays (no migration needed: nothing drops it) and stays in `BACKUP_TABLES`; past "items" pack
+  solves still count in the roadmap week totals (`lib/roadmap.ts`).
+- **Step 4 not built:** no "Import pack into shared content" screen in `/admin`. `pnpm content:import <pack.json>`
+  (owner, write token) covers it from the command line.
+- **Step 5.** Deleted `packages/shared/content/`, `judge/problems-*.ts`, `judge/generated/`, `judge/solutions.ts`,
+  `solution-groups.ts`, the content in `learn/` (types kept), and the data in `dsa.ts`, `study.ts`, `reading.ts`,
+  `revise.ts`, `cp-algorithms.ts`, `thinking-map.ts` (types and helpers kept; `currentPhase` now takes the plan). Also
+  `apps/web/lib/content-db/seed.ts` (+ tests). `packages/shared` went from about 21 MB to 2.7 MB. `validatePack` takes
+  the known pattern and concept ids as an argument (`PackKnown`); the app passes them from the content database
+  (`packKnown()` in `lib/packs.ts`). Tests: the vitest global setup now loads the committed fixture; the fixture script
+  reads a content database (`pnpm content:fixture --db <file>`) with a fixed id list (41 problems, 4 courses, 13
+  lessons, 17 docs; roadmap, pattern groups and reading list whole; 1.6 MB). New helpers `fixtureSpec`,
+  `fixtureLesson`, `fixtureDoc` (`lib/content-db/test-helpers.ts`) and `content-model/fixture-for-tests.ts`. Content
+  repo mocks built from the old constants were removed from about 20 test files. Deleted as pure content checks:
+  `learn/*.test.ts`, `judge/solutions.test.ts`, `interview.test.ts`, `thinking-map.test.ts`, `diagrams-parse`,
+  `core-code`, `design-code`, `pattern-article-code`, `lld-projects`, `solutions-files`, `solutions-verify` tests.
+  Desktop workflow: `pnpm content:verify --db apps/desktop/resources/content.db` after the build (0 errors, 40 warnings
+  on the hosted content today).
+- **Step 6** was done in round C part 1 (C11, `content-backup.yml`); a manual dispatch has not been run yet.
+- **Step 7.** `AGENTS.md`, `CLAUDE.md`, `docs/solutions.md` (rewritten as "Checking solutions"), `content-packs.md`,
+  `hosting.md`, `HANDOFF.md`, `development-performance.md`, the in-app FAQ (`lib/faq.ts`, `docs/faq.md`), release notes
+  `docs/releases/v0.10.0.md` (version not bumped).
+- **Step 8:** see the wave 3 log for the `pnpm check` result and timing.
+
+### Found but not changed
+
+- `apps/web/content/cp-algorithms/` (61 imported cp-algorithms.com articles, 5.8 MB) are still files read at run time;
+  only the pattern-to-article map is in the database. The importer was removed with the map. Moving the articles into
+  the content database is a follow-up.
+- The deleted compile tests (Java demos in lessons, design Java, pattern article C++, LLD projects, diagram parsing)
+  have no replacement: `content:verify-solutions` runs problem code only. A follow-up could run lesson code blocks and
+  diagrams too.
+- Root `package.json` still lists `katex` and `marked` (only the removed importer used them at the root); left to
+  avoid a lockfile change.
 
 ## Review
 

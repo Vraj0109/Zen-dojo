@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS } from "./index";
 import { STRESS_BY_ID, stressFor } from "./stress-registry";
 import { STRESS_INLINE } from "./stress-inline";
 
@@ -522,18 +521,6 @@ describe("stress registry", () => {
     }
   });
 
-  it("has no stress for a problem that had none before", () => {
-    for (const id of Object.keys(JUDGE_PROBLEMS)) {
-      if (!before.has(id)) expect(stressFor(id), id).toBeUndefined();
-    }
-  });
-
-  it("gives every problem the same stress array the registry returns", () => {
-    for (const [id, spec] of Object.entries(JUDGE_PROBLEMS)) {
-      expect(spec.stress, id).toBe(stressFor(id));
-    }
-  });
-
   it("gives every stress case a label and a make function (nothing is run)", () => {
     for (const [id, cases] of Object.entries(STRESS_BY_ID)) {
       for (const c of cases) {
@@ -545,7 +532,6 @@ describe("stress registry", () => {
 
   it("keeps the 14 moved inline sets in stress-inline.ts, keyed by id", () => {
     expect(Object.keys(STRESS_INLINE).sort()).toEqual([...INLINE_IDS].sort());
-    for (const id of INLINE_IDS) expect(JUDGE_PROBLEMS[id], id).toBeDefined();
   });
 
   it("returns undefined for an unknown id", () => {

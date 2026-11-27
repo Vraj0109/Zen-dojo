@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS, type ProblemSpec } from "@habit/shared";
+import { type ProblemSpec } from "@habit/shared";
 import { PYTHON_PRELUDE_LINES, pythonProgram } from "./harness";
 import { pythonCommand } from "./resolve";
 import { DEFAULT_TIME_LIMIT_MS, TIME_MULTIPLIER, runCode, runCustom } from "./run";
+import { fixtureSpecs } from "@/lib/content-db/test-helpers";
+
+// Problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureSpecs();
 
 // These run real Python 3. They are skipped on a computer without it (the Microsoft Store stub does not count).
 const PY = pythonCommand().found;

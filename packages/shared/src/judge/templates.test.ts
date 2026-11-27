@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { JUDGE_LANGS, JUDGE_LANG_LABEL, JUDGE_PROBLEMS as BY_ID, templateFor } from "./index";
+import { fixtureEntities } from "../content-model/fixture-for-tests";
+import { specFromContent } from "../content-model/to-spec";
+import { JUDGE_LANGS, JUDGE_LANG_LABEL, templateFor } from "./index";
 
-const JUDGE_PROBLEMS = Object.values(BY_ID);
+// The problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureEntities().problems.map((p) => specFromContent(p));
 
 /** Brackets in the starter must pair up (the starters contain no strings or comments with brackets). */
 function balanced(text: string): boolean {

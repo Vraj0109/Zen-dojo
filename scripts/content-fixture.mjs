@@ -1,95 +1,77 @@
-// pnpm content:fixture
+// pnpm content:fixture --db <content.db>
 //
-// Writes packages/shared/test/fixtures/content-mini.json: a small ContentSnapshot (types.ts) for tests. It seeds an
-// in-memory content database from the repo files, reads the pieces it needs back from that database, and writes them
-// as one snapshot:
-//   - 12 problems: 2 design, 1 "brute: same", 3 with Java, Python and brute force in every language, 6 more function problems
-//   - 3 courses (sd, lld, dsa-patterns) with their first 2 lessons each
-//   - one doc of each kind (lists cut to 3 items, so the file stays small), plus one LLD project
-//   - one 1x1 PNG asset, referenced by an image block in the first fixture lesson (the files have no images yet)
-// Run it again after the content changes; commit the result. Tests read the file through seedFixture (test-helpers.ts).
-import { mkdirSync, writeFileSync } from "node:fs";
+// Writes packages/shared/test/fixtures/content-mini.json: a small ContentSnapshot (types.ts) for tests, read from a
+// content database (get one with `pnpm content:snapshot --out <file.db>` or `pnpm content:pull`). The ids are fixed
+// below, so running it again only picks up edits to those items:
+//   - problems: two design problems, one "brute: same", several with Java, Python and brute force, and the problems the
+//     tests name (Two Sum, Subarray Sum Equals K, Clone Graph, ...)
+//   - the 4 courses (sd, lld, core, dsa-patterns) whole, and a few lessons of each
+//   - one doc of each kind with its list cut to the first 3 entries (each kept whole), except the DSA roadmap list and pattern groups, which stay whole
+//     and the reading list, so those views have their real shape; one LLD project
+//   - one 1x1 PNG asset, referenced by an image block in the first fixture lesson
+// Commit the result. Tests read it through seedFixture (apps/web/lib/content-db/test-helpers.ts) and the vitest global
+// setup (apps/web/test/content-global-setup.ts).
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outFile = path.join(root, "packages", "shared", "test", "fixtures", "content-mini.json");
 
-const { CONTENT_SCHEMA_VERSION, JUDGE_PROBLEMS, sha256Hex } = await import("@habit/shared");
+const args = process.argv.slice(2);
+const dbArg = args[args.indexOf("--db") + 1];
+if (!args.includes("--db") || !dbArg) {
+  console.error("Usage: pnpm content:fixture --db <content.db>   (get one with pnpm content:snapshot --out <file.db>)");
+  process.exit(1);
+}
+const dbFile = path.resolve(dbArg);
+if (!existsSync(dbFile)) {
+  console.error(`No content database at ${dbFile}.`);
+  process.exit(1);
+}
+
+const PROBLEMS = [
+  // design
+  "lc-1146", "lc-146",
+  // brute: same, and one problem from each source
+  "abc151-a", "abc153-a", "c-atc-abc081-b", "c-atc-abc088-b", "c-atc-abc143-b", "c-cf-1030a", "c-euler-1",
+  "c-kattis-autori", "c-rabin-karp", "cses-apartments",
+  // named by tests
+  "lc-1", "lc-3", "lc-20", "lc-42", "lc-49", "lc-70", "lc-92", "lc-105", "lc-128", "lc-133", "lc-239", "lc-297",
+  "lc-347", "lc-560", "cses-weird-algorithm", "cses-increasing-array", "cses-missing-number",
+  // judge tests: list, tree, design and stress cases
+  "lc-11", "lc-15", "lc-76", "lc-98", "lc-102", "lc-173", "lc-200", "lc-230", "lc-355", "lc-362", "lc-382", "lc-528",
+];
+const COURSES = ["sd", "lld", "core", "dsa-patterns"];
+const LESSONS = [
+  "sd-networking", "sd-apis", "sd-caching", "sd-cap", "sdd-url-shortener", "sdd-chat", "sdd-payments",
+  "lld-oop", "lld-solid", "lldp-parking-lot",
+  "os-deadlocks",
+  "pattern-hash-map", "pattern-prefix-sums",
+];
+const WHOLE_DOCS = new Set(["dsa-problems", "dsa-groups", "reading"]);
+const LLD_PROJECT = "lldp-parking-lot";
+
+const { CONTENT_SCHEMA_VERSION, sha256Hex } = await import("@habit/shared");
 const { getContentDb, resetContentDbForTests } = await import("@/lib/content-db/client");
 const { loadDoc, loadLesson, loadProblem, loadCourse } = await import("@/lib/content-db/load");
-const { seedContent, lessonSources, docSources } = await import("@/lib/content-db/seed");
 
 // A 1x1 transparent PNG (67 bytes).
-const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAAABJRU5ErkJggg==";
 
-const db = await getContentDb({ CONTENT_DATABASE_URL: ":memory:" });
-const seeded = await seedContent(db, { actor: "fixture", batch: 50 });
-console.log(`seeded in-memory database: ${seeded.changed} entities`);
-
-// ---- problems -------------------------------------------------------------------------------------------------------
-
-const all = new Map();
-for (const id of Object.keys(JUDGE_PROBLEMS).sort()) all.set(id, await loadProblem(db, id));
-
-const codeLangs = (p, variant) => {
-  const block = p.solution.sections.flatMap((s) => s.blocks).find((b) => b.type === "code" && b.variant === variant);
-  return block ? Object.keys(block.code) : [];
+const db = await getContentDb({ CONTENT_DATABASE_URL: `file:${dbFile.replaceAll("\\", "/")}` });
+const need = async (what, load) => {
+  const v = await load();
+  if (!v) throw new Error(`${what} is missing from ${dbFile}`);
+  return v;
 };
-const hasBruteSame = (p) => p.solution.sections.some((s) => s.blocks.some((b) => b.label === "brute-same"));
-const allThreeLangs = (p) => ["cpp", "java", "python"].every((l) => codeLangs(p, "optimal").includes(l)) && ["cpp", "java", "python"].every((l) => codeLangs(p, "brute").includes(l));
 
-const picked = [];
-const take = (n, pred) => {
-  let count = 0;
-  for (const p of all.values()) {
-    if (count >= n) break;
-    if (picked.includes(p)) continue;
-    if (pred(p)) {
-      picked.push(p);
-      count++;
-    }
-  }
-};
-take(2, (p) => p.row.kind === "design");
-take(1, (p) => p.row.kind === "function" && hasBruteSame(p));
-take(3, (p) => p.row.kind === "function" && allThreeLangs(p));
-// Six more function problems from different sources, so the fixture is not one site's problems only.
-const sources = new Set();
-for (const p of [...all.values()]) {
-  if (picked.length >= 12) break;
-  if (picked.includes(p) || p.row.kind !== "function" || sources.has(p.row.source)) continue;
-  sources.add(p.row.source);
-  picked.push(p);
-}
-for (const p of [...all.values()]) {
-  if (picked.length >= 12) break;
-  if (!picked.includes(p) && p.row.kind === "function") picked.push(p);
-}
-if (picked.length !== 12) throw new Error(`expected 12 fixture problems, got ${picked.length}`);
-
-// ---- lessons --------------------------------------------------------------------------------------------------------
-
-const lessonIdsOf = (courseId) =>
-  lessonSources()
-    .filter((s) => s.ctx.courseId === courseId)
-    .sort((a, b) => a.ctx.ord - b.ctx.ord || a.id.localeCompare(b.id))
-    .slice(0, 2)
-    .map((s) => s.id);
-
-const courseIds = ["sd", "lld", "dsa-patterns"];
+const problems = [];
+for (const id of PROBLEMS) problems.push(await need(`problem ${id}`, () => loadProblem(db, id)));
 const courses = [];
+for (const id of COURSES) courses.push(await need(`course ${id}`, () => loadCourse(db, id)));
 const lessons = [];
-for (const id of courseIds) {
-  const c = await loadCourse(db, id);
-  if (!c) throw new Error(`course ${id} is missing from the seeded database`);
-  courses.push(c);
-  for (const lessonId of lessonIdsOf(id)) {
-    const l = await loadLesson(db, lessonId);
-    if (!l) throw new Error(`lesson ${lessonId} is missing from the seeded database`);
-    lessons.push(l);
-  }
-}
+for (const id of LESSONS) lessons.push(await need(`lesson ${id}`, () => loadLesson(db, id)));
 
 // One image block in the first fixture lesson, so the snapshot exercises assets.
 const assetBytes = Buffer.from(PNG_BASE64, "base64");
@@ -109,31 +91,30 @@ firstSection.blocks.push({
   code: {},
 });
 
-// ---- docs -----------------------------------------------------------------------------------------------------------
-
-/** Keeps the shape of a body and cuts every list and every object to its first 3 entries. */
+/** Keeps the first 3 entries of a list-like body (or of an object keyed by id); each entry stays whole. */
 function trim(v) {
-  if (Array.isArray(v)) return v.slice(0, 3).map(trim);
-  if (v !== null && typeof v === "object") return Object.fromEntries(Object.entries(v).slice(0, 3).map(([k, x]) => [k, trim(x)]));
+  if (Array.isArray(v)) return v.slice(0, 3);
+  if (v !== null && typeof v === "object") return Object.fromEntries(Object.entries(v).slice(0, 3));
   return v;
 }
 
+const docRows = (await db.$client.execute("SELECT kind, id FROM docs WHERE deleted = 0 ORDER BY kind, id")).rows;
 const docs = [];
 const seenKinds = new Set();
-for (const src of docSources()) {
-  if (seenKinds.has(src.kind)) continue; // one doc per kind (the first LLD project only)
-  seenKinds.add(src.kind);
-  const d = await loadDoc(db, src.kind, src.id);
-  if (!d) throw new Error(`doc ${src.kind}:${src.id} is missing from the seeded database`);
-  docs.push({ row: { kind: d.row.kind, id: d.row.id, body: trim(d.row.body) } });
+for (const r of docRows) {
+  const kind = String(r.kind);
+  const id = String(r.id);
+  if (seenKinds.has(kind)) continue;
+  if (kind === "lld-project" && id !== LLD_PROJECT) continue;
+  seenKinds.add(kind);
+  const d = await need(`doc ${kind}:${id}`, () => loadDoc(db, kind, id));
+  docs.push({ row: { kind, id, body: WHOLE_DOCS.has(kind) ? d.row.body : trim(d.row.body) } });
 }
-
-// ---- snapshot -------------------------------------------------------------------------------------------------------
 
 const entities = [
   ...courses.map((value) => ({ kind: "course", value })),
   ...lessons.map((value) => ({ kind: "lesson", value })),
-  ...picked.map((value) => ({ kind: "problem", value })),
+  ...problems.map((value) => ({ kind: "problem", value })),
   ...docs.map((value) => ({ kind: "doc", value })),
 ];
 const snapshot = {
@@ -148,5 +129,6 @@ writeFileSync(outFile, JSON.stringify(snapshot, null, 2) + "\n", "utf8");
 await resetContentDbForTests();
 
 console.log(
-  `wrote ${path.relative(root, outFile)}: ${picked.length} problems, ${courses.length} courses, ${lessons.length} lessons, ${docs.length} docs, ${snapshot.assets.length} asset`,
+  `wrote ${path.relative(root, outFile)}: ${problems.length} problems, ${courses.length} courses, ${lessons.length} lessons, ${docs.length} docs, ${snapshot.assets.length} asset`,
 );
+process.exit(0);

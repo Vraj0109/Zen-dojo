@@ -77,8 +77,9 @@ User-side chores (optional tidy-ups, nothing depends on them): replace the broad
 - Never import `server-only` modules into client components (the production build, not typecheck, catches it).
 - Append-only migrations in `lib/db.ts`; `tasks`, `problem_notes`, settings and others are synced with fixed column lists (`lib/sync-triggers.ts` and the Worker) so a new column needs
   a Worker + D1 migration too. Device-specific settings must go on the sync denylist.
-- Problems are **TypeScript** (`packages/shared/src/judge/problems-*.ts`); lessons are Markdown (`packages/shared/content`, `pnpm content:build`); Java and Python solutions will be plain files
-  (`packages/shared/content/solutions`, plan 0063).
+- Content (problems, tests, solutions, lessons, docs) lives in the shared **content database** since plan 0117, not in the
+  repo. Edit it at `/admin`; tests use the fixture `packages/shared/test/fixtures/content-mini.json`. See
+  `docs/architecture/content-in-db.md` and `docs/content-deploy.md`.
 
 ## 5. Machine and commands
 
@@ -89,5 +90,5 @@ pnpm.cmd dev                                   # web app on http://localhost:300
 pnpm.cmd exec vitest run <file> -t "<filter>"  # fast targeted test
 pnpm.cmd -r typecheck
 pnpm.cmd check                                 # lint + typecheck + test + build; lead runs once at the end
-pnpm.cmd content:build                         # lessons Markdown -> generated TypeScript
+pnpm.cmd content:pull                          # hosted content -> data/content.db (for the dev server and checks)
 ```

@@ -6,7 +6,6 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./solutions": "./src/judge/solutions.ts",
     "./stress-registry": "./src/judge/stress-registry.ts"
   },
   "scripts": {

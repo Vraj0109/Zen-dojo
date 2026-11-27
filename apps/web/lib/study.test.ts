@@ -2,28 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONCEPT_XP } from "@habit/shared";
 import { getProgress } from "./progress";
 
-// The study lookups read the content database; serve the old constants instead (fast, no seeded DB needed).
-vi.mock("./content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getAllConcepts: async () => s.ALL_CONCEPTS,
-    getAllExercises: async () => s.ALL_EXERCISES,
-    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
-    getStudyAreas: async () => s.STUDY_AREAS,
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-    getRoadmapProblems: async () => s.PROBLEMS,
-  };
-});
-vi.mock("./content-repo/courses", () => ({ getLesson: async () => null, listCourses: async () => [], getCourse: async () => null }));
-
-describe("reading time", () => {
-  it("matches the shared readingMinutes for every concept", async () => {
-    const s = await import("@habit/shared");
-    for (const id of Object.keys(s.LESSONS)) expect(readingMinutesOf(s.LESSONS[id], s.LESSON_EXTRA[id])).toBe(s.readingMinutes(id));
-  });
-});
-import { deletePractice, getConceptDetail, getExerciseDetail, getStudyDue, getStudyView, logPractice, readingMinutesOf, saveConcept } from "./study";
+import { deletePractice, getConceptDetail, getExerciseDetail, getStudyDue, getStudyView, logPractice, saveConcept } from "./study";
 
 const setDay = (d: number, m = 11) => vi.setSystemTime(new Date(2026, m - 1, d, 12));
 

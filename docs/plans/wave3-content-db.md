@@ -129,3 +129,39 @@ Notes per task:
   (230 files), build 313 pages. (An earlier run was cut off mid-test when the session paused; the Java compile tests it
   showed as failing pass on their own.) Part 2 (deleting the content files) waits on the owner's deploy and one-time
   fill of the hosted content database (`docs/content-deploy.md`).
+
+## Hosted content database live (2026-11-27)
+
+- Lead, with the owner's sign-in: installed the Vercel CLI and the Turso CLI (in WSL), created Turso
+  `zen-dojo-content` (group `zen-dojo`, aws-ap-south-1), set Vercel Production `CONTENT_DATABASE_URL`,
+  `CONTENT_DATABASE_AUTH_TOKEN` (full) and `CONTENT_DATABASE_READ_TOKEN` (read-only); tokens were piped, never printed.
+  Filled once with `pnpm content:seed-db --url …` (a 1-day token): 817 entities, version 817, 266 s. The setup's
+  remote migrations worked on first real use.
+- Commits on main: `2d18136` (all of this work), `4f6846e` (`.vercelignore`: upload the desktop and extension
+  `package.json`, pnpm on Vercel now refuses a lockfile listing workspaces it cannot see), `1bd89c0` (units list in a
+  few summing queries instead of ~800 entity loads, which timed out after 2 minutes; functions moved to `bom1` Mumbai,
+  next to every Turso database, via `apps/web/vercel.json`).
+- Live checks: `pnpm content:check-hosted --origin https://zen-dojo-lovat.vercel.app --expect-problems 486`: 5/5 pass.
+  `/admin` signed out redirects to `/login?next=/admin`; admin APIs 401; `/api/content/sync` 404 on hosted.
+  Timings after the region move (second request): DSA list 1.1 s, a lesson 0.7 s, units list 0.3 s.
+- Follow-ups: a problem page still takes 5 to 7 s (not investigated; check whether the signed-out guest database is
+  rebuilt per request); unit pages load entities one by one (33 s for `course:dsa-patterns`, cached by the CDN per
+  version afterwards) and want a bulk loader before many desktop installs pull at once.
+- Part 2 of round C (delete the content files) is now unblocked.
+
+## Round C part 2: content files deleted (2026-11-27)
+
+- Lead, after the owner said "Yes, start part 2". Plan 0117 steps 1, 3, 5, 7 (details in the plan's notes).
+- Parity, hosted snapshot (version 817) vs the repo files: 817 = 817 entities, 0 differences. Frozen copy
+  `data/content-snapshot-817.db` (owner's machine, git-ignored).
+- Fixed on the way: `content-snapshot.mjs` could not load `@libsql/client` from the repo root (the desktop build's
+  content download would have failed) and hit Windows EBUSY on rename.
+- `packages/shared` 21 MB to 2.7 MB; about 2,600 files deleted. Tests read the committed fixture (41 problems,
+  13 lessons, 1.6 MB).
+- **`pnpm check` passed:** lint, typecheck, 2,039 tests passed / 10 skipped (211 files), build 312 pages; 4 min 8 s in
+  all. Vitest alone took 172 s (it was about 3.5 to 4 min before; the judge tests still compile C++ and Java).
+  `pnpm content:verify --db data/content-snapshot-817.db`: 0 errors, 40 warnings. `content:verify-solutions` was not
+  run in this round.
+- Follow-ups: cp-algorithms article files still in `apps/web/content/`; no replacement for the lesson code compile
+  checks; plan 0117 step 4 (admin pack import screen) not built; snapshot not yet attached to a release; problem page
+  latency and the bulk unit loader from the previous section.

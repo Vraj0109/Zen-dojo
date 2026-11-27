@@ -11,10 +11,6 @@ const FAST_EXCLUDE = [
   "**/judge/project-run.test.ts",
   "**/judge/pack-tools.test.ts",
   "**/judge/judge-tle.test.ts",
-  "**/lld-projects.test.ts",
-  "**/core-code.test.ts",
-  "**/design-code.test.ts",
-  "**/pattern-article-code.test.ts",
 ];
 
 export default defineConfig(({ mode }) => {

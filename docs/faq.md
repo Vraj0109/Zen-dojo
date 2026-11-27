@@ -579,18 +579,9 @@ _Adding problems and lessons without a release._
 
 ### How do I add a problem or a lesson without a release?
 
-Each is one small JSON file; complete examples are in `docs/examples/`. Run (from the repo):
+Every built-in problem, lesson and list is in the shared content database. The admin adds or edits it at /admin (problems, lessons, docs), runs the tests in the editor and saves. The website shows the change at once; the desktop app downloads only the changed parts the next time it checks, and tells you if it is in a course you downloaded.
 
-```
-pnpm content:add docs/examples/one-problem.json
-```
-
-- A problem you can run (`type: problem`): shows in the DSA list under Other solves and in the pattern pages you name.
-- More test cases for any problem (`type: tests`): `output` is optional; if missing it is computed by running the problem's C++ reference solution (needs g++).
-- A lesson (`type: lesson`): shows in Learn under Added items.
-- A reading link (`type: reading`).
-
-Without the repo, you can import a content pack (a JSON file of lessons and problems) in Settings, Add problems and lessons. Formats: `docs/content-packs.md` and `docs/content-editing.md`. For a hosted copy, point the command at the database or use the app's content admin token.
+For your own extra content, import a content pack (a JSON file of lessons and problems) in Settings, Add problems and lessons. Formats: `docs/content-packs.md`. Editing the built-in content: `docs/content-editing.md`.
 
 ### Where do extra courses come from and do they need internet?
 
@@ -600,9 +591,9 @@ The app only goes online for this when you open Learn (to read the list) or clic
 
 ### How do I change a built-in lesson?
 
-Built-in lessons are Markdown files in `packages/shared/content/`. Edit one, then run `pnpm content:build` (and `pnpm content:check` to verify). Or replace one for yourself without code through a content pack `patch`; the lesson then has a Back to built-in button. See `docs/content-editing.md`.
+Built-in lessons, problems and solutions live in a shared content database. The admin edits them in the app at /admin, and the change reaches everyone without an app update: the website shows it at once, and the desktop app downloads it the next time it checks. See `docs/content-editing.md`.
 
-Reference solutions in Java and Python are plain files in `packages/shared/content/solutions/<problem-id>.java` and `.py` (see `docs/solutions.md`).
+To change a lesson only for yourself, use a content pack `patch`; the lesson then has a Back to built-in button.
 
 ## Developers
 

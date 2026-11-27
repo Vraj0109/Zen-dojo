@@ -1,6 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { ALL_CONCEPTS, COVERED_CONFIDENCE, LESSON_EXTRA, STUDY_AREAS } from "@habit/shared";
+import { beforeAll, describe, expect, it } from "vitest";
+import { COVERED_CONFIDENCE, lessonToShape, type StudyArea } from "@habit/shared";
+import { fixtureLesson } from "@/lib/content-db/test-helpers";
+import { getStudyAreas } from "@/lib/content-repo/lookups";
 import { conceptToc, courseOutline, deeperIds, flattenToc, markdownToc, slug } from "./toc-items";
+
+/** "Go deeper" titles of a concept lesson in the fixture (none for lessons the fixture does not hold). */
+function deeperTitles(id: string): string[] {
+  try {
+    const shape = lessonToShape(fixtureLesson(id)) as { extra?: { deeper: { title: string }[] } };
+    return shape.extra?.deeper.map((s) => s.title) ?? [];
+  } catch {
+    return [];
+  }
+}
 
 describe("slug and ids", () => {
   it("makes readable anchors", () => {
@@ -14,7 +26,7 @@ describe("slug and ids", () => {
 
 describe("conceptToc", () => {
   it("lists every Go deeper sub-section as a child, in lesson order", () => {
-    const titles = LESSON_EXTRA["lld-solid"].deeper.map((s) => s.title);
+    const titles = deeperTitles("lld-solid");
     const toc = conceptToc({ hasOverview: true, deeperTitles: titles, hasQuestions: true, hasPitfalls: true, hasReading: false });
     const deeper = toc.find((t) => t.id === "deeper");
     expect(deeper?.children?.map((c) => c.title)).toEqual(titles);
@@ -42,13 +54,18 @@ describe("markdownToc", () => {
 });
 
 describe("courseOutline", () => {
-  const area = STUDY_AREAS.find((a) => a.id === "lld")!;
-  const sections = area.sections.map((s) => ({ id: s.id, title: s.title, concepts: s.concepts.map((c) => ({ id: c.id, title: c.title, confidence: c.id === "lld-oop" ? COVERED_CONFIDENCE : 0 })) }));
-  const tree = courseOutline({ areaId: "lld", currentId: "lld-solid", sections, coveredAt: COVERED_CONFIDENCE, deeper: (id) => LESSON_EXTRA[id]?.deeper.map((s) => s.title) ?? [] });
-  const lessons = tree.flatMap((s) => s.lessons);
+  let area: StudyArea;
+  let tree: ReturnType<typeof courseOutline>;
+  let lessons: ReturnType<typeof courseOutline>[number]["lessons"];
+  beforeAll(async () => {
+    area = (await getStudyAreas()).find((a) => a.id === "lld")!;
+    const sections = area.sections.map((s) => ({ id: s.id, title: s.title, concepts: s.concepts.map((c) => ({ id: c.id, title: c.title, confidence: c.id === "lld-oop" ? COVERED_CONFIDENCE : 0 })) }));
+    tree = courseOutline({ areaId: "lld", currentId: "lld-solid", sections, coveredAt: COVERED_CONFIDENCE, deeper: deeperTitles });
+    lessons = tree.flatMap((s) => s.lessons);
+  });
 
   it("has every lesson of the area as a real link", () => {
-    expect(lessons.map((l) => l.id)).toEqual(Object.keys(ALL_CONCEPTS).filter((id) => ALL_CONCEPTS[id].area === "lld"));
+    expect(lessons.map((l) => l.id)).toEqual(area.sections.flatMap((s) => s.concepts.map((c) => c.id)));
     expect(lessons.every((l) => l.href === `/study/lld/${l.id}`)).toBe(true);
   });
   it("marks the current lesson, opens its section and marks covered lessons", () => {
@@ -60,7 +77,7 @@ describe("courseOutline", () => {
   it("gives each lesson sub-section links that match the page anchors", () => {
     const solid = lessons.find((l) => l.id === "lld-solid")!;
     expect(solid.children[0].href).toMatch(/^\/study\/lld\/lld-solid#deeper-single-responsibility/);
-    expect(solid.children.map((c) => c.id)).toEqual(deeperIds(LESSON_EXTRA["lld-solid"].deeper.map((s) => s.title)));
+    expect(solid.children.map((c) => c.id)).toEqual(deeperIds(deeperTitles("lld-solid")));
   });
 });
 

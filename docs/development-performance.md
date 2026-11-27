@@ -11,14 +11,8 @@ Follow these rules to keep development cycle times under 5 seconds.
 ### Tier 1: Targeted File Tests (2 to 5 seconds) — USE DURING ACTIVE DEVELOPMENT
 Never run `pnpm test` or `pnpm check` while iterating on code. Run only the single test file corresponding to the files you edited:
 ```bash
-# Testing diagrams:
-pnpm exec vitest run apps/web/lib/diagrams-parse.test.ts
-
-# Testing learn guides, LLD systems, and design depth registration:
-pnpm exec vitest run packages/shared/src/learn/learn.test.ts
-
-# Testing system design depth:
-pnpm exec vitest run packages/shared/src/learn/design-depth.test.ts
+# Testing the content model (templates, page Markdown, content checks):
+pnpm exec vitest run packages/shared/src/content-model
 
 # Testing problem library & judge harnesses:
 pnpm exec vitest run apps/web/lib/judge/judge.test.ts

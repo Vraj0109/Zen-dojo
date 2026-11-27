@@ -4,7 +4,6 @@
 // sends, so edits that are not saved yet are included. Nothing here saves anything. Both actions are admin-only.
 
 import {
-  ALL_CONCEPTS,
   clip,
   pageTemplate,
   pageToMarkdown,
@@ -28,6 +27,7 @@ import {
 import { buildAdminPrompt, parseAiAnswer } from "@habit/shared";
 import { AdminDeniedError, requireAdminAction } from "@/lib/auth/admin";
 import { getCourse } from "@/lib/content-repo/courses";
+import { getAllConcepts } from "@/lib/content-repo/lookups";
 
 export type AiEntity = "problem" | "lesson" | "doc";
 
@@ -75,8 +75,8 @@ function splitField(field?: string): { base: string; part?: "section" | "block";
   return { base, part: m[1] as "section" | "block", partId: m[2] };
 }
 
-function checklistFor(lessonId: string): string[] | undefined {
-  const concept = ALL_CONCEPTS[lessonId];
+async function checklistFor(lessonId: string): Promise<string[] | undefined> {
+  const concept = (await getAllConcepts())[lessonId];
   return concept ? [...concept.points] : undefined;
 }
 
@@ -227,7 +227,7 @@ async function resolveLesson(req: AiRequest): Promise<Lookup> {
     id: draft.row.id,
     title: draft.row.title,
     template: draft.row.template,
-    checklist: checklistFor(draft.row.id),
+    checklist: await checklistFor(draft.row.id),
   };
   const base: AdminPromptContext = {
     course: course ? { id: course.row.id, title: course.row.title, summaryMd: course.row.summaryMd } : undefined,

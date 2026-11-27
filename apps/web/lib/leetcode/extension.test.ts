@@ -1,38 +1,6 @@
 import { parseWeekKey } from "@habit/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getStudyAreas: async () => s.STUDY_AREAS,
-    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
-    getAllConcepts: async () => s.ALL_CONCEPTS,
-    getAllExercises: async () => s.ALL_EXERCISES,
-    getRoadmapProblems: async () => s.PROBLEMS,
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-  };
-});
-
-vi.mock("@/lib/content-repo/problems", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getProblemSpec: async (id: string) => s.JUDGE_PROBLEMS[id] ?? null,
-    listProblemSummaries: async () => {
-      return Object.values(s.JUDGE_PROBLEMS).map((p) => ({
-        id: p.id,
-        title: p.title,
-        source: p.source,
-        difficulty: p.difficulty,
-        pattern: p.pattern ?? null,
-        kind: p.kind ?? "function",
-        languages: ["cpp"],
-        hasBrute: false,
-      }));
-    },
-  };
-});
-
 import { GET as knownRoute } from "@/app/api/ext/known/route";
 import { POST as submissionsRoute } from "@/app/api/ext/submissions/route";
 import { getDsaView, getProblemDetail } from "../dsa";

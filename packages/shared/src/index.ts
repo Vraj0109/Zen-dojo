@@ -14,7 +14,6 @@ export * from "./revise";
 export * from "./thinking-map";
 export * from "./cp-algorithms";
 export * from "./packs";
-export * from "./content-items";
 export * from "./buddy";
 export * from "./buddy-mood";
 export * from "./buddy-lines";

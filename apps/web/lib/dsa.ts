@@ -16,7 +16,6 @@ import { getProblemSpec, listProblemSummaries } from "./content-repo/problems";
 import { getDb } from "./db";
 import { getNote, getNotedIds, type ProblemNote } from "./notes";
 import { getPatternNotes, type PatternNote } from "./pattern-notes";
-import { listAddedProblems } from "./content";
 import { leetcodeProblems, leetcodeSubmissions, leetcodeTopics, leetcodeUserSubmissions, problemSolves, solutionRuns } from "./schema";
 import { openStruggles } from "./struggles";
 
@@ -147,14 +146,13 @@ export async function getDsaView() {
     listProblemSummaries(),
   ]);
   const judgeableIds = new Set(summaries.map((s) => s.id));
-  const [{ rows, first, resolved, auto }, extraRows, noted, lc, struggles, patternNotes, addedProblems] = await Promise.all([
+  const [{ rows, first, resolved, auto }, extraRows, noted, lc, struggles, patternNotes] = await Promise.all([
     solveIndex(roadmap),
     getExtraSolves(),
     getNotedIds(),
     leetcodeIndex(),
     openStruggles(today),
     getPatternNotes(),
-    listAddedProblems(),
   ]);
   const extras = extraRows.map((e) => ({ ...e, noted: noted.has(e.problemId), struggling: struggles.has(e.problemId), ...lc(e.slug) }));
   const ticks = await tickIndex(first, roadmap);
@@ -193,9 +191,7 @@ export async function getDsaView() {
   const groups = dsaGroups.map((g) => {
     const patterns: PatternView[] = g.patterns.map((p) => {
       const items = p.problems.map(view);
-      const addedForPattern = addedProblems.filter((ap) => ap.patterns.includes(p.id));
-      const addedSolved = addedForPattern.filter((ap) => ap.done).length;
-      const solved = items.filter((i) => i.status.state !== "unsolved").length + addedSolved;
+      const solved = items.filter((i) => i.status.state !== "unsolved").length;
       const target = patternTarget(p);
       return { ...p, items, solved, target, covered: solved >= target, note: patternNotes.get(p.id) ?? null };
     });
@@ -224,15 +220,15 @@ export async function getDsaView() {
     totals: {
       patterns: patterns.length,
       patternsCovered: patterns.filter((p) => p.covered).length,
-      problems: allIds.length + addedProblems.length,
+      problems: allIds.length,
       /** Roadmap problems solved in this app (every test passed here); solvedAnywhere also counts LeetCode-only ones */
-      solved: [...first.keys()].filter((id) => ticks.here.has(id)).length + addedProblems.filter((p) => p.done).length,
-      solvedAnywhere: first.size + addedProblems.filter((p) => p.done).length,
+      solved: [...first.keys()].filter((id) => ticks.here.has(id)).length,
+      solvedAnywhere: first.size,
       resolved: resolved.size,
       /** Every distinct problem solved, roadmap or not (roadmap checklist: 150+). */
-      allSolved: [...first.keys()].filter((id) => ticks.here.has(id)).length + addedProblems.filter((p) => p.done).length,
+      allSolved: [...first.keys()].filter((id) => ticks.here.has(id)).length,
       /** The same count when solves on LeetCode and the other platforms are included (the old total) */
-      allSolvedAnywhere: first.size + extras.length + addedProblems.filter((p) => p.done).length,
+      allSolvedAnywhere: first.size + extras.length,
       xp: rows.reduce((sum, r) => sum + r.xp, 0),
     },
   };

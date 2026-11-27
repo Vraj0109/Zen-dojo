@@ -3,9 +3,9 @@
 //   node scripts/content-snapshot.mjs --out <file.db> [--origin <url>]
 //
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { register } from "node:module";
+import { createRequire, register } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -16,8 +16,10 @@ const { CONTENT_SCHEMA_VERSION, validateSnapshotChunk } = await import("@habit/s
 const { CONTENT_MIGRATIONS } = await import("../apps/web/lib/content-db/migrations.ts");
 const { applyUnits } = await import("../apps/web/lib/content-sync/apply.ts");
 const schema = await import("../apps/web/lib/content-db/schema.ts");
-const { createClient } = await import("@libsql/client");
-const { drizzle } = await import("drizzle-orm/libsql");
+// The database packages are dependencies of apps/web, not of the repo root, so resolve them from there.
+const webRequire = createRequire(path.join(root, "apps", "web", "package.json"));
+const { createClient } = await import(pathToFileURL(webRequire.resolve("@libsql/client")).href);
+const { drizzle } = await import(pathToFileURL(webRequire.resolve("drizzle-orm/libsql")).href);
 
 const args = process.argv.slice(2);
 function getFlag(name) {
@@ -116,7 +118,9 @@ async function main() {
   mkdirSync(path.dirname(targetFile), { recursive: true });
   rmSync(tempFile, { force: true });
 
-  const client = createClient({ url: `file:${tempFile.replaceAll("\\", "/")}` });
+  // Built in memory, then written out with VACUUM INTO: on Windows a file the client had open can stay locked after
+  // close() and refuse the rename below, while the VACUUM INTO copy is closed by SQLite itself.
+  const client = createClient({ url: ":memory:" });
   try {
     // Run migrations
     for (let v = 0; v < CONTENT_MIGRATIONS.length; v++) {
@@ -126,6 +130,7 @@ async function main() {
     const db = drizzle(client, { schema });
     // Apply units in a single transaction; the copy records the epoch it was downloaded at (plan 0115 rule 6).
     await applyUnits(db, unitPages, { version, epoch });
+    await client.execute(`VACUUM INTO '${tempFile.replaceAll("\\", "/").replaceAll("'", "''")}'`);
   } finally {
     client.close();
   }

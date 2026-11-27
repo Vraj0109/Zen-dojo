@@ -1,6 +1,6 @@
 import "server-only";
 import { eq } from "drizzle-orm";
-import { COVERED_CONFIDENCE, currentPhase, daysUntil, lessonToShape, practiceState, toLocalDate, type QuizCard, type StudyAreaId } from "@habit/shared";
+import { COVERED_CONFIDENCE, currentPhase, daysUntil, lessonToShape, practiceState, toLocalDate, type PlanPhase, type QuizCard, type StudyAreaId } from "@habit/shared";
 import { getDoc } from "@/lib/content-repo/docs";
 import { getLesson, listCourses } from "@/lib/content-repo/courses";
 import { getAllConcepts, getAllPatterns, getDsaGroups, getRoadmapProblems, getStudyAreas } from "@/lib/content-repo/lookups";
@@ -43,7 +43,7 @@ export async function getCountdown() {
   const date = await getInterviewDate();
   if (!date) return null;
   const daysLeft = daysUntil(toLocalDate(), date);
-  return { date, daysLeft, phase: currentPhase(daysLeft) };
+  return { date, daysLeft, phase: currentPhase(daysLeft, await docValue<PlanPhase[]>("revise-plan", [])) };
 }
 
 export interface ReviseConcept {

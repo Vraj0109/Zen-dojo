@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { after, connection } from "next/server";
 import { getDsaView, type ProblemView } from "@/lib/dsa";
 import { getDsaGroups } from "@/lib/content-repo/lookups";
-import { AddedProblems } from "./added-problems";
 import { getSimpleMode } from "@/lib/ui-prefs";
 import {
   FILTER_OPTIONS,
@@ -299,7 +298,6 @@ async function Dsa({ searchParams }: { searchParams: PageProps<"/dsa">["searchPa
                   ))}
                 </ul>
               )}
-              <AddedProblems />
             </section>
           </div>
         )}

@@ -1,6 +1,8 @@
 # Content packs: add lessons and problems without changing the code
 
-> To add just one problem, one lesson or extra test cases without a whole pack, see `docs/content-editing.md`, section "Add one thing" (`pnpm content:add`).
+> Packs are a learner's own extra content, stored in their own database. The built-in content lives in the shared
+> content database and is edited by the admin at `/admin` (see `docs/content-editing.md`); `pnpm content:import <pack.json>`
+> (owner only, needs the write token) copies a pack into that shared database for everyone.
 
 A **content pack** is one JSON file. Import it in **Profile → Settings → Content** (paste it, choose the file, or give a
 web address) and it becomes a course in **Learn**, or inserts its content into an existing study area. Its problems open

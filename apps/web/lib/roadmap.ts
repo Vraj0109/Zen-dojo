@@ -1,6 +1,6 @@
 import "server-only";
 import { eq } from "drizzle-orm";
-import { ITEMS_PACK_ID, PLAN_WEEKS, SLOTS_PER_WEEK, addDays, parseWeekKey, toLocalDate, type PlanWeek } from "@habit/shared";
+import { PLAN_WEEKS, SLOTS_PER_WEEK, addDays, parseWeekKey, toLocalDate, type PlanWeek } from "@habit/shared";
 import { getDb } from "./db";
 import { packProgress, problemSolves, tasks } from "./schema";
 import { getBacklogView, getPlanStart } from "./tasks";
@@ -17,6 +17,9 @@ export interface RoadmapWeek extends PlanWeek {
 }
 
 export type RoadmapState = "done" | "current" | "upcoming";
+
+/** Progress rows of the retired "items" pack (problems added one by one before plan 0117); kept so old solves still count. */
+const ITEMS_PACK_ID = "items";
 
 export async function getRoadmapView() {
   const db = await getDb();

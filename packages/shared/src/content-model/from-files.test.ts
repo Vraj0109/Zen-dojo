@@ -1,115 +1,87 @@
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS } from "../judge/index";
-import { BRUTE, SOLUTIONS } from "../judge/generated/solutions";
-import { INTERVIEW as INTERVIEW_MD } from "../judge/generated/interview";
-import type { ProblemSpec } from "../judge/types";
-import { problemFromSpec, type ProblemExtra } from "./from-files";
+import { fixtureEntities } from "./fixture-for-tests";
+import { problemFromSpec } from "./from-files";
 import { specFromContent } from "./to-spec";
-import { validatePageAgainstTemplate, pageTemplate } from "./templates";
+import { pageTemplate, validatePageAgainstTemplate } from "./templates";
 
-/** The extra inputs the seed will read for one problem, from the generated bundles. */
-function extraFor(id: string): ProblemExtra {
-  const sol = SOLUTIONS[id] ?? {};
-  const brute = BRUTE[id];
-  const md = INTERVIEW_MD[id]?.md;
-  return {
-    java: sol.java,
-    python: sol.python,
-    brute: brute as ProblemExtra["brute"],
-    interviewMd: md,
-    bruteSame: md !== undefined && /brute:\s*same/i.test(md),
-  };
-}
-
-function withoutStress(spec: ProblemSpec): Partial<ProblemSpec> {
-  const { stress: _stress, ...rest } = spec;
-  return rest;
-}
+// The content now lives in the database (plan 0117); these checks run the converters over the committed fixture's
+// problems. The full round trip of every problem was proved once at cutover (docs/plans/wave3-content-db.md).
+const { problems } = fixtureEntities();
+const codeBlocks = (p: (typeof problems)[number]) => p.solution.sections.flatMap((s) => s.blocks).filter((b) => b.type === "code");
 
 describe("problemFromSpec / specFromContent", () => {
-  it("round-trips the judge fields of every built-in problem", () => {
-    const ids = Object.keys(JUDGE_PROBLEMS);
-    expect(ids.length).toBe(486);
-    const mismatches: string[] = [];
-    for (const id of ids) {
-      const spec = JUDGE_PROBLEMS[id];
-      const back = specFromContent(problemFromSpec(spec, extraFor(id)));
-      try {
-        expect(back).toEqual(withoutStress(spec));
-      } catch {
-        mismatches.push(id);
-      }
+  it("round-trips the judge fields of every fixture problem", () => {
+    expect(problems.length).toBeGreaterThanOrEqual(10);
+    for (const p of problems) {
+      const spec = specFromContent(p);
+      expect(specFromContent(problemFromSpec(spec)), p.row.id).toEqual(spec);
     }
-    if (mismatches.length) console.log("round-trip mismatches (first 5):", mismatches.slice(0, 5));
-    expect(mismatches).toEqual([]);
   });
 
   it("puts the stress generators back only when the caller passes them", () => {
-    const spec = JUDGE_PROBLEMS["lc-1"];
+    const spec = specFromContent(problems[0]);
     const stress = [{ label: "x", make: () => [] }];
-    expect(specFromContent(problemFromSpec(spec, extraFor("lc-1")), stress).stress).toBe(stress);
-    expect(specFromContent(problemFromSpec(spec, extraFor("lc-1")))).not.toHaveProperty("stress");
+    expect(specFromContent(problemFromSpec(spec), stress).stress).toBe(stress);
+    expect(specFromContent(problemFromSpec(spec))).not.toHaveProperty("stress");
   });
 
   it("gives the same rows and page ids on two runs", () => {
-    const spec = JUDGE_PROBLEMS["abc151-a"];
-    const a = problemFromSpec(spec, extraFor("abc151-a"));
-    const b = problemFromSpec(spec, extraFor("abc151-a"));
+    const spec = specFromContent(problems[0]);
+    const a = problemFromSpec(spec);
+    const b = problemFromSpec(spec);
     expect(b).toEqual(a);
     expect(a.solution.sections.map((s) => s.id)).toEqual(b.solution.sections.map((s) => s.id));
   });
 
-  it("builds a valid problem page for every problem", () => {
+  it("builds a valid problem page for every fixture problem", () => {
     const tpl = pageTemplate("problem");
     const only = (key: string) => ({ ...tpl, slots: tpl.slots.filter((s) => s.key === key) });
-    for (const id of Object.keys(JUDGE_PROBLEMS)) {
-      const p = problemFromSpec(JUDGE_PROBLEMS[id], extraFor(id));
-      expect(validatePageAgainstTemplate(only("statement"), p.statement), id).toEqual([]);
-      expect(validatePageAgainstTemplate(only("solution"), p.solution), id).toEqual([]);
+    for (const p of problems) {
+      const back = problemFromSpec(specFromContent(p));
+      expect(validatePageAgainstTemplate(only("statement"), back.statement), p.row.id).toEqual([]);
+      expect(validatePageAgainstTemplate(only("solution"), back.solution), p.row.id).toEqual([]);
+      expect(validatePageAgainstTemplate(only("statement"), p.statement), p.row.id).toEqual([]);
+      expect(validatePageAgainstTemplate(only("solution"), p.solution), p.row.id).toEqual([]);
     }
   });
 
   it("brute: same, the walkthrough shows the sentence and only the optimal code", () => {
-    const id = "abc151-a";
-    expect(extraFor(id).bruteSame).toBe(true);
-    const p = problemFromSpec(JUDGE_PROBLEMS[id], extraFor(id));
-    const blocks = p.solution.sections.flatMap((s) => s.blocks);
+    const p = problems.find((x) => x.solution.sections.some((s) => s.blocks.some((b) => b.label === "brute-same")));
+    expect(p).toBeDefined();
+    const spec = specFromContent(p!);
+    const back = problemFromSpec(spec, { bruteSame: true, interviewMd: "brute: same" });
+    const blocks = back.solution.sections.flatMap((s) => s.blocks);
     expect(blocks.filter((b) => b.type === "code").map((b) => b.variant)).toEqual(["optimal"]);
-    const same = blocks.find((b) => b.label === "brute-same");
-    expect(same?.body).toBe("The direct approach is already optimal here.");
-    const brute = p.solution.sections.find((s) => s.title?.toLowerCase().includes("brute force"));
-    expect(brute?.blocks.some((b) => b.label === "brute-same")).toBe(true);
+    expect(blocks.find((b) => b.label === "brute-same")?.body).toBe("The direct approach is already optimal here.");
   });
 
   it("design problem: statement and optimal code, kind design, design shape kept", () => {
-    const id = Object.keys(JUDGE_PROBLEMS).find((k) => JUDGE_PROBLEMS[k].kind === "design");
-    expect(id).toBeDefined();
-    const spec = JUDGE_PROBLEMS[id!];
-    const p = problemFromSpec(spec, extraFor(id!));
-    expect(p.row.kind).toBe("design");
-    expect(p.row.design).toEqual(spec.design);
-    expect(p.statement.sections[0].blocks.map((b) => b.body)).toEqual(spec.statement);
-    const code = p.solution.sections.flatMap((s) => s.blocks).find((b) => b.variant === "optimal");
-    expect(code?.code.cpp).toBe(spec.solution.cpp);
-    expect(specFromContent(p).kind).toBe("design");
+    const p = problems.find((x) => x.row.kind === "design");
+    expect(p).toBeDefined();
+    const spec = specFromContent(p!);
+    const back = problemFromSpec(spec);
+    expect(back.row.kind).toBe("design");
+    expect(back.row.design).toEqual(spec.design);
+    expect(back.statement.sections[0].blocks.map((b) => b.body)).toEqual(spec.statement);
+    expect(codeBlocks(back).find((b) => b.variant === "optimal")?.code.cpp).toBe(spec.solution.cpp);
   });
 
   it("brute and Java and Python: block order is brute, then optimal with all three languages", () => {
-    const id = Object.keys(JUDGE_PROBLEMS).find((k) => {
-      const e = extraFor(k);
-      const b = BRUTE[k];
-      return !e.bruteSame && e.java !== undefined && e.python !== undefined && e.interviewMd !== undefined && b?.java !== undefined && b?.python !== undefined && b?.cpp !== undefined;
+    const p = problems.find((x) => {
+      const c = codeBlocks(x);
+      return c.length === 2 && c.every((b) => ["cpp", "java", "python"].every((l) => (b.code as Record<string, string>)[l] !== undefined));
     });
-    expect(id).toBeDefined();
-    const e = extraFor(id!);
-    const p = problemFromSpec(JUDGE_PROBLEMS[id!], e);
-    const codes = p.solution.sections.flatMap((s) => s.blocks).filter((b) => b.type === "code");
+    expect(p).toBeDefined();
+    const c = codeBlocks(p!);
+    const opt = c.find((b) => b.variant === "optimal")!.code as Record<string, string>;
+    const brute = c.find((b) => b.variant === "brute")!.code as Record<string, string>;
+    const back = problemFromSpec(specFromContent(p!), { java: opt.java, python: opt.python, brute: { cpp: brute.cpp, java: brute.java, python: brute.python }, interviewMd: "x" });
+    const codes = codeBlocks(back);
     expect(codes.map((b) => b.variant)).toEqual(["brute", "optimal"]);
     expect(Object.keys(codes[0].code)).toEqual(["cpp", "java", "python"]);
     expect(Object.keys(codes[1].code)).toEqual(["cpp", "java", "python"]);
     expect(codes[0].label).toBe("Brute force");
     expect(codes[1].label).toBe("Optimal");
-    expect(codes[1].code.java).toBe(e.java);
-    expect(codes[1].code.python).toBe(e.python);
+    expect(codes[1].code.java).toBe(opt.java);
   });
 });

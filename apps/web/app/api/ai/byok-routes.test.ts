@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const dbCalls = vi.hoisted(() => ({ n: 0 }));
 vi.mock("@/lib/db", () => ({ getDb: async () => { dbCalls.n++; throw new Error("db must not be used"); } }));
-import { LESSONS } from "@habit/shared";
 import { POST as chat } from "./chat/route";
 import { POST as buddy } from "./buddy/route";
 import { POST as test } from "./test/route";
@@ -32,7 +31,7 @@ const openaiOk = () => sse(['data: {"choices":[{"delta":{"content":"Hello"}}]}\n
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let spies: { mock: { calls: unknown[] } }[];
-const lessonId = Object.keys(LESSONS)[0]!;
+const lessonId = "sd-caching"; // a concept lesson in the content fixture
 const lessonBody = { lessonId, messages: [{ role: "user", content: "Explain" }] };
 
 beforeEach(() => {

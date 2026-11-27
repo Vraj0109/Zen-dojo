@@ -21,23 +21,34 @@ The plan file is the contract and the shared memory between tools. Whoever works
 ## Commands (run from repo root)
 
 - `pnpm dev` / `pnpm build` / `pnpm start`: web app on http://localhost:3000
-- `pnpm test`: Vitest full test suite (compiles all C++ and Java demos, takes ~3.5 min). Never run during active dev.
+- `pnpm test`: Vitest full test suite. Content comes from the committed fixture (`packages/shared/test/fixtures/content-mini.json`),
+  not the full content, but the judge tests still compile C++ and Java (about 3 min). Never run during active dev.
 - `pnpm check`: lint + typecheck + test + build (what CI runs, takes ~5 min). Run ONLY ONCE before push.
-- Targeted tests (fast, 2-5s): `pnpm exec vitest run <path/to/test.ts>` (e.g. `learn.test.ts`, `diagrams-parse.test.ts`).
+- Targeted tests (fast, 2-5s): `pnpm exec vitest run <path/to/test.ts>` from the repo root (e.g. `apps/web/lib/dsa.test.ts`).
+- Content (plan 0117): `pnpm content:pull` (hosted content into `data/content.db`), `content:snapshot --out <file>`,
+  `content:verify [--db <file> | --origin <url>]` (the quality checks; exit 1 on errors), `content:verify-solutions`
+  (runs every problem's code blocks with the local judge), `content:fixture --db <file>` (rewrites the test fixture),
+  `content:import` (owner only), `content:resync`, `content:check-hosted`. Runbook: `docs/content-deploy.md`.
 - `pnpm desktop:build`: Electron installer for the current OS in `apps/desktop/dist/` (~2 min);
   `pnpm desktop:dev`: Electron window on the dev server
 - Windows: in PowerShell use `pnpm.cmd` / `npm.cmd` (script execution policy may block `pnpm.ps1`)
 
 ## Layout
 
-- `packages/shared/src/`: pure logic + data, no I/O. `plan.ts` (16 weeks, task templates), `dsa.ts`
-  (67 patterns, 201 problems; LeetCode slugs verified against LeetCode), `dates.ts`, `game.ts` (XP/level/streak),
-  `study.ts` (study areas: concept checklists + practice exercises; system design and LLD from the PDF, core CS written
-  for this app), `stats.ts` (badges, heatmap, best streak), `focus.ts` (per-week patterns/concepts/designs that Today
-  links tasks to), `reading.ts` (reading list), `learn/` (lessons per concept; `deep-*.ts` and `more-*.ts` recap and
-  deeper sections; design walkthroughs + `design-extra.ts` follow-ups; LLD reference answers + `lld-extra.ts`;
-  `dsa-*.ts` pattern guides with C++ templates; tests check every item has its content), `revise.ts` (last-days plan,
-  key numbers, quiz deck, seeded shuffle)
+- **Content lives in the content database, not in the repo** (plans 0112 to 0119, overview
+  `docs/architecture/content-in-db.md`): problems, tests, hints, solutions, lessons, courses and the list-like docs
+  (roadmap problems, pattern groups, reading list, quiz deck, thinking map, ...). The admin edits them at `/admin`; the
+  website reads the hosted database, the desktop app a downloaded copy that it keeps up to date. Never add content as
+  TypeScript or Markdown files again.
+- `packages/shared/src/`: pure logic and types, no I/O. `plan.ts` (16 weeks, task templates), `dsa.ts` (problem and
+  pattern types, solve XP), `dates.ts`, `game.ts` (XP/level/streak), `study.ts` (study area types, practice
+  scheduling), `stats.ts` (badges, heatmap, best streak), `focus.ts` (per-week patterns/concepts/designs that Today
+  links tasks to), `revise.ts` and `thinking-map.ts` (types and helpers), `learn/` (lesson types only),
+  `content-model/` (the content types, templates, page Markdown, `verify.ts` content checks, converters),
+  `judge/` (judge types, starter templates, stress generators keyed by problem id via `stress-registry.ts`)
+- `apps/web/lib/content-db/` (content database client, migrations, write helpers, audit), `content-repo/` (cached
+  reads: `problems.ts`, `courses.ts`, `docs.ts`, `lookups.ts`), `content-sync/` (desktop download and updates),
+  `admin-content/` (admin saves, run `verifyEntity`)
 - `apps/web/lib/`: server-only data layer. `db.ts` (libSQL client + `MIGRATIONS`), `schema.ts` (Drizzle),
   `tasks.ts`, `dsa.ts`, `progress.ts` (XP/streak from every XP row: tasks, solves, practice sessions, covered
   concepts), `study.ts`, `stats.ts` (heatmap, balance, badges), `focus.ts` (week focus + task links), `review.ts`
@@ -58,10 +69,11 @@ The plan file is the contract and the shared memory between tools. Whoever works
   `main.js` runs the server with `utilityProcess` on 127.0.0.1:3000 (or a free port), `DATABASE_URL` in the OS
   app-data folder. `lib/setup.js` and `lib/updates.js` are pure and tested. To try a build without touching real
   data, set `HABIT_DATA_DIR`
-- `docs/content-editing.md`: how to change, reorder and add lessons (Markdown in `packages/shared/content/`, `pnpm content:build` / `content:check`)
-- `docs/content-editing.md` "Add one thing": add one problem, extra test cases, a lesson or a reading link with `pnpm content:add` (no code, no release); `docs/hosting.md`: remote libSQL via `DATABASE_AUTH_TOKEN`; `docs/troubleshooting.md`: Windows C++ blocking and solutions
+- `docs/content-editing.md`: editing content in the admin editor (blocks, page Markdown, Write with AI);
+  `docs/content-deploy.md`: hosted content database runbook; `docs/hosting.md`: remote libSQL via `DATABASE_AUTH_TOKEN`;
+  `docs/troubleshooting.md`: Windows C++ blocking and solutions
 - `docs/content-packs.md`: the JSON format for adding lessons and problems without code (`packages/shared/src/packs.ts`, `apps/web/lib/packs.ts`)
-- `docs/solutions.md`: reference solutions in Java and Python are plain files in `packages/shared/content/solutions/<problem-id>.java|.py` (C++ stays on the problem). Only the lead runs `pnpm solutions:build` (writes the committed bundle `packages/shared/src/judge/generated/solutions.ts`); `pnpm solutions:status|todo|verify` check them. The judge runs C++, Java, JavaScript and Python (`apps/web/lib/judge/`; tools found by `resolve.ts`)
+- `docs/solutions.md`: checking solutions (code blocks in the content database) with `pnpm content:verify-solutions`. The judge runs C++, Java, JavaScript and Python (`apps/web/lib/judge/`; tools found by `resolve.ts`)
 - `docs/plans/`: feature plans (see the workflow above)
 - `data/habit.db`: the user's real data (git-ignored). Never modify it; test against a copy or `:memory:`
 
@@ -80,12 +92,15 @@ The plan file is the contract and the shared memory between tools. Whoever works
   LeetCode cookies/credentials. Private data (code, notes) comes only via the extension, which runs in the
   user's logged-in leetcode.com tab. Both paths record solves through `recordAccepted` in `leetcode/sync.ts`.
 - Tests: `*.test.ts` next to the code. DB tests use `DATABASE_URL=":memory:"`, reset `globalThis.habitDb`,
-  fake only `Date` (`vi.useFakeTimers({ toFake: ["Date"] })`), and stub `fetch` for LeetCode.
+  fake only `Date` (`vi.useFakeTimers({ toFake: ["Date"] })`), and stub `fetch` for LeetCode. Content in tests comes
+  from the fixture the vitest global setup loads into a temporary content database; read single items with
+  `fixtureSpec`, `fixtureLesson`, `fixtureDoc` (`apps/web/lib/content-db/test-helpers.ts`). A test that needs another
+  problem or lesson adds its id to `scripts/content-fixture.mjs` and reruns `pnpm content:fixture --db <snapshot>`.
 - UI: Tailwind v4 with theme tokens in `app/globals.css` (`bg-surface`, `text-muted`, `border-line`,
   `bg-accent`…); shared bits in `app/ui.tsx` and `app/learn-blocks.tsx`. Forms post to server actions and work
   without JS. The user prefers wide layouts over narrow centered pages.
-- Learning content is written for this app (study notes, not copied from books). Keep it accurate; tests in
-  `learn/learn.test.ts` enforce coverage.
+- Learning content is written for this app (study notes, not copied from books). Keep it accurate; `verifyContent`
+  (`content-model/verify.ts`) checks it on every admin save and in `pnpm content:verify`.
 
 ## Desktop releases and updates
 

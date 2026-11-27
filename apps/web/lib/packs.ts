@@ -13,9 +13,11 @@ import {
   type FeedPackEntry,
   type Lesson,
   type Pack,
+  type PackKnown,
   type ProblemSpec,
 } from "@habit/shared";
 import { APP_VERSION as SHARED_APP_VERSION } from "@habit/shared";
+import { getAllConcepts, getAllPatterns } from "./content-repo/lookups";
 import { getDb } from "./db";
 import { contentPacks, packProgress, settings } from "./schema";
 
@@ -44,9 +46,15 @@ function parseStored(json: string): Pack | null {
   }
 }
 
+/** The pattern and concept ids a pack may point at, from the content database (plan 0117). */
+export async function packKnown(): Promise<PackKnown> {
+  const [patterns, concepts] = await Promise.all([getAllPatterns(), getAllConcepts()]);
+  return { patternIds: new Set(patterns.map((p) => p.id)), concepts };
+}
+
 /** Validates and stores a pack. Installing the same id again replaces the content and keeps your progress on items that still exist. */
 export async function installPack(raw: unknown): Promise<InstallResult> {
-  const check = validatePack(raw);
+  const check = validatePack(raw, await packKnown());
   if (!check.ok) return check;
   try {
     const { default: mermaid } = await import("mermaid");

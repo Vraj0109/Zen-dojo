@@ -5,24 +5,7 @@ import { DEFAULT_COURSE_CATALOG_URL } from "@habit/shared";
 import { getCourses } from "./courses";
 
 // The course list reads the study areas from the content database; serve the old constants instead.
-vi.mock("./content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getAllConcepts: async () => s.ALL_CONCEPTS,
-    getAllExercises: async () => s.ALL_EXERCISES,
-    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
-    getStudyAreas: async () => s.STUDY_AREAS,
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-    getRoadmapProblems: async () => s.PROBLEMS,
-  };
-});
-vi.mock("./content-repo/courses", () => ({ getLesson: async () => null, listCourses: async () => [], getCourse: async () => null }));
 // The built-in reading list is a doc of kind "reading".
-vi.mock("./content-repo/docs", async () => {
-  const s = await import("@habit/shared");
-  return { getDoc: async (kind: string, id: string) => (kind === "reading" ? { row: { kind, id, body: s.READING } } : null), listDocs: async () => [] };
-});
 import { getCourseLibrary, getPack, getPackProgress, installLibraryCourse, installPack, resetCourseLibraryMemo, setPackItemDone } from "./packs";
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });

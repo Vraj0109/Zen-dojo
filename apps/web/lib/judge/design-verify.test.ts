@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { JUDGE_PROBLEMS } from "@habit/shared";
+
 import { runCode } from "./run";
+import { fixtureSpecs } from "@/lib/content-db/test-helpers";
+
+// Problems come from the content database; these are the committed fixture's (plan 0117).
+const JUDGE_PROBLEMS = fixtureSpecs();
 
 // Opt-in check for authors: runs the C++ reference solution of every design-a-class problem on all its cases.
 //   VERIFY_DESIGN=1 pnpm.cmd exec vitest run apps/web/lib/judge/design-verify.test.ts

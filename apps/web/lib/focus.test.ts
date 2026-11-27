@@ -4,20 +4,6 @@ import { getWeekFocus, taskLink } from "./focus";
 import { logPractice, saveConcept } from "./study";
 
 // The study lookups read the content database; serve the old constants instead (fast, no seeded DB needed).
-vi.mock("./content-repo/lookups", async () => {
-  const s = await import("@habit/shared");
-  return {
-    getAllConcepts: async () => s.ALL_CONCEPTS,
-    getAllExercises: async () => s.ALL_EXERCISES,
-    getStudyArea: async (id: string) => s.STUDY_AREAS.find((a) => a.id === id),
-    getStudyAreas: async () => s.STUDY_AREAS,
-    getDsaGroups: async () => s.DSA_GROUPS,
-    getAllPatterns: async () => s.ALL_PATTERNS,
-    getRoadmapProblems: async () => s.PROBLEMS,
-  };
-});
-vi.mock("./content-repo/courses", () => ({ getLesson: async () => null, listCourses: async () => [], getCourse: async () => null }));
-
 beforeEach(() => {
   process.env.DATABASE_URL = ":memory:";
   delete (globalThis as { habitDb?: unknown }).habitDb;
